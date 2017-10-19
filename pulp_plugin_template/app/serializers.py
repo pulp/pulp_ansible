@@ -43,10 +43,17 @@ class PluginTemplateImporterSerializer(platform.ImporterSerializer):
 
     Add any new fields if defined on PluginTemplateImporter.
     Similar to the example above, in PluginTemplateContentSerializer.
+    Additional validators can be added to the parent validators list
+    
+    For example::
+    
+    class Meta:
+        validators = platform.ImporterSerializer.Meta.validators + [myValidator1, myValidator2]
     """
     class Meta:
         fields = platform.ImporterSerializer.Meta.fields
         model = models.PluginTemplateImporter
+        validators = platform.ImporterSerializer.Meta.validators
 
 
 class PluginTemplatePublisherSerializer(platform.PublisherSerializer):
@@ -55,7 +62,14 @@ class PluginTemplatePublisherSerializer(platform.PublisherSerializer):
 
     Add any new fields if defined on PluginTemplatePublisher.
     Similar to the example above, in PluginTemplateContentSerializer.
+    Additional validators can be added to the parent validators list
+    
+    For example::
+    
+    class Meta:
+        validators = platform.PublisherSerializer.Meta.validators + [myValidator1, myValidator2]
     """
     class Meta:
         fields = platform.PublisherSerializer.Meta.fields
         model = models.PluginTemplatePublisher
+        validators = platform.PublisherSerializer.Meta.validators
