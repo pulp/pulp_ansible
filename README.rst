@@ -1,21 +1,21 @@
-Tepmlate to create your own plugin
+Template to create your own plugin
 ==================================
 
 This is the ``plugin_template`` repository to help plugin writers
 get started and write their own plugin for `Pulp Project
-3.0+ <https://pypi.python.org/pypi/pulpcore/>`__. 
+3.0+ <https://pypi.python.org/pypi/pulpcore/>`__.
 
 Clone this repository and run the provided ``rename.py`` script to create
 a skeleton for your plugin with the name of your choice. It will contain
 ``setup.py``, expected plugin layout and stubs for necessary classes and methods.
- 
+
 ``$ git clone https://github.com/pulp/plugin_template.git``
 
 ``$ cd plugin_template``
 
 ``$ ./rename.py your_plugin_name``
- 
-Check `Plugin Writer's Guide <http://docs.pulpproject.org/en/3.0/nightly/plugins/plugin-writer/index.html>`__ 
+
+Check `Plugin Writer's Guide <http://docs.pulpproject.org/en/3.0/nightly/plugins/plugin-writer/index.html>`__
 for more details and suggestions on plugin implementaion.
 
 Below are some ideas for how to document your plugin.
