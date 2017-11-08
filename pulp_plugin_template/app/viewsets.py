@@ -24,6 +24,7 @@ class PluginTemplateContentViewSet(platform.ContentViewSet):
 
     Also specify queryset and serializer for PluginTemplateContent.
     """
+
     endpoint_name = 'plugin-template'
     queryset = models.PluginTemplateContent.objects.all()
     serializer_class = serializers.PluginTemplateContentSerializer
@@ -36,6 +37,7 @@ class PluginTemplateImporterViewSet(platform.ImporterViewSet):
     Similar to the PluginTemplateContentViewSet above, define endpoint_name,
     queryset and serializer, at a minimum.
     """
+
     endpoint_name = 'plugin-template'
     queryset = models.PluginTemplateImporter.objects.all()
     serializer_class = serializers.PluginTemplateImporterSerializer
@@ -48,6 +50,7 @@ class PluginTemplatePublisherViewSet(platform.PublisherViewSet):
     Similar to the PluginTemplateContentViewSet above, define endpoint_name,
     queryset and serializer, at a minimum.
     """
+
     endpoint_name = 'plugin-template'
     queryset = models.PluginTemplatePublisher.objects.all()
     serializer_class = serializers.PluginTemplatePublisherSerializer

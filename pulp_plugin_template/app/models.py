@@ -39,13 +39,8 @@ class PluginTemplateContent(Content):
         class Meta:
             unique_together = (field1, field2)
     """
-    TYPE = 'plugin-template'
 
-    @classmethod
-    def natural_key_fields(cls):
-        for unique in cls._meta.unique_together:
-            for field in unique:
-                yield field
+    TYPE = 'plugin-template'
 
 
 class PluginTemplatePublisher(Publisher):
@@ -57,6 +52,7 @@ class PluginTemplatePublisher(Publisher):
     It is responsible for publishing metadata and artifacts
     which belongs to a specific repository.
     """
+
     TYPE = 'plugin-template'
 
     def publish(self):
@@ -75,6 +71,7 @@ class PluginTemplateImporter(Importer):
     It is responsible for parsing metadata of the content,
     downloading of the content and saving it to Pulp.
     """
+
     TYPE = 'plugin-template'
 
     def sync(self):
