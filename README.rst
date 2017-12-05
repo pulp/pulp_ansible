@@ -1,25 +1,8 @@
-Template to create your own plugin
-==================================
+Pulp Ansible
+============
 
-This is the ``plugin_template`` repository to help plugin writers
-get started and write their own plugin for `Pulp Project
-3.0+ <https://pypi.python.org/pypi/pulpcore/>`__.
-
-Clone this repository and run the provided ``rename.py`` script to create
-a skeleton for your plugin with the name of your choice. It will contain
-``setup.py``, expected plugin layout and stubs for necessary classes and methods.
-
-``$ git clone https://github.com/pulp/plugin_template.git``
-
-``$ cd plugin_template``
-
-``$ ./rename.py your_plugin_name``
-
-Check `Plugin Writer's Guide <http://docs.pulpproject.org/en/3.0/nightly/plugins/plugin-writer/index.html>`__
-for more details and suggestions on plugin implementaion.
-
-Below are some ideas for how to document your plugin.
-
+This is the ``pulp_ansible`` repository which provides Pulp with the
+ability to manage Ansible content e.g. Roles.
 
 All REST API examples below use `httpie <https://httpie.org/doc>`__ to
 perform the requests.
@@ -33,6 +16,8 @@ provided with pulpcore.
 
 Install plugin
 --------------
+
+Define installation steps here.
 
 From source
 ~~~~~~~~~~~
@@ -55,50 +40,50 @@ Add an Importer to repository ``foo``
 
 Add important details about your Importer and provide examples.
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/importers/plugin-template/ some=params``
+``$ http POST http://localhost:8000/api/v3/repositories/foo/importers/ansible-importer/``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/foo/importers/plugin-template/bar/",
+        "_href": "http://localhost:8000/api/v3/repositories/foo/importers/ansible-importer/bar/",
         ...
     }
 
 Add a Publisher to repository ``foo``
 -------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/plugin-template/ name=bar``
+``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/ name=bar``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/foo/publishers/plugin-template/bar/",
+        "_href": "http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/bar/",
         ...
     }
 
 Add a Distribution to Publisher ``bar``
 ---------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/plugin-template/bar/distributions/ some=params``
+``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/bar/distributions/ some=params``
 
 Sync repository ``foo`` using Importer ``bar``
 ----------------------------------------------
 
 Use ``plugin-template`` Importer:
 
-``http POST http://localhost:8000/api/v3/repositories/foo/importers/plugin-template/bar/sync/``
+``http POST http://localhost:8000/api/v3/repositories/foo/importers/ansible-importer/bar/sync/``
 
 Add content to repository ``foo``
 ---------------------------------
 
-``$ http POST http://localhost:8000/api/v3/repositorycontents/ repository='http://localhost:8000/api/v3/repositories/foo/' content='http://localhost:8000/api/v3/content/plugin-template/a9578a5f-c59f-4920-9497-8d1699c112ff/'``
+``$ http POST http://localhost:8000/api/v3/repositorycontents/ repository='http://localhost:8000/api/v3/repositories/foo/' content='http://localhost:8000/api/v3/content/ansible-publisher/a9578a5f-c59f-4920-9497-8d1699c112ff/'``
 
 Create a Publication using Publisher ``bar``
 --------------------------------------------
 
 Dispatch the Publish task
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/plugin-template/bar/publish/``
+``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/bar/publish/``
 
 .. code:: json
 

@@ -7,18 +7,18 @@ requirements = [
 ]
 
 setup(
-    name='pulp-plugin-template',
+    name='pulp-ansible',
     version='0.0.1a1.dev1',
-    description='pulp-plugin-template plugin for the Pulp Project',
+    description='Pulp plugin to manage Ansible content, e.g. roles',
     author='AUTHOR',
-    author_email='author@email.here',
-    url='http://example.com/',
+    author_email='bbouters@redhat.com, daviddavis@redhat.com',
+    url='https://github.com/bmbouter/pulp_ansible',
     install_requires=requirements,
     include_package_data=True,
-    packages=['pulp_plugin_template', 'pulp_plugin_template.app'],
+    packages=['pulp_ansible', 'pulp_ansible.app'],
     entry_points={
         'pulpcore.plugin': [
-            'pulp_plugin_template = pulp_plugin_template:default_app_config',
+            'pulp_ansible = pulp_ansible:default_app_config',
         ]
     }
 )
