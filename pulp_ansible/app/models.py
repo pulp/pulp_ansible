@@ -2,28 +2,49 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, Importer, Publisher
+from pulpcore.plugin.models import Content, Model, Importer, Publisher
 
 
 log = getLogger(__name__)
 
 
-class AnsibleRole(Content):
+class AnsibleRole(Model):
     """
-    A content type respresenting an Ansible Role
+    A model representing an Ansible Role
     """
-
-    TYPE = 'ansible'
 
     namespace = models.CharField(max_length=64)
     name = models.CharField(max_length=64)
-    version = models.CharField(max_length=128)
 
     class Meta:
         unique_together = (
             'namespace',
-            'name',
-            'version'
+            'name'
+        )
+
+
+class AnsibleRoleVersion(Content):
+    """
+    A content type representing an Ansible Role version
+    """
+
+    TYPE = 'ansible'
+
+    version = models.CharField(max_length=128)
+    role = models.ForeignKey(AnsibleRole, on_delete=models.PROTECT)
+
+    @property
+    def name(self):
+        return self.role.name
+
+    @property
+    def namespace(self):
+        return self.role.namespace
+
+    class Meta:
+        unique_together = (
+            'version',
+            'role'
         )
 
 

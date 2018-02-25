@@ -2,17 +2,17 @@ from rest_framework import serializers
 
 from pulpcore.plugin.serializers import ContentSerializer, ImporterSerializer, PublisherSerializer
 
-from .models import AnsibleRole, AnsibleImporter, AnsiblePublisher
+from .models import AnsibleRoleVersion, AnsibleImporter, AnsiblePublisher
 
 
-class AnsibleRoleSerializer(ContentSerializer):
+class AnsibleRoleVersionSerializer(ContentSerializer):
     name = serializers.CharField()
     namespace = serializers.CharField()
     version = serializers.CharField()
 
     class Meta:
         fields = ContentSerializer.Meta.fields + ('name', 'namespace', 'version')
-        model = AnsibleRole
+        model = AnsibleRoleVersion
 
 
 class AnsibleImporterSerializer(ImporterSerializer):
