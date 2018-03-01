@@ -1,1 +1,0 @@
-default_app_config = 'pulp_plugin_template.app.PulpPluginTemplatePluginAppConfig'
