@@ -11,22 +11,63 @@ from pulpcore.plugin.viewsets import (
     OperationPostponedResponse,
     PublisherViewSet)
 
-from .models import AnsibleRole, AnsibleImporter, AnsiblePublisher
-from .serializers import AnsibleRoleSerializer, AnsibleImporterSerializer, AnsiblePublisherSerializer
+from . import tasks
+from .models import AnsibleRoleVersion, AnsibleImporter, AnsiblePublisher
+from .serializers import AnsibleRoleVersionSerializer, AnsibleImporterSerializer, AnsiblePublisherSerializer
 
 
-class AnsibleRoleFilter(filterset.FilterSet):
+class AnsibleRoleVersionFilter(filterset.FilterSet):
     class Meta:
-        model = AnsibleRole
+        model = AnsibleRoleVersion
         fields = [
-            'name',
-            'namespace',
-            'version'
+            'version',
+            'role__name',
+            'role__namespace'
         ]
 
 
-class AnsibleRoleViewSet(ContentViewSet):
+class AnsibleRoleVersionViewSet(ContentViewSet):
     endpoint_name = 'ansible'
-    queryset = AnsibleRole.objects.all()
-    serializer_class = AnsibleRoleSerializer
-    filter_class = AnsibleRoleFilter
+    queryset = AnsibleRoleVersion.objects.all()
+    serializer_class = AnsibleRoleVersionSerializer
+    filter_class = AnsibleRoleVersionFilter
+
+
+class AnsibleImporterViewSet(ImporterViewSet):
+    endpoint_name = 'ansible'
+    queryset = AnsibleImporter.objects.all()
+    serializer_class = AnsibleImporterSerializer
+
+    @detail_route(methods=('post',))
+    def sync(self, request, pk):
+        importer = self.get_object()
+        repository = self.get_resource(request.data['repository'], Repository)
+        if not importer.feed_url:
+            raise ValidationError(detail=_('A feed_url must be specified.'))
+        result = tasks.synchronize.apply_async_with_reservation(
+            [repository, importer],
+            kwargs={
+                'importer_pk': importer.pk,
+                'repository_pk': repository.pk
+            }
+        )
+        return OperationPostponedResponse([result], request)
+
+
+class AnsiblePublisherViewSet(PublisherViewSet):
+    endpoint_name = 'ansible'
+    queryset = AnsiblePublisher.objects.all()
+    serializer_class = AnsiblePublisherSerializer
+
+    @detail_route(methods=('post',))
+    def publish(self, request, pk):
+        publisher = self.get_object()
+        repository = self.get_resource(request.data['repository'], Repository)
+        result = tasks.publish.apply_async_with_reservation(
+            [repository, publisher],
+            kwargs={
+                'publisher_pk': str(publisher.pk),
+                'repository_pk': repository.pk
+            }
+        )
+        return OperationPostponedResponse([result], request)
