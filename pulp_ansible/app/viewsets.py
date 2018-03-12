@@ -2,9 +2,9 @@ from gettext import gettext as _
 
 from django_filters.rest_framework import filterset
 from rest_framework.decorators import detail_route
-from rest_framework.exceptions import ValidationError
+from rest_framework import serializers
 
-from pulpcore.plugin.models import Repository
+from pulpcore.plugin.models import Repository, RepositoryVersion
 from pulpcore.plugin.viewsets import (
     ContentViewSet,
     ImporterViewSet,
@@ -43,7 +43,7 @@ class AnsibleImporterViewSet(ImporterViewSet):
         importer = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
         if not importer.feed_url:
-            raise ValidationError(detail=_('A feed_url must be specified.'))
+            raise serializers.ValidationError(detail=_('A feed_url must be specified.'))
         result = tasks.synchronize.apply_async_with_reservation(
             [repository, importer],
             kwargs={
@@ -62,12 +62,31 @@ class AnsiblePublisherViewSet(PublisherViewSet):
     @detail_route(methods=('post',))
     def publish(self, request, pk):
         publisher = self.get_object()
-        repository = self.get_resource(request.data['repository'], Repository)
+        repository = None
+        repository_version = None
+        if 'repository' not in request.data and 'repository_version' not in request.data:
+            raise serializers.ValidationError("Either the 'repository' or 'repository_version' "
+                                              "need to be specified.")
+
+        if 'repository' in request.data and request.data['repository']:
+            repository = self.get_resource(request.data['repository'], Repository)
+
+        if 'repository_version' in request.data and request.data['repository_version']:
+            repository_version = self.get_resource(request.data['repository_version'],
+                                                   RepositoryVersion)
+
+        if repository and repository_version:
+            raise serializers.ValidationError("Either the 'repository' or 'repository_version' "
+                                              "can be specified - not both.")
+
+        if not repository_version:
+            repository_version = RepositoryVersion.latest(repository)
+
         result = tasks.publish.apply_async_with_reservation(
-            [repository, publisher],
+            [repository_version.repository, publisher],
             kwargs={
                 'publisher_pk': str(publisher.pk),
-                'repository_pk': repository.pk
+                'repository_version_pk': str(repository_version.pk)
             }
         )
         return OperationPostponedResponse([result], request)

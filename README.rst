@@ -45,55 +45,79 @@ Create a repository ``foo``
 
 ``$ http POST http://localhost:8000/api/v3/repositories/ name=foo``
 
-Add an Importer to repository ``foo``
--------------------------------------
-
-Add important details about your Importer and provide examples.
-
-``$ http POST http://localhost:8000/api/v3/repositories/foo/importers/ansible-importer/``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/foo/importers/ansible-importer/bar/",
+        "_href": "http://localhost:8000/api/v3/repositories/8d7cd67a-9421-461f-9106-2df8e4854f5f/",
         ...
     }
 
-Add a Publisher to repository ``foo``
--------------------------------------
+``$ export REPO_HREF=$(http :8000/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/ name=bar``
+
+Create a new importer ``bar``
+-----------------------------
+
+``$ http POST :8000/api/v3/importers/ansible/ name=bar download_policy='immediate' sync_mode='additive' feed_url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/bar/",
+        "_href": "http://localhost:8000/api/v3/importers/ansible/13ac2d63-7b7b-401d-b71b-9a5af05aab3c/",
         ...
     }
 
-Add a Distribution to Publisher ``bar``
----------------------------------------
+``$ export IMPORTER_HREF=$(http :8000/api/v3/importers/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/bar/distributions/ some=params``
 
-Sync repository ``foo`` using Importer ``bar``
+Sync repository ``foo`` using importer ``bar``
 ----------------------------------------------
 
-Use ``plugin-template`` Importer:
+``$ http POST $IMPORTER_HREF'sync/' repository=$REPO_HREF``
 
-``http POST http://localhost:8000/api/v3/repositories/foo/importers/ansible-importer/bar/sync/``
 
-Add content to repository ``foo``
----------------------------------
+Look at the new Repository Version created
+------------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/repositorycontents/ repository='http://localhost:8000/api/v3/repositories/foo/' content='http://localhost:8000/api/v3/content/ansible-publisher/a9578a5f-c59f-4920-9497-8d1699c112ff/'``
+``$ http GET $REPO_HREF'versions/1/'``
 
-Create a Publication using Publisher ``bar``
---------------------------------------------
+.. code:: json
 
-Dispatch the Publish task
 
-``$ http POST http://localhost:8000/api/v3/repositories/foo/publishers/ansible-publisher/bar/publish/``
+  {
+      "_added_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/added_content/",
+      "_content_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/content/",
+      "_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/",
+      "_removed_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/removed_content/",
+      "content_summary": {
+          "ansible": 11
+      },
+      "created": "2018-03-12T19:23:31.000923Z",
+      "number": 1
+  }
+
+
+Create an Ansible publisher
+---------------------------
+
+``$ http POST http://localhost:8000/api/v3/publishers/ansible/ name=bar``
+
+.. code:: json
+
+    {
+        "_href": "http://localhost:8000/api/v3/publishers/ansible/bar/",
+        ...
+    }
+
+
+``$ export PUBLISHER_HREF=$(http :8000/api/v3/publishers/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+
+
+Use the ``bar`` Publisher to create a Publication
+-------------------------------------------------
+
+``$ http POST $PUBLISHER_HREF'publish/' repository=$REPO_HREF``
 
 .. code:: json
 
@@ -104,12 +128,25 @@ Dispatch the Publish task
         }
     ]
 
-Check status of a task
-----------------------
+``$ export PUBLICATION_HREF=$(http :8000/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')``
 
-``$ http GET http://localhost:8000/api/v3/tasks/82e64412-47f8-4dd4-aa55-9de89a6c549b/``
 
-Download ``foo.tar.gz`` from Pulp
----------------------------------
+Create a Distribution for the Publication
+---------------------------------------
 
-``$ http GET http://localhost:8000/content/foo/foo.tar.gz``
+``$ http POST http://localhost:8000/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
+
+
+.. code:: json
+
+    {
+        "_href": "http://localhost:8000/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
+       ...
+    }
+
+
+Install the ansible kubernetes Role
+-----------------------------------
+
+``$ ansible-galaxy install http://localhost:8000/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar,,ansible.kubernetes``
+
