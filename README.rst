@@ -11,33 +11,29 @@ Install ``pulpcore``
 --------------------
 
 Follow the `installation
-instructions <docs.pulpproject.org/en/3.0/nightly/installation/instructions.html>`__
-provided with pulpcore.
+instructions <https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html>`__
+for pulpcore.
 
 Install plugin
 --------------
 
-Define installation steps here.
+Install from PyPI
+~~~~~~~~~~~~~~~~~
+
+TODO: publish on PyPI
 
 From source
 ~~~~~~~~~~~
 
-1)  sudo -u pulp -i
-2)  source ~/pulpvenv/bin/activate
-3)  git clone https://github.com/pulp/pulp\_ansible.git
-4)  cd pulp\_ansible
-5)  python setup.py develop
-6)  pulp-manager makemigrations pulp\_ansible
-7)  pulp-manager migrate pulp\_ansible
-8)  django-admin runserver
-9)  sudo systemctl restart pulp\_resource\_manager
-10) sudo systemctl restart pulp\_worker@1
-11) sudo systemctl restart pulp\_worker@2
-
-Install from PyPI
-~~~~~~~~~~~~~~~~~
-
-Define installation steps here.
+0)  source ~/pulpvenv/bin/activate
+1)  git clone https://github.com/pulp/pulp\_ansible.git
+2)  cd pulp\_ansible
+3)  python setup.py develop
+4)  pulp-manager makemigrations pulp\_ansible
+5)  pulp-manager migrate pulp\_ansible
+6)  django-admin runserver
+7)  sudo systemctl restart pulp\_resource\_manager
+8) sudo systemctl restart pulp\_worker@1
 
 
 Create a repository ``foo``
