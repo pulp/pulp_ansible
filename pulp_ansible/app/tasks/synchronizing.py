@@ -1,17 +1,18 @@
 import json
 import logging
-import os
 
+from aiohttp.client_exceptions import ClientResponseError
 from collections import namedtuple
+from concurrent.futures import FIRST_COMPLETED
+from contextlib import suppress
 from gettext import gettext as _
-from urllib.parse import urlparse, urlunparse, urlencode, parse_qs
+from urllib.parse import urlparse, urlencode, parse_qs
 
 import asyncio
-from aiohttp import ClientSession
 from celery import shared_task
 from django.db.models import Q
 
-from pulpcore.plugin.models import Artifact, RepositoryVersion, Repository
+from pulpcore.plugin.models import Artifact, RepositoryVersion, Repository, ProgressBar
 from pulpcore.plugin.changeset import (
     BatchIterator,
     ChangeSet,
@@ -32,10 +33,7 @@ Key = namedtuple('Key', ('namespace', 'name', 'version'))
 # The set of Key to be added and removed.
 Delta = namedtuple('Delta', ('additions', 'removals'))
 
-
-# the roles per page when fetching the list of roles
-PAGE_SIZE = 1000
-
+# The Github URL template to fetch a .tar.gz file from
 GITHUB_URL = 'https://github.com/%s/%s/archive/%s.tar.gz'
 
 
@@ -124,29 +122,76 @@ def fetch_roles(importer):
     """
     page_count = 0
 
-    def role_url(importer, page=1, page_size=PAGE_SIZE):
+    def role_page_url(importer, page=1):
         parsed = urlparse(importer.feed_url)
-        new_query = {**parse_qs(parsed.query), **{'page': page, 'page_size': page_size}}
-        parsed._replace(query=urlencode(new_query))
-        return urlunparse(parsed)
+        new_query = parse_qs(parsed.query)
+        new_query['page'] = page
+        return parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + urlencode(new_query, doseq=True)
 
     def parse_metadata(path):
-        nonlocal page_count
-
         metadata = json.load(open(path))
         page_count = metadata['num_pages']
-        return parse_roles(metadata)
+        return page_count, parse_roles(metadata)
 
-    url = importer
-    downloader = importer.get_downloader(role_url(importer))
-    downloader.fetch()
-    roles = parse_metadata(downloader.path)
+    while True:
+        downloader = importer.get_downloader(role_page_url(importer))
+        try:
+            downloader.fetch()
+        except ClientResponseError as aiohttp_exc:
+            if aiohttp_exc.status == 504:
+                msg = _("Download of '{url}' emitted a {error_code} retrying...")
+                error_msg = msg.format(url=aiohttp_exc.request_info.url,
+                                       error_code=aiohttp_exc.status)
+                log.warning(error_msg)
+            else:
+                raise
+        else:
+            break
 
-    # TODO: make sure this loop runs asynchronously
-    for page in range(2, page_count + 1):
-        downloader = importer.get_downloader(role_url(importer, page))
-        downloader.fetch()
-        roles.extend(parse_metadata(downloader.path))
+    page_count, roles = parse_metadata(downloader.path)
+
+    progress_bar = ProgressBar(message='Parsing Pages from Galaxy Roles API', total=page_count,
+                               done=1, state='running')
+    progress_bar.save()
+
+    def downloader_coroutines():
+        for page in range(2, page_count + 1):
+            downloader = importer.get_downloader(role_page_url(importer, page))
+            yield downloader.run()
+
+    loop = asyncio.get_event_loop()
+    downloaders = downloader_coroutines()
+
+    not_done = set()
+    with suppress(StopIteration):
+        for i in range(20):
+            not_done.add(next(downloaders))
+
+    while True:
+        if not_done == set():
+            break
+        done, not_done = loop.run_until_complete(asyncio.wait(not_done, return_when=FIRST_COMPLETED))
+        for item in done:
+            try:
+                download_result = item.result()
+            except ClientResponseError as aiohttp_exc:
+                if aiohttp_exc.status == 504:
+                    msg = _("Download of '{url}' emitted a {error_code} retrying...")
+                    error_msg = msg.format(url=aiohttp_exc.request_info.url,
+                                           error_code=aiohttp_exc.status)
+                    log.warning(error_msg)
+                    new_downloader = importer.get_downloader(str(aiohttp_exc.request_info.url)).run()
+                    not_done.add(new_downloader)
+                    continue
+                raise
+            new_page_count, new_roles = parse_metadata(download_result.path)
+            roles.extend(new_roles)
+            progress_bar.increment()
+            with suppress(StopIteration):
+                not_done.add(next(downloaders))
+
+    progress_bar.state = 'completed'
+    progress_bar.save()
 
     return roles
 
