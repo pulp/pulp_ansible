@@ -1,8 +1,10 @@
 from gettext import gettext as _
 
+from django.db import transaction
 from django_filters.rest_framework import filterset
 from rest_framework.decorators import detail_route
-from rest_framework import serializers
+from rest_framework import serializers, status
+from rest_framework.response import Response
 
 from pulpcore.plugin.models import Repository, RepositoryVersion
 from pulpcore.plugin.viewsets import (
@@ -12,8 +14,18 @@ from pulpcore.plugin.viewsets import (
     PublisherViewSet)
 
 from . import tasks
-from .models import AnsibleRoleVersion, AnsibleImporter, AnsiblePublisher
-from .serializers import AnsibleRoleVersionSerializer, AnsibleImporterSerializer, AnsiblePublisherSerializer
+from .models import AnsibleImporter, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
+from .serializers import (AnsibleImporterSerializer, AnsiblePublisherSerializer,
+                          AnsibleRoleSerializer, AnsibleRoleVersionSerializer)
+
+
+class AnsibleRoleFilter(filterset.FilterSet):
+    class Meta:
+        model = AnsibleRole
+        fields = [
+            'name',
+            'namespace'
+        ]
 
 
 class AnsibleRoleVersionFilter(filterset.FilterSet):
@@ -21,16 +33,42 @@ class AnsibleRoleVersionFilter(filterset.FilterSet):
         model = AnsibleRoleVersion
         fields = [
             'version',
-            'role__name',
-            'role__namespace'
         ]
 
 
+class AnsibleRoleViewSet(ContentViewSet):
+    endpoint_name = 'ansible/roles'
+    router_lookup = 'role'
+    queryset = AnsibleRole.objects.all()
+    serializer_class = AnsibleRoleSerializer
+    filter_class = AnsibleRoleFilter
+
+    @transaction.atomic
+    def create(self, request):
+        # TODO: we should probably remove create() from ContentViewSet
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+
 class AnsibleRoleVersionViewSet(ContentViewSet):
-    endpoint_name = 'ansible'
+    endpoint_name = 'versions'
+    nest_prefix = 'ansible/roles'
+    router_lookup = 'roleversion'
+    parent_viewset = AnsibleRoleViewSet
+    parent_lookup_kwargs = {'role_pk': 'role__pk'}
     queryset = AnsibleRoleVersion.objects.all()
     serializer_class = AnsibleRoleVersionSerializer
     filter_class = AnsibleRoleVersionFilter
+
+    @classmethod
+    def endpoint_pieces(cls):
+        return (cls.endpoint_name,)
+
+    def create(self, request, role_pk):
+        raise NotImplementedError
 
 
 class AnsibleImporterViewSet(ImporterViewSet):
