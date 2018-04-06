@@ -9,13 +9,13 @@ from rest_framework.response import Response
 from pulpcore.plugin.models import Repository, RepositoryVersion
 from pulpcore.plugin.viewsets import (
     ContentViewSet,
-    ImporterViewSet,
+    RemoteViewSet,
     OperationPostponedResponse,
     PublisherViewSet)
 
 from . import tasks
-from .models import AnsibleImporter, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
-from .serializers import (AnsibleImporterSerializer, AnsiblePublisherSerializer,
+from .models import AnsibleRemote, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
+from .serializers import (AnsibleRemoteSerializer, AnsiblePublisherSerializer,
                           AnsibleRoleSerializer, AnsibleRoleVersionSerializer)
 
 
@@ -71,21 +71,21 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
         raise NotImplementedError
 
 
-class AnsibleImporterViewSet(ImporterViewSet):
+class AnsibleRemoteViewSet(RemoteViewSet):
     endpoint_name = 'ansible'
-    queryset = AnsibleImporter.objects.all()
-    serializer_class = AnsibleImporterSerializer
+    queryset = AnsibleRemote.objects.all()
+    serializer_class = AnsibleRemoteSerializer
 
     @detail_route(methods=('post',))
     def sync(self, request, pk):
-        importer = self.get_object()
+        remote = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
-        if not importer.feed_url:
+        if not remote.feed_url:
             raise serializers.ValidationError(detail=_('A feed_url must be specified.'))
         result = tasks.synchronize.apply_async_with_reservation(
-            [repository, importer],
+            [repository, remote],
             kwargs={
-                'importer_pk': importer.pk,
+                'remote_pk': remote.pk,
                 'repository_pk': repository.pk
             }
         )
