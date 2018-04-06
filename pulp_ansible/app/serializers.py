@@ -1,9 +1,9 @@
 from rest_framework import serializers
 
-from pulpcore.plugin.serializers import ContentSerializer, ImporterSerializer, PublisherSerializer
+from pulpcore.plugin.serializers import ContentSerializer, RemoteSerializer, PublisherSerializer
 from pulpcore.plugin.models import Artifact
 
-from .models import AnsibleImporter, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
+from .models import AnsibleRemote, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
 
 from rest_framework_nested.relations import NestedHyperlinkedIdentityField
 
@@ -41,10 +41,10 @@ class AnsibleRoleVersionSerializer(ContentSerializer):
         model = AnsibleRoleVersion
 
 
-class AnsibleImporterSerializer(ImporterSerializer):
+class AnsibleRemoteSerializer(RemoteSerializer):
     class Meta:
-        fields = ImporterSerializer.Meta.fields
-        model = AnsibleImporter
+        fields = RemoteSerializer.Meta.fields
+        model = AnsibleRemote
 
 
 class AnsiblePublisherSerializer(PublisherSerializer):

@@ -52,25 +52,25 @@ Create a repository ``foo``
 ``$ export REPO_HREF=$(http :8000/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
 
 
-Create a new importer ``bar``
+Create a new remote ``bar``
 -----------------------------
 
-``$ http POST :8000/api/v3/importers/ansible/ name=bar download_policy='immediate' sync_mode='additive' feed_url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
+``$ http POST :8000/api/v3/remotes/ansible/ name=bar download_policy='immediate' sync_mode='additive' feed_url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/importers/ansible/13ac2d63-7b7b-401d-b71b-9a5af05aab3c/",
+        "_href": "http://localhost:8000/api/v3/remotes/ansible/13ac2d63-7b7b-401d-b71b-9a5af05aab3c/",
         ...
     }
 
-``$ export IMPORTER_HREF=$(http :8000/api/v3/importers/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export REMOTE_HREF=$(http :8000/api/v3/remotes/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 
-Sync repository ``foo`` using importer ``bar``
+Sync repository ``foo`` using remote ``bar``
 ----------------------------------------------
 
-``$ http POST $IMPORTER_HREF'sync/' repository=$REPO_HREF``
+``$ http POST $REMOTE_HREF'sync/' repository=$REPO_HREF``
 
 
 Look at the new Repository Version created

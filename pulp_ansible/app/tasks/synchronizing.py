@@ -1,7 +1,6 @@
 import json
 import logging
 
-from aiohttp.client_exceptions import ClientResponseError
 from collections import namedtuple
 from concurrent.futures import FIRST_COMPLETED
 from contextlib import suppress
@@ -21,7 +20,7 @@ from pulpcore.plugin.changeset import (
     SizedIterable)
 from pulpcore.plugin.tasking import UserFacingTask, WorkingDirectory
 
-from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion, AnsibleImporter
+from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion, AnsibleRemote
 
 
 log = logging.getLogger(__name__)
@@ -38,40 +37,40 @@ GITHUB_URL = 'https://github.com/%s/%s/archive/%s.tar.gz'
 
 
 @shared_task(base=UserFacingTask)
-def synchronize(importer_pk, repository_pk):
+def synchronize(remote_pk, repository_pk):
     """
     Create a new version of the repository that is synchronized with the remote
-    as specified by the importer.
+    as specified by the remote.
 
     Args:
-        importer_pk (str): The importer PK.
+        remote_pk (str): The remote PK.
         repository_pk (str): The repository PK.
 
     Raises:
         ValueError: When feed_url is empty.
     """
-    importer = AnsibleImporter.objects.get(pk=importer_pk)
+    remote = AnsibleRemote.objects.get(pk=remote_pk)
     repository = Repository.objects.get(pk=repository_pk)
     base_version = RepositoryVersion.latest(repository)
 
-    if not importer.feed_url:
-        raise ValueError(_('An importer must have a feed_url specified to synchronize.'))
+    if not remote.feed_url:
+        raise ValueError(_('A remote must have a feed_url specified to synchronize.'))
 
     with WorkingDirectory():
         with RepositoryVersion.create(repository) as new_version:
             log.info(
-                _('Synchronizing: repository=%(r)s importer=%(p)s'),
+                _('Synchronizing: repository=%(r)s remote=%(p)s'),
                 {
                     'r': repository.name,
-                    'p': importer.name
+                    'p': remote.name
                 })
-            roles = fetch_roles(importer)
+            roles = fetch_roles(remote)
             content = fetch_content(base_version)
             delta = find_delta(roles, content)
-            additions = build_additions(importer, roles, delta)
+            additions = build_additions(remote, roles, delta)
             removals = build_removals(base_version, delta)
             changeset = ChangeSet(
-                importer=importer,
+                remote=remote,
                 repository_version=new_version,
                 additions=additions,
                 removals=removals)
@@ -79,10 +78,10 @@ def synchronize(importer_pk, repository_pk):
                 if not log.isEnabledFor(logging.DEBUG):
                     continue
                 log.debug(
-                    _('Applied: repository=%(r)s importer=%(p)s change:%(c)s'),
+                    _('Applied: repository=%(r)s remote=%(p)s change:%(c)s'),
                     {
                         'r': repository.name,
-                        'p': importer.name,
+                        'p': remote.name,
                         'c': report,
                     })
 
@@ -110,20 +109,20 @@ def parse_roles(metadata):
     return roles
 
 
-def fetch_roles(importer):
+def fetch_roles(remote):
     """
     Fetch the roles in a remote repository
 
     Args:
-        importer (AnsibleImporter): An importer.
+        remote (AnsibleRemote): A remote.
 
     Returns:
         list: a list of dicts that represent roles
     """
     page_count = 0
 
-    def role_page_url(importer, page=1):
-        parsed = urlparse(importer.feed_url)
+    def role_page_url(remote, page=1):
+        parsed = urlparse(remote.feed_url)
         new_query = parse_qs(parsed.query)
         new_query['page'] = page
         return parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + urlencode(new_query, doseq=True)
@@ -133,7 +132,7 @@ def fetch_roles(importer):
         page_count = metadata['num_pages']
         return page_count, parse_roles(metadata)
 
-    downloader = importer.get_downloader(role_page_url(importer))
+    downloader = remote.get_downloader(role_page_url(remote))
     downloader.fetch()
 
     page_count, roles = parse_metadata(downloader.path)
@@ -144,7 +143,7 @@ def fetch_roles(importer):
 
     def downloader_coroutines():
         for page in range(2, page_count + 1):
-            downloader = importer.get_downloader(role_page_url(importer, page))
+            downloader = remote.get_downloader(role_page_url(remote, page))
             yield downloader.run()
 
     loop = asyncio.get_event_loop()
@@ -221,12 +220,12 @@ def find_delta(roles, content, mirror=True):
     return Delta(additions, removals)
 
 
-def build_additions(importer, roles, delta):
+def build_additions(remote, roles, delta):
     """
     Build the content to be added.
 
     Args:
-        importer (AnsibleImporter): An importer.
+        remote (AnsibleRemote): A remote.
         roles (list): The list of role dict from Galaxy
         delta (Delta): The set of Key to be added and removed.
 
@@ -272,7 +271,7 @@ def build_removals(base_version, delta):
     """
     def generate():
         for removals in BatchIterator(delta.removals):
-            role = Role.objects.get(name=key.name, namespace=key.namespace)
+            role = AnsibleRoleVersion.objects.get(name=key.name, namespace=key.namespace)
             q = Q()
             for key in removals:
                 q |= Q(ansibleroleversion__role_id=role.pk, ansibleroleversion__version=key.version)
