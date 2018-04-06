@@ -133,20 +133,8 @@ def fetch_roles(importer):
         page_count = metadata['num_pages']
         return page_count, parse_roles(metadata)
 
-    while True:
-        downloader = importer.get_downloader(role_page_url(importer))
-        try:
-            downloader.fetch()
-        except ClientResponseError as aiohttp_exc:
-            if aiohttp_exc.status == 504:
-                msg = _("Download of '{url}' emitted a {error_code} retrying...")
-                error_msg = msg.format(url=aiohttp_exc.request_info.url,
-                                       error_code=aiohttp_exc.status)
-                log.warning(error_msg)
-            else:
-                raise
-        else:
-            break
+    downloader = importer.get_downloader(role_page_url(importer))
+    downloader.fetch()
 
     page_count, roles = parse_metadata(downloader.path)
 
@@ -172,18 +160,7 @@ def fetch_roles(importer):
             break
         done, not_done = loop.run_until_complete(asyncio.wait(not_done, return_when=FIRST_COMPLETED))
         for item in done:
-            try:
-                download_result = item.result()
-            except ClientResponseError as aiohttp_exc:
-                if aiohttp_exc.status == 504:
-                    msg = _("Download of '{url}' emitted a {error_code} retrying...")
-                    error_msg = msg.format(url=aiohttp_exc.request_info.url,
-                                           error_code=aiohttp_exc.status)
-                    log.warning(error_msg)
-                    new_downloader = importer.get_downloader(str(aiohttp_exc.request_info.url)).run()
-                    not_done.add(new_downloader)
-                    continue
-                raise
+            download_result = item.result()
             new_page_count, new_roles = parse_metadata(download_result.path)
             roles.extend(new_roles)
             progress_bar.increment()
