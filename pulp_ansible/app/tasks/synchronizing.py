@@ -125,7 +125,8 @@ def fetch_roles(remote):
         parsed = urlparse(remote.feed_url)
         new_query = parse_qs(parsed.query)
         new_query['page'] = page
-        return parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + urlencode(new_query, doseq=True)
+        return parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + urlencode(new_query,
+                                                                                     doseq=True)
 
     def parse_metadata(path):
         metadata = json.load(open(path))
@@ -157,7 +158,8 @@ def fetch_roles(remote):
     while True:
         if not_done == set():
             break
-        done, not_done = loop.run_until_complete(asyncio.wait(not_done, return_when=FIRST_COMPLETED))
+        done, not_done = loop.run_until_complete(asyncio.wait(not_done,
+                                                              return_when=FIRST_COMPLETED))
         for item in done:
             download_result = item.result()
             new_page_count, new_roles = parse_metadata(download_result.path)
@@ -245,7 +247,8 @@ def build_additions(remote, roles, delta):
                 if key not in delta.additions:
                     continue
 
-                url = GITHUB_URL % (metadata['github_user'], metadata['github_repo'], version['name'])
+                url = GITHUB_URL % (metadata['github_user'], metadata['github_repo'],
+                                    version['name'])
                 role_version = AnsibleRoleVersion(version=version['name'], role=role)
                 path = "%s/%s/%s.tar" % (metadata['namespace'], metadata['name'], version['name'])
                 artifact = Artifact()
@@ -271,9 +274,9 @@ def build_removals(base_version, delta):
     """
     def generate():
         for removals in BatchIterator(delta.removals):
-            role = AnsibleRoleVersion.objects.get(name=key.name, namespace=key.namespace)
             q = Q()
             for key in removals:
+                role = AnsibleRoleVersion.objects.get(name=key.name, namespace=key.namespace)
                 q |= Q(ansibleroleversion__role_id=role.pk, ansibleroleversion__version=key.version)
             q_set = base_version.content.filter(q)
             q_set = q_set.only('id')

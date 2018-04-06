@@ -11,7 +11,7 @@ from pulpcore.plugin.models import (
     RemoteArtifact)
 from pulpcore.plugin.tasking import UserFacingTask, WorkingDirectory
 
-from pulp_ansible.app.models import AnsibleRole, AnsiblePublisher
+from pulp_ansible.app.models import AnsiblePublisher
 
 
 log = logging.getLogger(__name__)
