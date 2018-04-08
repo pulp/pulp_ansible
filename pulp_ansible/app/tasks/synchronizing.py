@@ -47,14 +47,14 @@ def synchronize(remote_pk, repository_pk):
         repository_pk (str): The repository PK.
 
     Raises:
-        ValueError: When feed_url is empty.
+        ValueError: When remote has no url specified.
     """
     remote = AnsibleRemote.objects.get(pk=remote_pk)
     repository = Repository.objects.get(pk=repository_pk)
     base_version = RepositoryVersion.latest(repository)
 
-    if not remote.feed_url:
-        raise ValueError(_('A remote must have a feed_url specified to synchronize.'))
+    if not remote.url:
+        raise ValueError(_('A remote must have a url specified to synchronize.'))
 
     with WorkingDirectory():
         with RepositoryVersion.create(repository) as new_version:
@@ -122,7 +122,7 @@ def fetch_roles(remote):
     page_count = 0
 
     def role_page_url(remote, page=1):
-        parsed = urlparse(remote.feed_url)
+        parsed = urlparse(remote.url)
         new_query = parse_qs(parsed.query)
         new_query['page'] = page
         return parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + urlencode(new_query,

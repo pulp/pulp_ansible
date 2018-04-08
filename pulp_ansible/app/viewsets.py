@@ -80,8 +80,8 @@ class AnsibleRemoteViewSet(RemoteViewSet):
     def sync(self, request, pk):
         remote = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
-        if not remote.feed_url:
-            raise serializers.ValidationError(detail=_('A feed_url must be specified.'))
+        if not remote.url:
+            raise serializers.ValidationError(detail=_('A url must be specified.'))
         result = tasks.synchronize.apply_async_with_reservation(
             [repository, remote],
             kwargs={
