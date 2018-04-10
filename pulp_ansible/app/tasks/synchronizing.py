@@ -186,8 +186,9 @@ def fetch_content(base_version):
     """
     content = set()
     if base_version:
-        for role in AnsibleRoleVersion.objects.filter(pk__in=base_version.content):
-            key = Key(name=role.name, namespace=role.namespace, version=role.version)
+        for role_version in AnsibleRoleVersion.objects.filter(pk__in=base_version.content):
+            key = Key(name=role_version.role.name, namespace=role_version.role.namespace,
+                      version=role_version.version)
             content.add(key)
     return content
 
