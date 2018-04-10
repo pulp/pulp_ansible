@@ -55,7 +55,7 @@ Create a repository ``foo``
 Create a new remote ``bar``
 -----------------------------
 
-``$ http POST :8000/api/v3/remotes/ansible/ name=bar download_policy='immediate' sync_mode='additive' feed_url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
+``$ http POST :8000/api/v3/remotes/ansible/ name=bar download_policy='immediate' sync_mode='additive' url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
 
 .. code:: json
 
