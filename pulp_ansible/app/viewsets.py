@@ -89,7 +89,7 @@ class AnsibleRemoteViewSet(RemoteViewSet):
                 'repository_pk': repository.pk
             }
         )
-        return OperationPostponedResponse([result], request)
+        return OperationPostponedResponse(result, request)
 
 
 class AnsiblePublisherViewSet(PublisherViewSet):
@@ -127,4 +127,4 @@ class AnsiblePublisherViewSet(PublisherViewSet):
                 'repository_version_pk': str(repository_version.pk)
             }
         )
-        return OperationPostponedResponse([result], request)
+        return OperationPostponedResponse(result, request)
