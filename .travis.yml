@@ -6,5 +6,18 @@ python:
     # python versions used in el7 SCL & supported fedora
     - "3.5"
     - "3.6"
+env:
+  - DB=postgres
+addons:
+    # postgres versions provided by el7 RHSCL (lowest supportable version)
+    postgresql: "9.5"
+services:
+    - postgresql
+    - rabbitmq
 install: source .travis/install.sh
+before_script: source .travis/before_script.sh
 script: source .travis/script.sh
+after_failure:
+  - sh -c "cat ~/django_runserver.log"
+  - sh -c "cat ~/resource_manager.log"
+  - sh -c "cat ~/reserved_workers-1.log"
