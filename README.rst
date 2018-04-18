@@ -94,6 +94,63 @@ Look at the new Repository Version created
   }
 
 
+Upload ``pulp-0.0.1.tar`` to Pulp
+-----------------------------
+
+Create an Artifact by uploading the role version tar to Pulp.
+
+``$ http --form POST http://localhost:8000/api/v3/artifacts/ file@pulp-0.0.1.tar``
+
+.. code:: json
+
+    {
+        "_href": "http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
+        ...
+    }
+
+
+Create a Role content unit
+--------------------------
+
+Create an Ansible role in Pulp.
+
+``$ http http://localhost:8000/api/v3/content/ansible/roles/ namespace=pulp name=pulp``
+
+.. code:: json
+
+    {
+        "_href": "http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/",
+        "_versions_href": "http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/",
+        "name": "pulp",
+        "namespace": "pulp"
+    }
+
+
+Create a ``role version`` from the Role and Artifact
+-----------------------------------------------------
+
+Create a content unit and point it to your Artifact and Role
+
+``$ http POST http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/ version=0.0.1 artifact="http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"``
+
+.. code:: json
+
+    {
+        "_href": "http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/183d532c-37e8-4c0a-a00e-5a80b2de4162/",
+        "artifact": "http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
+        "version": "0.0.1",
+        "type": "ansible-role-version"
+    }
+
+``$ export CONTENT_HREF=$(http :8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/ | jq -r '.results[] | select(.version == "0.0.1") | ._href')``
+
+
+Add content to repository ``foo``
+---------------------------------
+
+``$ http POST $REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
+
+
 Create an Ansible publisher
 ---------------------------
 
@@ -117,12 +174,10 @@ Use the ``bar`` Publisher to create a Publication
 
 .. code:: json
 
-    [
-        {
-            "_href": "http://localhost:8000/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
-            "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
-        }
-    ]
+    {
+        "_href": "http://localhost:8000/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
+        "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
+    }
 
 ``$ export PUBLICATION_HREF=$(http :8000/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')``
 

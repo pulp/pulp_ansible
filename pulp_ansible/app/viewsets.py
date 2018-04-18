@@ -6,7 +6,7 @@ from rest_framework.decorators import detail_route
 from rest_framework import serializers, status
 from rest_framework.response import Response
 
-from pulpcore.plugin.models import Repository, RepositoryVersion
+from pulpcore.plugin.models import Artifact, Repository, RepositoryVersion
 from pulpcore.plugin.viewsets import (
     ContentViewSet,
     RemoteViewSet,
@@ -67,8 +67,20 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
     def endpoint_pieces(cls):
         return (cls.endpoint_name,)
 
+    @transaction.atomic
     def create(self, request, role_pk):
-        raise NotImplementedError
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        validated_data = serializer.validated_data
+
+        role_version = AnsibleRoleVersion(**validated_data)
+        role_version.role = AnsibleRole.objects.get(pk=role_pk)
+        role_version.save()
+        role_version.artifact = self.get_resource(request.data['artifact'], Artifact)
+
+        headers = self.get_success_headers(request.data)
+        return Response(self.get_serializer(role_version).data, status=status.HTTP_201_CREATED,
+                        headers=headers)
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):
