@@ -8,7 +8,6 @@ from gettext import gettext as _
 from urllib.parse import urlparse, urlencode, parse_qs
 
 import asyncio
-from celery import shared_task
 from django.db.models import Q
 
 from pulpcore.plugin.models import Artifact, RepositoryVersion, Repository, ProgressBar
@@ -18,7 +17,7 @@ from pulpcore.plugin.changeset import (
     PendingArtifact,
     PendingContent,
     SizedIterable)
-from pulpcore.plugin.tasking import UserFacingTask, WorkingDirectory
+from pulpcore.plugin.tasking import WorkingDirectory
 
 from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion, AnsibleRemote
 
@@ -36,7 +35,6 @@ Delta = namedtuple('Delta', ('additions', 'removals'))
 GITHUB_URL = 'https://github.com/%s/%s/archive/%s.tar.gz'
 
 
-@shared_task(base=UserFacingTask)
 def synchronize(remote_pk, repository_pk):
     """
     Create a new version of the repository that is synchronized with the remote

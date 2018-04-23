@@ -7,6 +7,9 @@ export PULP_SMASH_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\
 
 pip install flake8 pytest
 
+# temporary workaround until a newer RQ release is available
+pip install git+https://github.com/rq/rq.git@3133d94b58e59cb86e8f4677492d48b2addcf5f8
+
 cd .. && git clone https://github.com/pulp/pulp.git
 
 if [ -z $PULP_PR_NUMBER ]; then
