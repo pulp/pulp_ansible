@@ -94,19 +94,16 @@ Look at the new Repository Version created
   }
 
 
-Upload ``pulp-0.0.1.tar`` to Pulp
------------------------------
+Upload a Role to Pulp
+---------------------
 
-Create an Artifact by uploading the role version tar to Pulp.
+Download a role version.
 
-``$ http --form POST http://localhost:8000/api/v3/artifacts/ file@pulp-0.0.1.tar``
+``curl -L https://github.com/pulp/ansible-pulp3/archive/master.tar.gz -o pulp.tar.gz``
 
-.. code:: json
+Create an Artifact by uploading the role version tarball to Pulp.
 
-    {
-        "_href": "http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
-        ...
-    }
+``$ export ARTIFACT_HREF=$(http --form POST http://localhost:8000/api/v3/artifacts/ file@pulp.tar.gz | jq -r '._href')``
 
 
 Create a Role content unit
@@ -114,16 +111,7 @@ Create a Role content unit
 
 Create an Ansible role in Pulp.
 
-``$ http http://localhost:8000/api/v3/content/ansible/roles/ namespace=pulp name=pulp``
-
-.. code:: json
-
-    {
-        "_href": "http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/",
-        "_versions_href": "http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/",
-        "name": "pulp",
-        "namespace": "pulp"
-    }
+``$ export ROLE_HREF=$(http http://localhost:8000/api/v3/content/ansible/roles/ namespace=pulp name=pulp | jq -r '._href')``
 
 
 Create a ``role version`` from the Role and Artifact
@@ -131,18 +119,7 @@ Create a ``role version`` from the Role and Artifact
 
 Create a content unit and point it to your Artifact and Role
 
-``$ http POST http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/ version=0.0.1 artifact="http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/"``
-
-.. code:: json
-
-    {
-        "_href": "http://localhost:8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/183d532c-37e8-4c0a-a00e-5a80b2de4162/",
-        "artifact": "http://localhost:8000/api/v3/artifacts/7d39e3f6-535a-4b6e-81e9-c83aa56aa19e/",
-        "version": "0.0.1",
-        "type": "ansible-role-version"
-    }
-
-``$ export CONTENT_HREF=$(http :8000/api/v3/content/ansible/roles/3965b515-53a0-4667-a540-a76714a903d4/versions/ | jq -r '.results[] | select(.version == "0.0.1") | ._href')``
+``$ export CONTENT_HREF=$(http POST ${ROLE_HREF}versions/ version=0.0.1 artifact=$ARTIFACT_HREF | jq -r '._href')``
 
 
 Add content to repository ``foo``
