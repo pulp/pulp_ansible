@@ -94,6 +94,40 @@ Look at the new Repository Version created
   }
 
 
+Upload a Role to Pulp
+---------------------
+
+Download a role version.
+
+``curl -L https://github.com/pulp/ansible-pulp3/archive/master.tar.gz -o pulp.tar.gz``
+
+Create an Artifact by uploading the role version tarball to Pulp.
+
+``$ export ARTIFACT_HREF=$(http --form POST http://localhost:8000/api/v3/artifacts/ file@pulp.tar.gz | jq -r '._href')``
+
+
+Create a Role content unit
+--------------------------
+
+Create an Ansible role in Pulp.
+
+``$ export ROLE_HREF=$(http http://localhost:8000/api/v3/content/ansible/roles/ namespace=pulp name=pulp | jq -r '._href')``
+
+
+Create a ``role version`` from the Role and Artifact
+-----------------------------------------------------
+
+Create a content unit and point it to your Artifact and Role
+
+``$ export CONTENT_HREF=$(http POST ${ROLE_HREF}versions/ version=0.0.1 artifact=$ARTIFACT_HREF | jq -r '._href')``
+
+
+Add content to repository ``foo``
+---------------------------------
+
+``$ http POST $REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
+
+
 Create an Ansible publisher
 ---------------------------
 
@@ -117,12 +151,10 @@ Use the ``bar`` Publisher to create a Publication
 
 .. code:: json
 
-    [
-        {
-            "_href": "http://localhost:8000/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
-            "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
-        }
-    ]
+    {
+        "_href": "http://localhost:8000/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
+        "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
+    }
 
 ``$ export PUBLICATION_HREF=$(http :8000/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')``
 
