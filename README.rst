@@ -39,32 +39,32 @@ From source
 Create a repository ``foo``
 ---------------------------
 
-``$ http POST http://localhost:8000/api/v3/repositories/ name=foo``
+``$ http POST http://localhost:8000/pulp/api/v3/repositories/ name=foo``
 
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/repositories/8d7cd67a-9421-461f-9106-2df8e4854f5f/",
+        "_href": "http://localhost:8000/pulp/api/v3/repositories/8d7cd67a-9421-461f-9106-2df8e4854f5f/",
         ...
     }
 
-``$ export REPO_HREF=$(http :8000/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
+``$ export REPO_HREF=$(http :8000/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
 
 
 Create a new remote ``bar``
 -----------------------------
 
-``$ http POST :8000/api/v3/remotes/ansible/ name=bar download_policy='immediate' sync_mode='additive' url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
+``$ http POST :8000/pulp/api/v3/remotes/ansible/ name=bar download_policy='immediate' sync_mode='additive' url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/remotes/ansible/13ac2d63-7b7b-401d-b71b-9a5af05aab3c/",
+        "_href": "http://localhost:8000/pulp/api/v3/remotes/ansible/13ac2d63-7b7b-401d-b71b-9a5af05aab3c/",
         ...
     }
 
-``$ export REMOTE_HREF=$(http :8000/api/v3/remotes/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export REMOTE_HREF=$(http :8000/pulp/api/v3/remotes/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 
 Sync repository ``foo`` using remote ``bar``
@@ -82,10 +82,10 @@ Look at the new Repository Version created
 
 
   {
-      "_added_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/added_content/",
-      "_content_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/content/",
-      "_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/",
-      "_removed_href": "http://localhost:8000/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/removed_content/",
+      "_added_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/added_content/",
+      "_content_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/content/",
+      "_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/",
+      "_removed_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/removed_content/",
       "content_summary": {
           "ansible": 11
       },
@@ -103,7 +103,7 @@ Download a role version.
 
 Create an Artifact by uploading the role version tarball to Pulp.
 
-``$ export ARTIFACT_HREF=$(http --form POST http://localhost:8000/api/v3/artifacts/ file@pulp.tar.gz | jq -r '._href')``
+``$ export ARTIFACT_HREF=$(http --form POST http://localhost:8000/pulp/api/v3/artifacts/ file@pulp.tar.gz | jq -r '._href')``
 
 
 Create a Role content unit
@@ -111,7 +111,7 @@ Create a Role content unit
 
 Create an Ansible role in Pulp.
 
-``$ export ROLE_HREF=$(http http://localhost:8000/api/v3/content/ansible/roles/ namespace=pulp name=pulp | jq -r '._href')``
+``$ export ROLE_HREF=$(http http://localhost:8000/pulp/api/v3/content/ansible/roles/ namespace=pulp name=pulp | jq -r '._href')``
 
 
 Create a ``role version`` from the Role and Artifact
@@ -131,17 +131,17 @@ Add content to repository ``foo``
 Create an Ansible publisher
 ---------------------------
 
-``$ http POST http://localhost:8000/api/v3/publishers/ansible/ name=bar``
+``$ http POST http://localhost:8000/pulp/api/v3/publishers/ansible/ name=bar``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/publishers/ansible/bar/",
+        "_href": "http://localhost:8000/pulp/api/v3/publishers/ansible/bar/",
         ...
     }
 
 
-``$ export PUBLISHER_HREF=$(http :8000/api/v3/publishers/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export PUBLISHER_HREF=$(http :8000/pulp/api/v3/publishers/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 
 Use the ``bar`` Publisher to create a Publication
@@ -152,23 +152,23 @@ Use the ``bar`` Publisher to create a Publication
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
+        "_href": "http://localhost:8000/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/",
         "task_id": "fd4cbecd-6c6a-4197-9cbe-4e45b0516309"
     }
 
-``$ export PUBLICATION_HREF=$(http :8000/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')``
+``$ export PUBLICATION_HREF=$(http :8000/pulp/api/v3/publications/ | jq -r --arg PUBLISHER_HREF "$PUBLISHER_HREF" '.results[] | select(.publisher==$PUBLISHER_HREF) | ._href')``
 
 
 Create a Distribution for the Publication
 ---------------------------------------
 
-``$ http POST http://localhost:8000/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
+``$ http POST http://localhost:8000/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
 
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
+        "_href": "http://localhost:8000/pulp/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
        ...
     }
 
@@ -176,5 +176,5 @@ Create a Distribution for the Publication
 Install the ansible kubernetes Role
 -----------------------------------
 
-``$ ansible-galaxy install http://localhost:8000/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar,,ansible.kubernetes``
+``$ ansible-galaxy install http://localhost:8000/pulp/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar,,ansible.kubernetes``
 
