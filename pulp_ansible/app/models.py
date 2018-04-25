@@ -33,7 +33,7 @@ class AnsibleRoleVersion(Content):
     TYPE = 'ansible-role-version'
 
     version = models.CharField(max_length=128)
-    role = models.ForeignKey(AnsibleRole, on_delete=models.PROTECT)
+    role = models.ForeignKey(AnsibleRole, on_delete=models.PROTECT, related_name='versions')
 
     @property
     def artifact(self):
@@ -48,6 +48,10 @@ class AnsibleRoleVersion(Content):
                                                                         self.role.name,
                                                                         self.version))
             ca.save()
+
+    @property
+    def relative_path(self):
+        return self.contentartifact_set.get().relative_path
 
     class Meta:
         unique_together = (
