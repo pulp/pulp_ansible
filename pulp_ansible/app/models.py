@@ -44,7 +44,9 @@ class AnsibleRoleVersion(Content):
         if self.pk:
             ca = ContentArtifact(artifact=artifact,
                                  content=self,
-                                 relative_path="{}.tar".format(self.version))
+                                 relative_path="{}/{}/{}.tar.gz".format(self.role.namespace,
+                                                                        self.role.name,
+                                                                        self.version))
             ca.save()
 
     class Meta:

@@ -251,7 +251,8 @@ def build_additions(remote, roles, delta):
                 url = GITHUB_URL % (metadata['github_user'], metadata['github_repo'],
                                     version['name'])
                 role_version = AnsibleRoleVersion(version=version['name'], role=role)
-                path = "%s/%s/%s.tar" % (metadata['namespace'], metadata['name'], version['name'])
+                path = "%s/%s/%s.tar.gz" % (metadata['namespace'], metadata['name'],
+                                            version['name'])
                 artifact = Artifact()
                 content = PendingContent(
                     role_version,

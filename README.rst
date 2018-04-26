@@ -176,5 +176,4 @@ Create a Distribution for the Publication
 Install the ansible kubernetes Role
 -----------------------------------
 
-``$ ansible-galaxy install http://localhost:8000/pulp/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar,,ansible.kubernetes``
-
+``$ ansible-galaxy install http://localhost:8000/pulp/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar.gz,,ansible.kubernetes``
