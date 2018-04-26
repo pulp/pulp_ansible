@@ -43,15 +43,6 @@ class AnsibleRoleViewSet(ContentViewSet):
     serializer_class = AnsibleRoleSerializer
     filter_class = AnsibleRoleFilter
 
-    @transaction.atomic
-    def create(self, request):
-        # TODO: we should probably remove create() from ContentViewSet
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
 
 class AnsibleRoleVersionViewSet(ContentViewSet):
     endpoint_name = 'versions'
@@ -69,6 +60,7 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
 
     @transaction.atomic
     def create(self, request, role_pk):
+        # TODO: move this stuff to the serializer
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
