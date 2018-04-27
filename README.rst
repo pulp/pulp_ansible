@@ -20,7 +20,15 @@ Install plugin
 Install from PyPI
 ~~~~~~~~~~~~~~~~~
 
-TODO: publish on PyPI
+1) sudo -u pulp -i
+2) source ~/pulpvenv/bin/activate
+3) pip install pulp-ansible
+4) pulp-manager makemigrations pulp\_ansible
+5) pulp-manager migrate pulp\_ansible
+6) django-admin runserver
+7) sudo systemctl restart pulp\_resource\_manager
+8) sudo systemctl restart pulp\_worker@1
+9) sudo systemctl restart pulp\_worker@2
 
 From source
 ~~~~~~~~~~~
