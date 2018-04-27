@@ -17,8 +17,13 @@ class AnsibleRoleSerializer(ContentSerializer):
         lookup_url_kwarg='role_pk',
     )
 
+    version_count = serializers.IntegerField(
+        source='versions.count',
+        read_only=True
+    )
+
     class Meta:
-        fields = ('_href', 'name', 'namespace', '_versions_href')
+        fields = ('_href', 'name', 'namespace', '_versions_href', 'version_count')
         model = AnsibleRole
 
 

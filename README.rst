@@ -176,4 +176,30 @@ Create a Distribution for the Publication
 Install the ansible kubernetes Role
 -----------------------------------
 
+Using a direct path
+~~~~~~~~~~~~~~~~~~~
+
+To install your role using a link to the direct tarball, do the following:
+
 ``$ ansible-galaxy install http://localhost:8000/pulp/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar.gz,,ansible.kubernetes``
+
+
+Using the Pulp Galaxy API
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Alternatively, Pulp offers a built-in Galaxy API. To use this, set up your distribution in your
+ansible config (e.g. ``~/.ansible.cfg`` or ``/etc/ansible/ansible.cfg``):
+
+.. code::
+
+    [galaxy]
+    server: http://localhost:8000/pulp_ansible/galaxy/dev
+
+Then install your role using namespace and name:
+
+.. code::
+
+   $ ansible-galaxy install ansible.kubernetes-modules,v0.3.1-6
+   - downloading role from http://localhost:8000/pulp/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar
+   - extracting ansible.kubernetes to /home/vagrant/.ansible/roles/ansible.kubernetes
+   - ansible.kubernetes (v0.3.1-6) was installed successfully
