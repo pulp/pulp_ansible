@@ -55,7 +55,7 @@ Create a repository ``foo``
 Create a new remote ``bar``
 -----------------------------
 
-``$ http POST :8000/pulp/api/v3/remotes/ansible/ name=bar download_policy='immediate' sync_mode='additive' url='https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'``
+``$ http POST :8000/pulp/api/v3/remotes/ansible/ name=bar download_policy='immediate' sync_mode='additive' url='https://galaxy.ansible.com/api/v1/roles/?namespace=elastic'``
 
 .. code:: json
 
@@ -181,7 +181,7 @@ Using a direct path
 
 To install your role using a link to the direct tarball, do the following:
 
-``$ ansible-galaxy install http://localhost:8000/pulp/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar.gz,,ansible.kubernetes``
+``$ ansible-galaxy install http://localhost:8000/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz,,elastic.elasticsearch``
 
 
 Using the Pulp Galaxy API
@@ -199,7 +199,9 @@ Then install your role using namespace and name:
 
 .. code::
 
-   $ ansible-galaxy install ansible.kubernetes-modules,v0.3.1-6
-   - downloading role from http://localhost:8000/pulp/content/dev/ansible/kubernetes-modules/v0.3.1-6.tar
-   - extracting ansible.kubernetes to /home/vagrant/.ansible/roles/ansible.kubernetes
-   - ansible.kubernetes (v0.3.1-6) was installed successfully
+   $ ansible-galaxy install elastic.elasticsearch
+   - downloading role 'elasticsearch', owned by elastic
+   - downloading role from http://localhost:8000/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz
+   - extracting elastic.elasticsearch to /home/vagrant/.ansible/roles/elastic.elasticsearch
+   - elastic.elasticsearch (6.2.4) was installed successfully
+
