@@ -68,9 +68,17 @@ class AnsiblePublisher(Publisher):
     TYPE = 'ansible'
 
 
-class AnsibleRemote(Remote):
+class AnsibleGalaxyRemote(Remote):
     """
-    A Remote for Ansible content
+    A Remote for Ansible Galaxy
     """
 
-    TYPE = 'ansible'
+    TYPE = 'ansible-galaxy'
+
+
+class AnsibleGitRemote(Remote):
+    """
+    A Remote for Ansible content in git
+    """
+
+    TYPE = 'ansible-git'

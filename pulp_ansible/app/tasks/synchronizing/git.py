@@ -1,5 +1,6 @@
-import json
 import logging
+import os
+import tarfile
 
 from collections import namedtuple
 from concurrent.futures import FIRST_COMPLETED
@@ -10,6 +11,7 @@ from urllib.parse import urlparse, urlencode, parse_qs
 import asyncio
 from celery import shared_task
 from django.db.models import Q
+from git import Repo
 
 from pulpcore.plugin.models import Artifact, RepositoryVersion, Repository, ProgressBar
 from pulpcore.plugin.changeset import (
@@ -20,7 +22,7 @@ from pulpcore.plugin.changeset import (
     SizedIterable)
 from pulpcore.plugin.tasking import UserFacingTask, WorkingDirectory
 
-from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion, AnsibleRemote
+from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion, AnsibleGitRemote
 
 
 log = logging.getLogger(__name__)
@@ -32,12 +34,9 @@ Key = namedtuple('Key', ('namespace', 'name', 'version'))
 # The set of Key to be added and removed.
 Delta = namedtuple('Delta', ('additions', 'removals'))
 
-# The Github URL template to fetch a .tar.gz file from
-GITHUB_URL = 'https://github.com/%s/%s/archive/%s.tar.gz'
-
 
 @shared_task(base=UserFacingTask)
-def synchronize(remote_pk, repository_pk):
+def synchronize(remote_pk, repository_pk, role_pk):
     """
     Create a new version of the repository that is synchronized with the remote
     as specified by the remote.
@@ -49,14 +48,15 @@ def synchronize(remote_pk, repository_pk):
     Raises:
         ValueError: When remote has no url specified.
     """
-    remote = AnsibleRemote.objects.get(pk=remote_pk)
+    remote = AnsibleGitRemote.objects.get(pk=remote_pk)
     repository = Repository.objects.get(pk=repository_pk)
+    role = AnsibleRole.objects.get(pk=role_pk)
     base_version = RepositoryVersion.latest(repository)
 
     if not remote.url:
         raise ValueError(_('A remote must have a url specified to synchronize.'))
 
-    with WorkingDirectory():
+    with WorkingDirectory() as working_dir:
         with RepositoryVersion.create(repository) as new_version:
             log.info(
                 _('Synchronizing: repository=%(r)s remote=%(p)s'),
@@ -64,10 +64,10 @@ def synchronize(remote_pk, repository_pk):
                     'r': repository.name,
                     'p': remote.name
                 })
-            roles = fetch_roles(remote)
+            versions = fetch_role_versions(remote, os.join(working_dir, remote.id), role)
             content = fetch_content(base_version)
-            delta = find_delta(roles, content)
-            additions = build_additions(remote, roles, delta)
+            delta = find_delta(versions, content)
+            additions = build_additions(remote, versions, delta)
             removals = build_removals(base_version, delta)
             changeset = ChangeSet(
                 remote=remote,
@@ -86,92 +86,35 @@ def synchronize(remote_pk, repository_pk):
                     })
 
 
-def parse_roles(metadata):
+def fetch_role_versions(remote, working_dir, role):
     """
-    Parse roles from  metadata json returned from galaxy
+    Fetch the role versions in a remote git repository
 
     Args:
-        metadata (dict): Parsed metadata json
-
-    Returns:
-        roles (list): List of dicts containing role info
-    """
-    roles = list()
-
-    for result in metadata['results']:
-        role = {'name': result['name'],
-                'namespace': result['namespace'],
-                'summary_fields': result['summary_fields'],  # needed for versions
-                'github_user': result['github_user'],
-                'github_repo': result['github_repo']}
-        roles.append(role)
-
-    return roles
-
-
-def fetch_roles(remote):
-    """
-    Fetch the roles in a remote repository
-
-    Args:
-        remote (AnsibleRemote): A remote.
+        remote (AnsibleGitRemote): A remote.
 
     Returns:
         list: a list of dicts that represent roles
     """
-    page_count = 0
+    repo = Repo.clone_from(remote.url, working_dir)
+    tags = repo.tags
+    versions = set()
 
-    def role_page_url(remote, page=1):
-        parsed = urlparse(remote.url)
-        new_query = parse_qs(parsed.query)
-        new_query['page'] = page
-        return parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + urlencode(new_query,
-                                                                                     doseq=True)
-
-    def parse_metadata(path):
-        metadata = json.load(open(path))
-        page_count = metadata['num_pages']
-        return page_count, parse_roles(metadata)
-
-    downloader = remote.get_downloader(role_page_url(remote))
-    downloader.fetch()
-
-    page_count, roles = parse_metadata(downloader.path)
-
-    progress_bar = ProgressBar(message='Parsing Pages from Galaxy Roles API', total=page_count,
-                               done=1, state='running')
+    progress_bar = ProgressBar(message='Fetching and parsing git repo', total=len(tags),
+                               done=0, state='running')
     progress_bar.save()
 
-    def downloader_coroutines():
-        for page in range(2, page_count + 1):
-            downloader = remote.get_downloader(role_page_url(remote, page))
-            yield downloader.run()
-
-    loop = asyncio.get_event_loop()
-    downloaders = downloader_coroutines()
-
-    not_done = set()
-    with suppress(StopIteration):
-        for i in range(20):
-            not_done.add(next(downloaders))
-
-    while True:
-        if not_done == set():
-            break
-        done, not_done = loop.run_until_complete(asyncio.wait(not_done,
-                                                              return_when=FIRST_COMPLETED))
-        for item in done:
-            download_result = item.result()
-            new_page_count, new_roles = parse_metadata(download_result.path)
-            roles.extend(new_roles)
-            progress_bar.increment()
-            with suppress(StopIteration):
-                not_done.add(next(downloaders))
+    for tag in tags:
+        repo.heads.tag.checkout()
+        versions.append(Key(name=role.name, namespace=role.namespace, version=tag.name))
+        with tarfile.open(tag.name, "w:gz") as tar:
+            tar.add(working_dir, arcname=os.path.basename(working_dir))
+        progress_bar.increment()
 
     progress_bar.state = 'completed'
     progress_bar.save()
 
-    return roles
+    return versions
 
 
 def fetch_content(base_version):
@@ -193,7 +136,7 @@ def fetch_content(base_version):
     return content
 
 
-def find_delta(roles, content, mirror=True):
+def find_delta(role_versions, content, mirror=True):
     """
     Find the content that needs to be added and removed.
 
@@ -209,13 +152,7 @@ def find_delta(roles, content, mirror=True):
         Delta: The set of Key to be added and removed.
     """
     remote_content = set()
-    for r in roles:
-        for version in r['summary_fields']['versions']:
-            role = Key(name=r['name'],
-                       namespace=r['namespace'],
-                       version=version['name'])
-            remote_content.add(role)
-    additions = (remote_content - content)
+    additions = (role_versions - content)
     if mirror:
         removals = (content - remote_content)
     else:
@@ -228,39 +165,40 @@ def build_additions(remote, roles, delta):
     Build the content to be added.
 
     Args:
-        remote (AnsibleRemote): A remote.
-        roles (list): The list of role dict from Galaxy
+        remote (AnsibleGitRemote): A remote.
+        roles (list): The list of role dict from Git
         delta (Delta): The set of Key to be added and removed.
 
     Returns:
         SizedIterable: The PendingContent to be added to the repository.
     """
-    def generate():
-        for metadata in roles:
-            role, _ = AnsibleRole.objects.get_or_create(name=metadata['name'],
-                                                        namespace=metadata['namespace'])
+    pass
+    # def generate():
+        # for metadata in roles:
+            # role, _ = AnsibleRole.objects.get_or_create(name=metadata['name'],
+                                                        # namespace=metadata['namespace'])
 
-            for version in metadata['summary_fields']['versions']:
-                key = Key(name=metadata['name'],
-                          namespace=metadata['namespace'],
-                          version=version['name'])
+            # for version in metadata['summary_fields']['versions']:
+                # key = Key(name=metadata['name'],
+                          # namespace=metadata['namespace'],
+                          # version=version['name'])
 
-                if key not in delta.additions:
-                    continue
+                # if key not in delta.additions:
+                    # continue
 
-                url = GITHUB_URL % (metadata['github_user'], metadata['github_repo'],
-                                    version['name'])
-                role_version = AnsibleRoleVersion(version=version['name'], role=role)
-                path = "%s/%s/%s.tar.gz" % (metadata['namespace'], metadata['name'],
-                                            version['name'])
-                artifact = Artifact()
-                content = PendingContent(
-                    role_version,
-                    artifacts={
-                        PendingArtifact(artifact, url, path)
-                    })
-                yield content
-    return SizedIterable(generate(), len(delta.additions))
+                # url = GITHUB_URL % (metadata['github_user'], metadata['github_repo'],
+                                    # version['name'])
+                # role_version = AnsibleRoleVersion(version=version['name'], role=role)
+                # path = "%s/%s/%s.tar.gz" % (metadata['namespace'], metadata['name'],
+                                            # version['name'])
+                # artifact = Artifact()
+                # content = PendingContent(
+                    # role_version,
+                    # artifacts={
+                        # PendingArtifact(artifact, url, path)
+                    # })
+                # yield content
+    # return SizedIterable(generate(), len(delta.additions))
 
 
 def build_removals(base_version, delta):

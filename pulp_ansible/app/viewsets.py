@@ -14,9 +14,11 @@ from pulpcore.plugin.viewsets import (
     PublisherViewSet)
 
 from . import tasks
-from .models import AnsibleRemote, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
-from .serializers import (AnsibleRemoteSerializer, AnsiblePublisherSerializer,
-                          AnsibleRoleSerializer, AnsibleRoleVersionSerializer)
+from .models import (AnsibleGalaxyRemote, AnsibleGitRemote, AnsiblePublisher, AnsibleRole,
+                     AnsibleRoleVersion)
+from .serializers import (AnsibleGalaxyRemoteSerializer, AnsibleGitRemoteSerializer,
+                          AnsiblePublisherSerializer, AnsibleRoleSerializer,
+                          AnsibleRoleVersionSerializer)
 
 
 class AnsibleRoleFilter(filterset.FilterSet):
@@ -83,22 +85,41 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
                         headers=headers)
 
 
-class AnsibleRemoteViewSet(RemoteViewSet):
-    endpoint_name = 'ansible'
-    queryset = AnsibleRemote.objects.all()
-    serializer_class = AnsibleRemoteSerializer
+class AnsibleGalaxyRemoteViewSet(RemoteViewSet):
+    endpoint_name = 'ansible/galaxy'
 
     @detail_route(methods=('post',))
     def sync(self, request, pk):
         remote = self.get_object()
         repository = self.get_resource(request.data['repository'], Repository)
-        if not remote.url:
-            raise serializers.ValidationError(detail=_('A url must be specified.'))
-        result = tasks.synchronize.apply_async_with_reservation(
+
+        result = tasks.galaxy.synchronize.apply_async_with_reservation(
             [repository, remote],
             kwargs={
                 'remote_pk': remote.pk,
                 'repository_pk': repository.pk
+            }
+        )
+        return OperationPostponedResponse(result, request)
+
+
+class AnsibleGitRemoteViewSet(RemoteViewSet):
+    endpoint_name = 'ansible/git'
+    queryset = AnsibleGitRemote.objects.all()
+    serializer_class = AnsibleGitRemoteSerializer
+
+    @detail_route(methods=('post',))
+    def sync(self, request, pk):
+        remote = self.get_object()
+        repository = self.get_resource(request.data['repository'], Repository)
+        role = self.get_resource(request.data['role'], AnsibleRole)
+
+        result = tasks.galaxy.synchronize.apply_async_with_reservation(
+            [repository, remote],
+            kwargs={
+                'remote_pk': remote.pk,
+                'repository_pk': repository.pk,
+                'role_pk': role.pk
             }
         )
         return OperationPostponedResponse(result, request)

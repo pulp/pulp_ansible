@@ -1,2 +1,2 @@
-from .synchronizing import synchronize  # noqa
+from .synchronizing import galaxy  # noqa
 from .publishing import publish  # noqa
