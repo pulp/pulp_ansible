@@ -21,3 +21,18 @@ after_failure:
   - sh -c "cat ~/django_runserver.log"
   - sh -c "cat ~/resource_manager.log"
   - sh -c "cat ~/reserved_workers-1.log"
+stages:
+- name: test
+- name: deploy
+jobs:
+  include:
+  - stage: deploy
+    script: skip
+    deploy:
+      provider: pypi
+      distributions: sdist bdist_wheel
+      user: pulp
+      password:
+        secure: LpkkFdkmL01K3tOTPXbMCqFcho8gz7GxrMZPMT55RAnKuBCN9kblgUQ8Ot/SCP2BMiLTc2IP45f7b717B5iDDf0CnEPdf6eq0hj439z5pH0XNZb2P+WHgiwFD6V9dT+wabveAGfofMan87omHYFHpZ0E1YJd0wi6w1ksaWlN2KQW58D+K/aICiPT0FYwBFpHZWwd/SsAR2xjc1N5oSpRW7QjkEi3osKYIcVP20YzoZ+sY2ossb8R6gSt2eb4dNjHh+1Dv16NegxcXbgDNoP9JUu8UrMieTyVwwNp1DAR38NNZqJ/xtUplePC2nplWEbiEUyCp8hqhiGSoJcGeQRb6sGRPOPTqe4pm55tlKXavIw0dwn5iXLxetJ5+ZmsdfCI5c+GRlM1F2vLVhjkg6qm7t+bilJ+ljZYOc/JD+jHZsHm1BD4Ga6ruyCifdr05Z9qB9T7PA5tOi9+I2BrXePcgJUGyRYC50kzUdBXG/yjLq9Q0RFVZeRoIa2JBzBOB3L58oiq8pxizzuJjknGgu9O4hypHzfs+4dftxCTxF+XnO2438Fk2niUj82f7AEnZxDK4nrjv3DgRJNxLuMvnkO1znBXBN9BT6Bqi7PlA3julfhLtNmq4GL0Mg15sMIaid5LaMtw/CoGxlCeguYLFpLNIBPssokalz3zFag/YY5V7X8=
+      on:
+        tags: true
