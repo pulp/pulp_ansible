@@ -8,7 +8,7 @@ requirements = [
 
 setup(
     name='pulp-ansible',
-    version='0.0.1b1',
+    version='0.1.0b2',
     description='Pulp plugin to manage Ansible content, e.g. roles',
     author='Pulp Ansible Plugin Project Developers',
     author_email='pulp-dev@redhat.com',
