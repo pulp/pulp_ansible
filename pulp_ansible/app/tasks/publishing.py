@@ -2,14 +2,12 @@ import logging
 
 from gettext import gettext as _
 
-from celery import shared_task
-
 from pulpcore.plugin.models import (
     RepositoryVersion,
     Publication,
     PublishedArtifact,
     RemoteArtifact)
-from pulpcore.plugin.tasking import UserFacingTask, WorkingDirectory
+from pulpcore.plugin.tasking import WorkingDirectory
 
 from pulp_ansible.app.models import AnsiblePublisher
 
@@ -17,7 +15,6 @@ from pulp_ansible.app.models import AnsiblePublisher
 log = logging.getLogger(__name__)
 
 
-@shared_task(base=UserFacingTask)
 def publish(publisher_pk, repository_version_pk):
     """
     Use provided publisher to create a Publication based on a RepositoryVersion.

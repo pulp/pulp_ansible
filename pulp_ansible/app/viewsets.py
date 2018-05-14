@@ -7,6 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.response import Response
 
 from pulpcore.plugin.models import Artifact, Repository, RepositoryVersion
+from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     ContentViewSet,
     RemoteViewSet,
@@ -94,7 +95,8 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         repository = self.get_resource(request.data['repository'], Repository)
         if not remote.url:
             raise serializers.ValidationError(detail=_('A url must be specified.'))
-        result = tasks.synchronize.apply_async_with_reservation(
+        result = enqueue_with_reservation(
+            tasks.synchronize,
             [repository, remote],
             kwargs={
                 'remote_pk': remote.pk,
@@ -132,8 +134,8 @@ class AnsiblePublisherViewSet(PublisherViewSet):
         if not repository_version:
             repository_version = RepositoryVersion.latest(repository)
 
-        result = tasks.publish.apply_async_with_reservation(
-            [repository_version.repository, publisher],
+        result = enqueue_with_reservation(
+            tasks.publish, [repository_version.repository, publisher],
             kwargs={
                 'publisher_pk': str(publisher.pk),
                 'repository_version_pk': str(repository_version.pk)
