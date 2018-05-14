@@ -8,7 +8,7 @@ from urllib.parse import urljoin
 
 from pulp_smash import api, config, selectors, utils
 from pulp_smash.tests.pulp3.constants import BASE_REMOTE_PATH, REPO_PATH
-from pulp_smash.tests.pulp3.pulpcore.utils import gen_repo
+from pulp_smash.tests.pulp3.utils import gen_repo
 from pulp_smash.tests.pulp3.utils import get_auth
 
 ANSIBLE_FEED_URL = 'https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'
