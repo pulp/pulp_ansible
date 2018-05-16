@@ -14,6 +14,7 @@ setup(
     version='0.1.0b2',
     description='Pulp plugin to manage Ansible content, e.g. roles',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     author='Pulp Ansible Plugin Project Developers',
     author_email='pulp-dev@redhat.com',
     url='https://github.com/pulp/pulp_ansible',
