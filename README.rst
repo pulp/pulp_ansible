@@ -168,7 +168,7 @@ Use the ``bar`` Publisher to create a Publication
 
 
 Create a Distribution for the Publication
----------------------------------------
+-----------------------------------------
 
 ``$ http POST http://localhost:8000/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
 
