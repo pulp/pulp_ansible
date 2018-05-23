@@ -46,10 +46,10 @@ class AnsibleRoleVersionSerializer(ContentSerializer):
         queryset=Artifact.objects.all()
     )
 
-    version = serializers.CharField()
+    name = serializers.CharField()
 
     class Meta:
-        fields = ('_href', 'type', 'version', 'artifact')
+        fields = ('_href', 'type', 'name', 'artifact')
         model = AnsibleRoleVersion
 
 

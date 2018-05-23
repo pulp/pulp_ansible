@@ -46,7 +46,7 @@ class AnsibleRoleVersionFilter(BaseFilterSet):
     class Meta:
         model = AnsibleRoleVersion
         fields = [
-            'version',
+            'name',
         ]
 
 

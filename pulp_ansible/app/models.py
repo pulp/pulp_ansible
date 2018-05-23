@@ -32,7 +32,7 @@ class AnsibleRoleVersion(Content):
 
     TYPE = 'ansible-role-version'
 
-    version = models.CharField(max_length=128)
+    name = models.CharField(max_length=128)
     role = models.ForeignKey(AnsibleRole, on_delete=models.PROTECT, related_name='versions')
 
     @property
@@ -54,7 +54,7 @@ class AnsibleRoleVersion(Content):
                 relative_path="{namespace}/{name}/{version}.tar.gz".format(
                     namespace=self.role.namespace,
                     name=self.role.name,
-                    version=self.version
+                    version=self.name
                 )
             )
             ca.save()
@@ -68,7 +68,7 @@ class AnsibleRoleVersion(Content):
 
     class Meta:
         unique_together = (
-            'version',
+            'name',
             'role'
         )
 

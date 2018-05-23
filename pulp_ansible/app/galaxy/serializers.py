@@ -24,8 +24,7 @@ class GalaxyAnsibleRoleVersionSerializer(serializers.Serializer):
     A serializer for Ansible role versions in Galaxy.
     """
 
-    name = serializers.CharField(source='version')
-
+    name = serializers.CharField()
     source = serializers.SerializerMethodField(read_only=True)
 
     def get_source(self, obj):
