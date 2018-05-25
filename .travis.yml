@@ -22,8 +22,9 @@ after_failure:
   - sh -c "cat ~/resource_manager.log"
   - sh -c "cat ~/reserved_workers-1.log"
 stages:
-- name: test
-- name: deploy
+  - name: test
+  - name: deploy
+    if: tag IS present
 jobs:
   include:
   - stage: deploy
