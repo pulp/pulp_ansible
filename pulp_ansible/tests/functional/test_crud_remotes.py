@@ -16,7 +16,7 @@ ANSIBLE2_FEED_URL = 'https://galaxy.ansible.com/api/v1/roles/?namespace=pulp'
 ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'ansible/')
 
 
-class CRUDRemotesTestCase(unittest.TestCase, utils.SmokeTest):
+class CRUDRemotesTestCase(unittest.TestCase):
     """CRUD remotes."""
 
     @classmethod
