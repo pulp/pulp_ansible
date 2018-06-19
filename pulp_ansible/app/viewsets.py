@@ -1,18 +1,21 @@
-from gettext import gettext as _
-
 from django.db import transaction
 from django_filters.rest_framework import filterset
 from rest_framework.decorators import detail_route
-from rest_framework import serializers, status
+from rest_framework import status
 from rest_framework.response import Response
 
-from pulpcore.plugin.models import Artifact, Repository, RepositoryVersion
+from pulpcore.plugin.models import Artifact, RepositoryVersion
+from pulpcore.plugin.serializers import (
+    RepositoryPublishURLSerializer,
+    RepositorySyncURLSerializer,
+)
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     ContentViewSet,
     RemoteViewSet,
     OperationPostponedResponse,
-    PublisherViewSet)
+    PublisherViewSet
+)
 
 from . import tasks
 from .models import AnsibleRemote, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
@@ -89,12 +92,15 @@ class AnsibleRemoteViewSet(RemoteViewSet):
     queryset = AnsibleRemote.objects.all()
     serializer_class = AnsibleRemoteSerializer
 
-    @detail_route(methods=('post',))
+    @detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         remote = self.get_object()
-        repository = self.get_resource(request.data['repository'], Repository)
-        if not remote.url:
-            raise serializers.ValidationError(detail=_('A url must be specified.'))
+        serializer = RepositorySyncURLSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        repository = serializer.validated_data.get('repository')
         result = enqueue_with_reservation(
             tasks.synchronize,
             [repository, remote],
@@ -111,29 +117,20 @@ class AnsiblePublisherViewSet(PublisherViewSet):
     queryset = AnsiblePublisher.objects.all()
     serializer_class = AnsiblePublisherSerializer
 
-    @detail_route(methods=('post',))
+    @detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
     def publish(self, request, pk):
         publisher = self.get_object()
-        repository = None
-        repository_version = None
-        if 'repository' not in request.data and 'repository_version' not in request.data:
-            raise serializers.ValidationError("Either the 'repository' or 'repository_version' "
-                                              "need to be specified.")
+        serializer = RepositoryPublishURLSerializer(
+            data=request.data,
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        repository_version = serializer.validated_data.get('repository_version')
 
-        if 'repository' in request.data and request.data['repository']:
-            repository = self.get_resource(request.data['repository'], Repository)
-
-        if 'repository_version' in request.data and request.data['repository_version']:
-            repository_version = self.get_resource(request.data['repository_version'],
-                                                   RepositoryVersion)
-
-        if repository and repository_version:
-            raise serializers.ValidationError("Either the 'repository' or 'repository_version' "
-                                              "can be specified - not both.")
-
+        # Safe because version OR repository is enforced by serializer.
         if not repository_version:
+            repository = serializer.validated_data.get('repository')
             repository_version = RepositoryVersion.latest(repository)
-
         result = enqueue_with_reservation(
             tasks.publish, [repository_version.repository, publisher],
             kwargs={
