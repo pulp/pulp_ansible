@@ -37,8 +37,9 @@ GITHUB_URL = 'https://github.com/%s/%s/archive/%s.tar.gz'
 
 def synchronize(remote_pk, repository_pk):
     """
-    Create a new version of the repository that is synchronized with the remote
-    as specified by the remote.
+    Sync content from the remote repository.
+
+    Create a new version of the repository that is synchronized with the remote.
 
     Args:
         remote_pk (str): The remote PK.
@@ -46,6 +47,7 @@ def synchronize(remote_pk, repository_pk):
 
     Raises:
         ValueError: When remote has no url specified.
+
     """
     remote = AnsibleRemote.objects.get(pk=remote_pk)
     repository = Repository.objects.get(pk=repository_pk)
@@ -86,13 +88,14 @@ def synchronize(remote_pk, repository_pk):
 
 def parse_roles(metadata):
     """
-    Parse roles from  metadata json returned from galaxy
+    Parse roles from  metadata json returned from galaxy.
 
     Args:
         metadata (dict): Parsed metadata json
 
     Returns:
         roles (list): List of dicts containing role info
+
     """
     roles = list()
 
@@ -109,13 +112,14 @@ def parse_roles(metadata):
 
 def fetch_roles(remote):
     """
-    Fetch the roles in a remote repository
+    Fetch the roles in a remote repository.
 
     Args:
         remote (AnsibleRemote): A remote.
 
     Returns:
         list: a list of dicts that represent roles
+
     """
     page_count = 0
 
@@ -181,6 +185,7 @@ def fetch_content(base_version):
 
     Returns:
         set: A set of Key contained in the (base) repository version.
+
     """
     content = set()
     if base_version:
@@ -205,6 +210,7 @@ def find_delta(roles, content, mirror=True):
 
     Returns:
         Delta: The set of Key to be added and removed.
+
     """
     remote_content = set()
     for r in roles:
@@ -232,6 +238,7 @@ def build_additions(remote, roles, delta):
 
     Returns:
         SizedIterable: The PendingContent to be added to the repository.
+
     """
     def generate():
         for metadata in roles:
@@ -271,6 +278,7 @@ def build_removals(base_version, delta):
 
     Returns:
         SizedIterable: The AnsibleRoleVersion to be removed from the repository.
+
     """
     def generate():
         for removals in BatchIterator(delta.removals):

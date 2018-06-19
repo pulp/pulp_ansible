@@ -10,7 +10,7 @@ log = getLogger(__name__)
 
 class AnsibleRole(Content):
     """
-    A model representing an Ansible Role
+    A model representing an Ansible Role.
     """
 
     TYPE = 'ansible-role'
@@ -27,7 +27,7 @@ class AnsibleRole(Content):
 
 class AnsibleRoleVersion(Content):
     """
-    A content type representing an Ansible Role version
+    A content type representing an Ansible Role version.
     """
 
     TYPE = 'ansible-role-version'
@@ -37,20 +37,33 @@ class AnsibleRoleVersion(Content):
 
     @property
     def artifact(self):
+        """
+        Return the artifact id (there is only one for this content type).
+        """
         return self.artifacts.get().pk
 
     @artifact.setter
     def artifact(self, artifact):
+        """
+        Set the artifact for this Ansible Role version.
+        """
         if self.pk:
-            ca = ContentArtifact(artifact=artifact,
-                                 content=self,
-                                 relative_path="{}/{}/{}.tar.gz".format(self.role.namespace,
-                                                                        self.role.name,
-                                                                        self.version))
+            ca = ContentArtifact(
+                artifact=artifact,
+                content=self,
+                relative_path="{namespace}/{name}/{version}.tar.gz".format(
+                    namespace=self.role.namespace,
+                    name=self.role.name,
+                    version=self.version
+                )
+            )
             ca.save()
 
     @property
     def relative_path(self):
+        """
+        Return the relative path of the ContentArtifact.
+        """
         return self.contentartifact_set.get().relative_path
 
     class Meta:
@@ -70,7 +83,7 @@ class AnsiblePublisher(Publisher):
 
 class AnsibleRemote(Remote):
     """
-    A Remote for Ansible content
+    A Remote for Ansible content.
     """
 
     TYPE = 'ansible'
