@@ -6,6 +6,10 @@ from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion
 
 
 class GalaxyAnsibleRoleSerializer(serializers.ModelSerializer):
+    """
+    A serializer for Ansible roles in Galaxy.
+    """
+
     name = serializers.CharField()
     namespace = serializers.CharField()
     id = serializers.UUIDField()
@@ -16,11 +20,18 @@ class GalaxyAnsibleRoleSerializer(serializers.ModelSerializer):
 
 
 class GalaxyAnsibleRoleVersionSerializer(serializers.Serializer):
+    """
+    A serializer for Ansible role versions in Galaxy.
+    """
+
     name = serializers.CharField(source='version')
 
     source = serializers.SerializerMethodField(read_only=True)
 
     def get_source(self, obj):
+        """
+        Get source.
+        """
         if settings.CONTENT['host']:
             host = settings.CONTENT['host']
         else:

@@ -9,10 +9,17 @@ from .serializers import GalaxyAnsibleRoleSerializer, GalaxyAnsibleRoleVersionSe
 
 
 class AnsibleGalaxyVersionView(views.APIView):
+    """
+    APIView for Ansible Galaxy versions.
+    """
+
     authentication_classes = []
     permission_classes = []
 
     def get(self, request, path):
+        """
+        Return a response to the "GET" action.
+        """
         api_info = {
             'available_versions': {'v1': '/api/v1/'},
             'current_version': 'v1'
@@ -22,12 +29,19 @@ class AnsibleGalaxyVersionView(views.APIView):
 
 
 class AnsibleRoleList(generics.ListAPIView):
+    """
+    APIView for Ansible Roles.
+    """
+
     model = AnsibleRole
     serializer_class = GalaxyAnsibleRoleSerializer
     authentication_classes = []
     permission_classes = []
 
     def get_queryset(self):
+        """
+        Get the list of items for this view.
+        """
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
         distro_content = distro.publication.repository_version.content
         versions = AnsibleRoleVersion.objects.filter(pk__in=distro_content)
@@ -44,12 +58,19 @@ class AnsibleRoleList(generics.ListAPIView):
 
 
 class AnsibleRoleVersionList(generics.ListAPIView):
+    """
+    APIView for Ansible Role Versions.
+    """
+
     model = AnsibleRoleVersion
     serializer_class = GalaxyAnsibleRoleVersionSerializer
     authentication_classes = []
     permission_classes = []
 
     def get_queryset(self):
+        """
+        Get the list of items for this view.
+        """
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
         distro_content = distro.publication.repository_version.content
         role = get_object_or_404(AnsibleRole, pk=self.kwargs['role_pk'])

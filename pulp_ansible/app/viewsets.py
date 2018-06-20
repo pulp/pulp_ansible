@@ -24,6 +24,10 @@ from .serializers import (AnsibleRemoteSerializer, AnsiblePublisherSerializer,
 
 
 class AnsibleRoleFilter(filterset.FilterSet):
+    """
+    FilterSet for Ansible Roles.
+    """
+
     class Meta:
         model = AnsibleRole
         fields = [
@@ -33,6 +37,10 @@ class AnsibleRoleFilter(filterset.FilterSet):
 
 
 class AnsibleRoleVersionFilter(filterset.FilterSet):
+    """
+    FilterSet for Ansible Role Versions.
+    """
+
     class Meta:
         model = AnsibleRoleVersion
         fields = [
@@ -41,6 +49,10 @@ class AnsibleRoleVersionFilter(filterset.FilterSet):
 
 
 class AnsibleRoleViewSet(ContentViewSet):
+    """
+    ViewSet for Ansible Roles.
+    """
+
     endpoint_name = 'ansible/roles'
     router_lookup = 'role'
     queryset = AnsibleRole.objects.all()
@@ -49,6 +61,9 @@ class AnsibleRoleViewSet(ContentViewSet):
 
     @transaction.atomic
     def create(self, request):
+        """
+        Create a new AnsibleRoleContent from a request.
+        """
         # TODO: we should probably remove create() from ContentViewSet
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -58,6 +73,10 @@ class AnsibleRoleViewSet(ContentViewSet):
 
 
 class AnsibleRoleVersionViewSet(ContentViewSet):
+    """
+    ViewSet for Ansible Role versions.
+    """
+
     endpoint_name = 'versions'
     nest_prefix = 'ansible/roles'
     router_lookup = 'roleversion'
@@ -69,10 +88,16 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
 
     @classmethod
     def endpoint_pieces(cls):
+        """
+        Return the pieces of the REST endpoint.
+        """
         return (cls.endpoint_name,)
 
     @transaction.atomic
     def create(self, request, role_pk):
+        """
+        Create a new AnsibleRoleContent from a request.
+        """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         validated_data = serializer.validated_data
@@ -83,17 +108,27 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
         role_version.artifact = self.get_resource(request.data['artifact'], Artifact)
 
         headers = self.get_success_headers(request.data)
-        return Response(self.get_serializer(role_version).data, status=status.HTTP_201_CREATED,
-                        headers=headers)
+        return Response(
+            self.get_serializer(role_version).data,
+            status=status.HTTP_201_CREATED,
+            headers=headers
+        )
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):
+    """
+    ViewSet for Ansible Remotes.
+    """
+
     endpoint_name = 'ansible'
     queryset = AnsibleRemote.objects.all()
     serializer_class = AnsibleRemoteSerializer
 
     @detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
+        """
+        Dispatches a sync task.
+        """
         remote = self.get_object()
         serializer = RepositorySyncURLSerializer(
             data=request.data,
@@ -113,12 +148,19 @@ class AnsibleRemoteViewSet(RemoteViewSet):
 
 
 class AnsiblePublisherViewSet(PublisherViewSet):
+    """
+    ViewSet for Ansible Publishers.
+    """
+
     endpoint_name = 'ansible'
     queryset = AnsiblePublisher.objects.all()
     serializer_class = AnsiblePublisherSerializer
 
     @detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
     def publish(self, request, pk):
+        """
+        Dispatches a publish task.
+        """
         publisher = self.get_object()
         serializer = RepositoryPublishURLSerializer(
             data=request.data,

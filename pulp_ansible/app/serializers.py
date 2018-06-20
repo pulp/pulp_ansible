@@ -9,6 +9,10 @@ from rest_framework_nested.relations import NestedHyperlinkedIdentityField
 
 
 class AnsibleRoleSerializer(ContentSerializer):
+    """
+    A serializer for Ansible Roles.
+    """
+
     name = serializers.CharField()
     namespace = serializers.CharField()
 
@@ -28,6 +32,10 @@ class AnsibleRoleSerializer(ContentSerializer):
 
 
 class AnsibleRoleVersionSerializer(ContentSerializer):
+    """
+    A serializer for Ansible Role versions.
+    """
+
     _href = NestedHyperlinkedIdentityField(
         view_name='versions-detail',
         parent_lookup_kwargs={'role_pk': 'role__pk'},
@@ -47,12 +55,20 @@ class AnsibleRoleVersionSerializer(ContentSerializer):
 
 
 class AnsibleRemoteSerializer(RemoteSerializer):
+    """
+    A serializer for Ansible Remotes.
+    """
+
     class Meta:
         fields = RemoteSerializer.Meta.fields
         model = AnsibleRemote
 
 
 class AnsiblePublisherSerializer(PublisherSerializer):
+    """
+    A serializer for Ansible Publishers.
+    """
+
     class Meta:
         fields = PublisherSerializer.Meta.fields
         model = AnsiblePublisher

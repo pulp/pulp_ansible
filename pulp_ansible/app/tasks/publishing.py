@@ -56,6 +56,7 @@ def populate(publication):
 
     Yields:
         Entry: Each manifest entry.
+
     """
     def find_artifact():
         _artifact = content_artifact.artifact

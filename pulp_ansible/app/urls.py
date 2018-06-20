@@ -1,7 +1,10 @@
 from django.conf.urls import url
 
-from pulp_ansible.app.galaxy.views import (AnsibleGalaxyVersionView, AnsibleRoleList,
-                                           AnsibleRoleVersionList)
+from pulp_ansible.app.galaxy.views import (
+    AnsibleGalaxyVersionView,
+    AnsibleRoleList,
+    AnsibleRoleVersionList
+)
 
 urlpatterns = [
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/$', AnsibleGalaxyVersionView.as_view()),
