@@ -1,11 +1,13 @@
 from django.db import transaction
 from django_filters.rest_framework import filterset
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
 from rest_framework import status
 from rest_framework.response import Response
 
 from pulpcore.plugin.models import Artifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
+    AsnycOperationResponseSerializer,
     RepositoryPublishURLSerializer,
     RepositorySyncURLSerializer,
 )
@@ -124,6 +126,9 @@ class AnsibleRemoteViewSet(RemoteViewSet):
     queryset = AnsibleRemote.objects.all()
     serializer_class = AnsibleRemoteSerializer
 
+    @swagger_auto_schema(operation_description="Trigger an asynchronous task to sync "
+                                               "Ansible content.",
+                         responses={202: AsnycOperationResponseSerializer})
     @detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
@@ -156,6 +161,9 @@ class AnsiblePublisherViewSet(PublisherViewSet):
     queryset = AnsiblePublisher.objects.all()
     serializer_class = AnsiblePublisherSerializer
 
+    @swagger_auto_schema(operation_description="Trigger an asynchronous task to publish "
+                                               "Ansible content.",
+                         responses={202: AsnycOperationResponseSerializer})
     @detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
     def publish(self, request, pk):
         """
