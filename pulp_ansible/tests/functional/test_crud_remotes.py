@@ -1,5 +1,6 @@
 # coding=utf-8
 """Tests that CRUD remotes."""
+from functools import partial
 import random
 import unittest
 
@@ -14,6 +15,9 @@ from pulp_smash.tests.pulp3.utils import get_auth
 ANSIBLE_FEED_URL = 'https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'
 ANSIBLE2_FEED_URL = 'https://galaxy.ansible.com/api/v1/roles/?namespace=pulp'
 ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'ansible/')
+
+
+skip_if = partial(selectors.skip_if, exc=unittest.SkipTest)
 
 
 class CRUDRemotesTestCase(unittest.TestCase):
@@ -46,7 +50,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(self.remote[key], val)
 
-    @selectors.skip_if(bool, 'remote', False)
+    @skip_if(bool, 'remote', False)
     def test_02_read_remote(self):
         """Read a remote by its href."""
         remote = self.client.get(self.remote['_href'])
@@ -54,7 +58,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(remote[key], val)
 
-    @selectors.skip_if(bool, 'remote', False)
+    @skip_if(bool, 'remote', False)
     def test_02_read_remotes(self):
         """Read an remote by its name."""
         page = self.client.get(ANSIBLE_REMOTE_PATH, params={
@@ -65,7 +69,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(page['results'][0][key], val)
 
-    @selectors.skip_if(bool, 'remote', False)
+    @skip_if(bool, 'remote', False)
     def test_03_partially_update(self):
         """Update an remote using HTTP PATCH."""
         body = _gen_verbose_remote()
@@ -77,7 +81,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(self.remote[key], val)
 
-    @selectors.skip_if(bool, 'remote', False)
+    @skip_if(bool, 'remote', False)
     def test_04_fully_update(self):
         """Update an remote using HTTP PUT."""
         body = _gen_verbose_remote()
@@ -89,7 +93,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(self.remote[key], val)
 
-    @selectors.skip_if(bool, 'remote', False)
+    @skip_if(bool, 'remote', False)
     def test_05_delete(self):
         """Delete an remote."""
         self.client.delete(self.remote['_href'])
