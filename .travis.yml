@@ -1,16 +1,17 @@
 sudo: required
 # https://docs.travis-ci.com/user/trusty-ci-environment/
-dist: trusty
+dist: xenial
 language: python
 python:
     # python versions used in el7 SCL & supported fedora
     - "3.5"
     - "3.6"
+    - "3.7"
 env:
   - DB=postgres
 addons:
     # postgres versions provided by el7 RHSCL (lowest supportable version)
-    postgresql: "9.5"
+    postgresql: "9.6"
 services:
     - postgresql
     - redis-server
