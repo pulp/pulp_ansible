@@ -5,17 +5,16 @@ import random
 import unittest
 
 from requests.exceptions import HTTPError
-from urllib.parse import urljoin
 
 from pulp_smash import api, config, selectors, utils
-from pulp_smash.tests.pulp3.constants import BASE_REMOTE_PATH, REPO_PATH
-from pulp_smash.tests.pulp3.utils import gen_repo
-from pulp_smash.tests.pulp3.utils import get_auth
+from pulp_smash.pulp3.constants import REPO_PATH
+from pulp_smash.pulp3.utils import gen_repo
 
-ANSIBLE_FEED_URL = 'https://galaxy.ansible.com/api/v1/roles/?namespace=ansible'
-ANSIBLE2_FEED_URL = 'https://galaxy.ansible.com/api/v1/roles/?namespace=pulp'
-ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'ansible/')
-
+from pulp_ansible.tests.constants import (
+    ANSIBLE_FIXTURE_URL,
+    ANSIBLE2_FIXTURE_URL,
+    ANSIBLE_REMOTE_PATH,
+)
 
 skip_if = partial(selectors.skip_if, exc=unittest.SkipTest)
 
@@ -31,7 +30,6 @@ class CRUDRemotesTestCase(unittest.TestCase):
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
-        cls.client.request_kwargs['auth'] = get_auth()
         cls.remote = {}
         cls.repo = cls.client.post(REPO_PATH, gen_repo())
 
@@ -51,6 +49,17 @@ class CRUDRemotesTestCase(unittest.TestCase):
                 self.assertEqual(self.remote[key], val)
 
     @skip_if(bool, 'remote', False)
+    def test_02_create_same_name(self):
+        """Try to create a second remote with an identical name.
+
+        See: `Pulp Smash #1055 <https://github.com/PulpQE/pulp-smash/issues/1055>`_.
+        """
+        body = _gen_remote()
+        body['name'] = self.remote['name']
+        with self.assertRaises(HTTPError):
+            self.client.post(ANSIBLE_REMOTE_PATH, body)
+
+    @skip_if(bool, 'remote', False)
     def test_02_read_remote(self):
         """Read a remote by its href."""
         remote = self.client.get(self.remote['_href'])
@@ -60,7 +69,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
 
     @skip_if(bool, 'remote', False)
     def test_02_read_remotes(self):
-        """Read an remote by its name."""
+        """Read a remote by its name."""
         page = self.client.get(ANSIBLE_REMOTE_PATH, params={
             'name': self.remote['name']
         })
@@ -71,7 +80,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
 
     @skip_if(bool, 'remote', False)
     def test_03_partially_update(self):
-        """Update an remote using HTTP PATCH."""
+        """Update a remote using HTTP PATCH."""
         body = _gen_verbose_remote()
         self.client.patch(self.remote['_href'], body)
         for key in ('username', 'password'):
@@ -83,7 +92,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
 
     @skip_if(bool, 'remote', False)
     def test_04_fully_update(self):
-        """Update an remote using HTTP PUT."""
+        """Update a remote using HTTP PUT."""
         body = _gen_verbose_remote()
         self.client.put(self.remote['_href'], body)
         for key in ('username', 'password'):
@@ -95,7 +104,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
 
     @skip_if(bool, 'remote', False)
     def test_05_delete(self):
-        """Delete an remote."""
+        """Delete a remote."""
         self.client.delete(self.remote['_href'])
         with self.assertRaises(HTTPError):
             self.client.get(self.remote['_href'])
@@ -120,7 +129,7 @@ def _gen_verbose_remote():
     """
     attrs = _gen_remote()
     attrs.update({
-        'url': random.choice((ANSIBLE_FEED_URL, ANSIBLE2_FEED_URL)),
+        'url': random.choice((ANSIBLE_FIXTURE_URL, ANSIBLE2_FIXTURE_URL)),
         'password': utils.uuid4(),
         'username': utils.uuid4(),
         'validate': random.choice((False, True)),
