@@ -4,8 +4,26 @@ Pulp Ansible
 This is the ``pulp_ansible`` repository which provides Pulp with the
 ability to manage Ansible content e.g. Roles.
 
-All REST API examples below use `httpie <https://httpie.org/doc>`__ to
-perform the requests.
+All REST API examples bellow use `httpie <https://httpie.org/doc>`__ to perform the requests.
+The ``httpie`` commands below assume that the user executing the commands has a ``.netrc`` file
+in the home directory. The ``.netrc`` should have the following configuration:
+
+.. code-block::
+
+    machine localhost
+    login admin
+    password admin
+
+If you configured the ``admin`` user with a different password, adjust the configuration
+accordingly. If you prefer to specify the username and password with each request, please see
+``httpie`` documentation on how to do that.
+
+This documentation makes use of the `jq library <https://stedolan.github.io/jq/>`_
+to parse the json received from requests, in order to get the unique urls generated
+when objects are created. To follow this documentation as-is please install the jq
+library with:
+
+``$ sudo dnf install jq``
 
 Install ``pulpcore``
 --------------------
@@ -14,35 +32,43 @@ Follow the `installation
 instructions <https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html>`__
 for pulpcore.
 
-Install plugin
---------------
+Install ``pulp-ansible`` from source
+------------------------------------
 
-Install from PyPI
-~~~~~~~~~~~~~~~~~
+.. code-block:: bash
 
-1) sudo -u pulp -i
-2) source ~/pulpvenv/bin/activate
-3) pip install pulp-ansible
-4) pulp-manager makemigrations pulp\_ansible
-5) pulp-manager migrate pulp\_ansible
-6) django-admin runserver
-7) sudo systemctl restart pulp\_resource\_manager
-8) sudo systemctl restart pulp\_worker@1
-9) sudo systemctl restart pulp\_worker@2
+   sudo -u pulp -i
+   source ~/pulpvenv/bin/activate
+   git clone https://github.com/pulp/pulp_ansible.git
+   cd pulp_ansible
+   pip install -e .
 
-From source
-~~~~~~~~~~~
+Install ``pulp-ansible`` From PyPI
+----------------------------------
 
-0)  source ~/pulpvenv/bin/activate
-1)  git clone https://github.com/pulp/pulp\_ansible.git
-2)  cd pulp\_ansible
-3)  python setup.py develop
-4)  pulp-manager makemigrations pulp\_ansible
-5)  pulp-manager migrate pulp\_ansible
-6)  django-admin runserver
-7)  sudo systemctl restart pulp\_resource\_manager
-8) sudo systemctl restart pulp\_worker@1
+.. code-block:: bash
 
+   sudo -u pulp -i
+   source ~/pulpvenv/bin/activate
+   pip install pulp-ansible
+
+Make and Run Migrations
+-----------------------
+
+.. code-block:: bash
+
+   pulp-manager makemigrations pulp_ansible
+   pulp-manager migrate pulp_ansible
+
+Run Services
+------------
+
+.. code-block:: bash
+
+   pulp-manager runserver
+   sudo systemctl restart pulp_resource_manager
+   sudo systemctl restart pulp_worker@1
+   sudo systemctl restart pulp_worker@2
 
 Create a repository ``foo``
 ---------------------------
