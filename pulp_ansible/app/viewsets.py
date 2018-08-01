@@ -1,10 +1,10 @@
 from django.db import transaction
-from django_filters.rest_framework import filterset
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
 from rest_framework import status
 from rest_framework.response import Response
 
+from pulpcore.app.viewsets import BaseFilterSet
 from pulpcore.plugin.models import Artifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
@@ -25,7 +25,7 @@ from .serializers import (AnsibleRemoteSerializer, AnsiblePublisherSerializer,
                           AnsibleRoleSerializer, AnsibleRoleVersionSerializer)
 
 
-class AnsibleRoleFilter(filterset.FilterSet):
+class AnsibleRoleFilter(BaseFilterSet):
     """
     FilterSet for Ansible Roles.
     """
@@ -38,7 +38,7 @@ class AnsibleRoleFilter(filterset.FilterSet):
         ]
 
 
-class AnsibleRoleVersionFilter(filterset.FilterSet):
+class AnsibleRoleVersionFilter(BaseFilterSet):
     """
     FilterSet for Ansible Role Versions.
     """
