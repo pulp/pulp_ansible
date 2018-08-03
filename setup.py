@@ -21,7 +21,6 @@ setup(
     extras_require={
         'test': [
             'coverage',
-            'coveralls',
             'flake8',
             'flake8-docstrings',
             'flake8-quotes',
