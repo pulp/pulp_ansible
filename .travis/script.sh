@@ -28,7 +28,7 @@ show_logs_and_return_non_zero() {
     cat ~/'reserved_worker-1.log'
     return "${rc}"
 }
-pytest -v --color=yes --pyargs pulp_ansible.tests.functional || show_logs_and_return_non_zero
+pytest -v -r a --color=yes --pyargs pulp_ansible.tests.functional || show_logs_and_return_non_zero
 
 # Travis' scripts use unbound variables. This is problematic, because the
 # changes made to this script's environment appear to persist when Travis'
