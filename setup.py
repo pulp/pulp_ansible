@@ -18,6 +18,19 @@ setup(
     author_email='pulp-dev@redhat.com',
     url='https://github.com/pulp/pulp_ansible',
     install_requires=requirements,
+    extras_require={
+        'test': [
+            'coverage',
+            'coveralls',
+            'flake8',
+            'flake8-docstrings',
+            'flake8-quotes',
+            'flake8-tuple',
+            'mock',
+            'pulp-smash',
+            'pytest',
+        ]
+    },
     include_package_data=True,
     packages=['pulp_ansible', 'pulp_ansible.app'],
     classifiers=(
