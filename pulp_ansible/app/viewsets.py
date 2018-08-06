@@ -4,7 +4,6 @@ from rest_framework.decorators import detail_route
 from rest_framework import status
 from rest_framework.response import Response
 
-from pulpcore.app.viewsets import BaseFilterSet
 from pulpcore.plugin.models import Artifact, RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
@@ -16,7 +15,8 @@ from pulpcore.plugin.viewsets import (
     ContentViewSet,
     RemoteViewSet,
     OperationPostponedResponse,
-    PublisherViewSet
+    PublisherViewSet,
+    BaseFilterSet
 )
 
 from . import tasks
