@@ -1,22 +1,17 @@
 # coding=utf-8
 """Tests that CRUD remotes."""
-from functools import partial
-import random
+from random import choice
 import unittest
 
 from requests.exceptions import HTTPError
 
-from pulp_smash import api, config, selectors, utils
+from pulp_smash import api, config, utils
 from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_repo
 
-from pulp_ansible.tests.constants import (
-    ANSIBLE_FIXTURE_URL,
-    ANSIBLE2_FIXTURE_URL,
-    ANSIBLE_REMOTE_PATH,
-)
-
-skip_if = partial(selectors.skip_if, exc=unittest.SkipTest)
+from pulp_ansible.tests.functional.constants import ANSIBLE_REMOTE_PATH
+from pulp_ansible.tests.functional.utils import skip_if, gen_ansible_remote
+from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class CRUDRemotesTestCase(unittest.TestCase):
@@ -26,7 +21,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
     def setUpClass(cls):
         """Create class-wide variables.
 
-        In order to create an remote a repository has to be created first.
+        In order to create a remote a repository has to be created first.
         """
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg, api.json_handler)
@@ -39,7 +34,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
         cls.client.delete(cls.repo['_href'])
 
     def test_01_create_remote(self):
-        """Create an remote."""
+        """Create a remote."""
         body = _gen_verbose_remote()
         type(self).remote = self.client.post(ANSIBLE_REMOTE_PATH, body)
         for key in ('username', 'password'):
@@ -52,9 +47,10 @@ class CRUDRemotesTestCase(unittest.TestCase):
     def test_02_create_same_name(self):
         """Try to create a second remote with an identical name.
 
-        See: `Pulp Smash #1055 <https://github.com/PulpQE/pulp-smash/issues/1055>`_.
+        See: `Pulp Smash #1055
+        <https://github.com/PulpQE/pulp-smash/issues/1055>`_.
         """
-        body = _gen_remote()
+        body = gen_ansible_remote()
         body['name'] = self.remote['name']
         with self.assertRaises(HTTPError):
             self.client.post(ANSIBLE_REMOTE_PATH, body)
@@ -110,15 +106,25 @@ class CRUDRemotesTestCase(unittest.TestCase):
             self.client.get(self.remote['_href'])
 
 
-def _gen_remote():
-    """Return a semi-random dict for use in creating an remote."""
-    return {
-        'name': utils.uuid4(),
-    }
+class CreateRemoteNoURLTestCase(unittest.TestCase):
+    """Verify whether is possible to create a remote without a URL."""
+
+    def test_all(self):
+        """Verify whether is possible to create a remote without a URL.
+
+        This test targets the following issues:
+
+        * `Pulp #3395 <https://pulp.plan.io/issues/3395>`_
+        * `Pulp Smash #984 <https://github.com/PulpQE/pulp-smash/issues/984>`_
+        """
+        body = gen_ansible_remote()
+        del body['url']
+        with self.assertRaises(HTTPError):
+            api.Client(config.get_config()).post(ANSIBLE_REMOTE_PATH, body)
 
 
 def _gen_verbose_remote():
-    """Return a semi-random dict for use in defining an remote.
+    """Return a semi-random dict for use in defining a remote.
 
     For most tests, it's desirable to create remotes with as few attributes
     as possible, so that the tests can specifically target and attempt to break
@@ -127,11 +133,10 @@ def _gen_verbose_remote():
 
     Note that 'username' and 'password' are write-only attributes.
     """
-    attrs = _gen_remote()
+    attrs = gen_ansible_remote()
     attrs.update({
-        'url': random.choice((ANSIBLE_FIXTURE_URL, ANSIBLE2_FIXTURE_URL)),
         'password': utils.uuid4(),
         'username': utils.uuid4(),
-        'validate': random.choice((False, True)),
+        'validate': choice((False, True)),
     })
     return attrs

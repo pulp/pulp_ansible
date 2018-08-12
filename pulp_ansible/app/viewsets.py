@@ -59,7 +59,7 @@ class AnsibleRoleViewSet(ContentViewSet):
     router_lookup = 'role'
     queryset = AnsibleRole.objects.all()
     serializer_class = AnsibleRoleSerializer
-    filter_class = AnsibleRoleFilter
+    filterset_class = AnsibleRoleFilter
 
     @transaction.atomic
     def create(self, request):
@@ -86,7 +86,7 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
     parent_lookup_kwargs = {'role_pk': 'role__pk'}
     queryset = AnsibleRoleVersion.objects.all()
     serializer_class = AnsibleRoleVersionSerializer
-    filter_class = AnsibleRoleVersionFilter
+    filterset_class = AnsibleRoleVersionFilter
 
     @classmethod
     def endpoint_pieces(cls):
@@ -126,9 +126,10 @@ class AnsibleRemoteViewSet(RemoteViewSet):
     queryset = AnsibleRemote.objects.all()
     serializer_class = AnsibleRemoteSerializer
 
-    @swagger_auto_schema(operation_description="Trigger an asynchronous task to sync "
-                                               "Ansible content.",
-                         responses={202: AsyncOperationResponseSerializer})
+    @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to sync Ansible content.",
+        responses={202: AsyncOperationResponseSerializer}
+    )
     @detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
@@ -161,9 +162,10 @@ class AnsiblePublisherViewSet(PublisherViewSet):
     queryset = AnsiblePublisher.objects.all()
     serializer_class = AnsiblePublisherSerializer
 
-    @swagger_auto_schema(operation_description="Trigger an asynchronous task to publish "
-                                               "Ansible content.",
-                         responses={202: AsyncOperationResponseSerializer})
+    @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to publish Ansible content.",
+        responses={202: AsyncOperationResponseSerializer}
+    )
     @detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
     def publish(self, request, pk):
         """
