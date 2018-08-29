@@ -1,5 +1,6 @@
 import json
 import logging
+import math
 
 from collections import namedtuple
 from concurrent.futures import FIRST_COMPLETED
@@ -33,6 +34,9 @@ Delta = namedtuple('Delta', ('additions', 'removals'))
 
 # The Github URL template to fetch a .tar.gz file from
 GITHUB_URL = 'https://github.com/%s/%s/archive/%s.tar.gz'
+
+# default results per page. used to calculate number of pages
+PAGE_SIZE = 10
 
 
 def synchronize(remote_pk, repository_pk):
@@ -101,7 +105,7 @@ def parse_roles(metadata):
 
     for result in metadata['results']:
         role = {'name': result['name'],
-                'namespace': result['namespace'],
+                'namespace': result['summary_fields']['namespace']['name'],
                 'summary_fields': result['summary_fields'],  # needed for versions
                 'github_user': result['github_user'],
                 'github_repo': result['github_repo']}
@@ -132,7 +136,7 @@ def fetch_roles(remote):
 
     def parse_metadata(path):
         metadata = json.load(open(path))
-        page_count = metadata['num_pages']
+        page_count = math.ceil(float(metadata['count']) / float(PAGE_SIZE))
         return page_count, parse_roles(metadata)
 
     downloader = remote.get_downloader(role_page_url(remote))
