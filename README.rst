@@ -89,7 +89,7 @@ Create a repository ``foo``
 Create a new remote ``bar``
 -----------------------------
 
-``$ http POST :8000/pulp/api/v3/remotes/ansible/ name=bar url='https://galaxy.ansible.com/api/v1/roles/?namespace=elastic'``
+``$ http POST :8000/pulp/api/v3/remotes/ansible/ name=bar url='https://galaxy.ansible.com/api/v1/roles/?namespace__name=elastic'``
 
 .. code:: json
 
