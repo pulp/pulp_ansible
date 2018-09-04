@@ -104,13 +104,13 @@ Create a new remote ``bar``
 Sync repository ``foo`` using remote ``bar``
 ----------------------------------------------
 
-``$ http POST $REMOTE_HREF'sync/' repository=$REPO_HREF``
+``$ http POST ':8000'$REMOTE_HREF'sync/' repository=$REPO_HREF``
 
 
 Look at the new Repository Version created
 ------------------------------------------
 
-``$ http GET $REPO_HREF'versions/1/'``
+``$ http GET ':8000'$REPO_HREF'versions/1/'``
 
 .. code:: json
 
@@ -153,13 +153,13 @@ Create a ``role version`` from the Role and Artifact
 
 Create a content unit and point it to your Artifact and Role
 
-``$ export CONTENT_HREF=$(http POST ${ROLE_HREF}versions/ version=0.0.1 artifact=$ARTIFACT_HREF | jq -r '._href')``
+``$ export CONTENT_HREF=$(http POST ':8000'${ROLE_HREF}versions/ version=0.0.1 artifact=$ARTIFACT_HREF | jq -r '._href')``
 
 
 Add content to repository ``foo``
 ---------------------------------
 
-``$ http POST $REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
+``$ http POST ':8000'$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
 
 
 Create an Ansible publisher
@@ -181,7 +181,7 @@ Create an Ansible publisher
 Use the ``bar`` Publisher to create a Publication
 -------------------------------------------------
 
-``$ http POST $PUBLISHER_HREF'publish/' repository=$REPO_HREF``
+``$ http POST ':8000'$PUBLISHER_HREF'publish/' repository=$REPO_HREF``
 
 .. code:: json
 
