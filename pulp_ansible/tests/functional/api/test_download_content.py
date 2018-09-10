@@ -17,7 +17,7 @@ from pulp_smash.pulp3.utils import (
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     gen_ansible_publisher,
-    get_ansible_content_unit_paths,
+    get_ansible_content_paths,
 )
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_FIXTURE_URL,
@@ -85,7 +85,7 @@ class DownloadContentTestCase(unittest.TestCase):
         self.addCleanup(client.delete, distribution['_href'])
 
         # Pick a content unit, and download it from both Pulp Fixtures…
-        unit_path = choice(get_ansible_content_unit_paths(repo))
+        unit_path = choice(get_ansible_content_paths(repo))
         fixtures_hash = hashlib.sha256(
             utils.http_get(urljoin(ANSIBLE_FIXTURE_URL, unit_path))
         ).hexdigest()

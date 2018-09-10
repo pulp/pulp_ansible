@@ -46,7 +46,7 @@ def gen_ansible_publisher(**kwargs):
     return gen_publisher(**kwargs)
 
 
-def get_ansible_content_unit_paths(repo):
+def get_ansible_content_paths(repo):
     """Return the relative path of content units present in an ansible repository.
 
     :param repo: A dict of information about the repository.
@@ -54,6 +54,16 @@ def get_ansible_content_unit_paths(repo):
     """
     # FIXME
     return [content_unit['relative_path'] for content_unit in get_content(repo)]
+
+
+def gen_ansible_content_attrs(artifact):
+    """Generate a dict with content unit attributes.
+
+    :param: artifact: A dict of info about the artifact.
+    :returns: A semi-random dict for use in creating a content unit.
+    """
+    # FIXME: add content specific metadata here
+    return {'artifact': artifact['_href']}
 
 
 def populate_pulp(cfg, url=ANSIBLE_FIXTURE_URL):
