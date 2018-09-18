@@ -32,8 +32,8 @@ class GalaxyAnsibleRoleVersionSerializer(serializers.Serializer):
         """
         Get source.
         """
-        if settings.CONTENT['host']:
-            host = settings.CONTENT['host']
+        if settings.CONTENT['HOST']:
+            host = settings.CONTENT['HOST']
         else:
             host = self.context['request'].get_host()
         host = "{}://{}".format(self.context['request'].scheme, host)
