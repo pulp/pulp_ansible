@@ -79,7 +79,7 @@ Create a repository ``foo``
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/repositories/8d7cd67a-9421-461f-9106-2df8e4854f5f/",
+        "_href": "http://localhost:8000/pulp/api/v3/repositories/1/",
         ...
     }
 
@@ -94,7 +94,7 @@ Create a new remote ``bar``
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/remotes/ansible/13ac2d63-7b7b-401d-b71b-9a5af05aab3c/",
+        "_href": "http://localhost:8000/pulp/api/v3/remotes/ansible/1/",
         ...
     }
 
@@ -116,10 +116,10 @@ Look at the new Repository Version created
 
 
   {
-      "_added_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/added_content/",
-      "_content_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/content/",
-      "_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/",
-      "_removed_href": "http://localhost:8000/pulp/api/v3/repositories/933164fd-0514-4b0a-826f-c2e389ab1607/versions/1/removed_content/",
+      "_added_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/added_content/",
+      "_content_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/content/",
+      "_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/",
+      "_removed_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/removed_content/",
       "content_summary": {
           "ansible": 11
       },
@@ -202,7 +202,7 @@ Create a Distribution for the Publication
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/distributions/9b29f1b2-6726-40a2-988a-273d3f009a41/",
+        "_href": "http://localhost:8000/pulp/api/v3/distributions/1/",
        ...
     }
 
