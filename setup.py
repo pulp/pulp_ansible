@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 requirements = [
     'pulpcore-plugin',
@@ -11,7 +11,7 @@ with open('README.rst') as f:
 
 setup(
     name='pulp-ansible',
-    version='0.1.0rc1',
+    version='0.1.0rc2',
     description='Pulp plugin to manage Ansible content, e.g. roles',
     long_description=long_description,
     license='GPLv2+',
@@ -32,7 +32,7 @@ setup(
         ]
     },
     include_package_data=True,
-    packages=['pulp_ansible', 'pulp_ansible.app'],
+    packages=find_packages(exclude=['tests']),
     classifiers=(
         'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
         'Operating System :: POSIX :: Linux',
