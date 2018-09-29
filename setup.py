@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from setuptools import setup, find_packages
 
 requirements = [
     'pulpcore-plugin',
@@ -32,7 +32,7 @@ setup(
         ]
     },
     include_package_data=True,
-    packages=['pulp_ansible', 'pulp_ansible.app'],
+    packages=find_packages(exclude=['test']),
     classifiers=(
         'License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)',
         'Operating System :: POSIX :: Linux',
