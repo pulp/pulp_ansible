@@ -1,10 +1,10 @@
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
-from rest_framework import status
+from rest_framework import mixins, status
 from rest_framework.response import Response
 
-from pulpcore.plugin.models import Artifact, RepositoryVersion
+from pulpcore.plugin.models import Artifact, RepositoryVersion, Publication
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositoryPublishURLSerializer,
@@ -12,17 +12,17 @@ from pulpcore.plugin.serializers import (
 )
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
+    BaseFilterSet,
     ContentViewSet,
-    RemoteViewSet,
+    NamedModelViewSet,
     OperationPostponedResponse,
-    PublisherViewSet,
-    BaseFilterSet
+    RemoteViewSet
 )
 
 from . import tasks
-from .models import AnsibleRemote, AnsiblePublisher, AnsibleRole, AnsibleRoleVersion
-from .serializers import (AnsibleRemoteSerializer, AnsiblePublisherSerializer,
-                          AnsibleRoleSerializer, AnsibleRoleVersionSerializer)
+from .models import AnsibleRemote, AnsibleRole, AnsibleRoleVersion
+from .serializers import (AnsibleRemoteSerializer, AnsibleRoleSerializer,
+                          AnsibleRoleVersionSerializer)
 
 
 class AnsibleRoleFilter(BaseFilterSet):
@@ -153,25 +153,22 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         return OperationPostponedResponse(result, request)
 
 
-class AnsiblePublisherViewSet(PublisherViewSet):
+class AnsiblePublicationsViewSet(NamedModelViewSet,
+                                 mixins.CreateModelMixin):
     """
-    ViewSet for Ansible Publishers.
+    ViewSet for Ansible Publications.
     """
 
-    endpoint_name = 'ansible'
-    queryset = AnsiblePublisher.objects.all()
-    serializer_class = AnsiblePublisherSerializer
+    endpoint_name = 'ansible/publications'
+    queryset = Publication.objects.all()
 
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to publish Ansible content.",
-        responses={202: AsyncOperationResponseSerializer}
-    )
-    @detail_route(methods=('post',), serializer_class=RepositoryPublishURLSerializer)
-    def publish(self, request, pk):
+    @swagger_auto_schema(operation_description="Trigger an asynchronous task to create "
+                                               "a new Ansible content publication.",
+                         responses={202: AsyncOperationResponseSerializer})
+    def create(self, request):
         """
-        Dispatches a publish task.
+        Queues a task that publishes a new Ansible Publication.
         """
-        publisher = self.get_object()
         serializer = RepositoryPublishURLSerializer(
             data=request.data,
             context={'request': request}
@@ -183,10 +180,10 @@ class AnsiblePublisherViewSet(PublisherViewSet):
         if not repository_version:
             repository = serializer.validated_data.get('repository')
             repository_version = RepositoryVersion.latest(repository)
+
         result = enqueue_with_reservation(
-            tasks.publish, [repository_version.repository, publisher],
+            tasks.publish, [repository_version.repository],
             kwargs={
-                'publisher_pk': str(publisher.pk),
                 'repository_version_pk': str(repository_version.pk)
             }
         )
