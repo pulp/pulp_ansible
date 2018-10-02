@@ -4,6 +4,62 @@ Pulp Ansible
 This is the ``pulp_ansible`` repository which provides Pulp with the
 ability to manage Ansible content e.g. Roles.
 
+Install ``pulp-ansible`` using Ansible
+--------------------------------------
+
+pulp_ansible can be installed using an Ansible playbook and roles provided by pulpcore
+`here <https://github.com/pulp/ansible-pulp3>`_. See
+`this 2-min video <https://www.youtube.com/watch?v=-klj9NVTBTE>`_ showing that installer
+installing pulp_ansible.
+
+Install ``pulp-ansible`` From PyPI
+----------------------------------
+
+.. code-block:: bash
+
+   sudo -u pulp -i
+   source ~/pulpvenv/bin/activate
+   pip install pulp-ansible
+
+After installing the code, configure Pulp to connect to Redis and PostgreSQL with the `pulpcore
+configuration instructions
+<https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html#database-setup>`_
+
+Install ``pulp-ansible`` from source
+------------------------------------
+
+.. code-block:: bash
+
+   sudo -u pulp -i
+   source ~/pulpvenv/bin/activate
+   git clone https://github.com/pulp/pulp_ansible.git
+   cd pulp_ansible
+   pip install -e .
+
+After installing the code, configure Pulp to connect to Redis and PostgreSQL with the `pulpcore
+configuration instructions
+<https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html#database-setup>`_
+
+Make and Run Migrations
+-----------------------
+
+.. code-block:: bash
+
+   pulp-manager makemigrations pulp_ansible
+   pulp-manager migrate pulp_ansible
+
+Run Services
+------------
+
+.. code-block:: bash
+
+   pulp-manager runserver
+   sudo systemctl restart pulp_resource_manager
+   sudo systemctl restart pulp_worker@1
+
+Quickstart
+----------
+
 All REST API examples bellow use `httpie <https://httpie.org/doc>`__ to perform the requests.
 The ``httpie`` commands below assume that the user executing the commands has a ``.netrc`` file
 in the home directory. The ``.netrc`` should have the following configuration:
@@ -25,50 +81,6 @@ library with:
 
 ``$ sudo dnf install jq``
 
-Install ``pulpcore``
---------------------
-
-Follow the `installation
-instructions <https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html>`__
-for pulpcore.
-
-Install ``pulp-ansible`` from source
-------------------------------------
-
-.. code-block:: bash
-
-   sudo -u pulp -i
-   source ~/pulpvenv/bin/activate
-   git clone https://github.com/pulp/pulp_ansible.git
-   cd pulp_ansible
-   pip install -e .
-
-Install ``pulp-ansible`` From PyPI
-----------------------------------
-
-.. code-block:: bash
-
-   sudo -u pulp -i
-   source ~/pulpvenv/bin/activate
-   pip install pulp-ansible
-
-Make and Run Migrations
------------------------
-
-.. code-block:: bash
-
-   pulp-manager makemigrations pulp_ansible
-   pulp-manager migrate pulp_ansible
-
-Run Services
-------------
-
-.. code-block:: bash
-
-   pulp-manager runserver
-   sudo systemctl restart pulp_resource_manager
-   sudo systemctl restart pulp_worker@1
-   sudo systemctl restart pulp_worker@2
 
 Create a repository ``foo``
 ---------------------------
