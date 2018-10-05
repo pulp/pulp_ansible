@@ -52,12 +52,11 @@ After installing the code, configure Pulp to connect to Redis and PostgreSQL wit
 configuration instructions
 <https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html#database-setup>`_
 
-Make and Run Migrations
+Run Database Migrations
 -----------------------
 
 .. code-block:: bash
 
-   pulp-manager makemigrations pulp_ansible
    pulp-manager migrate pulp_ansible
 
 Run Services
@@ -68,6 +67,15 @@ Run Services
    pulp-manager runserver
    sudo systemctl restart pulp_resource_manager
    sudo systemctl restart pulp_worker@1
+
+Upgrading Pulp Ansible
+----------------------
+
+1. Stop the webserver, pulp_resource_manager, and any pulp_workers. Leave the db running.
+2. Upgrade the code to the newer version
+3. Run migrations with ``pulp-manager migrate pulp_ansible``
+4. Start services again
+
 
 Quickstart
 ----------
