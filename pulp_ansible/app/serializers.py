@@ -1,8 +1,10 @@
+from gettext import gettext as _
+
 from rest_framework import serializers
 
 from pulpcore.plugin.serializers import ContentSerializer, IdentityField, NestedIdentityField, \
     RelatedField, RemoteSerializer
-from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.models import Artifact, Repository
 
 from .models import AnsibleRemote, AnsibleRole, AnsibleRoleVersion
 
@@ -61,3 +63,26 @@ class AnsibleRemoteSerializer(RemoteSerializer):
     class Meta:
         fields = RemoteSerializer.Meta.fields
         model = AnsibleRemote
+
+
+class OneShotUploadSerializer(serializers.Serializer):
+    """
+    A serializer for the One Shot Upload API.
+    """
+
+    repository = serializers.HyperlinkedRelatedField(
+        help_text=_('A URI of the repository.'),
+        required=True,
+        queryset=Repository.objects.all(),
+        view_name='repositories-detail',
+    )
+
+    file = serializers.FileField(
+        help_text=_("The collection file."),
+        required=True,
+    )
+
+    sha256 = serializers.CharField(
+        required=False,
+        default=None,
+    )

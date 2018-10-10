@@ -1,7 +1,7 @@
 from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
-from rest_framework import mixins, status
+from rest_framework import mixins, status, views
 from rest_framework.response import Response
 
 from pulpcore.plugin.models import Artifact, RepositoryVersion, Publication
@@ -22,7 +22,7 @@ from pulpcore.plugin.viewsets import (
 from . import tasks
 from .models import AnsibleRemote, AnsibleRole, AnsibleRoleVersion
 from .serializers import (AnsibleRemoteSerializer, AnsibleRoleSerializer,
-                          AnsibleRoleVersionSerializer)
+                          AnsibleRoleVersionSerializer, OneShotUploadSerializer)
 
 
 class AnsibleRoleFilter(BaseFilterSet):
@@ -188,3 +188,32 @@ class AnsiblePublicationsViewSet(NamedModelViewSet,
             }
         )
         return OperationPostponedResponse(result, request)
+
+
+class OneShotUploadView(views.APIView):
+    """
+    ViewSet for One Shot Upload API.
+    """
+
+    @transaction.atomic
+    def post(self, request):
+        """Upload an Ansible Role."""
+        serializer = OneShotUploadSerializer(
+            data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+        expected_digests = {'sha256': data['sha256']}
+
+        artifact = Artifact.init_and_validate(request.data['file'],
+                                              expected_digests=expected_digests)
+        artifact.save()
+
+        repository = data['repository']
+        async_result = enqueue_with_reservation(
+            tasks.import_content_from_tarball, [repository],
+            kwargs={
+                'namespace': request.user.username,
+                'artifact_pk': artifact.pk,
+                'repository_pk': repository.pk
+            })
+        return OperationPostponedResponse(async_result, request)

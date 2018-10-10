@@ -151,11 +151,35 @@ Look at the new Repository Version created
       "number": 1
   }
 
+Upload one or more Roles to Pulp (the easy way)
+-----------------------------------------------
 
-Upload a Role to Pulp
----------------------
+The upload API accepts a tarball which is opened up and any roles present will be imported and
+associated with the repository to create a new repository version.
 
-Download a role version.
+The created roles are assigned the following data:
+
+- The namespace is your username.
+- The role name is the role name of the directory in the uploaded tarball.
+- The version is an invented UUID due to version not being part of the Role metadata format. You can
+  assign versions later through the API.
+
+Here is a tarball with 6 roles in it.
+
+``curl -L https://github.com/pulp/ansible-pulp3/archive/master.tar.gz -o pulp.tar.gz``
+
+Upload it to Pulp and associate it with the repository:
+
+``http --form POST :8000/pulp_ansible/upload/ repository=$REPO_HREF file@pulp.tar.gz sha256=$(sha256sum pulp.tar.gz | awk '{ print $1 }')``
+
+
+Upload a Role to Pulp (the hard way)
+------------------------------------
+
+Uploading content this way lets you specify a namespace, name, and version which are automatically
+determined with the upload API above.
+
+To start "the hard way", download a role version.
 
 ``curl -L https://github.com/pulp/ansible-pulp3/archive/master.tar.gz -o pulp.tar.gz``
 
@@ -165,7 +189,7 @@ Create an Artifact by uploading the role version tarball to Pulp.
 
 
 Create a Role content unit
---------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Create an Ansible role in Pulp.
 
@@ -173,7 +197,7 @@ Create an Ansible role in Pulp.
 
 
 Create a ``role version`` from the Role and Artifact
------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Create a content unit and point it to your Artifact and Role
 
@@ -181,13 +205,13 @@ Create a content unit and point it to your Artifact and Role
 
 
 Add content to repository ``foo``
----------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 ``$ http POST ':8000'$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
 
 
 Create a Publication
--------------------------------------------------
+--------------------
 
 ``$ http POST :8000/pulp/api/v3/ansible/publications/ repository=$REPO_HREF``
 
