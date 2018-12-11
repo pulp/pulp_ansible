@@ -12,7 +12,7 @@ from pulpcore.plugin.serializers import (
 )
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
-    BaseFilterSet,
+    ContentFilter,
     ContentViewSet,
     NamedModelViewSet,
     OperationPostponedResponse,
@@ -25,7 +25,7 @@ from .serializers import (AnsibleRemoteSerializer, AnsibleRoleSerializer,
                           AnsibleRoleVersionSerializer)
 
 
-class AnsibleRoleFilter(BaseFilterSet):
+class AnsibleRoleFilter(ContentFilter):
     """
     FilterSet for Ansible Roles.
     """
@@ -38,7 +38,7 @@ class AnsibleRoleFilter(BaseFilterSet):
         ]
 
 
-class AnsibleRoleVersionFilter(BaseFilterSet):
+class AnsibleRoleVersionFilter(ContentFilter):
     """
     FilterSet for Ansible Role Versions.
     """
@@ -162,9 +162,11 @@ class AnsiblePublicationsViewSet(NamedModelViewSet,
     endpoint_name = 'ansible/publications'
     queryset = Publication.objects.all()
 
-    @swagger_auto_schema(operation_description="Trigger an asynchronous task to create "
-                                               "a new Ansible content publication.",
-                         responses={202: AsyncOperationResponseSerializer})
+    @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to create a new Ansible "
+                              "content publication.",
+        responses={202: AsyncOperationResponseSerializer}
+    )
     def create(self, request):
         """
         Queues a task that publishes a new Ansible Publication.
