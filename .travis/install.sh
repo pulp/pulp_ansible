@@ -16,7 +16,7 @@ if [ -n "$PULP_PR_NUMBER" ]; then
   popd
 fi
 
-pushd pulp/pulpcore/ && pip install -e . && popd
+pip install -e ./pulp
 
 git clone https://github.com/pulp/pulpcore-plugin.git
 
@@ -27,7 +27,7 @@ if [ -n "$PULP_PLUGIN_PR_NUMBER" ]; then
   popd
 fi
 
-pushd pulpcore-plugin/ && pip install -e .  && popd
+pip install -e ./pulpcore-plugin
 
 cd pulp_ansible
 pip install -e .
