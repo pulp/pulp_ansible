@@ -18,6 +18,7 @@ from pulp_smash.pulp3.utils import (
 )
 
 from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_ROLE_CONTENT_NAME,
     ANSIBLE_ROLE_CONTENT_PATH,
     ANSIBLE_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
@@ -53,7 +54,10 @@ def get_ansible_content_paths(repo):
     :returns: A list with the paths of units present in a given repository.
     """
     # FIXME
-    return [content_unit['relative_path'] for content_unit in get_content(repo)]
+    return [
+        content_unit['relative_path']
+        for content_unit in get_content(repo)[ANSIBLE_ROLE_CONTENT_NAME]
+    ]
 
 
 def gen_ansible_content_attrs(artifact):

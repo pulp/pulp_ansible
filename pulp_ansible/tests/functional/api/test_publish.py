@@ -11,6 +11,7 @@ from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_versions,
+    get_content,
     publish,
     sync,
 )
@@ -20,7 +21,7 @@ from pulp_ansible.tests.functional.utils import (
     gen_ansible_publisher,
 )
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_ROLE_CONTENT_PATH,
+    ANSIBLE_ROLE_CONTENT_NAME,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_PUBLISHER_PATH,
 )
@@ -66,9 +67,8 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         self.addCleanup(client.delete, publisher['_href'])
 
         # Step 1
-        repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['_href'])
-        for ansible_content in client.get(ANSIBLE_ROLE_CONTENT_PATH)['results']:
+        repo = client.get(repo['_href'])
+        for ansible_content in get_content(repo)[ANSIBLE_ROLE_CONTENT_NAME]:
             client.post(
                 repo['_versions_href'],
                 {'add_content_units': [ansible_content['_href']]}
