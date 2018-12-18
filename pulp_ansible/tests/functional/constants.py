@@ -7,6 +7,8 @@ from pulp_smash.pulp3.constants import (  # noqa:F401
     CONTENT_PATH
 )
 
+ANSIBLE_ROLE_CONTENT_NAME = 'ansible-role-version'
+
 ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/')
 ANSIBLE_ROLE_VERSION_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/versions/')
 
@@ -24,12 +26,12 @@ ANSIBLE_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_URL, NAMESPACE_ANSIBLE)
 ANSIBLE_PULP_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_URL, NAMESPACE_PULP)
 
 ANSIBLE_FIXTURE_CONTENT_SUMMARY = {
-    "ansible-role-version": 5,
+    ANSIBLE_ROLE_CONTENT_NAME: 5,
 }
 ANSIBLE_FIXTURE_COUNT = 5
 
 ANSIBLE_PULP_FIXTURE_CONTENT_SUMMARY = {
-    "ansible-role-version": 3,
+    ANSIBLE_ROLE_CONTENT_NAME: 3,
 }
 ANSIBLE_PULP_FIXTURE_COUNT = 3
 

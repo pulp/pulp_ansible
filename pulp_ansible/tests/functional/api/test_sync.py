@@ -7,14 +7,13 @@ from pulp_smash.pulp3.constants import MEDIA_PATH, REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
     get_content_summary,
-    get_added_content,
+    get_added_content_summary,
     sync,
 )
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
-    ANSIBLE_FIXTURE_COUNT,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -92,7 +91,7 @@ class BasicSyncTestCase(unittest.TestCase):
 
         self.assertIsNotNone(repo['_latest_version_href'])
         self.assertDictEqual(get_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
-        self.assertEqual(len(get_added_content(repo)), ANSIBLE_FIXTURE_COUNT)
+        self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
         # Sync the repository again.
         latest_version_href = repo['_latest_version_href']
@@ -101,7 +100,7 @@ class BasicSyncTestCase(unittest.TestCase):
 
         self.assertNotEqual(latest_version_href, repo['_latest_version_href'])
         self.assertDictEqual(get_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
-        self.assertEqual(len(get_added_content(repo)), 0)
+        self.assertDictEqual(get_added_content_summary(repo), {})
 
 
 class SyncInvalidURLTestCase(unittest.TestCase):
