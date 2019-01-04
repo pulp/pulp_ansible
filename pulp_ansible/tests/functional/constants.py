@@ -7,7 +7,7 @@ from pulp_smash.pulp3.constants import (  # noqa:F401
     CONTENT_PATH
 )
 
-ANSIBLE_ROLE_CONTENT_NAME = 'ansible-role-version'
+ANSIBLE_ROLE_CONTENT_NAME = 'pulp_ansible.ansible-role-version'
 
 ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/')
 ANSIBLE_ROLE_VERSION_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/versions/')
