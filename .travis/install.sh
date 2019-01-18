@@ -8,6 +8,11 @@ pip install -r test_requirements.txt
 
 cd .. && git clone https://github.com/pulp/pulp.git
 
+pushd pulp
+git fetch tags
+git checkout tags/pulpcore-plugin-0.1.0b11
+popd
+
 if [ -n "$PULP_PR_NUMBER" ]; then
   pushd pulp
   git fetch origin +refs/pull/$PULP_PR_NUMBER/merge

@@ -3,7 +3,8 @@
 from setuptools import setup, find_packages
 
 requirements = [
-    'pulpcore-plugin',
+    'pulpcore-plugin<=0.1.0b11',
+    'pulpcore<=3.0.0b13',
 ]
 
 with open('README.rst') as f:
@@ -11,7 +12,7 @@ with open('README.rst') as f:
 
 setup(
     name='pulp-ansible',
-    version='0.1.0rc2',
+    version='0.1.0rc3',
     description='Pulp plugin to manage Ansible content, e.g. roles',
     long_description=long_description,
     license='GPLv2+',
