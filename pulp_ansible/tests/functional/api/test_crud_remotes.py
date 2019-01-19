@@ -7,7 +7,7 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, utils
 
-from pulp_ansible.tests.functional.constants import ANSIBLE_REMOTE_PATH
+from pulp_ansible.tests.functional.constants import ANSIBLE_REMOTE_PATH, DOWNLOAD_POLICIES
 from pulp_ansible.tests.functional.utils import skip_if, gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -126,6 +126,7 @@ def _gen_verbose_remote():
     attrs.update({
         'password': utils.uuid4(),
         'username': utils.uuid4(),
+        'policy': choice(DOWNLOAD_POLICIES),
         'validate': choice((False, True)),
     })
     return attrs
