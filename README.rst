@@ -57,8 +57,8 @@ Make and Run Migrations
 
 .. code-block:: bash
 
-   pulp-manager makemigrations pulp_ansible
-   pulp-manager migrate pulp_ansible
+   pulp-manager makemigrations ansible
+   pulp-manager migrate ansible
 
 Run Services
 ------------
@@ -114,16 +114,16 @@ Create a repository ``foo``
 Create a new remote ``bar``
 -----------------------------
 
-``$ http POST :8000/pulp/api/v3/remotes/ansible/ name=bar url='https://galaxy.ansible.com/api/v1/roles/?namespace__name=elastic'``
+``$ http POST :8000/pulp/api/v3/remotes/ansible/ansible/ name=bar url='https://galaxy.ansible.com/api/v1/roles/?namespace__name=elastic'``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/remotes/ansible/1/",
+        "_href": "http://localhost:8000/pulp/api/v3/remotes/ansible/ansible/1/",
         ...
     }
 
-``$ export REMOTE_HREF=$(http :8000/pulp/api/v3/remotes/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export REMOTE_HREF=$(http :8000/pulp/api/v3/remotes/ansible/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 
 Sync repository ``foo`` using remote ``bar``
