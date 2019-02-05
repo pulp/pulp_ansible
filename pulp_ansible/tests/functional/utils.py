@@ -67,7 +67,7 @@ def gen_ansible_content_attrs(artifact):
     :returns: A semi-random dict for use in creating a content unit.
     """
     # FIXME: add content specific metadata here
-    return {'artifact': artifact['_href']}
+    return {'_artifact': artifact['_href']}
 
 
 def populate_pulp(cfg, url=ANSIBLE_FIXTURE_URL):

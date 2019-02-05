@@ -1,13 +1,17 @@
 from rest_framework import serializers
 
-from pulpcore.plugin.serializers import ContentSerializer, IdentityField, NestedIdentityField, \
-    RelatedField, RemoteSerializer
-from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.serializers import (
+    IdentityField,
+    NestedIdentityField,
+    NoArtifactContentSerializer,
+    RemoteSerializer,
+    SingleArtifactContentSerializer,
+)
 
 from .models import AnsibleRemote, AnsibleRole, AnsibleRoleVersion
 
 
-class AnsibleRoleSerializer(ContentSerializer):
+class AnsibleRoleSerializer(NoArtifactContentSerializer):
     """
     A serializer for Ansible Roles.
     """
@@ -30,7 +34,7 @@ class AnsibleRoleSerializer(ContentSerializer):
         model = AnsibleRole
 
 
-class AnsibleRoleVersionSerializer(ContentSerializer):
+class AnsibleRoleVersionSerializer(SingleArtifactContentSerializer):
     """
     A serializer for Ansible Role versions.
     """
@@ -40,16 +44,10 @@ class AnsibleRoleVersionSerializer(ContentSerializer):
         parent_lookup_kwargs={'role_pk': 'role__pk'},
     )
 
-    artifact = RelatedField(
-        view_name='artifacts-detail',
-        help_text="Artifact file representing the physical content",
-        queryset=Artifact.objects.all()
-    )
-
     version = serializers.CharField()
 
     class Meta:
-        fields = ('_href', 'version', 'artifact')
+        fields = SingleArtifactContentSerializer.Meta.fields + ('version',)
         model = AnsibleRoleVersion
 
 

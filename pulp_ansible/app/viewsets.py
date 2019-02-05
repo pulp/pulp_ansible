@@ -4,7 +4,7 @@ from rest_framework.decorators import detail_route
 from rest_framework import mixins, status
 from rest_framework.response import Response
 
-from pulpcore.plugin.models import Artifact, RepositoryVersion, Publication
+from pulpcore.plugin.models import Artifact, ContentArtifact, RepositoryVersion, Publication
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositoryPublishURLSerializer,
@@ -69,7 +69,21 @@ class AnsibleRoleViewSet(ContentViewSet):
         # TODO: we should probably remove create() from ContentViewSet
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+
+        artifact = serializer.validated_data.pop('_artifact')
+        content = serializer.save()
+
+        if content.pk:
+            ContentArtifact.objects.create(
+                artifact=artifact,
+                content=content,
+                relative_path="{namespace}/{name}/{version}.tar.gz".format(
+                    namespace=content.role.namespace,
+                    name=content.role.name,
+                    version=content.version
+                )
+            )
+
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
