@@ -2,7 +2,7 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, ContentArtifact, Remote
+from pulpcore.plugin.models import Content, Remote
 
 
 log = getLogger(__name__)
@@ -34,30 +34,6 @@ class AnsibleRoleVersion(Content):
 
     version = models.CharField(max_length=128)
     role = models.ForeignKey(AnsibleRole, on_delete=models.PROTECT, related_name='versions')
-
-    @property
-    def artifact(self):
-        """
-        Return the artifact id (there is only one for this content type).
-        """
-        return self._artifacts.get().pk
-
-    @artifact.setter
-    def artifact(self, artifact):
-        """
-        Set the artifact for this Ansible Role version.
-        """
-        if self.pk:
-            ca = ContentArtifact(
-                artifact=artifact,
-                content=self,
-                relative_path="{namespace}/{name}/{version}.tar.gz".format(
-                    namespace=self.role.namespace,
-                    name=self.role.name,
-                    version=self.version
-                )
-            )
-            ca.save()
 
     @property
     def relative_path(self):
