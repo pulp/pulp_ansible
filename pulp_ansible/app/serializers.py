@@ -46,8 +46,14 @@ class AnsibleRoleVersionSerializer(SingleArtifactContentSerializer):
 
     version = serializers.CharField()
 
+    # def validate(self, data):
+        # if '_relative_path' in self.initial_data:
+            # self.initial_data.pop('_relative_path')
+        # return super().validate(data)
+
     class Meta:
-        fields = SingleArtifactContentSerializer.Meta.fields + ('version',)
+        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}) + (
+            'version',)
         model = AnsibleRoleVersion
 
 

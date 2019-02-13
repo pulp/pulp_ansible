@@ -66,23 +66,10 @@ class AnsibleRoleViewSet(ContentViewSet):
         """
         Create a new AnsibleRoleContent from a request.
         """
-        # TODO: we should probably remove create() from ContentViewSet
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        artifact = serializer.validated_data.pop('_artifact')
-        content = serializer.save()
-
-        if content.pk:
-            ContentArtifact.objects.create(
-                artifact=artifact,
-                content=content,
-                relative_path="{namespace}/{name}/{version}.tar.gz".format(
-                    namespace=content.role.namespace,
-                    name=content.role.name,
-                    version=content.version
-                )
-            )
+        serializer.save()
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
@@ -114,14 +101,15 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
         """
         Create a new AnsibleRoleContent from a request.
         """
+        role = AnsibleRole.objects.get(pk=role_pk)
+        relative_path = "{namespace}/{name}/{version}.tar.gz".format(
+            namespace=role.namespace,
+            name=role.name,
+            version=request.data['version']
+        )
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
-
-        role_version = AnsibleRoleVersion(**validated_data)
-        role_version.role = AnsibleRole.objects.get(pk=role_pk)
-        role_version.save()
-        role_version.artifact = self.get_resource(request.data['artifact'], Artifact)
+        role_version = serializer.save(role=role, _relative_path=relative_path)
 
         headers = self.get_success_headers(request.data)
         return Response(
@@ -174,9 +162,9 @@ class AnsiblePublicationsViewSet(NamedModelViewSet,
     """
     ViewSet for Ansible Publications.
     """
-
     endpoint_name = 'ansible/publications'
     queryset = Publication.objects.all()
+    serializer_class = RepositoryPublishURLSerializer
 
     @swagger_auto_schema(
         operation_description="Trigger an asynchronous task to create a new Ansible "
