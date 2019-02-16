@@ -3,6 +3,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
 from rest_framework import mixins, status
 from rest_framework.response import Response
+from rest_framework_nested.viewsets import NestedViewSetMixin
 
 from pulpcore.plugin.models import Artifact, ContentArtifact, RepositoryVersion, Publication
 from pulpcore.plugin.serializers import (
@@ -61,21 +62,8 @@ class AnsibleRoleViewSet(ContentViewSet):
     serializer_class = AnsibleRoleSerializer
     filterset_class = AnsibleRoleFilter
 
-    @transaction.atomic
-    def create(self, request):
-        """
-        Create a new AnsibleRoleContent from a request.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
 
-        serializer.save()
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-
-class AnsibleRoleVersionViewSet(ContentViewSet):
+class AnsibleRoleVersionViewSet(NestedViewSetMixin, ContentViewSet):
     """
     ViewSet for Ansible Role versions.
     """
@@ -95,28 +83,6 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
         Return the pieces of the REST endpoint.
         """
         return (cls.endpoint_name,)
-
-    @transaction.atomic
-    def create(self, request, role_pk):
-        """
-        Create a new AnsibleRoleContent from a request.
-        """
-        role = AnsibleRole.objects.get(pk=role_pk)
-        relative_path = "{namespace}/{name}/{version}.tar.gz".format(
-            namespace=role.namespace,
-            name=role.name,
-            version=request.data['version']
-        )
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        role_version = serializer.save(role=role, _relative_path=relative_path)
-
-        headers = self.get_success_headers(request.data)
-        return Response(
-            self.get_serializer(role_version).data,
-            status=status.HTTP_201_CREATED,
-            headers=headers
-        )
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):

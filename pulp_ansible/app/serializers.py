@@ -1,4 +1,5 @@
 from rest_framework import serializers
+# from rest_framework_nested.serializers import NestedHyperlinkedModelSerializer
 
 from pulpcore.plugin.serializers import (
     IdentityField,
@@ -30,14 +31,23 @@ class AnsibleRoleSerializer(NoArtifactContentSerializer):
     )
 
     class Meta:
-        fields = ('_href', 'name', 'namespace', '_versions_href', 'version_count')
+        fields = NoArtifactContentSerializer.Meta.fields + (
+            'name',
+            'namespace',
+            '_versions_href',
+            'version_count',
+        )
         model = AnsibleRole
 
 
+# RFC: Do we want to mixin `NestedHyperlinkedModelSerializer`?
 class AnsibleRoleVersionSerializer(SingleArtifactContentSerializer):
     """
     A serializer for Ansible Role versions.
     """
+    parent_lookup_kwargs = {
+        'role_pk': 'role__pk',
+    }
 
     _href = NestedIdentityField(
         view_name='versions-detail',
@@ -46,10 +56,26 @@ class AnsibleRoleVersionSerializer(SingleArtifactContentSerializer):
 
     version = serializers.CharField()
 
-    # def validate(self, data):
-        # if '_relative_path' in self.initial_data:
-            # self.initial_data.pop('_relative_path')
-        # return super().validate(data)
+    def validate(self, data):
+        data = super().validate(data)
+        view = self.context['view']
+        role = AnsibleRole.objects.get(pk=view.kwargs['role_pk'])
+        if role.versions.filter(version=data['version']).exists():
+            raise serializers.ValidationError(
+                'Version "{version}" exists already for role "{name}/{namespace}"'.format(
+                    version=data['version'],
+                    namespace=role.namespace,
+                    name=role.name,
+                )
+            )
+        relative_path = "{namespace}/{name}/{version}.tar.gz".format(
+            namespace=role.namespace,
+            name=role.name,
+            version=data['version']
+        )
+        data['role'] = role
+        data['_relative_path'] = relative_path
+        return data
 
     class Meta:
         fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}) + (
