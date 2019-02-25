@@ -55,7 +55,7 @@ class AnsibleRoleViewSet(ContentViewSet):
     ViewSet for Ansible Roles.
     """
 
-    endpoint_name = 'ansible/roles'
+    endpoint_name = 'roles'
     router_lookup = 'role'
     queryset = AnsibleRole.objects.all()
     serializer_class = AnsibleRoleSerializer

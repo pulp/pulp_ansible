@@ -10,14 +10,14 @@ from pulp_smash.pulp3.constants import (  # noqa:F401
 DOWNLOAD_POLICIES = ['cache_only', 'immediate', 'on_demand']
 """Allowed download policies for this plugin."""
 
-ANSIBLE_ROLE_CONTENT_NAME = 'pulp_ansible.ansible-role-version'
+ANSIBLE_ROLE_CONTENT_NAME = 'ansible.ansible-role-version'
 
 ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/')
 ANSIBLE_ROLE_VERSION_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/versions/')
 
-ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'ansible/')
+ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'ansible/ansible/')
 
-ANSIBLE_PUBLISHER_PATH = urljoin(BASE_PUBLISHER_PATH, 'ansible/')
+ANSIBLE_PUBLISHER_PATH = urljoin(BASE_PUBLISHER_PATH, 'ansible/ansible/')
 
 
 ANSIBLE_GALAXY_URL = 'https://galaxy.ansible.com/api/v1/roles/'
