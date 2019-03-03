@@ -152,16 +152,18 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         remote = self.get_object()
         serializer = RepositorySyncURLSerializer(
             data=request.data,
-            context={'request': request}
+            context={'request': request},
         )
         serializer.is_valid(raise_exception=True)
         repository = serializer.validated_data.get('repository')
+        mirror = serializer.validated_data.get('mirror', False)
         result = enqueue_with_reservation(
             tasks.synchronize,
             [repository, remote],
             kwargs={
                 'remote_pk': remote.pk,
-                'repository_pk': repository.pk
+                'repository_pk': repository.pk,
+                'mirror': mirror,
             }
         )
         return OperationPostponedResponse(result, request)

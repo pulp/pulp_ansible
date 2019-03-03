@@ -4,12 +4,12 @@ import logging
 import math
 
 from asyncio import FIRST_COMPLETED
-from contextlib import suppress
 from gettext import gettext as _
 from urllib.parse import (
     parse_qs,
     urlencode,
     urlparse,
+    urlunparse,
 )
 
 from pulpcore.plugin.models import (
@@ -93,24 +93,21 @@ class AnsibleFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-
-        with ProgressBar(message='Downloading Metadata') as pb:
-            roles = await fetch_roles(self.remote)
-            pb.increment()
-
-        with ProgressBar(message='Parsing Metadata') as pb:
+        with ProgressBar(message='Parsing Role Metadata') as pb:
             pending = []
-            for metadata in roles:
+            async for metadata in self._fetch_roles():
                 role = AnsibleRole(name=metadata['name'], namespace=metadata['namespace'])
                 d_content = DeclarativeContent(content=role, d_artifacts=[], does_batch=False)
-                pending.append(asyncio.ensure_future(self._add_role_versions(d_content.get_or_create_future(), metadata)))
+                pending.append(asyncio.ensure_future(self._add_role_versions(
+                    d_content.get_or_create_future(),
+                    metadata,
+                )))
                 await self.put(d_content)
-        await asyncio.gather(*pending)
+                pb.increment()
+            await asyncio.gather(*pending)
 
     async def _add_role_versions(self, role_future, metadata):
         role = await role_future
-        log.info(role)
-        log.info(metadata)
         for version in metadata['summary_fields']['versions']:
             url = GITHUB_URL % (
                 metadata['github_user'],
@@ -136,90 +133,56 @@ class AnsibleFirstStage(Stage):
             )
             await self.put(d_content)
 
+    async def _fetch_roles(self):
+        async for metadata in self._fetch_galaxy_pages():
+            for result in metadata['results']:
+                role = {'name': result['name'],
+                        'namespace': result['summary_fields']['namespace']['name'],
+                        'summary_fields': result['summary_fields'],  # needed for versions
+                        'github_user': result['github_user'],
+                        'github_repo': result['github_repo']}
+                yield role
 
-def parse_roles(metadata):
-    """
-    Parse roles from  metadata json returned from galaxy.
+    async def _fetch_galaxy_pages(self):
+        """
+        Fetch the roles in a remote repository.
 
-    Args:
-        metadata (dict): Parsed metadata json
+        Returns:
+            async generator: dicts that represent pages from galaxy api
 
-    Returns:
-        roles (list): List of dicts containing role info
+        """
+        page_count = 0
+        remote = self.remote
 
-    """
-    roles = list()
+        def role_page_url(url, page=1):
+            parsed_url = urlparse(url)
+            new_query = parse_qs(parsed_url.query)
+            new_query['page'] = page
+            return urlunparse(parsed_url._replace(query=urlencode(new_query, doseq=True)))
 
-    for result in metadata['results']:
-        role = {'name': result['name'],
-                'namespace': result['summary_fields']['namespace']['name'],
-                'summary_fields': result['summary_fields'],  # needed for versions
-                'github_user': result['github_user'],
-                'github_repo': result['github_repo']}
-        roles.append(role)
+        def parse_metadata(download_result):
+            with open(download_result.path) as fd:
+                return json.load(fd)
 
-    return roles
+        with ProgressBar(message='Parsing Pages from Galaxy Roles API') as progress_bar:
+            downloader = remote.get_downloader(url=role_page_url(remote.url))
+            metadata = parse_metadata(await downloader.run())
 
+            page_count = math.ceil(float(metadata['count']) / float(PAGE_SIZE))
+            progress_bar.total = page_count
+            progress_bar.save()
 
-async def fetch_roles(remote):
-    """
-    Fetch the roles in a remote repository.
-
-    Args:
-        remote (AnsibleRemote): A remote.
-
-    Returns:
-        list: a list of dicts that represent roles
-
-    """
-    page_count = 0
-
-    def role_page_url(remote, page=1):
-        parsed = urlparse(remote.url)
-        new_query = parse_qs(parsed.query)
-        new_query['page'] = page
-        return parsed.scheme + '://' + parsed.netloc + parsed.path + '?' + urlencode(new_query,
-                                                                                     doseq=True)
-
-    def parse_metadata(path):
-        metadata = json.load(open(path))
-        page_count = math.ceil(float(metadata['count']) / float(PAGE_SIZE))
-        return page_count, parse_roles(metadata)
-
-    downloader = remote.get_downloader(url=role_page_url(remote))
-    result = await downloader.run()
-
-    page_count, roles = parse_metadata(result.path)
-
-    progress_bar = ProgressBar(message='Parsing Pages from Galaxy Roles API', total=page_count,
-                               done=1, state='running')
-    progress_bar.save()
-
-    def downloader_coroutines():
-        for page in range(2, page_count + 1):
-            downloader = remote.get_downloader(url=role_page_url(remote, page))
-            yield downloader.run()
-
-    downloaders = downloader_coroutines()
-
-    not_done = set()
-    with suppress(StopIteration):
-        for i in range(20):
-            not_done.add(next(downloaders))
-
-    while True:
-        if not_done == set():
-            break
-        done, not_done = await asyncio.wait(not_done, return_when=FIRST_COMPLETED)
-        for item in done:
-            download_result = item.result()
-            new_page_count, new_roles = parse_metadata(download_result.path)
-            roles.extend(new_roles)
+            yield metadata
             progress_bar.increment()
-            with suppress(StopIteration):
-                not_done.add(next(downloaders))
 
-    progress_bar.state = 'completed'
-    progress_bar.save()
+            # Concurrent downloads are limited by aiohttp...
+            not_done = set(
+                remote.get_downloader(url=role_page_url(remote.url, page)).run()
+                for page in range(2, page_count + 1)
+            )
 
-    return roles
+            while not_done:
+                done, not_done = await asyncio.wait(not_done, return_when=FIRST_COMPLETED)
+                for item in done:
+                    yield parse_metadata(item.result())
+                    progress_bar.increment()
