@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 requirements = [
-    'pulpcore-plugin<=0.1.0b11',  # remove once #3914 is fixed
+    'pulpcore-plugin',
 ]
 
 with open('README.rst') as f:
