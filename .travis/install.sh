@@ -16,7 +16,7 @@ if [ -n "$PULP_PR_NUMBER" ]; then
   popd
 fi
 
-pip install -e ./pulpcore
+pip install -e ./pulpcore[postgres]
 
 git clone https://github.com/pulp/pulpcore-plugin.git
 
