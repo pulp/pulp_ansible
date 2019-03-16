@@ -7,10 +7,11 @@ from pulp_smash.pulp3.constants import (  # noqa:F401
     CONTENT_PATH
 )
 
-DOWNLOAD_POLICIES = ['cache_only', 'immediate', 'on_demand']
+DOWNLOAD_POLICIES = ['immediate', 'on_demand', 'streamed']
 """Allowed download policies for this plugin."""
 
-ANSIBLE_ROLE_CONTENT_NAME = 'ansible.ansible-role-version'
+ANSIBLE_ROLE_NAME = 'ansible.ansible-role'
+ANSIBLE_ROLE_VERSION_NAME = 'ansible.ansible-role-version'
 
 ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/')
 ANSIBLE_ROLE_VERSION_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/versions/')
@@ -29,12 +30,13 @@ ANSIBLE_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_URL, NAMESPACE_ANSIBLE)
 ANSIBLE_PULP_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_URL, NAMESPACE_PULP)
 
 ANSIBLE_FIXTURE_CONTENT_SUMMARY = {
-    ANSIBLE_ROLE_CONTENT_NAME: 5,
+    ANSIBLE_ROLE_NAME: 5,
+    ANSIBLE_ROLE_VERSION_NAME: 5,
 }
 ANSIBLE_FIXTURE_COUNT = 5
 
 ANSIBLE_PULP_FIXTURE_CONTENT_SUMMARY = {
-    ANSIBLE_ROLE_CONTENT_NAME: 3,
+    ANSIBLE_ROLE_VERSION_NAME: 3,
 }
 ANSIBLE_PULP_FIXTURE_COUNT = 3
 
