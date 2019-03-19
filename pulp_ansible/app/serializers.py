@@ -1,5 +1,5 @@
 from rest_framework import serializers
-# from rest_framework_nested.serializers import NestedHyperlinkedModelSerializer
+from rest_framework_nested.serializers import NestedHyperlinkedModelSerializer
 
 from pulpcore.plugin.serializers import (
     IdentityField,
@@ -40,11 +40,12 @@ class AnsibleRoleSerializer(NoArtifactContentSerializer):
         model = AnsibleRole
 
 
-# RFC: Do we want to mixin `NestedHyperlinkedModelSerializer`?
-class AnsibleRoleVersionSerializer(SingleArtifactContentSerializer):
+class AnsibleRoleVersionSerializer(SingleArtifactContentSerializer,
+                                   NestedHyperlinkedModelSerializer):
     """
     A serializer for Ansible Role versions.
     """
+
     parent_lookup_kwargs = {
         'role_pk': 'role__pk',
     }
@@ -57,6 +58,19 @@ class AnsibleRoleVersionSerializer(SingleArtifactContentSerializer):
     version = serializers.CharField()
 
     def validate(self, data):
+        """
+        Validates data.
+
+        Args:
+            data (dict): User data to validate
+
+        Returns:
+            dict: Validated data
+
+        Raises:
+            rest_framework.serializers.ValidationError: If invalid data
+
+        """
         data = super().validate(data)
         view = self.context['view']
         role = AnsibleRole.objects.get(pk=view.kwargs['role_pk'])

@@ -178,7 +178,7 @@ Create a ``role version`` from the Role and Artifact
 
 Create a content unit and point it to your Artifact and Role
 
-``$ export CONTENT_HREF=$(http POST ':8000'${ROLE_HREF}versions/ version=0.0.1 artifact=$ARTIFACT_HREF | jq -r '._href')``
+``$ export CONTENT_HREF=$(http POST ':8000'${ROLE_HREF}versions/ version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
 
 
 Add content to repository ``foo``

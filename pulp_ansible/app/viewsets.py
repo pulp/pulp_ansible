@@ -1,11 +1,9 @@
-from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
-from rest_framework import mixins, status
-from rest_framework.response import Response
+from rest_framework import mixins
 from rest_framework_nested.viewsets import NestedViewSetMixin
 
-from pulpcore.plugin.models import Artifact, ContentArtifact, RepositoryVersion, Publication
+from pulpcore.plugin.models import RepositoryVersion, Publication
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositoryPublishURLSerializer,
@@ -128,6 +126,7 @@ class AnsiblePublicationsViewSet(NamedModelViewSet,
     """
     ViewSet for Ansible Publications.
     """
+
     endpoint_name = 'ansible/publications'
     queryset = Publication.objects.all()
     serializer_class = RepositoryPublishURLSerializer

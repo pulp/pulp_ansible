@@ -1,9 +1,9 @@
-import unittest
 from unittest import mock
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
 from pulp_ansible.app.serializers import AnsibleRoleSerializer, AnsibleRoleVersionSerializer
-from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion
+from pulp_ansible.app.models import AnsibleRole
 
 from pulpcore.plugin.models import Artifact
 
@@ -12,6 +12,7 @@ class TestAnsibleRoleSerializer(TestCase):
     """Test AnsibleRoleSerializer."""
 
     def setUp(self):
+        """Set up the tests."""
         self.data = {'name': 'test1', 'namespace': 'testnamespace1'}
 
     def test_valid_data(self):
@@ -39,7 +40,9 @@ class TestAnsibleRoleVersionSerializer(TestCase):
             sha256="c8ddb3dcf8da48278d57b0b94486832c66a8835316ccf7ca39e143cbfeb9184f",
             sha384="53a8a0cebcb7780ed7624790c9d9a4d09ba74b47270d397f5ed7bc1c46777a0fbe362aaf2bbe7f0966a350a12d76e28d",  # noqa
             sha512="a94a65f19b864d184a2a5e07fa29766f08c6d49b6f624b3dd3a36a98267b9137d9c35040b3e105448a869c23c2aec04c9e064e3555295c1b8de6515eed4da27d",  # noqa
-            size=1024
+            size=1024,
+            file=SimpleUploadedFile('test_filename', b'test content')
+
         )
         self.role = AnsibleRole.objects.create(name='test1', namespace='testnamespace1')
         self.data = {
