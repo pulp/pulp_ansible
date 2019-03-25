@@ -1,10 +1,9 @@
-from django.db import transaction
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
-from rest_framework import mixins, status
-from rest_framework.response import Response
+from rest_framework import mixins
+from rest_framework_nested.viewsets import NestedViewSetMixin
 
-from pulpcore.plugin.models import Artifact, ContentArtifact, RepositoryVersion, Publication
+from pulpcore.plugin.models import RepositoryVersion, Publication
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositoryPublishURLSerializer,
@@ -61,34 +60,8 @@ class AnsibleRoleViewSet(ContentViewSet):
     serializer_class = AnsibleRoleSerializer
     filterset_class = AnsibleRoleFilter
 
-    @transaction.atomic
-    def create(self, request):
-        """
-        Create a new AnsibleRoleContent from a request.
-        """
-        # TODO: we should probably remove create() from ContentViewSet
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
 
-        artifact = serializer.validated_data.pop('_artifact')
-        content = serializer.save()
-
-        if content.pk:
-            ContentArtifact.objects.create(
-                artifact=artifact,
-                content=content,
-                relative_path="{namespace}/{name}/{version}.tar.gz".format(
-                    namespace=content.role.namespace,
-                    name=content.role.name,
-                    version=content.version
-                )
-            )
-
-        headers = self.get_success_headers(serializer.data)
-        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
-
-
-class AnsibleRoleVersionViewSet(ContentViewSet):
+class AnsibleRoleVersionViewSet(NestedViewSetMixin, ContentViewSet):
     """
     ViewSet for Ansible Role versions.
     """
@@ -108,27 +81,6 @@ class AnsibleRoleVersionViewSet(ContentViewSet):
         Return the pieces of the REST endpoint.
         """
         return (cls.endpoint_name,)
-
-    @transaction.atomic
-    def create(self, request, role_pk):
-        """
-        Create a new AnsibleRoleContent from a request.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        validated_data = serializer.validated_data
-
-        role_version = AnsibleRoleVersion(**validated_data)
-        role_version.role = AnsibleRole.objects.get(pk=role_pk)
-        role_version.save()
-        role_version.artifact = self.get_resource(request.data['artifact'], Artifact)
-
-        headers = self.get_success_headers(request.data)
-        return Response(
-            self.get_serializer(role_version).data,
-            status=status.HTTP_201_CREATED,
-            headers=headers
-        )
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):
@@ -177,6 +129,7 @@ class AnsiblePublicationsViewSet(NamedModelViewSet,
 
     endpoint_name = 'ansible/publications'
     queryset = Publication.objects.all()
+    serializer_class = RepositoryPublishURLSerializer
 
     @swagger_auto_schema(
         operation_description="Trigger an asynchronous task to create a new Ansible "
