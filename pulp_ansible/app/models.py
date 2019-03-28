@@ -33,7 +33,7 @@ class AnsibleRoleVersion(Content):
     TYPE = 'ansible-role-version'
 
     version = models.CharField(max_length=128)
-    role = models.ForeignKey(AnsibleRole, on_delete=models.PROTECT, related_name='versions')
+    role = models.ForeignKey(AnsibleRole, on_delete=models.CASCADE, related_name='versions')
 
     @property
     def relative_path(self):
