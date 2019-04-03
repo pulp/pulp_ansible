@@ -127,7 +127,7 @@ class AnsiblePublicationsViewSet(NamedModelViewSet,
     ViewSet for Ansible Publications.
     """
 
-    endpoint_name = 'ansible/publications'
+    endpoint_name = 'publications/ansible'
     queryset = Publication.objects.all()
     serializer_class = RepositoryPublishURLSerializer
 
