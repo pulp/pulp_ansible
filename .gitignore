@@ -99,8 +99,3 @@ ENV/
 
 # mypy
 .mypy_cache/
-
-# Django migrations
-# Ignored during early development to prevent accidental commits;
-# we'll want these to not be ignored when releasing pulp 3.0
-pulp_ansible/app/migrations
