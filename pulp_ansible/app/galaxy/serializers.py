@@ -1,6 +1,5 @@
 from django.conf import settings
 from rest_framework import serializers
-from rest_framework.reverse import reverse
 
 from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion
 
@@ -12,7 +11,7 @@ class GalaxyAnsibleRoleSerializer(serializers.ModelSerializer):
 
     name = serializers.CharField()
     namespace = serializers.CharField()
-    id = serializers.UUIDField()
+    id = serializers.UUIDField(source="_id")
 
     class Meta:
         fields = ('id', 'name', 'namespace')
@@ -32,14 +31,14 @@ class GalaxyAnsibleRoleVersionSerializer(serializers.Serializer):
         """
         Get source.
         """
-        if settings.CONTENT['HOST']:
-            host = settings.CONTENT['HOST']
+        if settings.CONTENT_HOST:
+            host = settings.CONTENT_HOST
         else:
             host = self.context['request'].get_host()
         host = "{}://{}".format(self.context['request'].scheme, host)
 
         distro_base = self.context['request'].parser_context['kwargs']['path']
-        distro_path = ''.join([host, reverse('content-app'), distro_base])
+        distro_path = ''.join([host, settings.CONTENT_PATH_PREFIX, distro_base])
 
         return ''.join([distro_path, '/', obj.relative_path])
 
