@@ -57,7 +57,6 @@ Make and Run Migrations
 
 .. code-block:: bash
 
-   django-admin makemigrations ansible
    django-admin migrate ansible
 
 Run Services
