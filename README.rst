@@ -189,7 +189,7 @@ Add content to repository ``foo``
 Create a Publication
 -------------------------------------------------
 
-``$ http POST :8000/pulp/api/v3/publications/ansible/ repository=$REPO_HREF``
+``$ http POST :8000/pulp/api/v3/ansible/publications/ repository=$REPO_HREF``
 
 .. code:: json
 
