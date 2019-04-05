@@ -222,7 +222,7 @@ Using a direct path
 
 To install your role using a link to the direct tarball, do the following:
 
-``$ ansible-galaxy install http://localhost:8000/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz,,elastic.elasticsearch``
+``$ ansible-galaxy install http://localhost:8080/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz,,elastic.elasticsearch``
 
 
 Using the Pulp Galaxy API
@@ -240,9 +240,9 @@ Then install your role using namespace and name:
 
 .. code::
 
-   $ ansible-galaxy install elastic.elasticsearch
+   $ ansible-galaxy install elastic.elasticsearch,6.2.4
    - downloading role 'elasticsearch', owned by elastic
-   - downloading role from http://localhost:8000/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz
+   - downloading role from http://localhost:8080/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz
    - extracting elastic.elasticsearch to /home/vagrant/.ansible/roles/elastic.elasticsearch
    - elastic.elasticsearch (6.2.4) was installed successfully
 
