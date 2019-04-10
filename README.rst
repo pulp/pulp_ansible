@@ -64,8 +64,8 @@ Run Services
 
 .. code-block:: bash
 
-   django-admin runserver
-   gunicorn pulpcore.content:server --bind 'localhost:8080' --worker-class 'aiohttp.GunicornWebWorker' -w 2
+   django-admin runserver 24817
+   gunicorn pulpcore.content:server --bind 'localhost:24816' --worker-class 'aiohttp.GunicornWebWorker' -w 2
    sudo systemctl restart pulp-resource-manager
    sudo systemctl restart pulp-worker@1
 
@@ -97,53 +97,53 @@ library with:
 Create a repository ``foo``
 ---------------------------
 
-``$ http POST http://localhost:8000/pulp/api/v3/repositories/ name=foo``
+``$ http POST http://localhost:24817/pulp/api/v3/repositories/ name=foo``
 
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/repositories/1/",
+        "_href": "http://localhost:24817/pulp/api/v3/repositories/1/",
         ...
     }
 
-``$ export REPO_HREF=$(http :8000/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
+``$ export REPO_HREF=$(http :24817/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')``
 
 
 Create a new remote ``bar``
 -----------------------------
 
-``$ http POST :8000/pulp/api/v3/remotes/ansible/ansible/ name=bar url='https://galaxy.ansible.com/api/v1/roles/?namespace__name=elastic'``
+``$ http POST :24817/pulp/api/v3/remotes/ansible/ansible/ name=bar url='https://galaxy.ansible.com/api/v1/roles/?namespace__name=elastic'``
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/remotes/ansible/ansible/1/",
+        "_href": "http://localhost:24817/pulp/api/v3/remotes/ansible/ansible/1/",
         ...
     }
 
-``$ export REMOTE_HREF=$(http :8000/pulp/api/v3/remotes/ansible/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
+``$ export REMOTE_HREF=$(http :24817/pulp/api/v3/remotes/ansible/ansible/ | jq -r '.results[] | select(.name == "bar") | ._href')``
 
 
 Sync repository ``foo`` using remote ``bar``
 ----------------------------------------------
 
-``$ http POST ':8000'$REMOTE_HREF'sync/' repository=$REPO_HREF``
+``$ http POST ':24817'$REMOTE_HREF'sync/' repository=$REPO_HREF``
 
 
 Look at the new Repository Version created
 ------------------------------------------
 
-``$ http GET ':8000'$REPO_HREF'versions/1/'``
+``$ http GET ':24817'$REPO_HREF'versions/1/'``
 
 .. code:: json
 
 
   {
-      "_added_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/added_content/",
-      "_content_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/content/",
-      "_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/",
-      "_removed_href": "http://localhost:8000/pulp/api/v3/repositories/1/versions/1/removed_content/",
+      "_added_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/added_content/",
+      "_content_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/content/",
+      "_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/",
+      "_removed_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/removed_content/",
       "content_summary": {
           "ansible": 11
       },
@@ -161,7 +161,7 @@ Download a role version.
 
 Create an Artifact by uploading the role version tarball to Pulp.
 
-``$ export ARTIFACT_HREF=$(http --form POST http://localhost:8000/pulp/api/v3/artifacts/ file@pulp.tar.gz | jq -r '._href')``
+``$ export ARTIFACT_HREF=$(http --form POST http://localhost:24817/pulp/api/v3/artifacts/ file@pulp.tar.gz | jq -r '._href')``
 
 
 Create a Role content unit
@@ -169,7 +169,7 @@ Create a Role content unit
 
 Create an Ansible role in Pulp.
 
-``$ export ROLE_HREF=$(http http://localhost:8000/pulp/api/v3/content/ansible/roles/ namespace=pulp name=pulp | jq -r '._href')``
+``$ export ROLE_HREF=$(http http://localhost:24817/pulp/api/v3/content/ansible/roles/ namespace=pulp name=pulp | jq -r '._href')``
 
 
 Create a ``role version`` from the Role and Artifact
@@ -177,39 +177,39 @@ Create a ``role version`` from the Role and Artifact
 
 Create a content unit and point it to your Artifact and Role
 
-``$ export CONTENT_HREF=$(http POST ':8000'${ROLE_HREF}versions/ version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
+``$ export CONTENT_HREF=$(http POST ':24817'${ROLE_HREF}versions/ version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
 
 
 Add content to repository ``foo``
 ---------------------------------
 
-``$ http POST ':8000'$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
+``$ http POST ':24817'$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
 
 
 Create a Publication
 -------------------------------------------------
 
-``$ http POST :8000/pulp/api/v3/ansible/publications/ repository=$REPO_HREF``
+``$ http POST :24817/pulp/api/v3/ansible/publications/ repository=$REPO_HREF``
 
 .. code:: json
 
     {
-        "task": "http://localhost:8000/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/"
+        "task": "http://localhost:24817/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/"
     }
 
-``$ export PUBLICATION_HREF=$(http :8000/pulp/api/v3/publications/ | jq -r '.results[0] | ._href')``
+``$ export PUBLICATION_HREF=$(http :24817/pulp/api/v3/publications/ | jq -r '.results[0] | ._href')``
 
 
 Create a Distribution for the Publication
 -----------------------------------------
 
-``$ http POST http://localhost:8000/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
+``$ http POST http://localhost:24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
 
 
 .. code:: json
 
     {
-        "_href": "http://localhost:8000/pulp/api/v3/distributions/1/",
+        "_href": "http://localhost:24817/pulp/api/v3/distributions/1/",
        ...
     }
 
@@ -222,7 +222,7 @@ Using a direct path
 
 To install your role using a link to the direct tarball, do the following:
 
-``$ ansible-galaxy install http://localhost:8080/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz,,elastic.elasticsearch``
+``$ ansible-galaxy install http://localhost:24816/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz,,elastic.elasticsearch``
 
 
 Using the Pulp Galaxy API
@@ -234,7 +234,7 @@ ansible config (e.g. ``~/.ansible.cfg`` or ``/etc/ansible/ansible.cfg``):
 .. code::
 
     [galaxy]
-    server: http://localhost:8000/pulp_ansible/galaxy/dev
+    server: http://localhost:24817/pulp_ansible/galaxy/dev
 
 Then install your role using namespace and name:
 
@@ -242,7 +242,7 @@ Then install your role using namespace and name:
 
    $ ansible-galaxy install elastic.elasticsearch,6.2.4
    - downloading role 'elasticsearch', owned by elastic
-   - downloading role from http://localhost:8080/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz
+   - downloading role from http://localhost:24816/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz
    - extracting elastic.elasticsearch to /home/vagrant/.ansible/roles/elastic.elasticsearch
    - elastic.elasticsearch (6.2.4) was installed successfully
 
