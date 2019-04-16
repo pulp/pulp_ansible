@@ -34,6 +34,33 @@ class Role(Content):
         )
 
 
+class Collection(Content):
+    """
+    A content type representing a Collection
+    """
+
+    TYPE = 'collection'
+
+    namespace = models.CharField(max_length=64)
+    name = models.CharField(max_length=64)
+    version = models.CharField(max_length=128)
+
+    @property
+    def relative_path(self):
+        """
+        Return the relative path for the ContentArtifact.
+        """
+        return '{namespace}.{name}.{version}'.format(namespace=self.namespace, name=self.name,
+                                                     version=self.version)
+
+    class Meta:
+        unique_together = (
+            'namespace',
+            'name',
+            'version'
+        )
+
+
 class AnsibleRemote(Remote):
     """
     A Remote for Ansible content.
