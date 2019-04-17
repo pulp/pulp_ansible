@@ -1,9 +1,11 @@
+import re
+
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, views
 
 from pulpcore.app.models import Distribution
 
-from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion
+from pulp_ansible.app.models import AnsibleRole
 
 from .serializers import GalaxyAnsibleRoleSerializer, GalaxyAnsibleRoleVersionSerializer
 
@@ -44,8 +46,7 @@ class AnsibleRoleList(generics.ListAPIView):
         """
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
         distro_content = distro.publication.repository_version.content
-        versions = AnsibleRoleVersion.objects.filter(pk__in=distro_content)
-        roles = AnsibleRole.objects.filter(pk__in=versions.values_list('role_id', flat=True))
+        roles = AnsibleRole.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
 
         namespace = self.request.query_params.get('owner__username', None)
         if namespace:
@@ -62,7 +63,7 @@ class AnsibleRoleVersionList(generics.ListAPIView):
     APIView for Ansible Role Versions.
     """
 
-    model = AnsibleRoleVersion
+    model = AnsibleRole
     serializer_class = GalaxyAnsibleRoleVersionSerializer
     authentication_classes = []
     permission_classes = []
@@ -73,8 +74,9 @@ class AnsibleRoleVersionList(generics.ListAPIView):
         """
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
         distro_content = distro.publication.repository_version.content
-        role = get_object_or_404(AnsibleRole, pk=self.kwargs['role_pk'])
-        versions = AnsibleRoleVersion.objects.filter(pk__in=distro_content, role__pk=role.pk)
+        namespace, name = re.split(r'\.', self.kwargs['role_pk'])
+        versions = AnsibleRole.objects.filter(pk__in=distro_content, name=name,
+                                              namespace=namespace)
         for version in versions:
             version.distro_path = distro.base_path
         return versions

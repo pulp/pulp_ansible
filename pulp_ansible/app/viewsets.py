@@ -1,7 +1,6 @@
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
 from rest_framework import mixins
-from rest_framework_nested.viewsets import NestedViewSetMixin
 
 from pulpcore.plugin.models import RepositoryVersion, Publication
 from pulpcore.plugin.serializers import (
@@ -19,68 +18,33 @@ from pulpcore.plugin.viewsets import (
 )
 
 from . import tasks
-from .models import AnsibleRemote, AnsibleRole, AnsibleRoleVersion
-from .serializers import (AnsibleRemoteSerializer, AnsibleRoleSerializer,
-                          AnsibleRoleVersionSerializer)
+from .models import AnsibleRemote, AnsibleRole
+from .serializers import (AnsibleRemoteSerializer, AnsibleRoleSerializer)
 
 
 class AnsibleRoleFilter(ContentFilter):
     """
-    FilterSet for Ansible Roles.
+    FilterSet for Ansible Role Versions.
     """
 
     class Meta:
         model = AnsibleRole
         fields = [
             'name',
-            'namespace'
-        ]
-
-
-class AnsibleRoleVersionFilter(ContentFilter):
-    """
-    FilterSet for Ansible Role Versions.
-    """
-
-    class Meta:
-        model = AnsibleRoleVersion
-        fields = [
+            'namespace',
             'version',
         ]
 
 
 class AnsibleRoleViewSet(ContentViewSet):
     """
-    ViewSet for Ansible Roles.
-    """
-
-    endpoint_name = 'roles'
-    router_lookup = 'role'
-    queryset = AnsibleRole.objects.all()
-    serializer_class = AnsibleRoleSerializer
-    filterset_class = AnsibleRoleFilter
-
-
-class AnsibleRoleVersionViewSet(NestedViewSetMixin, ContentViewSet):
-    """
     ViewSet for Ansible Role versions.
     """
 
-    endpoint_name = 'versions'
-    nest_prefix = 'ansible/roles'
-    router_lookup = 'roleversion'
-    parent_viewset = AnsibleRoleViewSet
-    parent_lookup_kwargs = {'role_pk': 'role__pk'}
-    queryset = AnsibleRoleVersion.objects.all()
-    serializer_class = AnsibleRoleVersionSerializer
-    filterset_class = AnsibleRoleVersionFilter
-
-    @classmethod
-    def endpoint_pieces(cls):
-        """
-        Return the pieces of the REST endpoint.
-        """
-        return (cls.endpoint_name,)
+    endpoint_name = 'roles'
+    queryset = AnsibleRole.objects.all()
+    serializer_class = AnsibleRoleSerializer
+    filterset_class = AnsibleRoleFilter
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):

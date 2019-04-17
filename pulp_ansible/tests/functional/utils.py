@@ -18,7 +18,7 @@ from pulp_smash.pulp3.utils import (
 )
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_ROLE_VERSION_NAME,
+    ANSIBLE_ROLE_NAME,
     ANSIBLE_ROLE_CONTENT_PATH,
     ANSIBLE_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
@@ -56,7 +56,7 @@ def get_ansible_content_paths(repo):
     # FIXME
     return [
         content_unit['relative_path']
-        for content_unit in get_content(repo)[ANSIBLE_ROLE_VERSION_NAME]
+        for content_unit in get_content(repo)[ANSIBLE_ROLE_NAME]
     ]
 
 

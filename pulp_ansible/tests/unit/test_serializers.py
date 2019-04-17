@@ -2,8 +2,7 @@ from unittest import mock
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
-from pulp_ansible.app.serializers import AnsibleRoleSerializer, AnsibleRoleVersionSerializer
-from pulp_ansible.app.models import AnsibleRole
+from pulp_ansible.app.serializers import AnsibleRoleSerializer
 
 from pulpcore.plugin.models import Artifact
 
@@ -12,27 +11,7 @@ class TestAnsibleRoleSerializer(TestCase):
     """Test AnsibleRoleSerializer."""
 
     def setUp(self):
-        """Set up the tests."""
-        self.data = {'name': 'test1', 'namespace': 'testnamespace1'}
-
-    def test_valid_data(self):
-        """Test that the AnsibleRoleSerializer accepts valid data."""
-        serializer = AnsibleRoleSerializer(data=self.data)
-        self.assertTrue(serializer.is_valid())
-        self.assertEqual(serializer.validated_data, self.data)
-
-    def test_duplicate_data(self):
-        """Test that the AnsibleRoleSerializer does not accept data."""
-        AnsibleRole.objects.create(**self.data)
-        serializer = AnsibleRoleSerializer(data=self.data)
-        self.assertFalse(serializer.is_valid())
-
-
-class TestAnsibleRoleVersionSerializer(TestCase):
-    """Test AnsibleRoleVersionSerializer."""
-
-    def setUp(self):
-        """Set up the AnsibleRoleVersionSerializer tests."""
+        """Set up the AnsibleRoleSerializer tests."""
         self.artifact = Artifact.objects.create(
             md5="ec0df26316b1deb465d2d18af7b600f5",
             sha1="cf6121b0425c2f2e3a2fcfe6f402d59730eb5661",
@@ -44,25 +23,24 @@ class TestAnsibleRoleVersionSerializer(TestCase):
             file=SimpleUploadedFile('test_filename', b'test content')
 
         )
-        self.role = AnsibleRole.objects.create(name='test1', namespace='testnamespace1')
         self.data = {
             "_artifact": "/pulp/api/v3/artifacts/{}/".format(self.artifact.pk),
             "version": "0.1.2.3",
+            "name": "test1",
+            "namespace": "testns"
         }
 
     def test_valid_data(self):
-        """Test that the AnsibleRoleVersionSerializer accepts valid data."""
+        """Test that the AnsibleRoleSerializer accepts valid data."""
         view = mock.Mock()
-        view.kwargs = {'role_pk': self.role.pk}
-        serializer = AnsibleRoleVersionSerializer(data=self.data, context={'view': view})
+        serializer = AnsibleRoleSerializer(data=self.data, context={'view': view})
         self.assertTrue(serializer.is_valid())
 
     def test_duplicate_data(self):
-        """Test that the AnsibleRoleVersionSerializer does not accept data."""
+        """Test that the AnsibleRoleSerializer does not accept data."""
         view = mock.Mock()
-        view.kwargs = {'role_pk': self.role.pk}
-        serializer = AnsibleRoleVersionSerializer(data=self.data, context={'view': view})
+        serializer = AnsibleRoleSerializer(data=self.data, context={'view': view})
         self.assertTrue(serializer.is_valid())
         serializer.save()
-        serializer = AnsibleRoleVersionSerializer(data=self.data, context={'view': view})
+        serializer = AnsibleRoleSerializer(data=self.data, context={'view': view})
         self.assertFalse(serializer.is_valid())
