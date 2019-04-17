@@ -157,11 +157,11 @@ Upload a Role to Pulp
 
 Download a role version.
 
-``curl -L https://github.com/pulp/ansible-pulp3/archive/master.tar.gz -o pulp.tar.gz``
+``curl -L https://github.com/geerlingguy/ansible-role-postgresql/archive/master.tar.gz -o pg.tar.gz``
 
 Create an Artifact by uploading the role version tarball to Pulp.
 
-``$ export ARTIFACT_HREF=$(http --form POST http://localhost:24817/pulp/api/v3/artifacts/ file@pulp.tar.gz | jq -r '._href')``
+``$ export ARTIFACT_HREF=$(http --form POST http://localhost:24817/pulp/api/v3/artifacts/ file@pg.tar.gz | jq -r '._href')``
 
 
 Create a Role content unit
@@ -169,21 +169,13 @@ Create a Role content unit
 
 Create an Ansible role in Pulp.
 
-``$ export ROLE_HREF=$(http http://localhost:24817/pulp/api/v3/content/ansible/roles/ namespace=pulp name=pulp | jq -r '._href')``
-
-
-Create a ``role version`` from the Role and Artifact
------------------------------------------------------
-
-Create a content unit and point it to your Artifact and Role
-
-``$ export CONTENT_HREF=$(http POST ':24817'${ROLE_HREF}versions/ version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
+``$ export ROLE_HREF=$(http http://localhost:24817/pulp/api/v3/content/ansible/roles/ namespace=pulp name=postgresql version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
 
 
 Add content to repository ``foo``
 ---------------------------------
 
-``$ http POST ':24817'$REPO_HREF'versions/' add_content_units:="[\"$CONTENT_HREF\"]"``
+``$ http POST ':24817'$REPO_HREF'versions/' add_content_units:="[\"$ROLE_HREF\"]"``
 
 
 Create a Publication

@@ -21,7 +21,7 @@ from pulp_ansible.tests.functional.utils import (
     gen_ansible_publisher,
 )
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_ROLE_VERSION_NAME,
+    ANSIBLE_ROLE_NAME,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_PUBLISHER_PATH,
 )
@@ -68,7 +68,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
 
         # Step 1
         repo = client.get(repo['_href'])
-        for ansible_content in get_content(repo)[ANSIBLE_ROLE_VERSION_NAME]:
+        for ansible_content in get_content(repo)[ANSIBLE_ROLE_NAME]:
             client.post(
                 repo['_versions_href'],
                 {'add_content_units': [ansible_content['_href']]}

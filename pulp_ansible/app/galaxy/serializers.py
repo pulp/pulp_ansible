@@ -1,7 +1,7 @@
 from django.conf import settings
 from rest_framework import serializers
 
-from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion
+from pulp_ansible.app.models import AnsibleRole
 
 
 class GalaxyAnsibleRoleSerializer(serializers.ModelSerializer):
@@ -9,9 +9,15 @@ class GalaxyAnsibleRoleSerializer(serializers.ModelSerializer):
     A serializer for Ansible roles in Galaxy.
     """
 
+    id = serializers.SerializerMethodField(read_only=True)
     name = serializers.CharField()
     namespace = serializers.CharField()
-    id = serializers.UUIDField(source="_id")
+
+    def get_id(self, obj):
+        """
+        Get id.
+        """
+        return "{}.{}".format(obj.namespace, obj.name)
 
     class Meta:
         fields = ('id', 'name', 'namespace')
@@ -44,4 +50,4 @@ class GalaxyAnsibleRoleVersionSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('name', 'source')
-        model = AnsibleRoleVersion
+        model = AnsibleRole

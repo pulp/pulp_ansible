@@ -24,7 +24,7 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
-from pulp_ansible.app.models import AnsibleRole, AnsibleRoleVersion, AnsibleRemote
+from pulp_ansible.app.models import AnsibleRole, AnsibleRemote
 
 
 log = logging.getLogger(__name__)
@@ -94,44 +94,34 @@ class AnsibleFirstStage(Stage):
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
         with ProgressBar(message='Parsing Role Metadata') as pb:
-            pending = []
             async for metadata in self._fetch_roles():
-                role = AnsibleRole(name=metadata['name'], namespace=metadata['namespace'])
-                d_content = DeclarativeContent(content=role, d_artifacts=[], does_batch=False)
-                pending.append(asyncio.ensure_future(self._add_role_versions(
-                    d_content.get_or_create_future(),
-                    metadata,
-                )))
-                await self.put(d_content)
-                pb.increment()
-            await asyncio.gather(*pending)
-
-    async def _add_role_versions(self, role_future, metadata):
-        role = await role_future
-        for version in metadata['summary_fields']['versions']:
-            url = GITHUB_URL % (
-                metadata['github_user'],
-                metadata['github_repo'],
-                version['name'],
-            )
-            role_version = AnsibleRoleVersion(version=version['name'], role=role)
-            relative_path = "%s/%s/%s.tar.gz" % (
-                metadata['namespace'],
-                metadata['name'],
-                version['name'],
-            )
-            d_artifact = DeclarativeArtifact(
-                artifact=Artifact(),
-                url=url,
-                relative_path=relative_path,
-                remote=self.remote,
-                deferred_download=self.deferred_download,
-            )
-            d_content = DeclarativeContent(
-                content=role_version,
-                d_artifacts=[d_artifact],
-            )
-            await self.put(d_content)
+                for version in metadata['summary_fields']['versions']:
+                    url = GITHUB_URL % (
+                        metadata['github_user'],
+                        metadata['github_repo'],
+                        version['name'],
+                    )
+                    role = AnsibleRole(version=version['name'],
+                                       name=metadata['name'],
+                                       namespace=metadata['namespace'])
+                    relative_path = "%s/%s/%s.tar.gz" % (
+                        metadata['namespace'],
+                        metadata['name'],
+                        version['name'],
+                    )
+                    d_artifact = DeclarativeArtifact(
+                        artifact=Artifact(),
+                        url=url,
+                        relative_path=relative_path,
+                        remote=self.remote,
+                        deferred_download=self.deferred_download,
+                    )
+                    d_content = DeclarativeContent(
+                        content=role,
+                        d_artifacts=[d_artifact],
+                    )
+                    pb.increment()
+                    await self.put(d_content)
 
     async def _fetch_roles(self):
         async for metadata in self._fetch_galaxy_pages():
