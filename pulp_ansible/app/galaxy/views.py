@@ -3,11 +3,17 @@ import re
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, views
 
-from pulpcore.app.models import Distribution
+from pulpcore.app.models import Artifact, Distribution
+from pulpcore.app.response import OperationPostponedResponse
+from pulpcore.tasking.tasks import enqueue_with_reservation
 
-from pulp_ansible.app.models import Role
+from pulp_ansible.app.galaxy.tasks import import_collection
+from pulp_ansible.app.models import Collection, Role
 
-from .serializers import GalaxyRoleSerializer, GalaxyRoleVersionSerializer
+from .serializers import (
+    GalaxyCollectionUploadSerializer, GalaxyRoleSerializer,
+    GalaxyRoleVersionSerializer,
+)
 
 
 class GalaxyVersionView(views.APIView):
@@ -79,3 +85,32 @@ class RoleVersionList(generics.ListAPIView):
         for version in versions:
             version.distro_path = distro.base_path
         return versions
+
+
+class GalaxyCollectionView(views.APIView):
+    """
+    ViewSet for Collection models.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request, *args, **kwargs):
+        """
+        Queues a task that publishes a new Ansible Publication.
+        """
+        serializer = GalaxyCollectionUploadSerializer(data=request.data,
+                                                      context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        expected_digests = {'sha256': serializer.validated_data['sha256']}
+        artifact = Artifact.init_and_validate(serializer.validated_data['file'],
+                                              expected_digests=expected_digests)
+        artifact.save()
+
+        async_result = enqueue_with_reservation(
+            import_collection, [str(artifact.pk)],
+            kwargs={
+                'artifact_pk': artifact.pk,
+            })
+        return OperationPostponedResponse(async_result, request)
