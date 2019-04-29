@@ -1,25 +1,26 @@
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import detail_route
-from rest_framework import mixins
 
-from pulpcore.plugin.models import RepositoryVersion, Publication
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
-    RepositoryPublishURLSerializer,
     RepositorySyncURLSerializer,
 )
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     ContentFilter,
     ContentViewSet,
-    NamedModelViewSet,
     OperationPostponedResponse,
+    PublicationViewSet,
     RemoteViewSet
 )
 
 from . import tasks
-from .models import AnsibleRemote, AnsibleRole
-from .serializers import (AnsibleRemoteSerializer, AnsibleRoleSerializer)
+from .models import AnsiblePublication, AnsibleRemote, AnsibleRole
+from .serializers import (
+    AnsiblePublicationSerializer,
+    AnsibleRemoteSerializer,
+    AnsibleRoleSerializer
+)
 
 
 class AnsibleRoleFilter(ContentFilter):
@@ -85,15 +86,14 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         return OperationPostponedResponse(result, request)
 
 
-class AnsiblePublicationsViewSet(NamedModelViewSet,
-                                 mixins.CreateModelMixin):
+class AnsiblePublicationsViewSet(PublicationViewSet):
     """
     ViewSet for Ansible Publications.
     """
 
-    endpoint_name = 'ansible/publications'
-    queryset = Publication.objects.all()
-    serializer_class = RepositoryPublishURLSerializer
+    endpoint_name = 'ansible'
+    queryset = AnsiblePublication.objects.all()
+    serializer_class = AnsiblePublicationSerializer
 
     @swagger_auto_schema(
         operation_description="Trigger an asynchronous task to create a new Ansible "
@@ -103,18 +103,13 @@ class AnsiblePublicationsViewSet(NamedModelViewSet,
     def create(self, request):
         """
         Queues a task that publishes a new Ansible Publication.
+
+        Either the ``repository`` or the ``repository_version`` fields can
+        be provided but not both at the same time.
         """
-        serializer = RepositoryPublishURLSerializer(
-            data=request.data,
-            context={'request': request}
-        )
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         repository_version = serializer.validated_data.get('repository_version')
-
-        # Safe because version OR repository is enforced by serializer.
-        if not repository_version:
-            repository = serializer.validated_data.get('repository')
-            repository_version = RepositoryVersion.latest(repository)
 
         result = enqueue_with_reservation(
             tasks.publish, [repository_version.repository],

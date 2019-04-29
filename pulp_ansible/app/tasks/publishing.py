@@ -2,7 +2,9 @@ import logging
 
 from gettext import gettext as _
 
-from pulpcore.plugin.models import RepositoryVersion, Publication
+from pulpcore.plugin.models import RepositoryVersion
+
+from pulp_ansible.app.models import AnsiblePublication
 
 
 log = logging.getLogger(__name__)
@@ -16,7 +18,7 @@ def publish(repository_version_pk):
         repository_version_pk (str): Create a publication from this repository version.
     """
     repository_version = RepositoryVersion.objects.get(pk=repository_version_pk)
-    with Publication.create(repository_version, pass_through=True) as publication:
+    with AnsiblePublication.create(repository_version, pass_through=True) as publication:
         pass
 
     log.info(_('Publication: {publication} created').format(publication=publication.pk))
