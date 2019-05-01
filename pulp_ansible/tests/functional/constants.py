@@ -10,7 +10,7 @@ from pulp_smash.pulp3.constants import (  # noqa:F401
 DOWNLOAD_POLICIES = ['immediate', 'on_demand', 'streamed']
 """Allowed download policies for this plugin."""
 
-ANSIBLE_ROLE_NAME = 'ansible.ansible-role'
+ANSIBLE_ROLE_NAME = 'ansible.role'
 
 ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/')
 

@@ -52,8 +52,8 @@ After installing the code, configure Pulp to connect to Redis and PostgreSQL wit
 configuration instructions
 <https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html#database-setup>`_
 
-Make and Run Migrations
------------------------
+Run Migrations
+--------------
 
 .. code-block:: bash
 
@@ -140,14 +140,24 @@ Look at the new Repository Version created
 
 
   {
-      "_added_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/added_content/",
-      "_content_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/content/",
-      "_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/",
-      "_removed_href": "http://localhost:24817/pulp/api/v3/repositories/1/versions/1/removed_content/",
+      "_created": "2019-05-01T15:32:52.766912Z",
+      "_href": "/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/",
+      "base_version": null,
       "content_summary": {
-          "ansible": 11
+          "added": {
+              "ansible.role": {
+                  "count": 16,
+                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version_added=/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
+              }
+          },
+          "present": {
+              "ansible.role": {
+                  "count": 16,
+                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version=/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
+              }
+          },
+          "removed": {}
       },
-      "created": "2018-03-12T19:23:31.000923Z",
       "number": 1
   }
 
@@ -167,7 +177,7 @@ Create an Artifact by uploading the role version tarball to Pulp.
 Create a Role content unit
 --------------------------
 
-Create an Ansible role in Pulp.
+Create a Role in Pulp.
 
 ``$ export ROLE_HREF=$(http http://localhost:24817/pulp/api/v3/content/ansible/roles/ namespace=pulp name=postgresql version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
 
@@ -181,7 +191,7 @@ Add content to repository ``foo``
 Create a Publication
 -------------------------------------------------
 
-``$ http POST :24817/pulp/api/v3/ansible/publications/ repository=$REPO_HREF``
+``$ http POST :24817/pulp/api/v3/publications/ansible/ansible/ repository=$REPO_HREF``
 
 .. code:: json
 

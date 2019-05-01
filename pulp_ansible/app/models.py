@@ -8,12 +8,12 @@ from pulpcore.plugin.models import Content, Publication, Remote
 log = getLogger(__name__)
 
 
-class AnsibleRole(Content):
+class Role(Content):
     """
-    A content type representing an Ansible Role version.
+    A content type representing a Role.
     """
 
-    TYPE = 'ansible-role'
+    TYPE = 'role'
 
     namespace = models.CharField(max_length=64)
     name = models.CharField(max_length=64)

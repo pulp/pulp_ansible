@@ -5,14 +5,14 @@ from rest_framework import generics, response, views
 
 from pulpcore.app.models import Distribution
 
-from pulp_ansible.app.models import AnsibleRole
+from pulp_ansible.app.models import Role
 
-from .serializers import GalaxyAnsibleRoleSerializer, GalaxyAnsibleRoleVersionSerializer
+from .serializers import GalaxyRoleSerializer, GalaxyRoleVersionSerializer
 
 
-class AnsibleGalaxyVersionView(views.APIView):
+class GalaxyVersionView(views.APIView):
     """
-    APIView for Ansible Galaxy versions.
+    APIView for Galaxy versions.
     """
 
     authentication_classes = []
@@ -30,13 +30,13 @@ class AnsibleGalaxyVersionView(views.APIView):
         return response.Response(api_info)
 
 
-class AnsibleRoleList(generics.ListAPIView):
+class RoleList(generics.ListAPIView):
     """
-    APIView for Ansible Roles.
+    APIView for Roles.
     """
 
-    model = AnsibleRole
-    serializer_class = GalaxyAnsibleRoleSerializer
+    model = Role
+    serializer_class = GalaxyRoleSerializer
     authentication_classes = []
     permission_classes = []
 
@@ -46,7 +46,7 @@ class AnsibleRoleList(generics.ListAPIView):
         """
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
         distro_content = distro.publication.repository_version.content
-        roles = AnsibleRole.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
+        roles = Role.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
 
         namespace = self.request.query_params.get('owner__username', None)
         if namespace:
@@ -58,13 +58,13 @@ class AnsibleRoleList(generics.ListAPIView):
         return roles
 
 
-class AnsibleRoleVersionList(generics.ListAPIView):
+class RoleVersionList(generics.ListAPIView):
     """
-    APIView for Ansible Role Versions.
+    APIView for Role Versions.
     """
 
-    model = AnsibleRole
-    serializer_class = GalaxyAnsibleRoleVersionSerializer
+    model = Role
+    serializer_class = GalaxyRoleVersionSerializer
     authentication_classes = []
     permission_classes = []
 
@@ -75,8 +75,7 @@ class AnsibleRoleVersionList(generics.ListAPIView):
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
         distro_content = distro.publication.repository_version.content
         namespace, name = re.split(r'\.', self.kwargs['role_pk'])
-        versions = AnsibleRole.objects.filter(pk__in=distro_content, name=name,
-                                              namespace=namespace)
+        versions = Role.objects.filter(pk__in=distro_content, name=name, namespace=namespace)
         for version in versions:
             version.distro_path = distro.base_path
         return versions
