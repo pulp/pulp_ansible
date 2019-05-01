@@ -1,5 +1,6 @@
 import re
 
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, views
 
@@ -11,8 +12,8 @@ from pulp_ansible.app.galaxy.tasks import import_collection
 from pulp_ansible.app.models import Collection, Role
 
 from .serializers import (
-    GalaxyCollectionUploadSerializer, GalaxyRoleSerializer,
-    GalaxyRoleVersionSerializer,
+    GalaxyCollectionSerializer, GalaxyCollectionUploadSerializer,
+    GalaxyRoleSerializer, GalaxyRoleVersionSerializer,
 )
 
 
@@ -114,3 +115,74 @@ class GalaxyCollectionView(views.APIView):
                 'artifact_pk': artifact.pk,
             })
         return OperationPostponedResponse(async_result, request)
+
+
+class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
+    """
+    APIView for Collections by namespace/name
+    """
+
+    model = Collection
+    serializer_class = GalaxyCollectionSerializer
+    authentication_classes = []
+    permission_classes = []
+
+    def get_queryset(self):
+        """
+        Get the list of items for this view.
+        """
+        # distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
+        # distro_content = distro.publication.repository_version.content
+        # roles = AnsibleRole.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
+
+        collections = Collection.objects.distinct('namespace', 'name')
+
+        namespace = self.request.query_params.get('owner__username', None)
+        if namespace:
+            collections = collections.filter(namespace=namespace)
+        name = self.request.query_params.get('name', None)
+        if name:
+            collections = collections.filter(name=name)
+
+        return collections
+
+
+class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
+    """
+    APIView for Galaxy Collections Detail view
+    """
+
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, path, namespace=None, name=None, version=None):
+        """
+        Return a response to the "GET" action.
+        """
+        distro_path = ''.join([settings.CONTENT_HOST, settings.CONTENT_PATH_PREFIX, path])
+        collection = Collection.objects.get(namespace=namespace, name=name, version=version)
+        artifact = collection.contentartifact_set.get()
+        download_url = ''.join([distro_path, '/', collection.relative_path])
+        import pydevd_pycharm
+        pydevd_pycharm.settrace('localhost', port=29438, stdoutToServer=True, stderrToServer=True)
+        to_return = {
+            'download_url': download_url
+        }
+        return response.Response(to_return)
+
+
+class GalaxyCollectionNamespaceNameVersionArtifactRedirect(views.APIView):
+    """
+    APIView for Galaxy Collections Artifact Redirect
+    """
+
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, path, namespace=None, name=None, version=None):
+        """
+        Return a response to the "GET" action.
+        """
+        import pydevd_pycharm
+        pydevd_pycharm.settrace('localhost', port=29438, stdoutToServer=True, stderrToServer=True)
+        return response.Response()

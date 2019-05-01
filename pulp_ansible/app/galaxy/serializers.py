@@ -55,6 +55,27 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         model = Role
 
 
+class GalaxyCollectionSerializer(serializers.Serializer):
+    """
+    A serializer for a Collection
+    """
+    name = serializers.CharField()
+    namespace = serializers.CharField()
+    version = serializers.CharField()
+    href = serializers.SerializerMethodField(read_only=True)
+
+    def get_href(self, obj):
+        """
+        Get href.
+        """
+        return "/api/v2/collections/{namespace}/{name}/versions/{version}/".format(
+            namespace=obj.namespace, name=obj.name, version=obj.version)
+
+    class Meta:
+        fields = ('name', 'namespace', 'version', 'href')
+        model = Collection
+
+
 class GalaxyCollectionUploadSerializer(serializers.Serializer):
     """
     A serializer for Collection Uploads
