@@ -15,21 +15,21 @@ from pulpcore.plugin.viewsets import (
 )
 
 from . import tasks
-from .models import AnsiblePublication, AnsibleRemote, AnsibleRole
+from .models import AnsiblePublication, AnsibleRemote, Role
 from .serializers import (
     AnsiblePublicationSerializer,
     AnsibleRemoteSerializer,
-    AnsibleRoleSerializer
+    RoleSerializer
 )
 
 
-class AnsibleRoleFilter(ContentFilter):
+class RoleFilter(ContentFilter):
     """
-    FilterSet for Ansible Role Versions.
+    FilterSet for Roles.
     """
 
     class Meta:
-        model = AnsibleRole
+        model = Role
         fields = [
             'name',
             'namespace',
@@ -37,15 +37,15 @@ class AnsibleRoleFilter(ContentFilter):
         ]
 
 
-class AnsibleRoleViewSet(ContentViewSet):
+class RoleViewSet(ContentViewSet):
     """
-    ViewSet for Ansible Role versions.
+    ViewSet for Role.
     """
 
     endpoint_name = 'roles'
-    queryset = AnsibleRole.objects.all()
-    serializer_class = AnsibleRoleSerializer
-    filterset_class = AnsibleRoleFilter
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    filterset_class = RoleFilter
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):

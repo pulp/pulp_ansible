@@ -1,14 +1,14 @@
 from django.conf.urls import url
 
 from pulp_ansible.app.galaxy.views import (
-    AnsibleGalaxyVersionView,
-    AnsibleRoleList,
-    AnsibleRoleVersionList
+    GalaxyVersionView,
+    RoleList,
+    RoleVersionList
 )
 
 urlpatterns = [
-    url(r'pulp_ansible/galaxy/(?P<path>.+)/api/$', AnsibleGalaxyVersionView.as_view()),
-    url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v1/roles/$', AnsibleRoleList.as_view()),
+    url(r'pulp_ansible/galaxy/(?P<path>.+)/api/$', GalaxyVersionView.as_view()),
+    url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v1/roles/$', RoleList.as_view()),
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v1/roles/(?P<role_pk>.+)/versions/$',
-        AnsibleRoleVersionList.as_view())
+        RoleVersionList.as_view())
 ]

@@ -24,7 +24,7 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
-from pulp_ansible.app.models import AnsibleRole, AnsibleRemote
+from pulp_ansible.app.models import AnsibleRemote, Role
 
 
 log = logging.getLogger(__name__)
@@ -101,9 +101,9 @@ class AnsibleFirstStage(Stage):
                         metadata['github_repo'],
                         version['name'],
                     )
-                    role = AnsibleRole(version=version['name'],
-                                       name=metadata['name'],
-                                       namespace=metadata['namespace'])
+                    role = Role(version=version['name'],
+                                name=metadata['name'],
+                                namespace=metadata['namespace'])
                     relative_path = "%s/%s/%s.tar.gz" % (
                         metadata['namespace'],
                         metadata['name'],
