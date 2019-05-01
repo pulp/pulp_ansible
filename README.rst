@@ -9,6 +9,7 @@ you can:
 * Store private Ansible roles on-premise
 * Install Roles from pulp_ansible using the `ansible-galaxy` CLI
 * Version Role content over time and rollback if necessary
+* Support for the new multi-role content type from Galaxy
 
 Issues are tracked `in Redmine <https://pulp.plan.io/projects/ansible_plugin/issues>`_. You can file
 a new issue or feature request `here <https://pulp.plan.io/projects/ansible_plugin/issues/new>`_.
@@ -248,3 +249,134 @@ Then install your role using namespace and name:
    - extracting elastic.elasticsearch to /home/vagrant/.ansible/roles/elastic.elasticsearch
    - elastic.elasticsearch (6.2.4) was installed successfully
 
+
+Collection Support
+------------------
+
+.. warning::
+
+    The 'Collection' content type is currently in tech-preview. Breaking changes could be introduced
+    in the future.
+
+pulp_ansible can manage the `multi-role repository content <https://galaxy.ansible.com/docs/using/
+installing.html#multi-role-repositories>`_ referred to as a `Collection`. The following features are
+supported:
+
+* `mazer upload` - Upload a Collection to pulp_ansible for association with one or more
+  repositories.
+* `mazer install` - Install a Collection from pulp_ansible.
+
+
+Configuring Collection Support
+------------------------------
+
+You'll have to specify the protocol and hostname the pulp_ansible REST API is being served on. For
+pulp_ansible to interact with `mazer` correctly it needs the entire hostname. This is done using the
+`ANSIBLE_HOSTNAME` setting in Pulp. For example if its serving with http on localhost it would be::
+
+    export PULP_ANSIBLE_API_HOSTNAME='http://localhost:24817'
+    export PULP_ANSIBLE_CONTENT_HOSTNAME='http://localhost:24816/pulp/content'
+
+or in your systemd environment:
+
+    Environment="PULP_ANSIBLE_API_HOSTNAME=http://localhost:24817"
+    Environment="PULP_ANSIBLE_CONTENT_HOSTNAME=http://localhost:24816/pulp/content"
+
+
+
+
+Mazer Configuration
+-------------------
+
+`Install mazer <https://galaxy.ansible.com/docs/mazer/install.html#latest-stable-release>`_ and
+use the `url` option to point to the `Distribution` your content should fetch from. For example,
+using the `Distribution` created in the sync workflow, the config would be::
+
+    server:
+      url: http://localhost:24816/pulp/content/dev
+
+This is assuming you have the `Collection` content exposed at a Distribution created with
+`base_path=dev` (as in the example above).
+
+
+Mazer publish
+-------------
+
+You can use `mazer` to publish any `built artifact <https://github.com/ansible/mazer/#building-
+ansible-content-collection-artifacts-with-mazer-build>`_ to pulp_ansible by running::
+
+    mazer publish path/to/artifact.tar.gz
+
+For example if you have mazer installed and configured the script below will upload a Collection to
+pulp_ansible and display it::
+
+    $ git clone https://github.com/ansible/mazer.git
+    $ cd mazer/tests/ansible_galaxy/collection_examples/hello/
+    $ mazer build
+    $ mazer publish releases/greetings_namespace-hello-11.11.11.tar.gz
+    $ http http://localhost:24817/pulp/api/v3/content/ansible/collections/
+    HTTP/1.1 200 OK
+    Allow: GET, POST, HEAD, OPTIONS
+    Connection: close
+    Content-Length: 357
+    Content-Type: application/json
+    Date: Tue, 30 Apr 2019 22:12:06 GMT
+    Server: gunicorn/19.9.0
+    Vary: Accept, Cookie
+    X-Frame-Options: SAMEORIGIN
+
+    {
+        "count": 1,
+        "next": null,
+        "previous": null,
+        "results": [
+            {
+                "_artifact": "/pulp/api/v3/artifacts/8d77cbc1-fcc7-4239-b369-323ef2080e2f/",
+                "_created": "2019-04-30T22:12:01.452493Z",
+                "_href": "/pulp/api/v3/content/ansible/collections/505e7a21-49c6-4287-936e-b043ec6f76d1/",
+                "_type": "ansible.collection",
+                "name": "hello",
+                "namespace": "greetings_namespace",
+                "version": "11.11.11"
+            }
+        ]
+    }
+
+Note that this does not add the Collection to any Repository Version. You can associate the `hello`
+unit with a two step process:
+
+1. Create a new RepositoryVersion that includes the Collection
+2. Create a new Publication that references the new RepositoryVersion from step 1.
+3. Update the Distribution serving `mazer` to serve the new Publication from step 2.
+
+You could do these steps with a script like::
+
+    # Create a Repository
+    http POST http://localhost:24817/pulp/api/v3/repositories/ name=foo
+    export REPO_HREF=$(http :24817/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')
+
+    # Find the 'hello' collection
+    export COLLECTION_HREF=$(http :24817/pulp/api/v3/content/ansible/collections/ | jq -r '.results[0]._href')
+
+    # Create a Repository Version with the 'hello' collection
+    http POST ':24817'$REPO_HREF'versions/' add_content_units:="[\"$COLLECTION_HREF\"]"
+
+    # Create a publication
+    http POST :24817/pulp/api/v3/publications/ansible/ansible/ repository=$REPO_HREF
+    export PUBLICATION_HREF=$(http :24817/pulp/api/v3/publications/ansible/ansible/ | jq -r '.results[0] | ._href')
+
+    # Create a Distribution
+    http POST http://localhost:24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF
+
+
+Mazer install
+-------------
+
+You can use `mazer` to install a collection by its namespace and name from pulp_ansible using the
+`install` command. For example to install the `hello` collection from above you can specify::
+
+    mazer install greetings_namespace.hello
+
+
+This assumes that the `hello` Collection is being served by the Distribution `mazer` is configured
+to use.

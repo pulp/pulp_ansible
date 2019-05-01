@@ -63,13 +63,26 @@ class GalaxyCollectionSerializer(serializers.Serializer):
     namespace = serializers.CharField()
     version = serializers.CharField()
     href = serializers.SerializerMethodField(read_only=True)
+    versions_url = serializers.SerializerMethodField(read_only=True)
+
+    def get_versions_url(self, obj):
+        """
+        Get versions_url.
+        """
+        return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
+               "versions/".format(
+            path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME, namespace=obj.namespace,
+            name=obj.name
+        )
 
     def get_href(self, obj):
         """
         Get href.
         """
-        return "/api/v2/collections/{namespace}/{name}/versions/{version}/".format(
-            namespace=obj.namespace, name=obj.name, version=obj.version)
+        return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
+               "versions/{version}/".format(
+            path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME, namespace=obj.namespace,
+            name=obj.name, version=obj.version)
 
     class Meta:
         fields = ('name', 'namespace', 'version', 'href')

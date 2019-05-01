@@ -6,7 +6,9 @@ from rest_framework import generics, response, views
 
 from pulpcore.app.models import Artifact, Distribution
 from pulpcore.app.response import OperationPostponedResponse
+from pulpcore.app.serializers import DistributionSerializer
 from pulpcore.tasking.tasks import enqueue_with_reservation
+from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.galaxy.tasks import import_collection
 from pulp_ansible.app.models import Collection, Role
@@ -88,9 +90,25 @@ class RoleVersionList(generics.ListAPIView):
         return versions
 
 
+class GalaxyCollectionDetailView(generics.RetrieveAPIView):
+    """
+    View for a Collection Detail
+    """
+
+    model = Collection
+    serializer_class = GalaxyCollectionSerializer
+    authentication_classes = []
+    permission_classes = []
+
+    def get(self, request, path=None, namespace=None, name=None):
+        collection = get_object_or_404(Collection, namespace=namespace, name=name)
+        collection.path = path
+        return response.Response(GalaxyCollectionSerializer(collection).data)
+
+
 class GalaxyCollectionView(views.APIView):
     """
-    ViewSet for Collection models.
+    View for Collection models.
     """
 
     authentication_classes = []
@@ -131,11 +149,9 @@ class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        # distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
-        # distro_content = distro.publication.repository_version.content
-        # roles = AnsibleRole.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
-
-        collections = Collection.objects.distinct('namespace', 'name')
+        distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
+        distro_content = distro.publication.repository_version.content
+        collections = Collection.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
 
         namespace = self.request.query_params.get('owner__username', None)
         if namespace:
@@ -143,6 +159,9 @@ class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
         name = self.request.query_params.get('name', None)
         if name:
             collections = collections.filter(name=name)
+
+        for c in collections:
+            c.path = self.kwargs['path']  # annotation needed by the serializer
 
         return collections
 
@@ -159,30 +178,20 @@ class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
         """
         Return a response to the "GET" action.
         """
-        distro_path = ''.join([settings.CONTENT_HOST, settings.CONTENT_PATH_PREFIX, path])
+        distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
         collection = Collection.objects.get(namespace=namespace, name=name, version=version)
-        artifact = collection.contentartifact_set.get()
-        download_url = ''.join([distro_path, '/', collection.relative_path])
-        import pydevd_pycharm
-        pydevd_pycharm.settrace('localhost', port=29438, stdoutToServer=True, stderrToServer=True)
+
+        get_object_or_404(ContentArtifact,
+            content__in=distro.publication.repository_version.content,
+            relative_path=collection.relative_path
+        )
+
+        download_url = '{content_hostname}/{base_path}/{relative_path}'.format(
+            content_hostname=settings.ANSIBLE_CONTENT_HOSTNAME,
+            base_path=distro.base_path,
+            relative_path=collection.relative_path
+        )
         to_return = {
             'download_url': download_url
         }
         return response.Response(to_return)
-
-
-class GalaxyCollectionNamespaceNameVersionArtifactRedirect(views.APIView):
-    """
-    APIView for Galaxy Collections Artifact Redirect
-    """
-
-    authentication_classes = []
-    permission_classes = []
-
-    def get(self, request, path, namespace=None, name=None, version=None):
-        """
-        Return a response to the "GET" action.
-        """
-        import pydevd_pycharm
-        pydevd_pycharm.settrace('localhost', port=29438, stdoutToServer=True, stderrToServer=True)
-        return response.Response()
