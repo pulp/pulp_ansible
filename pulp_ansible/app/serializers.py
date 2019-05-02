@@ -6,7 +6,7 @@ from pulpcore.plugin.serializers import (
     SingleArtifactContentSerializer,
 )
 
-from .models import AnsiblePublication, AnsibleRemote, Role
+from .models import AnsiblePublication, AnsibleRemote, Collection, Role
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -65,3 +65,18 @@ class AnsiblePublicationSerializer(PublicationSerializer):
     class Meta:
         fields = PublicationSerializer.Meta.fields
         model = AnsiblePublication
+
+
+class CollectionSerializer(SingleArtifactContentSerializer):
+    """
+    A serializer for Ansible Collection.
+    """
+
+    name = serializers.CharField()
+    namespace = serializers.CharField()
+    version = serializers.CharField()
+
+    class Meta:
+        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}) + (
+            'version', 'name', 'namespace')
+        model = Collection

@@ -1,7 +1,9 @@
+from gettext import gettext as _
+
 from django.conf import settings
 from rest_framework import serializers
 
-from pulp_ansible.app.models import Role
+from pulp_ansible.app.models import Collection, Role
 
 
 class GalaxyRoleSerializer(serializers.ModelSerializer):
@@ -51,3 +53,53 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
     class Meta:
         fields = ('name', 'source')
         model = Role
+
+
+class GalaxyCollectionSerializer(serializers.Serializer):
+    """
+    A serializer for a Collection.
+    """
+
+    name = serializers.CharField()
+    namespace = serializers.CharField()
+    version = serializers.CharField()
+    href = serializers.SerializerMethodField(read_only=True)
+    versions_url = serializers.SerializerMethodField(read_only=True)
+
+    def get_versions_url(self, obj):
+        """
+        Get versions_url.
+        """
+        return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
+               "versions/".format(path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME,
+                                  namespace=obj.namespace, name=obj.name)
+
+    def get_href(self, obj):
+        """
+        Get href.
+        """
+        return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
+               "versions/{version}/".format(path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME,
+                                            namespace=obj.namespace, name=obj.name,
+                                            version=obj.version)
+
+    class Meta:
+        fields = ('name', 'namespace', 'version', 'href')
+        model = Collection
+
+
+class GalaxyCollectionUploadSerializer(serializers.Serializer):
+    """
+    A serializer for Collection Uploads.
+    """
+
+    sha256 = serializers.CharField(
+        help_text=_('The sha256 checksum of the Collection Artifact.'),
+        required=True,
+        max_length=64,
+        min_length=64,
+    )
+    file = serializers.FileField(
+        help_text=_('The file containing the Artifact binary data.'),
+        required=True,
+    )
