@@ -6,7 +6,6 @@ from rest_framework import generics, response, views
 
 from pulpcore.app.models import Artifact, Distribution
 from pulpcore.app.response import OperationPostponedResponse
-from pulpcore.app.serializers import DistributionSerializer
 from pulpcore.tasking.tasks import enqueue_with_reservation
 from pulpcore.plugin.models import ContentArtifact
 
@@ -92,7 +91,7 @@ class RoleVersionList(generics.ListAPIView):
 
 class GalaxyCollectionDetailView(generics.RetrieveAPIView):
     """
-    View for a Collection Detail
+    View for a Collection Detail.
     """
 
     model = Collection
@@ -101,6 +100,9 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
     permission_classes = []
 
     def get(self, request, path=None, namespace=None, name=None):
+        """
+        Get the detail view of a Collection.
+        """
         collection = get_object_or_404(Collection, namespace=namespace, name=name)
         collection.path = path
         return response.Response(GalaxyCollectionSerializer(collection).data)
@@ -137,7 +139,7 @@ class GalaxyCollectionView(views.APIView):
 
 class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
     """
-    APIView for Collections by namespace/name
+    APIView for Collections by namespace/name.
     """
 
     model = Collection
@@ -168,7 +170,7 @@ class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
 
 class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
     """
-    APIView for Galaxy Collections Detail view
+    APIView for Galaxy Collections Detail view.
     """
 
     authentication_classes = []
@@ -182,9 +184,8 @@ class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
         collection = Collection.objects.get(namespace=namespace, name=name, version=version)
 
         get_object_or_404(ContentArtifact,
-            content__in=distro.publication.repository_version.content,
-            relative_path=collection.relative_path
-        )
+                          content__in=distro.publication.repository_version.content,
+                          relative_path=collection.relative_path)
 
         download_url = '{content_hostname}/{base_path}/{relative_path}'.format(
             content_hostname=settings.ANSIBLE_CONTENT_HOSTNAME,

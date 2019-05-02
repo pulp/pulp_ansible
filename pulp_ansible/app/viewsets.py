@@ -65,7 +65,7 @@ class CollectionFilter(ContentFilter):
 
 class CollectionViewSet(ContentViewSet):
     """
-    ViewSet for Ansible Collection
+    ViewSet for Ansible Collection.
     """
 
     endpoint_name = 'collections'

@@ -36,7 +36,7 @@ class Role(Content):
 
 class Collection(Content):
     """
-    A content type representing a Collection
+    A content type representing a Collection.
     """
 
     TYPE = 'collection'

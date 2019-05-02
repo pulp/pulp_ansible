@@ -14,7 +14,7 @@ log = logging.getLogger(__name__)
 
 def import_collection(artifact_pk):
     """
-    Create a collection from an uploaded artifact
+    Create a collection from an uploaded artifact.
 
     Args:
         artifact_pk (str): The pk or the Artifact to create the Collection from.

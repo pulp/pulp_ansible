@@ -57,8 +57,9 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
 
 class GalaxyCollectionSerializer(serializers.Serializer):
     """
-    A serializer for a Collection
+    A serializer for a Collection.
     """
+
     name = serializers.CharField()
     namespace = serializers.CharField()
     version = serializers.CharField()
@@ -70,19 +71,17 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         Get versions_url.
         """
         return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
-               "versions/".format(
-            path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME, namespace=obj.namespace,
-            name=obj.name
-        )
+               "versions/".format(path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME,
+                                  namespace=obj.namespace, name=obj.name)
 
     def get_href(self, obj):
         """
         Get href.
         """
         return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
-               "versions/{version}/".format(
-            path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME, namespace=obj.namespace,
-            name=obj.name, version=obj.version)
+               "versions/{version}/".format(path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME,
+                                            namespace=obj.namespace, name=obj.name,
+                                            version=obj.version)
 
     class Meta:
         fields = ('name', 'namespace', 'version', 'href')
@@ -91,8 +90,9 @@ class GalaxyCollectionSerializer(serializers.Serializer):
 
 class GalaxyCollectionUploadSerializer(serializers.Serializer):
     """
-    A serializer for Collection Uploads
+    A serializer for Collection Uploads.
     """
+
     sha256 = serializers.CharField(
         help_text=_('The sha256 checksum of the Collection Artifact.'),
         required=True,
