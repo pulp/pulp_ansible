@@ -104,7 +104,7 @@ Create a repository ``foo``
 .. code:: json
 
     {
-        "_href": "http://localhost:24817/pulp/api/v3/repositories/1/",
+        "_href": "/pulp/api/v3/repositories/51742e85-96f8-4bc6-a232-b408f4631d98/",
         ...
     }
 
@@ -119,7 +119,7 @@ Create a new remote ``bar``
 .. code:: json
 
     {
-        "_href": "http://localhost:24817/pulp/api/v3/remotes/ansible/ansible/1/",
+        "_href": "/pulp/api/v3/remotes/ansible/ansible/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
         ...
     }
 
@@ -141,7 +141,6 @@ Look at the new Repository Version created
 
 
   {
-      "_created": "2019-05-01T15:32:52.766912Z",
       "_href": "/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/",
       "base_version": null,
       "content_summary": {
@@ -197,10 +196,10 @@ Create a Publication
 .. code:: json
 
     {
-        "task": "http://localhost:24817/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/"
+        "task": "/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/"
     }
 
-``$ export PUBLICATION_HREF=$(http :24817/pulp/api/v3/publications/ | jq -r '.results[0] | ._href')``
+``$ export PUBLICATION_HREF=$(http :24817/pulp/api/v3/publications/ansible/ansible/ | jq -r '.results[0] | ._href')``
 
 
 Create a Distribution for the Publication
@@ -212,7 +211,7 @@ Create a Distribution for the Publication
 .. code:: json
 
     {
-        "_href": "http://localhost:24817/pulp/api/v3/distributions/1/",
+        "_href": "/pulp/api/v3/tasks/2610a47e-4e88-4e8c-9d2e-c71734ae7b39/",
        ...
     }
 
@@ -283,8 +282,6 @@ or in your systemd environment:
     Environment="PULP_ANSIBLE_CONTENT_HOSTNAME=http://localhost:24816/pulp/content"
 
 
-
-
 Mazer Configuration
 -------------------
 
@@ -352,7 +349,7 @@ unit with a two step process:
 You could do these steps with a script like::
 
     # Create a Repository
-    http POST http://localhost:24817/pulp/api/v3/repositories/ name=foo
+    http POST :24817/pulp/api/v3/repositories/ name=foo
     export REPO_HREF=$(http :24817/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')
 
     # Find the 'hello' collection
@@ -366,7 +363,7 @@ You could do these steps with a script like::
     export PUBLICATION_HREF=$(http :24817/pulp/api/v3/publications/ansible/ansible/ | jq -r '.results[0] | ._href')
 
     # Create a Distribution
-    http POST http://localhost:24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF
+    http POST :24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF
 
 
 Mazer install
