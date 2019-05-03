@@ -17,41 +17,108 @@ You can also ask questions in the #pulp-ansible channel on
 `Freenode <https://webchat.freenode.net/>`_.
 
 
-Install ``pulp-ansible`` using Ansible
---------------------------------------
+Install using Ansible
+---------------------
 
-pulp_ansible can be installed using an Ansible playbook and roles provided by pulpcore
-`here <https://github.com/pulp/ansible-pulp3>`_. See
-`this 2-min video <https://www.youtube.com/watch?v=-klj9NVTBTE>`_ showing that installer
-installing pulp_ansible.
+pulpcore provides an `Ansible Installer <https://github.com/pulp/ansible-pulp>`_ that can be used to
+install ``pulp_ansible``. For example if your host is in your Ansible inventory as ``myhost`` you
+can install onto it with:
 
-Install ``pulp-ansible`` From PyPI
+.. code-block:: bash
+
+    git clone https://github.com/pulp/ansible-pulp.git
+
+Create your pulp_ansible.yml playbook to use with the installer:
+
+.. code-block:: yaml
+
+   ---
+   - hosts: all
+     vars:
+       pulp_secret_key: secret
+       pulp_default_admin_password: password
+       pulp_install_plugins:
+         pulp-ansible:
+           app_label: "ansible"
+     roles:
+       - pulp-database
+       - pulp-workers
+       - pulp-resource-manager
+       - pulp-webserver
+       - pulp-content
+     environment:
+       DJANGO_SETTINGS_MODULE: pulpcore.app.settings
+
+Then install it onto ``myhost`` with:
+
+.. code-block:: bash
+
+    ansible-playbook pulp_ansible.yaml -l myhost
+
+
+Install with pulplift
+---------------------
+
+`pulplift <https://github.com/pulp/pulplift>`_ combines the Ansible installer above with `Vagrant
+<https://www.vagrantup.com/intro/index.html>`_ to easily try ``pulp_ansible`` on a local VM.
+
+First you'll need to `install Vagrant <https://www.vagrantup.com/docs/installation/>`_.
+
+.. code-block:: bash
+
+    git clone --recurse-submodules https://github.com/pulp/pulplift.git
+    cd pulplift
+
+Configure pulplift to install ``pulp_ansible``:
+
+.. code-block:: bash
+
+    cat >local.user-config.ymll <<EOL
+    pulp_default_admin_password: password
+    pulp_install_plugins:
+      pulp-ansible:
+        app_label: "ansible"
+    pulp_secret_key: "unsafe_default"
+    EOL
+
+Then run Vagrant up for fedora30 using:
+
+.. code-block:: bash
+
+    vagrant up pulp3-sandbox-fedora30
+
+Then once finished ssh to your ``pulp_ansible`` environment with:
+
+.. code-block:: bash
+
+    vagrant ssh pulp3-sandbox-fedora30
+
+
+Install ``pulp_ansible`` From PyPI
 ----------------------------------
 
 .. code-block:: bash
 
-   sudo -u pulp -i
-   source ~/pulpvenv/bin/activate
    pip install pulp-ansible
 
 After installing the code, configure Pulp to connect to Redis and PostgreSQL with the `pulpcore
-configuration instructions
-<https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html#database-setup>`_
+configuration instructions <https://docs.pulpproject.org/en/3.0/nightly/installation/
+instructions.html#database-setup>`_
 
-Install ``pulp-ansible`` from source
+
+Install ``pulp_ansible`` from source
 ------------------------------------
 
 .. code-block:: bash
 
-   sudo -u pulp -i
-   source ~/pulpvenv/bin/activate
    git clone https://github.com/pulp/pulp_ansible.git
    cd pulp_ansible
    pip install -e .
 
 After installing the code, configure Pulp to connect to Redis and PostgreSQL with the `pulpcore
-configuration instructions
-<https://docs.pulpproject.org/en/3.0/nightly/installation/instructions.html#database-setup>`_
+configuration instructions <https://docs.pulpproject.org/en/3.0/nightly/installation/
+instructions.html#database-setup>`_
+
 
 Run Migrations
 --------------
@@ -59,6 +126,7 @@ Run Migrations
 .. code-block:: bash
 
    django-admin migrate ansible
+
 
 Run Services
 ------------
@@ -70,8 +138,9 @@ Run Services
    sudo systemctl restart pulp-resource-manager
    sudo systemctl restart pulp-worker@1
 
-Quickstart
-----------
+
+Configuring an API Client
+-------------------------
 
 All REST API examples bellow use `httpie <https://httpie.org/doc>`__ to perform the requests.
 The ``httpie`` commands below assume that the user executing the commands has a ``.netrc`` file
@@ -98,7 +167,7 @@ library with:
 Create a repository ``foo``
 ---------------------------
 
-``$ http POST http://localhost:24817/pulp/api/v3/repositories/ name=foo``
+``$ http POST :24817/pulp/api/v3/repositories/ name=foo``
 
 
 .. code:: json
@@ -171,7 +240,7 @@ Download a role version.
 
 Create an Artifact by uploading the role version tarball to Pulp.
 
-``$ export ARTIFACT_HREF=$(http --form POST http://localhost:24817/pulp/api/v3/artifacts/ file@pg.tar.gz | jq -r '._href')``
+``$ export ARTIFACT_HREF=$(http --form POST :24817/pulp/api/v3/artifacts/ file@pg.tar.gz | jq -r '._href')``
 
 
 Create a Role content unit
@@ -179,7 +248,7 @@ Create a Role content unit
 
 Create a Role in Pulp.
 
-``$ export ROLE_HREF=$(http http://localhost:24817/pulp/api/v3/content/ansible/roles/ namespace=pulp name=postgresql version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
+``$ export ROLE_HREF=$(http :24817/pulp/api/v3/content/ansible/roles/ namespace=pulp name=postgresql version=0.0.1 _artifact=$ARTIFACT_HREF | jq -r '._href')``
 
 
 Add content to repository ``foo``
@@ -205,7 +274,7 @@ Create a Publication
 Create a Distribution for the Publication
 -----------------------------------------
 
-``$ http POST http://localhost:24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
+``$ http POST :24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
 
 
 .. code:: json
@@ -311,7 +380,7 @@ pulp_ansible and display it::
     $ cd mazer/tests/ansible_galaxy/collection_examples/hello/
     $ mazer build
     $ mazer publish releases/greetings_namespace-hello-11.11.11.tar.gz
-    $ http http://localhost:24817/pulp/api/v3/content/ansible/collections/
+    $ http :24817/pulp/api/v3/content/ansible/collections/
     HTTP/1.1 200 OK
     Allow: GET, POST, HEAD, OPTIONS
     Connection: close
