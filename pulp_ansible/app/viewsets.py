@@ -10,14 +10,12 @@ from pulpcore.plugin.viewsets import (
     ContentFilter,
     ContentViewSet,
     OperationPostponedResponse,
-    PublicationViewSet,
     RemoteViewSet
 )
 
 from . import tasks
-from .models import AnsiblePublication, AnsibleRemote, Collection, Role
+from .models import AnsibleRemote, Collection, Role
 from .serializers import (
-    AnsiblePublicationSerializer,
     AnsibleRemoteSerializer,
     CollectionSerializer,
     RoleSerializer
@@ -107,40 +105,6 @@ class AnsibleRemoteViewSet(RemoteViewSet):
                 'remote_pk': remote.pk,
                 'repository_pk': repository.pk,
                 'mirror': mirror,
-            }
-        )
-        return OperationPostponedResponse(result, request)
-
-
-class AnsiblePublicationsViewSet(PublicationViewSet):
-    """
-    ViewSet for Ansible Publications.
-    """
-
-    endpoint_name = 'ansible'
-    queryset = AnsiblePublication.objects.all()
-    serializer_class = AnsiblePublicationSerializer
-
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to create a new Ansible "
-                              "content publication.",
-        responses={202: AsyncOperationResponseSerializer}
-    )
-    def create(self, request):
-        """
-        Queues a task that publishes a new Ansible Publication.
-
-        Either the ``repository`` or the ``repository_version`` fields can
-        be provided but not both at the same time.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        repository_version = serializer.validated_data.get('repository_version')
-
-        result = enqueue_with_reservation(
-            tasks.publish, [repository_version.repository],
-            kwargs={
-                'repository_version_pk': str(repository_version.pk)
             }
         )
         return OperationPostponedResponse(result, request)

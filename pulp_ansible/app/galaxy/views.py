@@ -152,7 +152,15 @@ class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
         Get the list of items for this view.
         """
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
-        distro_content = distro.publication.repository_version.content
+        try:
+            distro_content = distro.repository_version.content
+        except AttributeError:
+            try:
+                repo_version = distro.repository.versions.get(number=distro.repository.last_version)
+                distro_content = repo_version.content
+            except AttributeError:
+                distro_content = []
+
         collections = Collection.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
 
         namespace = self.request.query_params.get('owner__username', None)
@@ -181,10 +189,19 @@ class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
         Return a response to the "GET" action.
         """
         distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
+        try:
+            distro_content = distro.repository_version.content
+        except AttributeError:
+            try:
+                repo_version = distro.repository.versions.get(number=distro.repository.last_version)
+                distro_content = repo_version.content
+            except AttributeError:
+                distro_content = []
+
         collection = Collection.objects.get(namespace=namespace, name=name, version=version)
 
         get_object_or_404(ContentArtifact,
-                          content__in=distro.publication.repository_version.content,
+                          content__in=distro_content,
                           relative_path=collection.relative_path)
 
         download_url = '{content_hostname}/{base_path}/{relative_path}'.format(
