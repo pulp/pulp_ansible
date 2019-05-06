@@ -1,12 +1,11 @@
 from rest_framework import serializers
 
 from pulpcore.plugin.serializers import (
-    PublicationSerializer,
     RemoteSerializer,
     SingleArtifactContentSerializer,
 )
 
-from .models import AnsiblePublication, AnsibleRemote, Collection, Role
+from .models import AnsibleRemote, Collection, Role
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -55,16 +54,6 @@ class AnsibleRemoteSerializer(RemoteSerializer):
     class Meta:
         fields = RemoteSerializer.Meta.fields
         model = AnsibleRemote
-
-
-class AnsiblePublicationSerializer(PublicationSerializer):
-    """
-    A serializer for Ansible Publications.
-    """
-
-    class Meta:
-        fields = PublicationSerializer.Meta.fields
-        model = AnsiblePublication
 
 
 class CollectionSerializer(SingleArtifactContentSerializer):
