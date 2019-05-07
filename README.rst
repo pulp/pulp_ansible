@@ -359,7 +359,7 @@ use the `url` option to point to the `Distribution` your content should fetch fr
 using the `Distribution` created in the sync workflow, the config would be::
 
     server:
-      url: http://localhost:24816/pulp/content/dev
+      url: http://localhost:24817/pulp_ansible/galaxy/dev
 
 This is assuming you have the `Collection` content exposed at a Distribution created with
 `base_path=dev` (as in the example above).
