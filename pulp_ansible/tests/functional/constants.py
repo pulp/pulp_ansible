@@ -2,6 +2,7 @@ from urllib.parse import urljoin
 
 from pulp_smash.constants import PULP_FIXTURES_BASE_URL  # noqa:F401
 from pulp_smash.pulp3.constants import (  # noqa:F401
+    BASE_DISTRIBUTION_PATH,
     BASE_PUBLISHER_PATH,
     BASE_REMOTE_PATH,
     CONTENT_PATH
@@ -13,6 +14,8 @@ DOWNLOAD_POLICIES = ['immediate', 'on_demand', 'streamed']
 ANSIBLE_ROLE_NAME = 'ansible.role'
 
 ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, 'ansible/roles/')
+
+ANSIBLE_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, 'ansible/ansible')
 
 ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, 'ansible/ansible/')
 

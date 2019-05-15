@@ -268,7 +268,7 @@ Create a Distribution for Repository 'foo'
 
 This will distribute the 'latest' RepositoryVersion always.
 
-``$ http POST :24817/pulp/api/v3/distributions/ name='baz' base_path='dev' repository=$REPO_HREF``
+``$ http POST :24817/pulp/api/v3/distributions/ansible/ansible/ name='baz' base_path='dev' repository=$REPO_HREF``
 
 
 .. code:: json
@@ -285,10 +285,7 @@ Create a Distribution for a RepositoryVersion
 
 Say you always want to distribute version 1 of Repository 'foo' even if more versions are created.
 
-``$ export REPO_VERSION_HREF=$(http GET ':24817'$REPO_HREF'versions/1/' | jq -r '._href')``
-
-
-``$ http POST :24817/pulp/api/v3/distributions/ name='baz' base_path='dev' repository_version=REPO_VERSION_HREF``
+``$ http POST :24817/pulp/api/v3/distributions/ansible/ansible/ name='baz' base_path='dev' repository_version=${REPO_HREF}versions/1/``
 
 
 .. code:: json
@@ -443,7 +440,7 @@ You could do these steps with a script like::
     http POST ':24817'$REPO_HREF'versions/' add_content_units:="[\"$COLLECTION_HREF\"]"
 
     # Create a Distribution
-    http POST :24817/pulp/api/v3/distributions/ name='baz' base_path='dev' repository=$REPO_HREF
+    http POST :24817/pulp/api/v3/distributions/ansible/ansible/ name='baz' base_path='dev' repository=$REPO_HREF
 
 
 Mazer install

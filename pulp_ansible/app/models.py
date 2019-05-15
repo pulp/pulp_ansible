@@ -2,7 +2,7 @@ from logging import getLogger
 
 from django.db import models
 
-from pulpcore.plugin.models import Content, Remote
+from pulpcore.plugin.models import Content, Remote, RepositoryVersionDistribution
 
 
 log = getLogger(__name__)
@@ -64,6 +64,14 @@ class Collection(Content):
 class AnsibleRemote(Remote):
     """
     A Remote for Ansible content.
+    """
+
+    TYPE = 'ansible'
+
+
+class AnsibleDistribution(RepositoryVersionDistribution):
+    """
+    A Distribution for Ansible content.
     """
 
     TYPE = 'ansible'

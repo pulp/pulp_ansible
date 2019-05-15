@@ -4,13 +4,13 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, response, views
 
-from pulpcore.app.models import Artifact, Distribution
+from pulpcore.app.models import Artifact, RepositoryVersion
 from pulpcore.app.response import OperationPostponedResponse
 from pulpcore.tasking.tasks import enqueue_with_reservation
 from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.galaxy.tasks import import_collection
-from pulp_ansible.app.models import Collection, Role
+from pulp_ansible.app.models import AnsibleDistribution, Collection, Role
 
 from .serializers import (
     GalaxyCollectionSerializer, GalaxyCollectionUploadSerializer,
@@ -52,8 +52,12 @@ class RoleList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
-        distro_content = distro.publication.repository_version.content
+        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs['path'])
+
+        if distro.repository_version:
+            distro_content = distro.repository_version.content
+        else:
+            distro_content = RepositoryVersion.latest(distro.repository).content
         roles = Role.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
 
         namespace = self.request.query_params.get('owner__username', None)
@@ -80,8 +84,12 @@ class RoleVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
-        distro_content = distro.publication.repository_version.content
+        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs['path'])
+
+        if distro.repository_version:
+            distro_content = distro.repository_version.content
+        else:
+            distro_content = RepositoryVersion.latest(distro.repository).content
         namespace, name = re.split(r'\.', self.kwargs['role_pk'])
         versions = Role.objects.filter(pk__in=distro_content, name=name, namespace=namespace)
         for version in versions:
@@ -118,7 +126,7 @@ class GalaxyCollectionView(views.APIView):
 
     def post(self, request, *args, **kwargs):
         """
-        Queues a task that publishes a new Ansible Publication.
+        Queues a task that creates a new Collection from an uploaded artifact.
         """
         serializer = GalaxyCollectionUploadSerializer(data=request.data,
                                                       context={'request': request})
@@ -151,15 +159,11 @@ class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
-        try:
+        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs['path'])
+        if distro.repository_version:
             distro_content = distro.repository_version.content
-        except AttributeError:
-            try:
-                repo_version = distro.repository.versions.get(number=distro.repository.last_version)
-                distro_content = repo_version.content
-            except AttributeError:
-                distro_content = []
+        else:
+            distro_content = RepositoryVersion.latest(distro.repository).content
 
         collections = Collection.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
 
@@ -188,15 +192,11 @@ class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
         """
         Return a response to the "GET" action.
         """
-        distro = get_object_or_404(Distribution, base_path=self.kwargs['path'])
-        try:
+        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs['path'])
+        if distro.repository_version:
             distro_content = distro.repository_version.content
-        except AttributeError:
-            try:
-                repo_version = distro.repository.versions.get(number=distro.repository.last_version)
-                distro_content = repo_version.content
-            except AttributeError:
-                distro_content = []
+        else:
+            distro_content = RepositoryVersion.latest(distro.repository).content
 
         collection = Collection.objects.get(namespace=namespace, name=name, version=version)
 

@@ -10,12 +10,14 @@ from pulpcore.plugin.viewsets import (
     ContentFilter,
     ContentViewSet,
     OperationPostponedResponse,
-    RemoteViewSet
+    RemoteViewSet,
+    BaseDistributionViewSet,
 )
 
 from . import tasks
-from .models import AnsibleRemote, Collection, Role
+from .models import AnsibleDistribution, AnsibleRemote, Collection, Role
 from .serializers import (
+    AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
     CollectionSerializer,
     RoleSerializer
@@ -108,3 +110,13 @@ class AnsibleRemoteViewSet(RemoteViewSet):
             }
         )
         return OperationPostponedResponse(result, request)
+
+
+class AnsibleDistributionViewSet(BaseDistributionViewSet):
+    """
+    ViewSet for Ansible Distributions.
+    """
+
+    endpoint_name = 'ansible'
+    queryset = AnsibleDistribution.objects.all()
+    serializer_class = AnsibleDistributionSerializer
