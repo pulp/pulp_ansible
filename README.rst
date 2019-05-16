@@ -256,25 +256,19 @@ Add content to repository ``foo``
 
 ``$ http POST ':24817'$REPO_HREF'versions/' add_content_units:="[\"$ROLE_HREF\"]"``
 
-
-Create a Publication
--------------------------------------------------
-
-``$ http POST :24817/pulp/api/v3/publications/ansible/ansible/ repository=$REPO_HREF``
-
 .. code:: json
 
     {
         "task": "/pulp/api/v3/tasks/fd4cbecd-6c6a-4197-9cbe-4e45b0516309/"
     }
 
-``$ export PUBLICATION_HREF=$(http :24817/pulp/api/v3/publications/ansible/ansible/ | jq -r '.results[0] | ._href')``
 
+Create a Distribution for Repository 'foo'
+------------------------------------------
 
-Create a Distribution for the Publication
------------------------------------------
+This will distribute the 'latest' RepositoryVersion always.
 
-``$ http POST :24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF``
+``$ http POST :24817/pulp/api/v3/distributions/ansible/ansible/ name='baz' base_path='dev' repository=$REPO_HREF``
 
 
 .. code:: json
@@ -283,6 +277,24 @@ Create a Distribution for the Publication
         "_href": "/pulp/api/v3/tasks/2610a47e-4e88-4e8c-9d2e-c71734ae7b39/",
        ...
     }
+
+
+
+Create a Distribution for a RepositoryVersion
+---------------------------------------------
+
+Say you always want to distribute version 1 of Repository 'foo' even if more versions are created.
+
+``$ http POST :24817/pulp/api/v3/distributions/ansible/ansible/ name='baz' base_path='dev' repository_version=${REPO_HREF}versions/1/``
+
+
+.. code:: json
+
+    {
+        "_href": "/pulp/api/v3/tasks/2610a47e-4e88-4e8c-9d2e-c71734ae7b39/",
+       ...
+    }
+
 
 
 Install the ansible kubernetes Role
@@ -427,12 +439,8 @@ You could do these steps with a script like::
     # Create a Repository Version with the 'hello' collection
     http POST ':24817'$REPO_HREF'versions/' add_content_units:="[\"$COLLECTION_HREF\"]"
 
-    # Create a publication
-    http POST :24817/pulp/api/v3/publications/ansible/ansible/ repository=$REPO_HREF
-    export PUBLICATION_HREF=$(http :24817/pulp/api/v3/publications/ansible/ansible/ | jq -r '.results[0] | ._href')
-
     # Create a Distribution
-    http POST :24817/pulp/api/v3/distributions/ name='baz' base_path='dev' publication=$PUBLICATION_HREF
+    http POST :24817/pulp/api/v3/distributions/ansible/ansible/ name='baz' base_path='dev' repository=$REPO_HREF
 
 
 Mazer install

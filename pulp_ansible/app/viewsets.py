@@ -10,14 +10,14 @@ from pulpcore.plugin.viewsets import (
     ContentFilter,
     ContentViewSet,
     OperationPostponedResponse,
-    PublicationViewSet,
-    RemoteViewSet
+    RemoteViewSet,
+    BaseDistributionViewSet,
 )
 
 from . import tasks
-from .models import AnsiblePublication, AnsibleRemote, Collection, Role
+from .models import AnsibleDistribution, AnsibleRemote, Collection, Role
 from .serializers import (
-    AnsiblePublicationSerializer,
+    AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
     CollectionSerializer,
     RoleSerializer
@@ -112,35 +112,11 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         return OperationPostponedResponse(result, request)
 
 
-class AnsiblePublicationsViewSet(PublicationViewSet):
+class AnsibleDistributionViewSet(BaseDistributionViewSet):
     """
-    ViewSet for Ansible Publications.
+    ViewSet for Ansible Distributions.
     """
 
     endpoint_name = 'ansible'
-    queryset = AnsiblePublication.objects.all()
-    serializer_class = AnsiblePublicationSerializer
-
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to create a new Ansible "
-                              "content publication.",
-        responses={202: AsyncOperationResponseSerializer}
-    )
-    def create(self, request):
-        """
-        Queues a task that publishes a new Ansible Publication.
-
-        Either the ``repository`` or the ``repository_version`` fields can
-        be provided but not both at the same time.
-        """
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        repository_version = serializer.validated_data.get('repository_version')
-
-        result = enqueue_with_reservation(
-            tasks.publish, [repository_version.repository],
-            kwargs={
-                'repository_version_pk': str(repository_version.pk)
-            }
-        )
-        return OperationPostponedResponse(result, request)
+    queryset = AnsibleDistribution.objects.all()
+    serializer_class = AnsibleDistributionSerializer

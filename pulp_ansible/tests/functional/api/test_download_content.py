@@ -6,7 +6,7 @@ from random import choice
 from urllib.parse import urljoin
 
 from pulp_smash import api, config, utils
-from pulp_smash.pulp3.constants import DISTRIBUTION_PATH, REPO_PATH
+from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_repo,
@@ -20,6 +20,7 @@ from pulp_ansible.tests.functional.utils import (
     get_ansible_content_paths,
 )
 from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_PUBLISHER_PATH,
@@ -81,7 +82,7 @@ class DownloadContentTestCase(unittest.TestCase):
         # Create a distribution.
         body = gen_distribution()
         body['publication'] = publication['_href']
-        distribution = client.post(DISTRIBUTION_PATH, body)
+        distribution = client.post(ANSIBLE_DISTRIBUTION_PATH, body)
         self.addCleanup(client.delete, distribution['_href'])
 
         # Pick a content unit, and download it from both Pulp Fixtures…
