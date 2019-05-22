@@ -25,6 +25,7 @@ Table of Contents
 
    installation
    workflows/index
+   restapi/index
 
 
 Indices and tables
