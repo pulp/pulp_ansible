@@ -42,6 +42,7 @@ along with the ``mazer`` client.
 .. toctree::
    :maxdepth: 2
 
+   sync-collection
    upload-collection
    add-remove
    distribution

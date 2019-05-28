@@ -6,7 +6,13 @@ from pulpcore.plugin.serializers import (
     RepositoryVersionDistributionSerializer,
 )
 
-from .models import AnsibleDistribution, AnsibleRemote, Collection, Role
+from .models import (
+    AnsibleDistribution,
+    AnsibleRemote,
+    Collection,
+    CollectionRemote,
+    Role,
+)
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -55,6 +61,18 @@ class AnsibleRemoteSerializer(RemoteSerializer):
     class Meta:
         fields = RemoteSerializer.Meta.fields
         model = AnsibleRemote
+
+
+class CollectionRemoteSerializer(RemoteSerializer):
+    """
+    A serializer for Collection Remotes.
+    """
+
+    class Meta:
+        fields = RemoteSerializer.Meta.fields + (
+            'whitelist',
+        )
+        model = CollectionRemote
 
 
 class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):

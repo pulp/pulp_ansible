@@ -14,14 +14,22 @@ from pulpcore.plugin.viewsets import (
     BaseDistributionViewSet,
 )
 
-from . import tasks
-from .models import AnsibleDistribution, AnsibleRemote, Collection, Role
+from .models import (
+    AnsibleDistribution,
+    AnsibleRemote,
+    Collection,
+    CollectionRemote,
+    Role,
+)
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
     CollectionSerializer,
+    CollectionRemoteSerializer,
     RoleSerializer
 )
+from .tasks.collections import sync as collection_sync
+from .tasks.synchronizing import synchronize as role_sync
 
 
 class RoleFilter(ContentFilter):
@@ -101,12 +109,48 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         repository = serializer.validated_data.get('repository')
         mirror = serializer.validated_data.get('mirror', False)
         result = enqueue_with_reservation(
-            tasks.synchronize,
+            role_sync,
             [repository, remote],
             kwargs={
                 'remote_pk': remote.pk,
                 'repository_pk': repository.pk,
                 'mirror': mirror,
+            }
+        )
+        return OperationPostponedResponse(result, request)
+
+
+class CollectionRemoteViewSet(RemoteViewSet):
+    """
+    ViewSet for Collection Remotes.
+    """
+
+    endpoint_name = 'collection'
+    queryset = CollectionRemote.objects.all()
+    serializer_class = CollectionRemoteSerializer
+
+    @swagger_auto_schema(
+        operation_description="Trigger an asynchronous task to sync Collection content.",
+        responses={202: AsyncOperationResponseSerializer}
+    )
+    @detail_route(methods=('post',), serializer_class=RepositorySyncURLSerializer)
+    def sync(self, request, pk):
+        """
+        Dispatches a Collection sync task.
+        """
+        collection_remote = self.get_object()
+        serializer = RepositorySyncURLSerializer(
+            data=request.data,
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        repository = serializer.validated_data.get('repository')
+        result = enqueue_with_reservation(
+            collection_sync,
+            [repository, collection_remote],
+            kwargs={
+                'remote_pk': collection_remote.pk,
+                'repository_pk': repository.pk,
             }
         )
         return OperationPostponedResponse(result, request)
