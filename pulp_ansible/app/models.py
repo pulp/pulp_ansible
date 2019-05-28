@@ -69,6 +69,20 @@ class AnsibleRemote(Remote):
     TYPE = 'ansible'
 
 
+class CollectionRemote(Remote):
+    """
+    A Remote for Collection content.
+
+    Fields:
+
+        whitelist (models.TextField): The whitelist of Collections to sync.
+    """
+
+    TYPE = 'collection'
+
+    whitelist = models.TextField()
+
+
 class AnsibleDistribution(RepositoryVersionDistribution):
     """
     A Distribution for Ansible content.
