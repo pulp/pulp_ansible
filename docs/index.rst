@@ -25,7 +25,8 @@ Table of Contents
 
    installation
    workflows/index
-   restapi/index
+   restapi
+   bindings
 
 
 Indices and tables
