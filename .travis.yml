@@ -19,6 +19,8 @@ matrix:
       env: DB=mariadb TEST=pulp
     - python: '3.7'
       env: DB=postgres TEST=bindings
+    - python: '3.6'
+      env: DB=postgres TEST=docs
   fast_finish: true
 services:
     - postgresql

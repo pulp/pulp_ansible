@@ -24,9 +24,9 @@ copyright = '2019, Pulp Ansible Team'
 author = 'Pulp Ansible Team'
 
 # The short X.Y version
-version = '0.1'
+version = '0.2'
 # The full version, including alpha/beta/rc tags
-release = '0.1.0rc5'
+release = '0.2.0b1'
 
 
 # -- General configuration ---------------------------------------------------
