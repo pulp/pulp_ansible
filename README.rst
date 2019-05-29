@@ -6,7 +6,7 @@ pulp_ansible
 
 A Pulp plugin to support hosting ``Role`` and ``Collection`` Ansible content.
 
-For more information, please see the `documentation <https://pulp-ansible.readthedocs.io/en/>`_.
+For more information, please see the `documentation <https://pulp-ansible.readthedocs.io/en/latest/>`_.
 
 
 Collection Support
