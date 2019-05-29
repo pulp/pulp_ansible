@@ -61,27 +61,27 @@ sync with. You are telling Pulp to fetch Collection content from the external so
 Repository Version GET Response (when complete)::
 
 
-{
-    "_href": "/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/",
-    "_created": "2019-05-28T21:51:08.172095Z",
-    "number": 1,
-    "base_version": null,
-    "content_summary": {
-        "added": {
-            "ansible.collection": {
-                "count": 1,
-                "href": "/pulp/api/v3/content/ansible/collections/?repository_version_added=/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
-            }
-        },
-        "removed": {},
-        "present": {
-            "ansible.collection": {
-                "count": 1,
-                "href": "/pulp/api/v3/content/ansible/collections/?repository_version=/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
+    {
+        "_href": "/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/",
+        "_created": "2019-05-28T21:51:08.172095Z",
+        "number": 1,
+        "base_version": null,
+        "content_summary": {
+            "added": {
+                "ansible.collection": {
+                    "count": 1,
+                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version_added=/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
+                }
+            },
+            "removed": {},
+            "present": {
+                "ansible.collection": {
+                    "count": 1,
+                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version=/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
+                }
             }
         }
     }
-}
 
 
 .. todo::

@@ -25,6 +25,14 @@ wait_for_pulp() {
   return 1
 }
 
+if [ "$TEST" = 'docs' ]; then
+  django-admin runserver 24817 >> ~/django_runserver.log 2>&1 &
+  sleep 5
+  cd docs
+  make html
+  exit
+fi
+
 if [ "$TEST" = 'bindings' ]; then
   COMMIT_MSG=$(git show HEAD^2 -s)
   export PULP_BINDINGS_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-swagger-codegen\/pull\/(\d+)' | awk -F'/' '{print $7}')

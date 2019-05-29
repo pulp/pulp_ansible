@@ -1,6 +1,12 @@
 #!/usr/bin/env sh
 set -v
 
+if [ "$TEST" = 'docs' ]; then
+  pip3 install -r doc_requirements.txt
+fi
+
+pip install -r test_requirements.txt
+
 # Run Ansible playbook
 cd ../ansible-pulp
 ansible-galaxy install -r requirements.yml
