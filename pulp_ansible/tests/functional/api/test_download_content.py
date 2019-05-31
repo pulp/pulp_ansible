@@ -15,20 +15,20 @@ from pulp_smash.pulp3.utils import (
 )
 
 from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
     gen_ansible_publisher,
+    gen_ansible_remote,
     get_ansible_content_paths,
 )
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_FIXTURE_URL,
-    ANSIBLE_REMOTE_PATH,
     ANSIBLE_PUBLISHER_PATH,
+    ANSIBLE_REMOTE_PATH,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-@unittest.skip("FIXME: Re-enable later")
+@unittest.skip('FIXME: Re-enable later')
 class DownloadContentTestCase(unittest.TestCase):
     """Verify whether content served by pulp can be downloaded."""
 
