@@ -27,6 +27,8 @@ Table of Contents
    workflows/index
    restapi
    bindings
+   contributing
+   changes
 
 
 Indices and tables
