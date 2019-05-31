@@ -6,14 +6,14 @@ from pulp_smash import api, cli, config, exceptions
 from pulp_smash.pulp3.constants import MEDIA_PATH, REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
-    get_content_summary,
     get_added_content_summary,
+    get_content_summary,
     sync,
 )
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_REMOTE_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
+    ANSIBLE_REMOTE_PATH,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -119,7 +119,7 @@ class SyncInvalidURLTestCase(unittest.TestCase):
         repo = client.post(REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo['_href'])
 
-        body = gen_ansible_remote(url="http://i-am-an-invalid-url.com/invalid/")
+        body = gen_ansible_remote(url='http://i-am-an-invalid-url.com/invalid/')
         remote = client.post(ANSIBLE_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote['_href'])
 

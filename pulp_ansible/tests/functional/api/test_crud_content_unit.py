@@ -20,7 +20,7 @@ from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # 
 
 
 # Read the instructions provided below on the steps needed to enable this test.
-@unittest.skip("FIXME: plugin writer action required")
+@unittest.skip('FIXME: plugin writer action required')
 class ContentUnitTestCase(unittest.TestCase):
     """CRUD content unit.
 

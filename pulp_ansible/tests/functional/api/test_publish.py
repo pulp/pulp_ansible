@@ -10,25 +10,25 @@ from pulp_smash import api, config
 from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_repo,
-    get_versions,
     get_content,
+    get_versions,
     publish,
     sync,
 )
 
 from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
     gen_ansible_publisher,
+    gen_ansible_remote,
 )
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_ROLE_NAME,
-    ANSIBLE_REMOTE_PATH,
     ANSIBLE_PUBLISHER_PATH,
+    ANSIBLE_REMOTE_PATH,
+    ANSIBLE_ROLE_NAME,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-@unittest.skip("FIXME: Re-enable later")
+@unittest.skip('FIXME: Re-enable later')
 class PublishAnyRepoVersionTestCase(unittest.TestCase):
     """Test whether a particular repository version can be published.
 
