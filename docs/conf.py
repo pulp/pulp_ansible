@@ -16,6 +16,12 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import os
+import sys
+sys.path.insert(0, os.path.abspath('..'))  # noqa
+
+import pulp_ansible
+
 
 # -- Project information -----------------------------------------------------
 
@@ -24,9 +30,9 @@ copyright = '2019, Pulp Ansible Team'
 author = 'Pulp Ansible Team'
 
 # The short X.Y version
-version = '0.2.0b1'
+version = pulp_ansible.__version__
 # The full version, including alpha/beta/rc tags
-release = '0.2.0b1'
+release = pulp_ansible.__version__
 
 
 # -- General configuration ---------------------------------------------------
