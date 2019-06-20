@@ -48,58 +48,57 @@ def sync(remote_pk, repository_pk):
     def nowhere(*args, **kwargs):
         pass
 
-    collections_created_pks = []
+    collections_pks = []
 
-    with tempfile.TemporaryDirectory() as temp_ansible_path:
-        galaxy_context = GalaxyContext(
-            collections_path=temp_ansible_path,
-            server={
-                'url': remote.url,
-                'ignore_certs': False,
-            },
-        )
+    with RepositoryVersion.create(repository) as new_version:
+        with tempfile.TemporaryDirectory() as temp_ansible_path:
+            galaxy_context = GalaxyContext(
+                collections_path=temp_ansible_path,
+                server={
+                    'url': remote.url,
+                    'ignore_certs': False,
+                },
+            )
 
-        install_repository_specs_loop(
-            display_callback=nowhere,
-            galaxy_context=galaxy_context,
-            repository_spec_strings=repository_spec_strings,
-        )
+            install_repository_specs_loop(
+                display_callback=nowhere,
+                galaxy_context=galaxy_context,
+                repository_spec_strings=repository_spec_strings,
+            )
 
-        content_walk_generator = os.walk(temp_ansible_path)
-        for dirpath, dirnames, filenames in content_walk_generator:
-            if 'MANIFEST.json' in filenames:
-                with open(dirpath + os.path.sep + 'MANIFEST.json') as manifest_file:
-                    manifest_data = json.load(manifest_file)
-                info = manifest_data['collection_info']
-                filename = '{namespace}-{name}-{version}'.format(
-                    namespace=info['namespace'],
-                    name=info['name'],
-                    version=info['version'],
-                )
-                tarfile_path = temp_ansible_path + os.path.sep + filename + '.tar.gz'
-                with tarfile.open(name=tarfile_path, mode='w|gz') as newtar:
-                    newtar.add(dirpath, arcname=filename)
-
-                with transaction.atomic():
-                    collection, created = Collection.objects.get_or_create(
+            content_walk_generator = os.walk(temp_ansible_path)
+            for dirpath, dirnames, filenames in content_walk_generator:
+                if 'MANIFEST.json' in filenames:
+                    with open(dirpath + os.path.sep + 'MANIFEST.json') as manifest_file:
+                        manifest_data = json.load(manifest_file)
+                    info = manifest_data['collection_info']
+                    filename = '{namespace}-{name}-{version}'.format(
                         namespace=info['namespace'],
                         name=info['name'],
-                        version=info['version']
+                        version=info['version'],
                     )
+                    tarfile_path = temp_ansible_path + os.path.sep + filename + '.tar.gz'
+                    with tarfile.open(name=tarfile_path, mode='w|gz') as newtar:
+                        newtar.add(dirpath, arcname=filename)
 
-                    if created:
-                        artifact = Artifact.init_and_validate(newtar.name)
-                        artifact.save()
-
-                        ContentArtifact.objects.create(
-                            artifact=artifact,
-                            content=collection,
-                            relative_path=collection.relative_path,
+                    with transaction.atomic():
+                        collection, created = Collection.objects.get_or_create(
+                            namespace=info['namespace'],
+                            name=info['name'],
+                            version=info['version']
                         )
 
-                        collections_created_pks.append(collection)
+                        if created:
+                            artifact = Artifact.init_and_validate(newtar.name)
+                            artifact.save()
 
-    if collections_created_pks:
-        with RepositoryVersion.create(repository) as new_version:
-            collections = Collection.objects.filter(pk__in=collections_created_pks)
-            new_version.add_content(collections)
+                            ContentArtifact.objects.create(
+                                artifact=artifact,
+                                content=collection,
+                                relative_path=collection.relative_path,
+                            )
+
+                            collections_pks.append(collection)
+
+        collections = Collection.objects.filter(pk__in=collections_pks)
+        new_version.add_content(collections)
