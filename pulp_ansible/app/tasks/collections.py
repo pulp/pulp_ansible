@@ -52,6 +52,10 @@ def sync(remote_pk, repository_pk):
 
     with RepositoryVersion.create(repository) as new_version:
         with tempfile.TemporaryDirectory() as temp_ansible_path:
+
+            # workaround: mazer logs errors without this dir  https://pulp.plan.io/issues/4999
+            os.mkdir(temp_ansible_path + os.sep + 'ansible_collections')
+
             galaxy_context = GalaxyContext(
                 collections_path=temp_ansible_path,
                 server={
