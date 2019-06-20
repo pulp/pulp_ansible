@@ -1,11 +1,10 @@
 from urllib.parse import urljoin
 
-from pulp_smash.constants import PULP_FIXTURES_BASE_URL  # noqa:F401
-from pulp_smash.pulp3.constants import (  # noqa:F401
+from pulp_smash.pulp3.constants import (
     BASE_DISTRIBUTION_PATH,
     BASE_PUBLISHER_PATH,
     BASE_REMOTE_PATH,
-    CONTENT_PATH
+    CONTENT_PATH,
 )
 
 ANSIBLE_ROLE_NAME = 'ansible.role'
@@ -38,3 +37,12 @@ ANSIBLE_FIXTURE_COUNT = 5
 
 # FIXME: replace this with the location of one specific content unit of your choosing
 ANSIBLE_URL = urljoin(ANSIBLE_FIXTURE_URL, '')
+
+ANSIBLE_GALAXY_COLLECTION_URL = 'https://galaxy-dev.ansible.com'
+
+ANSIBLE_COLLECTION_REMOTE_PATH = urljoin(
+    BASE_REMOTE_PATH,
+    'ansible/collection/'
+)
+
+COLLECTION_WHITELIST = 'testing.ansible_testing_content'
