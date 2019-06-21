@@ -12,7 +12,7 @@ if [[ $DESCRIPTION == 'tags/'$REPORTED_VERSION ]]; then
   export VERSION=${REPORTED_VERSION}
 else
   export EPOCH="$(date +%s)"
-  export VERSION=${REPORTED_VERSION}.dev.${EPOCH}
+  export VERSION=${REPORTED_VERSION}.${EPOCH}
 fi
 
 export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-file-client/$VERSION/)
@@ -26,8 +26,7 @@ cd
 git clone https://github.com/pulp/pulp-openapi-generator.git
 cd pulp-openapi-generator
 
-sudo ./generate.sh pulp_ansible python $VERSION
-sudo chown -R travis:travis pulp_ansible-client
+./generate.sh pulp_ansible python $VERSION
 cd pulp_ansible-client
 python setup.py sdist bdist_wheel --python-tag py3
 twine upload dist/* -u pulp -p $PYPI_PASSWORD

@@ -47,6 +47,7 @@ jobs:
   - stage: deploy-plugin-to-pypi
     script:  bash .travis/publish_plugin_pypi.sh
     if: tag IS present
+
   - stage: publish-daily-client-gem
     script: bash .travis/publish_client_gem.sh
     env:

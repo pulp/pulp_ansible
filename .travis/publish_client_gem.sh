@@ -28,8 +28,7 @@ cd
 git clone https://github.com/pulp/pulp-openapi-generator.git
 cd pulp-openapi-generator
 
-sudo ./generate.sh pulp_ansible ruby $VERSION
-sudo chown -R travis:travis pulp_ansible-client
+./generate.sh pulp_ansible ruby $VERSION
 cd pulp_ansible-client
 gem build pulp_ansible_client
 GEM_FILE="$(ls | grep pulp_ansible_client-)"
