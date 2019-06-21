@@ -1,12 +1,20 @@
 #!/usr/bin/env sh
 set -v
 
+export PRE_BEFORE_INSTALL=$TRAVIS_BUILD_DIR/.travis/pre_before_install.sh
+export POST_BEFORE_INSTALL=$TRAVIS_BUILD_DIR/.travis/post_before_install.sh
+
+if [ -x $PRE_BEFORE_INSTALL ]; then
+    $PRE_BEFORE_INSTALL
+fi
+
 COMMIT_MSG=$(git show HEAD^2 -s)
 export COMMIT_MSG
 export PULP_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulpcore\/pull\/(\d+)' | awk -F'/' '{print $7}')
 export PULP_PLUGIN_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulpcore-plugin\/pull\/(\d+)' | awk -F'/' '{print $7}')
 export PULP_SMASH_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/PulpQE\/pulp-smash\/pull\/(\d+)' | awk -F'/' '{print $7}')
 export PULP_ROLES_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/ansible-pulp\/pull\/(\d+)' | awk -F'/' '{print $7}')
+export PULP_BINDINGS_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-openapi-generator\/pull\/(\d+)' | awk -F'/' '{print $7}')
 
 # dev_requirements should not be needed for testing; don't install them to make sure
 pip install -r test_requirements.txt
@@ -59,6 +67,7 @@ if [ "$DB" = 'mariadb' ]; then
   mysql -u root -e "DROP USER IF EXISTS 'travis'@'%';"
   mysql -u root -e "CREATE USER 'travis'@'%';"
   mysql -u root -e "CREATE DATABASE pulp;"
+  mysql -u root -e "ALTER DATABASE pulp CHARACTER SET utf8;"
   mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'travis'@'%';";
 else
   psql -c 'CREATE DATABASE pulp OWNER travis;'
@@ -71,3 +80,6 @@ cp pulp_ansible/.travis/mariadb.yml ansible-pulp/mariadb.yml
 
 cd pulp_ansible
 
+if [ -x $POST_BEFORE_INSTALL ]; then
+    $POST_BEFORE_INSTALL
+fi
