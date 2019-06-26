@@ -65,8 +65,7 @@ Note that this does not add the Collection to any Repository Version. You can as
 unit with a two step process:
 
 1. Create a new RepositoryVersion that includes the Collection
-2. Create a new Publication that references the new RepositoryVersion from step 1.
-3. Update the Distribution serving `mazer` to serve the new Publication from step 2.
+2. Update the Distribution serving `mazer` to serve the new RepositoryVersion from step 1.
 
 You could do these steps with a script like::
 
