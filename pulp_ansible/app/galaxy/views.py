@@ -9,7 +9,7 @@ from pulpcore.app.response import OperationPostponedResponse
 from pulpcore.tasking.tasks import enqueue_with_reservation
 from pulpcore.plugin.models import ContentArtifact
 
-from pulp_ansible.app.galaxy.tasks import import_collection
+from pulp_ansible.app.tasks.collections import import_collection
 from pulp_ansible.app.models import AnsibleDistribution, Collection, Role
 
 from .serializers import (

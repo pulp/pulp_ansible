@@ -1,3 +1,5 @@
+from gettext import gettext as _
+
 from rest_framework import serializers
 
 from pulpcore.plugin.serializers import (
@@ -73,6 +75,23 @@ class CollectionRemoteSerializer(RemoteSerializer):
             'whitelist',
         )
         model = CollectionRemote
+
+
+class CollectionOneShotSerializer(serializers.Serializer):
+    """
+    A serializer for the Collection One Shot Upload API.
+    """
+
+    file = serializers.FileField(
+        help_text=_("The Collection tarball."),
+        required=True,
+    )
+
+    sha256 = serializers.CharField(
+        help_text=_("An optional sha256 checksum of the uploaded file."),
+        required=False,
+        default=None,
+    )
 
 
 class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):

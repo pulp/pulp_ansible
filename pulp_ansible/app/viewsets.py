@@ -1,6 +1,12 @@
-from drf_yasg.utils import swagger_auto_schema
-from rest_framework.decorators import detail_route
+from gettext import gettext as _
 
+from drf_yasg.utils import swagger_auto_schema
+from rest_framework import serializers, viewsets
+from rest_framework.decorators import detail_route
+from rest_framework.parsers import FormParser, MultiPartParser
+
+from pulpcore.plugin.exceptions import DigestValidationError
+from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -26,9 +32,11 @@ from .serializers import (
     AnsibleRemoteSerializer,
     CollectionSerializer,
     CollectionRemoteSerializer,
+    CollectionOneShotSerializer,
     RoleSerializer
 )
 from .tasks.collections import sync as collection_sync
+from .tasks.collections import import_collection
 from .tasks.synchronizing import synchronize as role_sync
 
 
@@ -154,6 +162,55 @@ class CollectionRemoteViewSet(RemoteViewSet):
             }
         )
         return OperationPostponedResponse(result, request)
+
+
+class CollectionUploadViewSet(viewsets.ViewSet):
+    """
+    ViewSet for One Shot Collection Upload.
+
+    Args:
+        file@: package to upload
+    """
+
+    serializer_class = CollectionOneShotSerializer
+    parser_classes = (MultiPartParser, FormParser)
+
+    @swagger_auto_schema(
+        operation_description="Create an artifact and trigger an asynchronous task to create "
+                              "Collection content from it.",
+        operation_summary="Upload a collection",
+        operation_id="upload_collection",
+        request_body=CollectionOneShotSerializer,
+        responses={202: AsyncOperationResponseSerializer}
+    )
+    def create(self, request):
+        """
+        Dispatch a Collection creation task.
+        """
+        serializer = CollectionOneShotSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        expected_digests = {}
+        if serializer.validated_data['sha256']:
+            expected_digests['sha256'] = serializer.validated_data['sha256']
+        try:
+            artifact = Artifact.init_and_validate(serializer.validated_data['file'],
+                                                  expected_digests=expected_digests)
+        except DigestValidationError:
+            raise serializers.ValidationError(
+                _("The provided sha256 value does not match the sha256 of the uploaded file.")
+            )
+
+        artifact.save()
+
+        async_result = enqueue_with_reservation(
+            import_collection, [str(artifact.pk)],
+            kwargs={
+                'artifact_pk': artifact.pk,
+            }
+        )
+
+        return OperationPostponedResponse(async_result, request)
 
 
 class AnsibleDistributionViewSet(BaseDistributionViewSet):
