@@ -10,9 +10,12 @@ from pulp_ansible.app.galaxy.views import (
     RoleVersionList
 )
 
+from pulp_ansible.app.viewsets import CollectionUploadViewSet
+
 
 urlpatterns = [
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/$', GalaxyVersionView.as_view()),
+    url(r'ansible/collections/$', CollectionUploadViewSet.as_view({'post': 'create'})),
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v1/roles/$', RoleList.as_view()),
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v1/roles/(?P<role_pk>[^/]+)/versions/$',
         RoleVersionList.as_view()),

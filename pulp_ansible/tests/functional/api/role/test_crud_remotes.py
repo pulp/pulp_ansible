@@ -6,7 +6,7 @@ import unittest
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, utils
-from pulp_smash.pulp3.constants import DOWNLOAD_POLICIES
+from pulp_smash.pulp3.constants import IMMEDIATE_DOWNLOAD_POLICIES
 
 from pulp_ansible.tests.functional.constants import ANSIBLE_REMOTE_PATH
 from pulp_ansible.tests.functional.utils import skip_if, gen_ansible_remote
@@ -127,6 +127,6 @@ def _gen_verbose_remote():
     attrs.update({
         'password': utils.uuid4(),
         'username': utils.uuid4(),
-        'policy': choice(DOWNLOAD_POLICIES),
+        'policy': choice(IMMEDIATE_DOWNLOAD_POLICIES),
     })
     return attrs
