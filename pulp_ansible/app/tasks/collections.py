@@ -103,7 +103,7 @@ def sync(remote_pk, repository_pk):
                                 relative_path=collection.relative_path,
                             )
 
-                            collections_pks.append(collection)
+                        collections_pks.append(collection)
 
         collections = Collection.objects.filter(pk__in=collections_pks)
         new_version.add_content(collections)
