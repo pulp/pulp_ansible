@@ -1,56 +1,29 @@
 Upload Content
 ==============
 
-Upload an Artifact to Pulp
---------------------------
+Upload a Collection via the REST API
+------------------------------------
 
-This example will upload the ``geerlingguy/ansible-role-postgresql`` role. You can download that
-locally with::
+A collection tarball can be uploaded via the REST API and the server determines the metadata and
+creates the Collection model.
 
-    curl -L https://github.com/geerlingguy/ansible-role-postgresql/archive/master.tar.gz -o pg.tar.gz
+Suppose you have a file locally named collection.tgz you can upload that to ``pulp_ansible`` with::
 
-
-Each Artifact in Pulp represents a file. They can be created during sync or created manually by
-uploading a file::
-
-    $ export ARTIFACT_HREF=$(http --form POST :24817/pulp/api/v3/artifacts/ file@pg.tar.gz | jq -r '._href')
+    http --form POST :24817/ansible/collections/ file@collection.tgz
 
 
-Response::
+An optional ``sha256`` digest can be passed and is expected to be the sha256 digest of the tarball
+being uploaded. Assume a sha256 of
+``35281bc21343d60f865a091ecc97e28e362c47a52bb6edd6ffd279f94f4ccb0d`` you would upload this with::
 
-    {
-        "_href": "/pulp/api/v3/artifacts/5741288b-7ed5-4199-a5a6-3d82fb97055c/",
-    }
-
-
-Reference (pulpcore): `Artifact API Usage
-<https://docs.pulpproject.org/en/3.0/nightly/restapi.html#tag/artifacts>`_
+    http --form POST :24817/ansible/collections/ file@collection.tgz sha256=35281bc21343d60f865a091ecc97e28e362c47a52bb6edd6ffd279f94f4ccb0d
 
 
-Create a Role from the Artifact
+Upload a Collection via 'mazer'
 -------------------------------
 
-Now that Pulp has the tarball, its time to make it into a Role unit of content. We hope to add
-auto-parsing of tarball data, but currently all metadata is client supplied at creation time::
-
-    $ http :24817/pulp/api/v3/content/ansible/roles/ namespace=pulp name=postgresql version=0.0.1 _artifact=$ARTIFACT_HREF
-
-
-Response::
-
-    {
-        "_href": "/pulp/api/v3/content/ansible/roles/b059a742-1d5d-452d-8085-856844b70f1a/",
-    }
-
-
-Create a variable for convenience::
-
-    $ export CONTENT_HREF=$(http $BASE_ADDR/pulp/api/v3/content/ansible/roles/ | jq -r '.results[] | select(.filename == "pg.tar.gz") | ._href')
-
-
-.. todo::
-
-    Link to live API docs for Role creation
+See the :ref:`mazer-publish` documentation on how to us ``mazer publish`` to publish Collections to
+``pulp_ansible``.
 
 
 Add Content to a Repository
