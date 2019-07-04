@@ -12,6 +12,7 @@ from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
     CreatedResource,
+    ProgressBar,
     Repository,
     RepositoryVersion,
 )
@@ -50,60 +51,67 @@ def sync(remote_pk, repository_pk):
         pass
 
     collections_pks = []
+    download_pb = ProgressBar(message='Downloading Collections', total=len(repository_spec_strings))
+    import_pb = ProgressBar(message='Importing Collections', total=len(repository_spec_strings))
 
     with RepositoryVersion.create(repository) as new_version:
         with tempfile.TemporaryDirectory() as temp_ansible_path:
+            with download_pb:
+                # workaround: mazer logs errors without this dir https://pulp.plan.io/issues/4999
+                os.mkdir(os.path.join(temp_ansible_path, 'ansible_collections'))
 
-            # workaround: mazer logs errors without this dir  https://pulp.plan.io/issues/4999
-            os.mkdir(temp_ansible_path + os.sep + 'ansible_collections')
+                galaxy_context = GalaxyContext(
+                    collections_path=temp_ansible_path,
+                    server={
+                        'url': remote.url,
+                        'ignore_certs': False,
+                    },
+                )
 
-            galaxy_context = GalaxyContext(
-                collections_path=temp_ansible_path,
-                server={
-                    'url': remote.url,
-                    'ignore_certs': False,
-                },
-            )
+                install_repository_specs_loop(
+                    display_callback=nowhere,
+                    galaxy_context=galaxy_context,
+                    repository_spec_strings=repository_spec_strings,
+                )
 
-            install_repository_specs_loop(
-                display_callback=nowhere,
-                galaxy_context=galaxy_context,
-                repository_spec_strings=repository_spec_strings,
-            )
+                download_pb.done = len(repository_spec_strings)
 
-            content_walk_generator = os.walk(temp_ansible_path)
-            for dirpath, dirnames, filenames in content_walk_generator:
-                if 'MANIFEST.json' in filenames:
-                    with open(dirpath + os.path.sep + 'MANIFEST.json') as manifest_file:
-                        manifest_data = json.load(manifest_file)
-                    info = manifest_data['collection_info']
-                    filename = '{namespace}-{name}-{version}'.format(
-                        namespace=info['namespace'],
-                        name=info['name'],
-                        version=info['version'],
-                    )
-                    tarfile_path = temp_ansible_path + os.path.sep + filename + '.tar.gz'
-                    with tarfile.open(name=tarfile_path, mode='w|gz') as newtar:
-                        newtar.add(dirpath, arcname=filename)
-
-                    with transaction.atomic():
-                        collection, created = Collection.objects.get_or_create(
+            with import_pb:
+                content_walk_generator = os.walk(temp_ansible_path)
+                for dirpath, dirnames, filenames in content_walk_generator:
+                    if 'MANIFEST.json' in filenames:
+                        manifest_path = os.path.join(dirpath, 'MANIFEST.json')
+                        with open(manifest_path) as manifest_file:
+                            manifest_data = json.load(manifest_file)
+                        info = manifest_data['collection_info']
+                        filename = '{namespace}-{name}-{version}'.format(
                             namespace=info['namespace'],
                             name=info['name'],
-                            version=info['version']
+                            version=info['version'],
                         )
+                        tarfile_path = os.path.join(temp_ansible_path, filename + '.tar.gz')
+                        with tarfile.open(name=tarfile_path, mode='w|gz') as newtar:
+                            newtar.add(dirpath, arcname=filename)
 
-                        if created:
-                            artifact = Artifact.init_and_validate(newtar.name)
-                            artifact.save()
-
-                            ContentArtifact.objects.create(
-                                artifact=artifact,
-                                content=collection,
-                                relative_path=collection.relative_path,
+                        with transaction.atomic():
+                            collection, created = Collection.objects.get_or_create(
+                                namespace=info['namespace'],
+                                name=info['name'],
+                                version=info['version']
                             )
 
+                            if created:
+                                artifact = Artifact.init_and_validate(newtar.name)
+                                artifact.save()
+
+                                ContentArtifact.objects.create(
+                                    artifact=artifact,
+                                    content=collection,
+                                    relative_path=collection.relative_path,
+                                )
+
                             collections_pks.append(collection)
+                        import_pb.increment()
 
         collections = Collection.objects.filter(pk__in=collections_pks)
         new_version.add_content(collections)
