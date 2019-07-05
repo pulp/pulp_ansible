@@ -18,6 +18,8 @@ This is assuming you have the `Collection` content exposed at a Distribution cre
 `base_path=dev` (as in the example above).
 
 
+.. _mazer-publish:
+
 Mazer publish
 -------------
 
