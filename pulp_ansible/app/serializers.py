@@ -3,6 +3,7 @@ from gettext import gettext as _
 from rest_framework import serializers
 
 from pulpcore.plugin.serializers import (
+    ContentChecksumSerializer,
     RemoteSerializer,
     SingleArtifactContentSerializer,
     RepositoryVersionDistributionSerializer,
@@ -104,7 +105,7 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
         model = AnsibleDistribution
 
 
-class CollectionSerializer(SingleArtifactContentSerializer):
+class CollectionSerializer(SingleArtifactContentSerializer, ContentChecksumSerializer):
     """
     A serializer for Ansible Collection.
     """
@@ -114,6 +115,7 @@ class CollectionSerializer(SingleArtifactContentSerializer):
     version = serializers.CharField()
 
     class Meta:
-        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}) + (
-            'version', 'name', 'namespace')
+        fields = tuple(
+            set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}
+        ) + ContentChecksumSerializer.Meta.fields + ('version', 'name', 'namespace')
         model = Collection

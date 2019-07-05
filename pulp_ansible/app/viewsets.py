@@ -85,7 +85,7 @@ class CollectionViewSet(ContentViewSet):
     """
 
     endpoint_name = 'collections'
-    queryset = Collection.objects.all()
+    queryset = Collection.objects.prefetch_related("_artifacts")
     serializer_class = CollectionSerializer
     filterset_class = CollectionFilter
 
