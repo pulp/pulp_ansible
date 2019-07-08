@@ -10,10 +10,10 @@ from pulpcore.tasking.tasks import enqueue_with_reservation
 from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.tasks.collections import import_collection
-from pulp_ansible.app.models import AnsibleDistribution, Collection, Role
+from pulp_ansible.app.models import AnsibleDistribution, Collection, CollectionVersion, Role
 
 from .serializers import (
-    GalaxyCollectionSerializer, GalaxyCollectionUploadSerializer,
+    GalaxyCollectionVersionSerializer, GalaxyCollectionUploadSerializer,
     GalaxyRoleSerializer, GalaxyRoleVersionSerializer,
 )
 
@@ -102,8 +102,8 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
     View for a Collection Detail.
     """
 
-    model = Collection
-    serializer_class = GalaxyCollectionSerializer
+    model = CollectionVersion
+    serializer_class = GalaxyCollectionVersionSerializer
     authentication_classes = []
     permission_classes = []
 
@@ -111,9 +111,11 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
         """
         Get the detail view of a Collection.
         """
-        collection = get_object_or_404(Collection, namespace=namespace, name=name)
-        collection.path = path
-        return response.Response(GalaxyCollectionSerializer(collection).data)
+        version = get_object_or_404(
+            CollectionVersion, collection__namespace=namespace, collection__name=name
+        )
+        version.path = path
+        return response.Response(GalaxyCollectionVersionSerializer(version).data)
 
 
 class GalaxyCollectionView(views.APIView):
@@ -145,13 +147,13 @@ class GalaxyCollectionView(views.APIView):
         return OperationPostponedResponse(async_result, request)
 
 
-class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
+class GalaxyCollectionVersionList(generics.ListAPIView):
     """
     APIView for Collections by namespace/name.
     """
 
-    model = Collection
-    serializer_class = GalaxyCollectionSerializer
+    model = CollectionVersion
+    serializer_class = GalaxyCollectionVersionSerializer
     authentication_classes = []
     permission_classes = []
 
@@ -165,22 +167,20 @@ class GalaxyCollectionNamespaceNameVersionList(generics.ListAPIView):
         else:
             distro_content = RepositoryVersion.latest(distro.repository).content
 
-        collections = Collection.objects.distinct('namespace', 'name').filter(pk__in=distro_content)
+        collection = get_object_or_404(
+            Collection,
+            namespace=self.kwargs['namespace'],
+            name=self.kwargs['name']
+        )
+        versions = collection.versions.filter(pk__in=distro_content)
 
-        namespace = self.request.query_params.get('owner__username', None)
-        if namespace:
-            collections = collections.filter(namespace=namespace)
-        name = self.request.query_params.get('name', None)
-        if name:
-            collections = collections.filter(name=name)
-
-        for c in collections:
+        for c in versions:
             c.path = self.kwargs['path']  # annotation needed by the serializer
 
-        return collections
+        return versions
 
 
-class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
+class GalaxyCollectionVersionDetail(views.APIView):
     """
     APIView for Galaxy Collections Detail view.
     """
@@ -188,7 +188,7 @@ class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
     authentication_classes = []
     permission_classes = []
 
-    def get(self, request, path, namespace=None, name=None, version=None):
+    def get(self, request, path, namespace, name, version):
         """
         Return a response to the "GET" action.
         """
@@ -198,16 +198,20 @@ class GalaxyCollectionNamespaceNameVersionDetail(views.APIView):
         else:
             distro_content = RepositoryVersion.latest(distro.repository).content
 
-        collection = Collection.objects.get(namespace=namespace, name=name, version=version)
+        version = CollectionVersion.objects.get(
+            collection__namespace=namespace, collection__name=name, version=version
+        )
 
-        get_object_or_404(ContentArtifact,
-                          content__in=distro_content,
-                          relative_path=collection.relative_path)
+        get_object_or_404(
+            ContentArtifact,
+            content__in=distro_content,
+            relative_path=version.relative_path
+        )
 
         download_url = '{content_hostname}/{base_path}/{relative_path}'.format(
             content_hostname=settings.ANSIBLE_CONTENT_HOSTNAME,
             base_path=distro.base_path,
-            relative_path=collection.relative_path
+            relative_path=version.relative_path
         )
         to_return = {
             'download_url': download_url

@@ -1,8 +1,8 @@
 from django.conf.urls import url
 
 from pulp_ansible.app.galaxy.views import (
-    GalaxyCollectionNamespaceNameVersionDetail,
-    GalaxyCollectionNamespaceNameVersionList,
+    GalaxyCollectionVersionDetail,
+    GalaxyCollectionVersionList,
     GalaxyCollectionDetailView,
     GalaxyCollectionView,
     GalaxyVersionView,
@@ -23,7 +23,7 @@ urlpatterns = [
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v2/collections/(?P<namespace>[^/]+)/(?P<name>[^/]+)/'
         r'$', GalaxyCollectionDetailView.as_view()),
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v2/collections/(?P<namespace>[^/]+)/(?P<name>[^/]+)/'
-        r'versions/$', GalaxyCollectionNamespaceNameVersionList.as_view()),
+        r'versions/$', GalaxyCollectionVersionList.as_view()),
     url(r'pulp_ansible/galaxy/(?P<path>.+)/api/v2/collections/(?P<namespace>[^/]+)/(?P<name>[^/]+)/'
-        r'versions/(?P<version>[^/]+)/$', GalaxyCollectionNamespaceNameVersionDetail.as_view()),
+        r'versions/(?P<version>[^/]+)/$', GalaxyCollectionVersionDetail.as_view()),
 ]
