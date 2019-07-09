@@ -1,5 +1,8 @@
+from collections import defaultdict
 from gettext import gettext as _
+from packaging.version import parse
 
+from django_filters import BooleanFilter
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import detail_route
@@ -69,6 +72,38 @@ class CollectionFilter(ContentFilter):
     """
     FilterSet for Ansible Collections.
     """
+
+    latest = BooleanFilter(field_name='latest', method='filter_latest')
+
+    def filter_latest(self, queryset, name, value):
+        """
+        If the value of 'latest' is True, include only the latest Collection version in the results.
+
+        Args:
+            queryset: The already-formed queryset for modification
+            name: The name of the parameter, 'latest'
+            value: The value of the argument. This is checked if 'True' or not.
+
+        Returns:
+            Queryset with latest collections included if value is True.
+
+        """
+        if not value:
+            return queryset
+
+        namespace_name_dict = defaultdict(lambda: defaultdict(list))
+        for collection in queryset.all():
+            version_entry = (parse(collection.version), collection.pk)
+            namespace_name_dict[collection.namespace][collection.name].append(version_entry)
+
+        latest_pks = []
+        for namespace, name_dict in namespace_name_dict.items():
+            for name, version_list in name_dict.items():
+                version_list.sort(reverse=True)
+                latest_pk = version_list[0][1]
+                latest_pks.append(latest_pk)
+
+        return queryset.filter(pk__in=latest_pks)
 
     class Meta:
         model = Collection
