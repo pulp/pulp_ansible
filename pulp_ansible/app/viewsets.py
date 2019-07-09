@@ -2,13 +2,15 @@ from collections import defaultdict
 from gettext import gettext as _
 from packaging.version import parse
 
+from django.contrib.postgres.search import SearchQuery
 from django.db import IntegrityError
+from django.db.models import fields as db_fields
+from django.db.models.expressions import F, Func
 from django_filters import filters
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
-
 
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import Artifact
@@ -74,9 +76,34 @@ class CollectionVersionFilter(ContentFilter):
     FilterSet for Ansible Collections.
     """
 
-    namespace = filters.CharFilter(field_name="collection__namespace")
-    name = filters.CharFilter(field_name="collection__name")
+    namespace = filters.CharFilter(field_name="namespace")
+    name = filters.CharFilter(field_name="name")
     latest = filters.BooleanFilter(field_name="latest", method="filter_latest")
+    q = filters.CharFilter(field_name="q", method="filter_by_q")
+
+    def filter_by_q(self, queryset, name, value):
+        """
+        Full text search provided by the 'q' option.
+
+        Args:
+            queryset: The query to add the additional full-text search filtering onto
+            name: The name of the option specified, i.e. 'q'
+            value: The string to search on
+
+        Returns:
+            The Django queryset that was passed in, additionally filtered by full-text search.
+
+        """
+        search_query = SearchQuery(value)
+        qs = queryset.filter(search_vector=search_query)
+        ts_rank_fn = Func(
+            F("search_vector"),
+            search_query,
+            32,  # RANK_NORMALIZATION = 32
+            function="ts_rank",
+            output_field=db_fields.FloatField(),
+        )
+        return qs.annotate(rank=ts_rank_fn).order_by("-rank")
 
     def filter_latest(self, queryset, name, value):
         """
