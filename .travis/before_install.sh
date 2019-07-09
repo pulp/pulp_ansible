@@ -34,6 +34,9 @@ pip install -r test_requirements.txt
 # Lint code.
 flake8 --config flake8.cfg || exit 1
 
+# check the code style with black
+black --check --diff . || exit 1
+
 cd ..
 git clone https://github.com/pulp/ansible-pulp.git
 if [ -n "$PULP_ROLES_PR_NUMBER" ]; then
