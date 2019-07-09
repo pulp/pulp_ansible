@@ -4,6 +4,7 @@ from setuptools import setup, find_packages
 
 requirements = [
     'mazer',
+    'packaging',
     'pulpcore-plugin~=0.1rc2',
 ]
 
