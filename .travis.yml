@@ -72,3 +72,9 @@ jobs:
       - DB=postgres
       - TEST=bindings
     if: tag IS present
+notifications:
+  irc:
+    channels:
+      - "chat.freenode.net#pulp-ansible"
+    on_success: change # default is 'always'
+    on_failure: always # default value
