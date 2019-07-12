@@ -1,1 +1,0 @@
-Collection sync no longer logs errors about a missing directory named 'ansible_collections'

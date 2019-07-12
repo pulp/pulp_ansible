@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 requirements = [
     'mazer',
     'packaging',
-    'pulpcore-plugin~=0.1rc2',
+    'pulpcore-plugin~=0.1rc3',
 ]
 
 with open('README.rst') as f:
@@ -13,7 +13,7 @@ with open('README.rst') as f:
 
 setup(
     name='pulp-ansible',
-    version='0.2.0b1.dev',
+    version='0.2.0b1',
     description='Pulp plugin to manage Ansible content, e.g. roles',
     long_description=long_description,
     license='GPLv2+',
