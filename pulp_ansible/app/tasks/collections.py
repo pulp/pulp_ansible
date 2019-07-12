@@ -17,7 +17,11 @@ from pulpcore.plugin.models import (
     RepositoryVersion,
 )
 
-from pulp_ansible.app.models import Collection, CollectionRemote
+from pulp_ansible.app.models import (
+    Collection,
+    CollectionRemote,
+    CollectionVersion,
+)
 
 
 log = logging.getLogger(__name__)
@@ -50,7 +54,7 @@ def sync(remote_pk, repository_pk):
     def nowhere(*args, **kwargs):
         pass
 
-    collections_pks = []
+    collection_version_pks = []
     download_pb = ProgressBar(message='Downloading Collections', total=len(repository_spec_strings))
     import_pb = ProgressBar(message='Importing Collections', total=len(repository_spec_strings))
 
@@ -97,6 +101,9 @@ def sync(remote_pk, repository_pk):
                             collection, created = Collection.objects.get_or_create(
                                 namespace=info['namespace'],
                                 name=info['name'],
+                            )
+                            collection_version, created = CollectionVersion.objects.get_or_create(
+                                collection=collection,
                                 version=info['version']
                             )
 
@@ -106,15 +113,15 @@ def sync(remote_pk, repository_pk):
 
                                 ContentArtifact.objects.create(
                                     artifact=artifact,
-                                    content=collection,
-                                    relative_path=collection.relative_path,
+                                    content=collection_version,
+                                    relative_path=collection_version.relative_path,
                                 )
 
-                            collections_pks.append(collection)
+                            collection_version_pks.append(collection_version)
                         import_pb.increment()
 
-        collections = Collection.objects.filter(pk__in=collections_pks)
-        new_version.add_content(collections)
+        collection_versions = CollectionVersion.objects.filter(pk__in=collection_version_pks)
+        new_version.add_content(collection_versions)
 
 
 def import_collection(artifact_pk):
@@ -131,16 +138,19 @@ def import_collection(artifact_pk):
         manifest_data = json.load(file_obj)
         collection_info = manifest_data['collection_info']
 
-        collection = Collection(
-            namespace=collection_info['namespace'],
-            name=collection_info['name'],
-            version=collection_info['version']
-        )
         with transaction.atomic():
-            collection.save()
+            collection, created = Collection.objects.get_or_create(
+                namespace=collection_info['namespace'],
+                name=collection_info['name']
+            )
+            collection_version = CollectionVersion(
+                collection=collection,
+                version=collection_info['version']
+            )
+            collection_version.save()
             ContentArtifact.objects.create(
                 artifact=artifact,
-                content=collection,
-                relative_path=collection.relative_path,
+                content=collection_version,
+                relative_path=collection_version.relative_path,
             )
-            CreatedResource.objects.create(content_object=collection)
+            CreatedResource.objects.create(content_object=collection_version)

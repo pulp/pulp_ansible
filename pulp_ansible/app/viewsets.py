@@ -2,7 +2,7 @@ from collections import defaultdict
 from gettext import gettext as _
 from packaging.version import parse
 
-from django_filters import BooleanFilter
+from django_filters import filters
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
 from rest_framework.decorators import detail_route
@@ -29,14 +29,14 @@ from pulpcore.plugin.viewsets import (
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
-    Collection,
+    CollectionVersion,
     CollectionRemote,
     Role,
 )
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
-    CollectionSerializer,
+    CollectionVersionSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
     RoleSerializer
@@ -71,12 +71,14 @@ class RoleViewSet(ContentViewSet):
     filterset_class = RoleFilter
 
 
-class CollectionFilter(ContentFilter):
+class CollectionVersionFilter(ContentFilter):
     """
     FilterSet for Ansible Collections.
     """
 
-    latest = BooleanFilter(field_name='latest', method='filter_latest')
+    namespace = filters.CharFilter(field_name='collection__namespace')
+    name = filters.CharFilter(field_name='collection__name')
+    latest = filters.BooleanFilter(field_name='latest', method='filter_latest')
 
     def filter_latest(self, queryset, name, value):
         """
@@ -109,23 +111,23 @@ class CollectionFilter(ContentFilter):
         return queryset.filter(pk__in=latest_pks)
 
     class Meta:
-        model = Collection
+        model = CollectionVersion
         fields = [
-            'name',
             'namespace',
+            'name',
             'version',
         ]
 
 
-class CollectionViewSet(ContentViewSet):
+class CollectionVersionViewSet(ContentViewSet):
     """
     ViewSet for Ansible Collection.
     """
 
     endpoint_name = 'collections'
-    queryset = Collection.objects.prefetch_related("_artifacts")
-    serializer_class = CollectionSerializer
-    filterset_class = CollectionFilter
+    queryset = CollectionVersion.objects.prefetch_related("_artifacts")
+    serializer_class = CollectionVersionSerializer
+    filterset_class = CollectionVersionFilter
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):

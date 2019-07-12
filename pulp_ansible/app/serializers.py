@@ -12,7 +12,7 @@ from pulpcore.plugin.serializers import (
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
-    Collection,
+    CollectionVersion,
     CollectionRemote,
     Role,
 )
@@ -105,7 +105,7 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
         model = AnsibleDistribution
 
 
-class CollectionSerializer(SingleArtifactContentSerializer, ContentChecksumSerializer):
+class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecksumSerializer):
     """
     A serializer for Ansible Collection.
     """
@@ -118,4 +118,4 @@ class CollectionSerializer(SingleArtifactContentSerializer, ContentChecksumSeria
         fields = tuple(
             set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}
         ) + ContentChecksumSerializer.Meta.fields + ('version', 'name', 'namespace')
-        model = Collection
+        model = CollectionVersion

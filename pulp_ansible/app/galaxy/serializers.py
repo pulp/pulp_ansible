@@ -3,7 +3,7 @@ from gettext import gettext as _
 from django.conf import settings
 from rest_framework import serializers
 
-from pulp_ansible.app.models import Collection, Role
+from pulp_ansible.app.models import CollectionVersion, Role
 
 
 class GalaxyRoleSerializer(serializers.ModelSerializer):
@@ -55,7 +55,7 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         model = Role
 
 
-class GalaxyCollectionSerializer(serializers.Serializer):
+class GalaxyCollectionVersionSerializer(serializers.Serializer):
     """
     A serializer for a Collection.
     """
@@ -85,7 +85,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
 
     class Meta:
         fields = ('name', 'namespace', 'version', 'href')
-        model = Collection
+        model = CollectionVersion
 
 
 class GalaxyCollectionUploadSerializer(serializers.Serializer):
