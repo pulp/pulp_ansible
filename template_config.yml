@@ -1,0 +1,28 @@
+# This config represents the latest values used when running the template.
+
+all: false
+bootstrap: false
+docs: false
+exclude_black: true
+exclude_check_commit_message: false
+exclude_coverage: true
+exclude_deploy_client_to_pypi: false
+exclude_deploy_client_to_rubygems: false
+exclude_deploy_daily_client_to_pypi: false
+exclude_deploy_daily_client_to_rubygems: false
+exclude_deploy_to_pypi: false
+exclude_docs_test: false
+exclude_mariadb_test: true
+exclude_pydocstyle: false
+exclude_test_bindings: false
+plugin_camel: PulpAnsible
+plugin_camel_short: Ansible
+plugin_caps: PULP_ANSIBLE
+plugin_caps_short: ANSIBLE
+plugin_dash: pulp-ansible
+plugin_dash_short: ansible
+plugin_name: ansible
+plugin_snake: pulp_ansible
+plugin_snake_short: ansible
+pypi_username: pulp
+test: false
