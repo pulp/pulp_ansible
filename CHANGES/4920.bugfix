@@ -1,1 +1,0 @@
-Collection sync now creates a new RepositoryVersion even if no new Collection content was added.
