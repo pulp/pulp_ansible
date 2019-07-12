@@ -19,7 +19,10 @@ Create your pulp_ansible.yml playbook to use with the installer:
    ---
    - hosts: all
      vars:
-       pulp_secret_key: secret
+       pulp_settings:
+         secret_key: secret
+         ansible_api_hostname: 'http://localhost:24817'
+         ansible_ansible_content_hostname: 'http://localhost:24816/pulp/content'
        pulp_default_admin_password: password
        pulp_install_plugins:
          pulp-ansible:
