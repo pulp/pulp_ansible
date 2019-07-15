@@ -27,5 +27,11 @@ docs_test: True
 pydocstyle: True
 test_bindings: True
 plugin_app_label: ansible
+travis_notifications:
+  irc:
+    channels:
+    - "chat.freenode.net#pulp-ansible"
+    on_success: change
+    on_failure: always
 
 
