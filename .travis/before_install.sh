@@ -31,7 +31,8 @@ pip install -r test_requirements.txt
 # check the commit message
 ./.travis/check_commit.sh
 
-
+# run black separately from flake8 to get a diff
+black --check --diff .
 
 # Lint code.
 flake8 --config flake8.cfg
@@ -73,21 +74,11 @@ if [ -n "$PULP_SMASH_PR_NUMBER" ]; then
   cd ..
 fi
 
-if [ "$DB" = 'mariadb' ]; then
-  # working around https://travis-ci.community/t/mariadb-build-error-with-xenial/3160
-  mysql -u root -e "DROP USER IF EXISTS 'travis'@'%';"
-  mysql -u root -e "CREATE USER 'travis'@'%';"
-  mysql -u root -e "CREATE DATABASE pulp;"
-  mysql -u root -e "ALTER DATABASE pulp CHARACTER SET utf8;"
-  mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'travis'@'%';";
-else
-  psql -c 'CREATE DATABASE pulp OWNER travis;'
-fi
+psql -c 'CREATE DATABASE pulp OWNER travis;'
 
 pip install ansible
 cp pulp_ansible/.travis/playbook.yml ansible-pulp/playbook.yml
 cp pulp_ansible/.travis/postgres.yml ansible-pulp/postgres.yml
-cp pulp_ansible/.travis/mariadb.yml ansible-pulp/mariadb.yml
 
 cd pulp_ansible
 

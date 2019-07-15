@@ -4,9 +4,7 @@ from functools import partial
 from unittest import SkipTest
 
 from pulp_smash import api, selectors
-from pulp_smash.pulp3.constants import (
-    REPO_PATH
-)
+from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_remote,
     gen_repo,
@@ -14,7 +12,7 @@ from pulp_smash.pulp3.utils import (
     get_content,
     require_pulp_3,
     require_pulp_plugins,
-    sync
+    sync,
 )
 
 from pulp_ansible.tests.functional.constants import (
@@ -28,7 +26,7 @@ from pulp_ansible.tests.functional.constants import (
 def set_up_module():
     """Skip tests Pulp 3 isn't under test or if pulp_ansible isn't installed."""
     require_pulp_3(SkipTest)
-    require_pulp_plugins({'pulp_ansible'}, SkipTest)
+    require_pulp_plugins({"pulp_ansible"}, SkipTest)
 
 
 def gen_ansible_remote(url=ANSIBLE_FIXTURE_URL, **kwargs):
@@ -54,10 +52,7 @@ def get_ansible_content_paths(repo):
     :returns: A list with the paths of units present in a given repository.
     """
     # FIXME
-    return [
-        content_unit['relative_path']
-        for content_unit in get_content(repo)[ANSIBLE_ROLE_NAME]
-    ]
+    return [content_unit["relative_path"] for content_unit in get_content(repo)[ANSIBLE_ROLE_NAME]]
 
 
 def gen_ansible_content_attrs(artifact):
@@ -67,7 +62,7 @@ def gen_ansible_content_attrs(artifact):
     :returns: A semi-random dict for use in creating a content unit.
     """
     # FIXME: add content specific metadata here
-    return {'_artifact': artifact['_href']}
+    return {"_artifact": artifact["_href"]}
 
 
 def populate_pulp(cfg, url=ANSIBLE_FIXTURE_URL):
@@ -87,10 +82,10 @@ def populate_pulp(cfg, url=ANSIBLE_FIXTURE_URL):
         sync(cfg, remote, repo)
     finally:
         if remote:
-            client.delete(remote['_href'])
+            client.delete(remote["_href"])
         if repo:
-            client.delete(repo['_href'])
-    return client.get(ANSIBLE_ROLE_CONTENT_PATH)['results']
+            client.delete(repo["_href"])
+    return client.get(ANSIBLE_ROLE_CONTENT_PATH)["results"]
 
 
 skip_if = partial(selectors.skip_if, exc=SkipTest)

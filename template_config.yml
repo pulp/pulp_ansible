@@ -1,20 +1,9 @@
-# This config represents the latest values used when running the template.
+# This config represents the latest values used when running the plugin-template. Any settings that
+# were not present before running plugin-template have been added with their default values.
 
-all: false
-bootstrap: false
-docs: false
-exclude_black: true
-exclude_check_commit_message: false
-exclude_coverage: true
-exclude_deploy_client_to_pypi: false
-exclude_deploy_client_to_rubygems: false
-exclude_deploy_daily_client_to_pypi: false
-exclude_deploy_daily_client_to_rubygems: false
-exclude_deploy_to_pypi: false
-exclude_docs_test: false
-exclude_mariadb_test: true
-exclude_pydocstyle: false
-exclude_test_bindings: false
+all: False
+bootstrap: False
+docs: False
 plugin_camel: PulpAnsible
 plugin_camel_short: Ansible
 plugin_caps: PULP_ANSIBLE
@@ -25,4 +14,18 @@ plugin_name: ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
 pypi_username: pulp
-test: false
+test: False
+black: True
+check_commit_message: True
+coverage: False
+deploy_client_to_pypi: True
+deploy_client_to_rubygems: True
+deploy_daily_client_to_pypi: True
+deploy_daily_client_to_rubygems: True
+deploy_to_pypi: True
+docs_test: True
+pydocstyle: True
+test_bindings: True
+plugin_app_label: ansible
+
+

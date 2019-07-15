@@ -6,10 +6,7 @@ from urllib.parse import urlsplit
 
 from pulp_smash import api, config
 from pulp_smash.pulp3.constants import REPO_PATH
-from pulp_smash.pulp3.utils import (
-    gen_repo,
-    sync,
-)
+from pulp_smash.pulp3.utils import gen_repo, sync
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_REMOTE_PATH,
@@ -44,20 +41,17 @@ class SyncTestCase(unittest.TestCase):
         4. Assert that repository version is not None.
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo["_href"])
 
-        body = gen_ansible_remote(
-            url=ANSIBLE_GALAXY_COLLECTION_URL,
-            whitelist=COLLECTION_WHITELIST
-        )
+        body = gen_ansible_remote(url=ANSIBLE_GALAXY_COLLECTION_URL, whitelist=COLLECTION_WHITELIST)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote["_href"])
 
         # Sync the repository.
-        self.assertIsNone(repo['_latest_version_href'], repo)
+        self.assertIsNone(repo["_latest_version_href"], repo)
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo['_href'])
-        self.assertIsNotNone(repo['_latest_version_href'], repo)
+        repo = self.client.get(repo["_href"])
+        self.assertIsNotNone(repo["_latest_version_href"], repo)
 
     def test_successive_syncs_repo_version(self):
         """Test whether successive syncs update repository versions.
@@ -74,20 +68,17 @@ class SyncTestCase(unittest.TestCase):
            of syncs.
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo["_href"])
 
-        body = gen_ansible_remote(
-            url=ANSIBLE_GALAXY_COLLECTION_URL,
-            whitelist=COLLECTION_WHITELIST
-        )
+        body = gen_ansible_remote(url=ANSIBLE_GALAXY_COLLECTION_URL, whitelist=COLLECTION_WHITELIST)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote["_href"])
 
         number_of_syncs = randint(1, 5)
         for _ in range(number_of_syncs):
             sync(self.cfg, remote, repo)
 
-        repo = self.client.get(repo['_href'])
-        path = urlsplit(repo['_latest_version_href']).path
-        latest_repo_version = int(path.split('/')[-2])
+        repo = self.client.get(repo["_href"])
+        path = urlsplit(repo["_latest_version_href"]).path
+        latest_repo_version = int(path.split("/")[-2])
         self.assertEqual(latest_repo_version, number_of_syncs, repo)

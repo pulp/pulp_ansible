@@ -3,12 +3,7 @@ from logging import getLogger
 from django.db import models
 from django.contrib.postgres import fields as psql_fields
 
-from pulpcore.plugin.models import (
-    Content,
-    Model,
-    Remote,
-    RepositoryVersionDistribution
-)
+from pulpcore.plugin.models import Content, Model, Remote, RepositoryVersionDistribution
 
 
 log = getLogger(__name__)
@@ -19,7 +14,7 @@ class Role(Content):
     A content type representing a Role.
     """
 
-    TYPE = 'role'
+    TYPE = "role"
 
     namespace = models.CharField(max_length=64)
     name = models.CharField(max_length=64)
@@ -33,17 +28,13 @@ class Role(Content):
         return self.contentartifact_set.get().relative_path
 
     class Meta:
-        unique_together = (
-            'version',
-            'name',
-            'namespace',
-        )
+        unique_together = ("version", "name", "namespace")
 
 
 class Collection(Model):
     """A model representing a Collection."""
 
-    TYPE = 'collection'
+    TYPE = "collection"
 
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
@@ -51,10 +42,7 @@ class Collection(Model):
     deprecated = models.BooleanField(default=False)
 
     class Meta:
-        unique_together = (
-            'namespace',
-            'name',
-        )
+        unique_together = ("namespace", "name")
 
 
 class CollectionVersion(Content):
@@ -75,13 +63,10 @@ class CollectionVersion(Content):
         collection: Reference to a collection model.
     """
 
-    TYPE = 'collection_version'
+    TYPE = "collection_version"
 
     collection = models.ForeignKey(
-        Collection,
-        on_delete=models.CASCADE,
-        related_name='versions',
-        editable=False,
+        Collection, on_delete=models.CASCADE, related_name="versions", editable=False
     )
     version = models.CharField(max_length=128, editable=False)
 
@@ -104,15 +89,12 @@ class CollectionVersion(Content):
         """
         Return the relative path for the ContentArtifact.
         """
-        return '{namespace}.{name}.{version}'.format(
+        return "{namespace}.{name}.{version}".format(
             namespace=self.namespace, name=self.name, version=self.version
         )
 
     class Meta:
-        unique_together = (
-            'collection',
-            'version',
-        )
+        unique_together = ("collection", "version")
 
 
 class AnsibleRemote(Remote):
@@ -120,7 +102,7 @@ class AnsibleRemote(Remote):
     A Remote for Ansible content.
     """
 
-    TYPE = 'ansible'
+    TYPE = "ansible"
 
 
 class CollectionRemote(Remote):
@@ -132,7 +114,7 @@ class CollectionRemote(Remote):
         whitelist (models.TextField): The whitelist of Collections to sync.
     """
 
-    TYPE = 'collection'
+    TYPE = "collection"
 
     whitelist = models.TextField()
 
@@ -142,4 +124,4 @@ class AnsibleDistribution(RepositoryVersionDistribution):
     A Distribution for Ansible content.
     """
 
-    TYPE = 'ansible'
+    TYPE = "ansible"

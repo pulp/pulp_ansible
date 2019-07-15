@@ -4,12 +4,7 @@ import unittest
 
 from pulp_smash import api, cli, config, exceptions
 from pulp_smash.pulp3.constants import MEDIA_PATH, REPO_PATH
-from pulp_smash.pulp3.utils import (
-    gen_repo,
-    get_added_content_summary,
-    get_content_summary,
-    sync,
-)
+from pulp_smash.pulp3.utils import gen_repo, get_added_content_summary, get_content_summary, sync
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
@@ -44,18 +39,18 @@ class BasicSyncTestCase(unittest.TestCase):
         cli_client = cli.Client(self.cfg, cli.echo_handler)
 
         # check if 'lsof' is available
-        if cli_client.run(('which', 'lsof')).returncode != 0:
-            raise unittest.SkipTest('lsof package is not present')
+        if cli_client.run(("which", "lsof")).returncode != 0:
+            raise unittest.SkipTest("lsof package is not present")
 
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo["_href"])
 
         remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote())
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote["_href"])
 
         sync(self.cfg, remote, repo)
 
-        cmd = 'lsof -t +D {}'.format(MEDIA_PATH).split()
+        cmd = "lsof -t +D {}".format(MEDIA_PATH).split()
         response = cli_client.run(cmd).stdout
         self.assertEqual(len(response), 0, response)
 
@@ -78,27 +73,27 @@ class BasicSyncTestCase(unittest.TestCase):
         8. Assert that the same number of are present and that no units were added.
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo['_href'])
+        self.addCleanup(self.client.delete, repo["_href"])
 
         body = gen_ansible_remote()
         remote = self.client.post(ANSIBLE_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote["_href"])
 
         # Sync the repository.
-        self.assertIsNone(repo['_latest_version_href'])
+        self.assertIsNone(repo["_latest_version_href"])
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo['_href'])
+        repo = self.client.get(repo["_href"])
 
-        self.assertIsNotNone(repo['_latest_version_href'])
+        self.assertIsNotNone(repo["_latest_version_href"])
         self.assertDictEqual(get_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
         self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
         # Sync the repository again.
-        latest_version_href = repo['_latest_version_href']
+        latest_version_href = repo["_latest_version_href"]
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo['_href'])
+        repo = self.client.get(repo["_href"])
 
-        self.assertNotEqual(latest_version_href, repo['_latest_version_href'])
+        self.assertNotEqual(latest_version_href, repo["_latest_version_href"])
         self.assertDictEqual(get_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
         self.assertDictEqual(get_added_content_summary(repo), {})
 
@@ -117,11 +112,11 @@ class SyncInvalidURLTestCase(unittest.TestCase):
         client = api.Client(cfg, api.json_handler)
 
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['_href'])
+        self.addCleanup(client.delete, repo["_href"])
 
-        body = gen_ansible_remote(url='http://i-am-an-invalid-url.com/invalid/')
+        body = gen_ansible_remote(url="http://i-am-an-invalid-url.com/invalid/")
         remote = client.post(ANSIBLE_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['_href'])
+        self.addCleanup(client.delete, remote["_href"])
 
         with self.assertRaises(exceptions.TaskReportError):
             sync(cfg, remote, repo)

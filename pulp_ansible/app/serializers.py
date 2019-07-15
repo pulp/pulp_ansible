@@ -9,13 +9,7 @@ from pulpcore.plugin.serializers import (
     RepositoryVersionDistributionSerializer,
 )
 
-from .models import (
-    AnsibleDistribution,
-    AnsibleRemote,
-    CollectionVersion,
-    CollectionRemote,
-    Role,
-)
+from .models import AnsibleDistribution, AnsibleRemote, CollectionVersion, CollectionRemote, Role
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -43,16 +37,17 @@ class RoleSerializer(SingleArtifactContentSerializer):
         """
         data = super().validate(data)
         relative_path = "{namespace}/{name}/{version}.tar.gz".format(
-            namespace=data['namespace'],
-            name=data['name'],
-            version=data['version']
+            namespace=data["namespace"], name=data["name"], version=data["version"]
         )
-        data['_relative_path'] = relative_path
+        data["_relative_path"] = relative_path
         return data
 
     class Meta:
-        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}) + (
-            'version', 'name', 'namespace')
+        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"_relative_path"}) + (
+            "version",
+            "name",
+            "namespace",
+        )
         model = Role
 
 
@@ -72,9 +67,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
     """
 
     class Meta:
-        fields = RemoteSerializer.Meta.fields + (
-            'whitelist',
-        )
+        fields = RemoteSerializer.Meta.fields + ("whitelist",)
         model = CollectionRemote
 
 
@@ -83,10 +76,7 @@ class CollectionOneShotSerializer(serializers.Serializer):
     A serializer for the Collection One Shot Upload API.
     """
 
-    file = serializers.FileField(
-        help_text=_("The Collection tarball."),
-        required=True,
-    )
+    file = serializers.FileField(help_text=_("The Collection tarball."), required=True)
 
     sha256 = serializers.CharField(
         help_text=_("An optional sha256 checksum of the uploaded file."),
@@ -115,7 +105,9 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
     version = serializers.CharField()
 
     class Meta:
-        fields = tuple(
-            set(SingleArtifactContentSerializer.Meta.fields) - {'_relative_path'}
-        ) + ContentChecksumSerializer.Meta.fields + ('version', 'name', 'namespace')
+        fields = (
+            tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"_relative_path"})
+            + ContentChecksumSerializer.Meta.fields
+            + ("version", "name", "namespace")
+        )
         model = CollectionVersion

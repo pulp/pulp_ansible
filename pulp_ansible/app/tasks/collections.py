@@ -17,11 +17,7 @@ from pulpcore.plugin.models import (
     RepositoryVersion,
 )
 
-from pulp_ansible.app.models import (
-    Collection,
-    CollectionRemote,
-    CollectionVersion,
-)
+from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVersion
 
 
 log = logging.getLogger(__name__)
@@ -49,27 +45,24 @@ def sync(remote_pk, repository_pk):
     if not remote.whitelist:
         raise ValueError(_("A CollectionRemote must have a 'whitelist' specified to synchronize."))
 
-    repository_spec_strings = remote.whitelist.split(' ')
+    repository_spec_strings = remote.whitelist.split(" ")
 
     def nowhere(*args, **kwargs):
         pass
 
     collection_version_pks = []
-    download_pb = ProgressBar(message='Downloading Collections', total=len(repository_spec_strings))
-    import_pb = ProgressBar(message='Importing Collections', total=len(repository_spec_strings))
+    download_pb = ProgressBar(message="Downloading Collections", total=len(repository_spec_strings))
+    import_pb = ProgressBar(message="Importing Collections", total=len(repository_spec_strings))
 
     with RepositoryVersion.create(repository) as new_version:
         with tempfile.TemporaryDirectory() as temp_ansible_path:
             with download_pb:
                 # workaround: mazer logs errors without this dir https://pulp.plan.io/issues/4999
-                os.mkdir(os.path.join(temp_ansible_path, 'ansible_collections'))
+                os.mkdir(os.path.join(temp_ansible_path, "ansible_collections"))
 
                 galaxy_context = GalaxyContext(
                     collections_path=temp_ansible_path,
-                    server={
-                        'url': remote.url,
-                        'ignore_certs': False,
-                    },
+                    server={"url": remote.url, "ignore_certs": False},
                 )
 
                 install_repository_specs_loop(
@@ -83,28 +76,24 @@ def sync(remote_pk, repository_pk):
             with import_pb:
                 content_walk_generator = os.walk(temp_ansible_path)
                 for dirpath, dirnames, filenames in content_walk_generator:
-                    if 'MANIFEST.json' in filenames:
-                        manifest_path = os.path.join(dirpath, 'MANIFEST.json')
+                    if "MANIFEST.json" in filenames:
+                        manifest_path = os.path.join(dirpath, "MANIFEST.json")
                         with open(manifest_path) as manifest_file:
                             manifest_data = json.load(manifest_file)
-                        info = manifest_data['collection_info']
-                        filename = '{namespace}-{name}-{version}'.format(
-                            namespace=info['namespace'],
-                            name=info['name'],
-                            version=info['version'],
+                        info = manifest_data["collection_info"]
+                        filename = "{namespace}-{name}-{version}".format(
+                            namespace=info["namespace"], name=info["name"], version=info["version"]
                         )
-                        tarfile_path = os.path.join(temp_ansible_path, filename + '.tar.gz')
-                        with tarfile.open(name=tarfile_path, mode='w|gz') as newtar:
+                        tarfile_path = os.path.join(temp_ansible_path, filename + ".tar.gz")
+                        with tarfile.open(name=tarfile_path, mode="w|gz") as newtar:
                             newtar.add(dirpath, arcname=filename)
 
                         with transaction.atomic():
                             collection, created = Collection.objects.get_or_create(
-                                namespace=info['namespace'],
-                                name=info['name'],
+                                namespace=info["namespace"], name=info["name"]
                             )
                             collection_version, created = CollectionVersion.objects.get_or_create(
-                                collection=collection,
-                                version=info['version']
+                                collection=collection, version=info["version"]
                             )
 
                             if created:
@@ -133,19 +122,17 @@ def import_collection(artifact_pk):
     """
     artifact = Artifact.objects.get(pk=artifact_pk)
     with tarfile.open(str(artifact.file.path), "r") as tar:
-        log.info(_('Reading MANIFEST.json from {path}').format(path=artifact.file.path))
-        file_obj = tar.extractfile('MANIFEST.json')
+        log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.path))
+        file_obj = tar.extractfile("MANIFEST.json")
         manifest_data = json.load(file_obj)
-        collection_info = manifest_data['collection_info']
+        collection_info = manifest_data["collection_info"]
 
         with transaction.atomic():
             collection, created = Collection.objects.get_or_create(
-                namespace=collection_info['namespace'],
-                name=collection_info['name']
+                namespace=collection_info["namespace"], name=collection_info["name"]
             )
             collection_version = CollectionVersion(
-                collection=collection,
-                version=collection_info['version']
+                collection=collection, version=collection_info["version"]
             )
             collection_version.save()
             ContentArtifact.objects.create(
