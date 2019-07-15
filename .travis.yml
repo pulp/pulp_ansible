@@ -17,12 +17,10 @@ env:
   matrix:
     - DB=postgres TEST=pulp
     - DB=postgres TEST=docs
-
     - DB=postgres TEST=bindings
 
 matrix:
   exclude:
-
     - python: '3.7'
       env: DB=postgres TEST=bindings
     - python: '3.6'
@@ -31,7 +29,6 @@ matrix:
 services:
     - postgresql
     - redis-server
-    
 addons:
   apt:
     packages:
@@ -39,7 +36,6 @@ addons:
       - jq
   # postgres versions provided by el7 RHSCL (lowest supportable version)
   postgresql: '9.6'
-  
 before_install: .travis/before_install.sh
 install: .travis/install.sh
 before_script: .travis/before_script.sh
@@ -78,9 +74,12 @@ jobs:
       - DB=postgres
       - TEST=bindings
     if: tag IS present
+
 notifications:
   irc:
     channels:
-      - "chat.freenode.net#pulp-ansible"
-    on_success: change # default is 'always'
-    on_failure: always # default value
+    - chat.freenode.net#pulp-ansible
+    on_failure: always
+    on_success: change
+
+
