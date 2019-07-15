@@ -5,19 +5,9 @@ import math
 
 from asyncio import FIRST_COMPLETED
 from gettext import gettext as _
-from urllib.parse import (
-    parse_qs,
-    urlencode,
-    urlparse,
-    urlunparse,
-)
+from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
-from pulpcore.plugin.models import (
-    Artifact,
-    ProgressBar,
-    Remote,
-    Repository,
-)
+from pulpcore.plugin.models import Artifact, ProgressBar, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
@@ -31,7 +21,7 @@ log = logging.getLogger(__name__)
 
 
 # The Github URL template to fetch a .tar.gz file from
-GITHUB_URL = 'https://github.com/%s/%s/archive/%s.tar.gz'
+GITHUB_URL = "https://github.com/%s/%s/archive/%s.tar.gz"
 
 # default results per page. used to calculate number of pages
 PAGE_SIZE = 10
@@ -56,14 +46,10 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     repository = Repository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise ValueError(_('A remote must have a url specified to synchronize.'))
+        raise ValueError(_("A remote must have a url specified to synchronize."))
 
     log.info(
-        _('Synchronizing: repository=%(r)s remote=%(p)s'),
-        {
-            'r': repository.name,
-            'p': remote.name,
-        },
+        _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}
     )
     first_stage = AnsibleFirstStage(remote)
     d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
@@ -87,27 +73,29 @@ class AnsibleFirstStage(Stage):
         self.remote = remote
 
         # Interpret download policy
-        self.deferred_download = (self.remote.policy != Remote.IMMEDIATE)
+        self.deferred_download = self.remote.policy != Remote.IMMEDIATE
 
     async def run(self):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        with ProgressBar(message='Parsing Role Metadata') as pb:
+        with ProgressBar(message="Parsing Role Metadata") as pb:
             async for metadata in self._fetch_roles():
-                for version in metadata['summary_fields']['versions']:
+                for version in metadata["summary_fields"]["versions"]:
                     url = GITHUB_URL % (
-                        metadata['github_user'],
-                        metadata['github_repo'],
-                        version['name'],
+                        metadata["github_user"],
+                        metadata["github_repo"],
+                        version["name"],
                     )
-                    role = Role(version=version['name'],
-                                name=metadata['name'],
-                                namespace=metadata['namespace'])
+                    role = Role(
+                        version=version["name"],
+                        name=metadata["name"],
+                        namespace=metadata["namespace"],
+                    )
                     relative_path = "%s/%s/%s.tar.gz" % (
-                        metadata['namespace'],
-                        metadata['name'],
-                        version['name'],
+                        metadata["namespace"],
+                        metadata["name"],
+                        version["name"],
                     )
                     d_artifact = DeclarativeArtifact(
                         artifact=Artifact(),
@@ -116,21 +104,20 @@ class AnsibleFirstStage(Stage):
                         remote=self.remote,
                         deferred_download=self.deferred_download,
                     )
-                    d_content = DeclarativeContent(
-                        content=role,
-                        d_artifacts=[d_artifact],
-                    )
+                    d_content = DeclarativeContent(content=role, d_artifacts=[d_artifact])
                     pb.increment()
                     await self.put(d_content)
 
     async def _fetch_roles(self):
         async for metadata in self._fetch_galaxy_pages():
-            for result in metadata['results']:
-                role = {'name': result['name'],
-                        'namespace': result['summary_fields']['namespace']['name'],
-                        'summary_fields': result['summary_fields'],  # needed for versions
-                        'github_user': result['github_user'],
-                        'github_repo': result['github_repo']}
+            for result in metadata["results"]:
+                role = {
+                    "name": result["name"],
+                    "namespace": result["summary_fields"]["namespace"]["name"],
+                    "summary_fields": result["summary_fields"],  # needed for versions
+                    "github_user": result["github_user"],
+                    "github_repo": result["github_repo"],
+                }
                 yield role
 
     async def _fetch_galaxy_pages(self):
@@ -147,18 +134,18 @@ class AnsibleFirstStage(Stage):
         def role_page_url(url, page=1):
             parsed_url = urlparse(url)
             new_query = parse_qs(parsed_url.query)
-            new_query['page'] = page
+            new_query["page"] = page
             return urlunparse(parsed_url._replace(query=urlencode(new_query, doseq=True)))
 
         def parse_metadata(download_result):
             with open(download_result.path) as fd:
                 return json.load(fd)
 
-        with ProgressBar(message='Parsing Pages from Galaxy Roles API') as progress_bar:
+        with ProgressBar(message="Parsing Pages from Galaxy Roles API") as progress_bar:
             downloader = remote.get_downloader(url=role_page_url(remote.url))
             metadata = parse_metadata(await downloader.run())
 
-            page_count = math.ceil(float(metadata['count']) / float(PAGE_SIZE))
+            page_count = math.ceil(float(metadata["count"]) / float(PAGE_SIZE))
             progress_bar.total = page_count
             progress_bar.save()
 

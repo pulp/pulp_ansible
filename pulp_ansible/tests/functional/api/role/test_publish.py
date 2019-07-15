@@ -8,18 +8,9 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
 from pulp_smash.pulp3.constants import REPO_PATH
-from pulp_smash.pulp3.utils import (
-    gen_repo,
-    get_content,
-    get_versions,
-    publish,
-    sync,
-)
+from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, publish, sync
 
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_publisher,
-    gen_ansible_remote,
-)
+from pulp_ansible.tests.functional.utils import gen_ansible_publisher, gen_ansible_remote
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_PUBLISHER_PATH,
     ANSIBLE_REMOTE_PATH,
@@ -28,7 +19,7 @@ from pulp_ansible.tests.functional.constants import (
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-@unittest.skip('FIXME: Re-enable later')
+@unittest.skip("FIXME: Re-enable later")
 class PublishAnyRepoVersionTestCase(unittest.TestCase):
     """Test whether a particular repository version can be published.
 
@@ -56,42 +47,36 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
 
         body = gen_ansible_remote()
         remote = client.post(ANSIBLE_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['_href'])
+        self.addCleanup(client.delete, remote["_href"])
 
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['_href'])
+        self.addCleanup(client.delete, repo["_href"])
 
         sync(cfg, remote, repo)
 
         publisher = client.post(ANSIBLE_PUBLISHER_PATH, gen_ansible_publisher())
-        self.addCleanup(client.delete, publisher['_href'])
+        self.addCleanup(client.delete, publisher["_href"])
 
         # Step 1
-        repo = client.get(repo['_href'])
+        repo = client.get(repo["_href"])
         for ansible_content in get_content(repo)[ANSIBLE_ROLE_NAME]:
-            client.post(
-                repo['_versions_href'],
-                {'add_content_units': [ansible_content['_href']]}
-            )
-        version_hrefs = tuple(ver['_href'] for ver in get_versions(repo))
+            client.post(repo["_versions_href"], {"add_content_units": [ansible_content["_href"]]})
+        version_hrefs = tuple(ver["_href"] for ver in get_versions(repo))
         non_latest = choice(version_hrefs[:-1])
 
         # Step 2
         publication = publish(cfg, publisher, repo)
 
         # Step 3
-        self.assertEqual(publication['repository_version'], version_hrefs[-1])
+        self.assertEqual(publication["repository_version"], version_hrefs[-1])
 
         # Step 4
         publication = publish(cfg, publisher, repo, non_latest)
 
         # Step 5
-        self.assertEqual(publication['repository_version'], non_latest)
+        self.assertEqual(publication["repository_version"], non_latest)
 
         # Step 6
         with self.assertRaises(HTTPError):
-            body = {
-                'repository': repo['_href'],
-                'repository_version': non_latest
-            }
-            client.post(urljoin(publisher['_href'], 'publish/'), body)
+            body = {"repository": repo["_href"], "repository_version": non_latest}
+            client.post(urljoin(publisher["_href"], "publish/"), body)

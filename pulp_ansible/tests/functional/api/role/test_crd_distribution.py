@@ -6,12 +6,7 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, selectors
 from pulp_smash.pulp3.constants import REPO_PATH
-from pulp_smash.pulp3.utils import (
-    gen_distribution,
-    gen_remote,
-    gen_repo,
-    sync,
-)
+from pulp_smash.pulp3.utils import gen_distribution, gen_remote, gen_repo, sync
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
@@ -55,137 +50,115 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
         """Create a repo and repo_version with synced content."""
         self.repo.update(self.client.post(REPO_PATH, gen_repo()))
 
-        remote = self.client.post(
-            ANSIBLE_REMOTE_PATH,
-            gen_remote(url=ANSIBLE_ELASTIC_FIXTURE_URL)
-        )
+        remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_remote(url=ANSIBLE_ELASTIC_FIXTURE_URL))
 
-        self.addCleanup(self.client.delete, remote['_href'])
+        self.addCleanup(self.client.delete, remote["_href"])
 
-        self.assertIsNone(self.repo['_latest_version_href'])
+        self.assertIsNone(self.repo["_latest_version_href"])
         sync(self.cfg, remote, self.repo)
 
-        self.repo.update(self.client.get(self.repo['_href']))
-        self.assertIsNotNone(self.repo['_latest_version_href'])
+        self.repo.update(self.client.get(self.repo["_href"]))
+        self.assertIsNotNone(self.repo["_latest_version_href"])
 
-    @skip_if(bool, 'repo', False)
+    @skip_if(bool, "repo", False)
     def test_02_positive_create_distribution_with_repo(self):
         """Create a distribution with 'repository' field set to repo."""
         distribution = self.client.post(
-            ANSIBLE_DISTRIBUTION_PATH,
-            gen_distribution(repository=self.repo['_href'])
+            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=self.repo["_href"])
         )
-        self.distribution.update(self.client.get(distribution['_href']))
+        self.distribution.update(self.client.get(distribution["_href"]))
 
-        self.assertEqual(self.distribution['repository'], self.repo['_href'])
-        self.assertIsNone(self.distribution['repository_version'])
+        self.assertEqual(self.distribution["repository"], self.repo["_href"])
+        self.assertIsNone(self.distribution["repository_version"])
 
-    @skip_if(bool, 'distribution', False)
-    @skip_if(bool, 'repo', False)
+    @skip_if(bool, "distribution", False)
+    @skip_if(bool, "repo", False)
     def test_03_negative_update_distribution_with_invalid_repo(self):
         """Assert invalid repo raises invalid hyperlink error."""
         with self.assertRaises(HTTPError):
             self.client.patch(
-                self.distribution['_href'],
-                {'repository': 'this-is-invalid-repository'}
+                self.distribution["_href"], {"repository": "this-is-invalid-repository"}
             )
 
-    @skip_if(bool, 'distribution', False)
-    @skip_if(bool, 'repo', False)
+    @skip_if(bool, "distribution", False)
+    @skip_if(bool, "repo", False)
     def test_03_positive_partial_update_distribution_to_use_repo_version(self):
         """Patch a distribution with 'repository_version' field set."""
         # Patch repository to None
-        self.client.patch(self.distribution['_href'], {'repository': None})
+        self.client.patch(self.distribution["_href"], {"repository": None})
 
         # Patch repository version
         self.distribution.update(
             self.client.patch(
-                self.distribution['_href'],
-                {"repository_version": self.repo['_latest_version_href']}
+                self.distribution["_href"],
+                {"repository_version": self.repo["_latest_version_href"]},
             )
         )
 
-        self.assertEqual(
-            self.distribution['repository_version'],
-            self.repo['_latest_version_href']
-        )
-        self.assertIsNone(self.distribution['repository'])
+        self.assertEqual(self.distribution["repository_version"], self.repo["_latest_version_href"])
+        self.assertIsNone(self.distribution["repository"])
 
-    @skip_if(bool, 'distribution', False)
-    @skip_if(bool, 'repo', False)
+    @skip_if(bool, "distribution", False)
+    @skip_if(bool, "repo", False)
     def test_04_positive_full_update_distribution_to_use_repo_version(self):
         """Put a distribution with 'repository_version' field set."""
         new_dist = self.distribution.copy()
-        new_dist['repository_version'] = self.repo['_latest_version_href']
-        del new_dist['repository']
-        del self.distribution['repository']
+        new_dist["repository_version"] = self.repo["_latest_version_href"]
+        del new_dist["repository"]
+        del self.distribution["repository"]
 
-        self.distribution.update(
-            self.client.put(self.distribution['_href'], new_dist)
-        )
+        self.distribution.update(self.client.put(self.distribution["_href"], new_dist))
 
-        self.assertEqual(
-            self.distribution['repository_version'],
-            self.repo['_latest_version_href']
-        )
+        self.assertEqual(self.distribution["repository_version"], self.repo["_latest_version_href"])
 
-        self.assertIsNone(self.distribution['repository'])
+        self.assertIsNone(self.distribution["repository"])
 
-    @skip_if(bool, 'distribution', False)
-    @skip_if(bool, 'repo', False)
+    @skip_if(bool, "distribution", False)
+    @skip_if(bool, "repo", False)
     def test_05_positive_full_update_distribution_to_use_repo(self):
         """Put a distribution with 'repository' field set."""
         if not selectors.bug_is_fixed(4910, self.cfg.pulp_version):
-            raise unittest.SkipTest('Issue 4910 is not resolved')
+            raise unittest.SkipTest("Issue 4910 is not resolved")
 
         new_dist = self.distribution.copy()
-        new_dist['repository'] = self.repo['_href']
-        del new_dist['repository_version']
-        del self.distribution['repository_version']
+        new_dist["repository"] = self.repo["_href"]
+        del new_dist["repository_version"]
+        del self.distribution["repository_version"]
 
-        self.distribution.update(
-            self.client.put(self.distribution['_href'], new_dist)
-        )
+        self.distribution.update(self.client.put(self.distribution["_href"], new_dist))
 
-        self.assertEqual(
-            self.distribution['repository'],
-            self.repo['_href']
-        )
+        self.assertEqual(self.distribution["repository"], self.repo["_href"])
 
-        self.assertIsNone(self.distribution['repository_version'])
+        self.assertIsNone(self.distribution["repository_version"])
 
-    @skip_if(bool, 'distribution', False)
-    @skip_if(bool, 'repo', False)
+    @skip_if(bool, "distribution", False)
+    @skip_if(bool, "repo", False)
     def test_06_negative_update_distribution_with_repo_and_version(self):
         """Assert 'repo' and 'repo_version' cannot be used together."""
         new_dist = self.distribution.copy()
-        new_dist['repository_version'] = self.repo['_latest_version_href']
-        new_dist['repository'] = self.repo['_href']
+        new_dist["repository_version"] = self.repo["_latest_version_href"]
+        new_dist["repository"] = self.repo["_href"]
         with self.assertRaises(HTTPError):
-            self.client.put(
-                self.distribution['_href'],
-                new_dist
-            )
+            self.client.put(self.distribution["_href"], new_dist)
 
-    @skip_if(bool, 'distribution', False)
-    @skip_if(bool, 'repo', False)
+    @skip_if(bool, "distribution", False)
+    @skip_if(bool, "repo", False)
     def test_07_negative_create_distribution_after_repo_is_deleted(self):
         """Assert distribution cannot be created with deleted repo."""
-        self.client.delete(self.repo['_href'])
+        self.client.delete(self.repo["_href"])
 
         response = self.client.using_handler(api.echo_handler).patch(
-            self.distribution['_href'],
-            {'repository': self.repo['_href']}
+            self.distribution["_href"], {"repository": self.repo["_href"]}
         )
         self.assertEqual(response.status_code, 400)
 
         # '{"repository":["Invalid hyperlink - Object does not exist."]}'
-        for msg in ('invalid', 'hyperlink', 'object', 'not', 'exist'):
+        for msg in ("invalid", "hyperlink", "object", "not", "exist"):
             self.assertIn(msg, str(response.content).lower())
 
-    @skip_if(bool, 'distribution', False)
+    @skip_if(bool, "distribution", False)
     def test_08_positive_delete_distribution(self):
         """Delete a distribution."""
-        self.client.delete(self.distribution['_href'])
+        self.client.delete(self.distribution["_href"])
         with self.assertRaises(HTTPError):
-            self.client.get(self.distribution['_href'])
+            self.client.get(self.distribution["_href"])

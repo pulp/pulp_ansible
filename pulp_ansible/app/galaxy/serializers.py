@@ -22,7 +22,7 @@ class GalaxyRoleSerializer(serializers.ModelSerializer):
         return "{}.{}".format(obj.namespace, obj.name)
 
     class Meta:
-        fields = ('id', 'name', 'namespace')
+        fields = ("id", "name", "namespace")
         model = Role
 
 
@@ -31,7 +31,7 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
     A serializer for Galaxy's representation of Role versions.
     """
 
-    name = serializers.CharField(source='version')
+    name = serializers.CharField(source="version")
 
     source = serializers.SerializerMethodField(read_only=True)
 
@@ -42,16 +42,16 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         if settings.CONTENT_HOST:
             host = settings.CONTENT_HOST
         else:
-            host = self.context['request'].get_host()
-        host = "{}://{}".format(self.context['request'].scheme, host)
+            host = self.context["request"].get_host()
+        host = "{}://{}".format(self.context["request"].scheme, host)
 
-        distro_base = self.context['request'].parser_context['kwargs']['path']
-        distro_path = ''.join([host, settings.CONTENT_PATH_PREFIX, distro_base])
+        distro_base = self.context["request"].parser_context["kwargs"]["path"]
+        distro_path = "".join([host, settings.CONTENT_PATH_PREFIX, distro_base])
 
-        return ''.join([distro_path, '/', obj.relative_path])
+        return "".join([distro_path, "/", obj.relative_path])
 
     class Meta:
-        fields = ('name', 'source')
+        fields = ("name", "source")
         model = Role
 
 
@@ -70,21 +70,33 @@ class GalaxyCollectionVersionSerializer(serializers.Serializer):
         """
         Get versions_url.
         """
-        return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
-               "versions/".format(path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME,
-                                  namespace=obj.namespace, name=obj.name)
+        return (
+            "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/"
+            "versions/".format(
+                path=obj.path,
+                hostname=settings.ANSIBLE_API_HOSTNAME,
+                namespace=obj.namespace,
+                name=obj.name,
+            )
+        )
 
     def get_href(self, obj):
         """
         Get href.
         """
-        return "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/" \
-               "versions/{version}/".format(path=obj.path, hostname=settings.ANSIBLE_API_HOSTNAME,
-                                            namespace=obj.namespace, name=obj.name,
-                                            version=obj.version)
+        return (
+            "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/"
+            "versions/{version}/".format(
+                path=obj.path,
+                hostname=settings.ANSIBLE_API_HOSTNAME,
+                namespace=obj.namespace,
+                name=obj.name,
+                version=obj.version,
+            )
+        )
 
     class Meta:
-        fields = ('name', 'namespace', 'version', 'href')
+        fields = ("name", "namespace", "version", "href")
         model = CollectionVersion
 
 
@@ -94,12 +106,11 @@ class GalaxyCollectionUploadSerializer(serializers.Serializer):
     """
 
     sha256 = serializers.CharField(
-        help_text=_('The sha256 checksum of the Collection Artifact.'),
+        help_text=_("The sha256 checksum of the Collection Artifact."),
         required=True,
         max_length=64,
         min_length=64,
     )
     file = serializers.FileField(
-        help_text=_('The file containing the Artifact binary data.'),
-        required=True,
+        help_text=_("The file containing the Artifact binary data."), required=True
     )

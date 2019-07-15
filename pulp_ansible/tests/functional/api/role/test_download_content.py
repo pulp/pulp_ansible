@@ -7,12 +7,7 @@ from urllib.parse import urljoin
 
 from pulp_smash import api, config, utils
 from pulp_smash.pulp3.constants import REPO_PATH
-from pulp_smash.pulp3.utils import (
-    gen_distribution,
-    gen_repo,
-    publish,
-    sync,
-)
+from pulp_smash.pulp3.utils import gen_distribution, gen_repo, publish, sync
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_publisher,
@@ -28,7 +23,7 @@ from pulp_ansible.tests.functional.constants import (
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-@unittest.skip('FIXME: Re-enable later')
+@unittest.skip("FIXME: Re-enable later")
 class DownloadContentTestCase(unittest.TestCase):
     """Verify whether content served by pulp can be downloaded."""
 
@@ -62,28 +57,28 @@ class DownloadContentTestCase(unittest.TestCase):
         client = api.Client(cfg, api.json_handler)
 
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo['_href'])
+        self.addCleanup(client.delete, repo["_href"])
 
         body = gen_ansible_remote()
         remote = client.post(ANSIBLE_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote['_href'])
+        self.addCleanup(client.delete, remote["_href"])
 
         sync(cfg, remote, repo)
-        repo = client.get(repo['_href'])
+        repo = client.get(repo["_href"])
 
         # Create a publisher.
         publisher = client.post(ANSIBLE_PUBLISHER_PATH, gen_ansible_publisher())
-        self.addCleanup(client.delete, publisher['_href'])
+        self.addCleanup(client.delete, publisher["_href"])
 
         # Create a publication.
         publication = publish(cfg, publisher, repo)
-        self.addCleanup(client.delete, publication['_href'])
+        self.addCleanup(client.delete, publication["_href"])
 
         # Create a distribution.
         body = gen_distribution()
-        body['publication'] = publication['_href']
+        body["publication"] = publication["_href"]
         distribution = client.post(ANSIBLE_DISTRIBUTION_PATH, body)
-        self.addCleanup(client.delete, distribution['_href'])
+        self.addCleanup(client.delete, distribution["_href"])
 
         # Pick a content unit, and download it from both Pulp Fixtures…
         unit_path = choice(get_ansible_content_paths(repo))
@@ -94,8 +89,8 @@ class DownloadContentTestCase(unittest.TestCase):
         # …and Pulp.
         client.response_handler = api.safe_handler
 
-        unit_url = cfg.get_hosts('api')[0].roles['api']['scheme']
-        unit_url += '://' + distribution['base_url'] + '/'
+        unit_url = cfg.get_hosts("api")[0].roles["api"]["scheme"]
+        unit_url += "://" + distribution["base_url"] + "/"
         unit_url = urljoin(unit_url, unit_path)
 
         pulp_hash = hashlib.sha256(client.get(unit_url).content).hexdigest()

@@ -20,27 +20,26 @@ class TestRoleSerializer(TestCase):
             sha384="53a8a0cebcb7780ed7624790c9d9a4d09ba74b47270d397f5ed7bc1c46777a0fbe362aaf2bbe7f0966a350a12d76e28d",  # noqa
             sha512="a94a65f19b864d184a2a5e07fa29766f08c6d49b6f624b3dd3a36a98267b9137d9c35040b3e105448a869c23c2aec04c9e064e3555295c1b8de6515eed4da27d",  # noqa
             size=1024,
-            file=SimpleUploadedFile('test_filename', b'test content')
-
+            file=SimpleUploadedFile("test_filename", b"test content"),
         )
         self.data = {
             "_artifact": "/pulp/api/v3/artifacts/{}/".format(self.artifact.pk),
             "version": "0.1.2.3",
             "name": "test1",
-            "namespace": "testns"
+            "namespace": "testns",
         }
 
     def test_valid_data(self):
         """Test that the RoleSerializer accepts valid data."""
         view = mock.Mock()
-        serializer = RoleSerializer(data=self.data, context={'view': view})
+        serializer = RoleSerializer(data=self.data, context={"view": view})
         self.assertTrue(serializer.is_valid())
 
     def test_duplicate_data(self):
         """Test that the RoleSerializer does not accept data."""
         view = mock.Mock()
-        serializer = RoleSerializer(data=self.data, context={'view': view})
+        serializer = RoleSerializer(data=self.data, context={"view": view})
         self.assertTrue(serializer.is_valid())
         serializer.save()
-        serializer = RoleSerializer(data=self.data, context={'view': view})
+        serializer = RoleSerializer(data=self.data, context={"view": view})
         self.assertFalse(serializer.is_valid())
