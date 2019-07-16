@@ -22,7 +22,8 @@ Create your pulp_ansible.yml playbook to use with the installer:
        pulp_settings:
          secret_key: secret
          ansible_api_hostname: 'http://localhost:24817'
-         ansible_ansible_content_hostname: 'http://localhost:24816/pulp/content'
+         ansible_content_hostname: 'http://localhost:24816/pulp/content'
+         content_host: 'localhost:24816' 
        pulp_default_admin_password: password
        pulp_install_plugins:
          pulp-ansible:
@@ -41,6 +42,7 @@ Then install it onto ``myhost`` with:
 .. code-block:: bash
 
     ansible-playbook pulp_ansible.yaml -l myhost
+
 
 
 Install with pulplift
