@@ -8,10 +8,15 @@ Mazer Configuration
 -------------------
 
 `Install mazer <https://galaxy.ansible.com/docs/mazer/install.html#latest-stable-release>`_ and
-use the `url` option to point to the `Distribution` your content should fetch from. For example,
+edit the file::
+
+    ~/.ansible/mazer.yml
+
+using the `url` option to point to the `Distribution` your content should fetch from. For example,
 using the `Distribution` created in the sync workflow, the config would be::
 
     server:
+      ignore_certs: false
       url: http://localhost:24817/pulp_ansible/galaxy/dev
 
 This is assuming you have the `Collection` content exposed at a Distribution created with
@@ -58,6 +63,11 @@ pulp_ansible and display it::
                 "_type": "ansible.collection",
                 "name": "hello",
                 "namespace": "greetings_namespace",
+                "sha1": "e33a25765f87bfdb6c5cba9c7a5b4acb78933fd3",
+                "sha224": "8e2748f03e0180930d22889c2207811776064b7a5a7049697c9e7d99",
+                "sha256": "7ca7812c631be57e27b182f58cffc4d891c392d7358add848894a8b1ef87a82a",
+                "sha384": "00fdd9bb38212072130d09b0602e47b0542dd39e364456cf7890c67245183638fe0f1fb8735a26749b5798228e4575ff",
+                "sha512": "edd1224d8b8276d36b2743b7ca41e51ac1eb217d095143240b6b4bd448804d70c916bb826b9d57c130cdc2c299c8b46a55cfdffef11f2483016bc85a07a8ef0c",
                 "version": "11.11.11"
             }
         ]
