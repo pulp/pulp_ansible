@@ -125,11 +125,11 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
         del new_dist["repository_version"]
         del self.distribution["repository_version"]
 
-        self.distribution.update(self.client.put(self.distribution["_href"], new_dist))
+        response = self.client.using_handler(api.echo_handler).put(
+            self.distribution["_href"], new_dist
+        )
 
-        self.assertEqual(self.distribution["repository"], self.repo["_href"])
-
-        self.assertIsNone(self.distribution["repository_version"])
+        self.assertEqual(response.status_code, 400, response)
 
     @skip_if(bool, "distribution", False)
     @skip_if(bool, "repo", False)
