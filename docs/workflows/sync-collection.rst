@@ -17,7 +17,7 @@ Repository GET Response::
         "_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
         "_latest_version_href": null,
         "_versions_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
-        "description": "",
+        "description": null,
         "name": "foo"
     }
 
@@ -41,7 +41,20 @@ In this example we will be syncing the ``testing.ansible_testing_content`` Colle
 Remote GET Response::
 
     {
+        "_created": "2019-04-29T13:51:10.860792Z",
         "_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
+        "_last_updated": "2019-04-29T13:51:10.860805Z",
+        "_type": "ansible.collection",
+        "download_concurrency": 20,
+        "name": "bar",
+        "policy": "immediate",
+        "proxy_url": null,
+        "ssl_ca_certificate": null,
+        "ssl_client_certificate": null,
+        "ssl_client_key": null,
+        "ssl_validation": true,
+        "url": "https://galaxy-dev.ansible.com",
+        "whitelist": "testing.ansible_testing_content"
     }
 
 .. todo::

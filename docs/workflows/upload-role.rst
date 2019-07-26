@@ -39,7 +39,13 @@ auto-parsing of tarball data, but currently all metadata is client supplied at c
 Response::
 
     {
+        "_artifact": "/pulp/api/v3/artifacts/c4f518e5-0f98-41fa-8c64-a363159f3193/",
+        "_created": "2019-07-26T13:41:33.691481Z",
         "_href": "/pulp/api/v3/content/ansible/roles/b059a742-1d5d-452d-8085-856844b70f1a/",
+        "_type": "ansible.role",
+        "name": "postgresql",
+        "namespace": "pulp",
+        "version": "0.0.1"
     }
 
 

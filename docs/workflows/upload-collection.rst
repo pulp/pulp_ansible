@@ -1,5 +1,5 @@
-Upload Content
-==============
+Upload Collection
+=================
 
 Upload a Collection via the REST API
 ------------------------------------
