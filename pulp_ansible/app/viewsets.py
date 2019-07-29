@@ -8,10 +8,8 @@ from rest_framework import serializers, viewsets
 from rest_framework.decorators import detail_route
 from rest_framework.parsers import FormParser, MultiPartParser
 
-# workaround until pulpcore-plugin rc4
-# from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.exceptions import DigestValidationError
 
+from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
