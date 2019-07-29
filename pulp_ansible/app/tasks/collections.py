@@ -23,13 +23,14 @@ from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVers
 log = logging.getLogger(__name__)
 
 
-def sync(remote_pk, repository_pk):
+def sync(remote_pk, repository_pk, mirror):
     """
     Sync Collections with ``remote_pk``, and save a new RepositoryVersion for ``repository_pk``.
 
     Args:
         remote_pk (str): The remote PK.
         repository_pk (str): The repository PK.
+        mirror (bool): True for mirror mode, False for additive.
 
     Raises:
         ValueError: If the remote does not specify a URL to sync or a ``whitelist`` of Collections
@@ -106,11 +107,14 @@ def sync(remote_pk, repository_pk):
                                     relative_path=collection_version.relative_path,
                                 )
 
-                            collection_version_pks.append(collection_version)
+                            collection_version_pks.append(collection_version.pk)
                         import_pb.increment()
 
         collection_versions = CollectionVersion.objects.filter(pk__in=collection_version_pks)
         new_version.add_content(collection_versions)
+
+        if mirror:
+            new_version.remove_content(new_version.content.exclude(pk__in=collection_version_pks))
 
 
 def import_collection(artifact_pk):
