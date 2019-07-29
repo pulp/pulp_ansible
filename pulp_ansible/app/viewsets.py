@@ -5,7 +5,7 @@ from packaging.version import parse
 from django_filters import filters
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
-from rest_framework.decorators import detail_route
+from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 
 
@@ -127,7 +127,7 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         operation_description="Trigger an asynchronous task to sync Ansible content.",
         responses={202: AsyncOperationResponseSerializer},
     )
-    @detail_route(methods=("post",), serializer_class=RepositorySyncURLSerializer)
+    @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
         Dispatches a sync task.
@@ -158,7 +158,7 @@ class CollectionRemoteViewSet(RemoteViewSet):
         operation_description="Trigger an asynchronous task to sync Collection content.",
         responses={202: AsyncOperationResponseSerializer},
     )
-    @detail_route(methods=("post",), serializer_class=RepositorySyncURLSerializer)
+    @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
         Dispatches a Collection sync task.
