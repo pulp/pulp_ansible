@@ -66,6 +66,27 @@ class CollectionRemoteSerializer(RemoteSerializer):
     A serializer for Collection Remotes.
     """
 
+    def validate(self, data):
+        """
+        Validate a a url to ensure it does not end with slashes.
+
+        Args:
+            data (dict): User data to validate
+
+        Returns:
+            dict: Validated data
+
+        Raises:
+            rest_framework.serializers.ValidationError: If the url is invalid
+
+        """
+        data = super().validate(data)
+
+        if data["url"].endswith("/"):
+            raise serializers.ValidationError(_("url should not end with '/'"))
+
+        return data
+
     class Meta:
         fields = RemoteSerializer.Meta.fields + ("whitelist",)
         model = CollectionRemote
