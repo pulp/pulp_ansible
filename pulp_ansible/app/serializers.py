@@ -1,5 +1,6 @@
 from gettext import gettext as _
 
+from django.conf import settings
 from rest_framework import serializers
 
 from pulpcore.plugin.serializers import (
@@ -111,8 +112,29 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
     Serializer for Ansible Distributions.
     """
 
+    mazer_url = serializers.SerializerMethodField(
+        read_only=True, help_text=_("The URL of a mazer content source.")
+    )
+
+    def get_mazer_url(self, obj):
+        """
+        Get mazer_url.
+        """
+        return "{hostname}/pulp_ansible/galaxy/{base_path}".format(
+            hostname=settings.ANSIBLE_API_HOSTNAME, base_path=obj.base_path
+        )
+
     class Meta:
-        fields = RepositoryVersionDistributionSerializer.Meta.fields
+        fields = (
+            "_href",
+            "_created",
+            "base_path",
+            "content_guard",
+            "name",
+            "repository",
+            "repository_version",
+            "mazer_url",
+        )
         model = AnsibleDistribution
 
 
