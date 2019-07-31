@@ -6,11 +6,21 @@ from urllib.parse import urlsplit
 
 from pulp_smash import api, config
 from pulp_smash.pulp3.constants import REPO_PATH
-from pulp_smash.pulp3.utils import gen_repo, sync
+from pulp_smash.pulp3.utils import (
+    gen_repo,
+    get_added_content_summary,
+    get_content_summary,
+    get_removed_content_summary,
+    sync,
+)
+
 
 from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_COLLECTION_FIXTURE_SUMMARY,
     ANSIBLE_COLLECTION_REMOTE_PATH,
     ANSIBLE_GALAXY_COLLECTION_URL,
+    ANSIBLE_REMOTE_PATH,
+    ANSIBLE_FIXTURE_CONTENT_SUMMARY,
     COLLECTION_WHITELIST,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
@@ -82,3 +92,50 @@ class SyncTestCase(unittest.TestCase):
         path = urlsplit(repo["_latest_version_href"]).path
         latest_repo_version = int(path.split("/")[-2])
         self.assertEqual(latest_repo_version, number_of_syncs, repo)
+
+    def test_mirror_sync(self):
+        """Sync multiple plugin into the same repo with mirror as `True`.
+
+        This test targets the following issue: 5167
+
+        * `<https://pulp.plan.io/issues/5167>`_
+
+        This test does the following:
+
+        1. Create a repo.
+        2. Create two remotes
+            a. Role remote
+            b. Collection remote
+        3. Sync the repo with Role remote.
+        4. Sync the repo with Collection remote with ``Mirror=True``.
+        5. Verify whether the content in the latest version of the repo
+           has only Collection content and Role content is deleted.
+        """
+        # Step 1
+        repo = self.client.post(REPO_PATH, gen_repo())
+        self.addCleanup(self.client.delete, repo["_href"])
+
+        # Step 2
+        role_remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote())
+        self.addCleanup(self.client.delete, role_remote["_href"])
+
+        collection_remote = self.client.post(
+            ANSIBLE_COLLECTION_REMOTE_PATH,
+            gen_ansible_remote(url=ANSIBLE_GALAXY_COLLECTION_URL, whitelist=COLLECTION_WHITELIST),
+        )
+        self.addCleanup(self.client.delete, collection_remote["_href"])
+
+        # Step 3
+        sync(self.cfg, role_remote, repo)
+        repo = self.client.get(repo["_href"])
+        self.assertIsNotNone(repo["_latest_version_href"])
+        self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
+
+        # Step 4
+        sync(self.cfg, collection_remote, repo, mirror=True)
+        repo = self.client.get(repo["_href"])
+        self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_COLLECTION_FIXTURE_SUMMARY)
+
+        # Step 5
+        self.assertDictEqual(get_content_summary(repo), ANSIBLE_COLLECTION_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_removed_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)

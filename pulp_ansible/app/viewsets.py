@@ -167,10 +167,15 @@ class CollectionRemoteViewSet(RemoteViewSet):
         serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
         repository = serializer.validated_data.get("repository")
+        mirror = serializer.validated_data.get("mirror", False)
+        kwargs = {
+            "remote_pk": collection_remote.pk,
+            "repository_pk": repository.pk,
+            "mirror": mirror,
+        }
+
         result = enqueue_with_reservation(
-            collection_sync,
-            [repository, collection_remote],
-            kwargs={"remote_pk": collection_remote.pk, "repository_pk": repository.pk},
+            collection_sync, [repository, collection_remote], kwargs=kwargs
         )
         return OperationPostponedResponse(result, request)
 
