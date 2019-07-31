@@ -17,7 +17,7 @@ from pulpcore.plugin.models import (
     RepositoryVersion,
 )
 
-from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVersion
+from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVersion, Tag
 
 
 log = logging.getLogger(__name__)
@@ -97,6 +97,19 @@ def sync(remote_pk, repository_pk):
                             )
 
                             if created:
+                                # Create the tags
+                                tags = info.pop("tags")
+                                for name in tags:
+                                    tag, created = Tag.objects.get_or_create(name=name)
+                                    collection_version.tags.add(tag)
+
+                                # Update with the additional data from the Collection
+                                for attr_name, attr_value in info.items():
+                                    if attr_value is None:
+                                        continue
+                                    setattr(collection_version, attr_name, attr_value)
+                                collection_version.save()
+
                                 artifact = Artifact.init_and_validate(newtar.name)
                                 artifact.save()
 
@@ -131,10 +144,25 @@ def import_collection(artifact_pk):
             collection, created = Collection.objects.get_or_create(
                 namespace=collection_info["namespace"], name=collection_info["name"]
             )
-            collection_version = CollectionVersion(
-                collection=collection, version=collection_info["version"]
-            )
+            if created:
+                CreatedResource.objects.create(content_object=collection)
+
+            tags = collection_info.pop("tags")
+
+            # Mazer returns many None values. We need to let the defaults in models.py prevail
+            for key in ["description", "documentation", "homepage", "issues", "repository"]:
+                if collection_info[key] is None:
+                    collection_info.pop(key)
+
+            collection_version = CollectionVersion(collection=collection, **collection_info)
             collection_version.save()
+
+            for name in tags:
+                tag, created = Tag.objects.get_or_create(name=name)
+                collection_version.tags.add(tag)
+
+            collection_version.save()  # Save the FK updates
+
             ContentArtifact.objects.create(
                 artifact=artifact,
                 content=collection_version,
