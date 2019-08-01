@@ -2,6 +2,7 @@ from collections import defaultdict
 from gettext import gettext as _
 from packaging.version import parse
 
+from django.db import IntegrityError
 from django_filters import filters
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers, viewsets
@@ -218,7 +219,10 @@ class CollectionUploadViewSet(viewsets.ViewSet):
                 _("The provided sha256 value does not match the sha256 of the uploaded file.")
             )
 
-        artifact.save()
+        try:
+            artifact.save()
+        except IntegrityError:
+            raise serializers.ValidationError(_("Artifact already exists."))
 
         async_result = enqueue_with_reservation(
             import_collection, [str(artifact.pk)], kwargs={"artifact_pk": artifact.pk}
