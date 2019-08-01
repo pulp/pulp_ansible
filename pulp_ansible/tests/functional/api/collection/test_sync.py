@@ -18,7 +18,7 @@ from pulp_smash.pulp3.utils import (
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_FIXTURE_SUMMARY,
     ANSIBLE_COLLECTION_REMOTE_PATH,
-    ANSIBLE_GALAXY_COLLECTION_URL,
+    ANSIBLE_COLLECTION_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
     COLLECTION_WHITELIST,
@@ -53,7 +53,9 @@ class SyncTestCase(unittest.TestCase):
         repo = self.client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_GALAXY_COLLECTION_URL, whitelist=COLLECTION_WHITELIST)
+        body = gen_ansible_remote(
+            url=ANSIBLE_COLLECTION_FIXTURE_URL, whitelist=COLLECTION_WHITELIST
+        )
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["_href"])
 
@@ -80,7 +82,9 @@ class SyncTestCase(unittest.TestCase):
         repo = self.client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_GALAXY_COLLECTION_URL, whitelist=COLLECTION_WHITELIST)
+        body = gen_ansible_remote(
+            url=ANSIBLE_COLLECTION_FIXTURE_URL, whitelist=COLLECTION_WHITELIST
+        )
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["_href"])
 
@@ -121,7 +125,7 @@ class SyncTestCase(unittest.TestCase):
 
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
-            gen_ansible_remote(url=ANSIBLE_GALAXY_COLLECTION_URL, whitelist=COLLECTION_WHITELIST),
+            gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL, whitelist=COLLECTION_WHITELIST),
         )
         self.addCleanup(self.client.delete, collection_remote["_href"])
 

@@ -1,26 +1,37 @@
+import asyncio
 from gettext import gettext as _
 import json
 import logging
-import os
+import math
 import tarfile
-import tempfile
 
-from ansible_galaxy.actions.install import install_repository_specs_loop
-from ansible_galaxy.models.context import GalaxyContext
 from django.db import transaction
+from urllib.parse import urlparse, urlunparse
+
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
     CreatedResource,
     ProgressBar,
+    Remote,
     Repository,
-    RepositoryVersion,
+)
+from pulpcore.plugin.stages import (
+    DeclarativeArtifact,
+    DeclarativeContent,
+    DeclarativeVersion,
+    Stage,
 )
 
 from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVersion, Tag
+from pulp_ansible.app.tasks.utils import get_json_from_url, get_page_url
 
 
 log = logging.getLogger(__name__)
+
+
+# default results per page. used to calculate number of pages
+PAGE_SIZE = 10
 
 
 def sync(remote_pk, repository_pk, mirror):
@@ -46,92 +57,9 @@ def sync(remote_pk, repository_pk, mirror):
     if not remote.whitelist:
         raise ValueError(_("A CollectionRemote must have a 'whitelist' specified to synchronize."))
 
-    repository_spec_strings = remote.whitelist.split(" ")
-
-    def nowhere(*args, **kwargs):
-        pass
-
-    collection_version_pks = []
-    download_pb = ProgressBar(message="Downloading Collections", total=len(repository_spec_strings))
-    import_pb = ProgressBar(message="Importing Collections", total=len(repository_spec_strings))
-
-    with RepositoryVersion.create(repository) as new_version:
-        with tempfile.TemporaryDirectory() as temp_ansible_path:
-            with download_pb:
-                # workaround: mazer logs errors without this dir https://pulp.plan.io/issues/4999
-                os.mkdir(os.path.join(temp_ansible_path, "ansible_collections"))
-
-                galaxy_context = GalaxyContext(
-                    collections_path=temp_ansible_path,
-                    server={"url": remote.url, "ignore_certs": False},
-                )
-
-                install_repository_specs_loop(
-                    display_callback=nowhere,
-                    galaxy_context=galaxy_context,
-                    repository_spec_strings=repository_spec_strings,
-                )
-
-                download_pb.done = len(repository_spec_strings)
-
-            with import_pb:
-                content_walk_generator = os.walk(temp_ansible_path)
-                for dirpath, dirnames, filenames in content_walk_generator:
-                    if "MANIFEST.json" in filenames:
-                        manifest_path = os.path.join(dirpath, "MANIFEST.json")
-                        with open(manifest_path) as manifest_file:
-                            manifest_data = json.load(manifest_file)
-                        info = manifest_data["collection_info"]
-                        filename = "{namespace}-{name}-{version}".format(
-                            namespace=info["namespace"], name=info["name"], version=info["version"]
-                        )
-                        tarfile_path = os.path.join(temp_ansible_path, filename + ".tar.gz")
-                        with tarfile.open(name=tarfile_path, mode="w|gz") as newtar:
-                            newtar.add(dirpath, arcname=filename)
-
-                        with transaction.atomic():
-                            collection, created = Collection.objects.get_or_create(
-                                namespace=info["namespace"], name=info["name"]
-                            )
-                            collection_version, created = CollectionVersion.objects.get_or_create(
-                                collection=collection, version=info["version"]
-                            )
-
-                            if created:
-                                # Create the tags
-                                tags = info.pop("tags")
-                                for name in tags:
-                                    tag, created = Tag.objects.get_or_create(name=name)
-                                    collection_version.tags.add(tag)
-
-                                # Remove fields not used by this model
-                                info.pop("license_file")
-                                info.pop("readme")
-
-                                # Update with the additional data from the Collection
-                                for attr_name, attr_value in info.items():
-                                    if attr_value is None:
-                                        continue
-                                    setattr(collection_version, attr_name, attr_value)
-                                collection_version.save()
-
-                                artifact = Artifact.init_and_validate(newtar.name)
-                                artifact.save()
-
-                                ContentArtifact.objects.create(
-                                    artifact=artifact,
-                                    content=collection_version,
-                                    relative_path=collection_version.relative_path,
-                                )
-
-                            collection_version_pks.append(collection_version.pk)
-                        import_pb.increment()
-
-        collection_versions = CollectionVersion.objects.filter(pk__in=collection_version_pks)
-        new_version.add_content(collection_versions)
-
-        if mirror:
-            new_version.remove_content(new_version.content.exclude(pk__in=collection_version_pks))
+    first_stage = AnsibleFirstStage(remote)
+    d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
+    d_version.create()
 
 
 def import_collection(artifact_pk):
@@ -181,3 +109,115 @@ def import_collection(artifact_pk):
                 relative_path=collection_version.relative_path,
             )
             CreatedResource.objects.create(content_object=collection_version)
+
+
+class AnsibleFirstStage(Stage):
+    """
+    The first stage of a pulp_ansible sync pipeline.
+    """
+
+    def __init__(self, remote):
+        """
+        The first stage of a pulp_ansible sync pipeline.
+
+        Args:
+            remote (AnsibleRemote): The remote data to be used when syncing
+
+        """
+        super().__init__()
+        self.remote = remote
+
+        # Interpret download policy
+        self.deferred_download = self.remote.policy != Remote.IMMEDIATE
+
+    async def run(self):
+        """
+        Build and emit `DeclarativeContent` from the ansible metadata.
+        """
+        with ProgressBar(message="Parsing Collection Metadata") as pb:
+            async for metadata in self._fetch_collections():
+
+                for version in metadata["versions"]:
+
+                    url_path = "download/%s-%s-%s.tar.gz" % (
+                        metadata["namespace"],
+                        metadata["name"],
+                        version["version"],
+                    )
+                    url = urlunparse(urlparse(metadata["href"])._replace(path=url_path))
+
+                    with transaction.atomic():
+                        collection, created = Collection.objects.get_or_create(
+                            namespace=metadata["namespace"], name=metadata["name"]
+                        )
+                        collection_version, created = CollectionVersion.objects.get_or_create(
+                            namespace=metadata["namespace"],
+                            name=metadata["name"],
+                            version=version["version"],
+                            collection=collection,
+                        )
+
+                    relative_path = "%s/%s/%s.tar.gz" % (
+                        metadata["namespace"],
+                        metadata["name"],
+                        version["version"],
+                    )
+                    d_artifact = DeclarativeArtifact(
+                        artifact=Artifact(),
+                        url=url,
+                        relative_path=relative_path,
+                        remote=self.remote,
+                        deferred_download=self.deferred_download,
+                    )
+                    d_content = DeclarativeContent(
+                        content=collection_version, d_artifacts=[d_artifact]
+                    )
+                    pb.increment()
+                    await self.put(d_content)
+
+    async def _fetch_collections(self):
+        async for metadata in self._fetch_galaxy_pages():
+            for result in metadata["results"]:
+
+                response = await get_json_from_url(url=result["versions_url"])
+
+                collection = {
+                    "href": result["href"],
+                    "name": result["name"],
+                    "namespace": result["namespace"]["name"],
+                    "versions": response["results"],
+                }
+                yield collection
+
+    async def _fetch_galaxy_pages(self):
+        """
+        Fetch the collections in a remote repository.
+
+        Returns:
+            async generator: dicts that represent pages from galaxy api
+
+        """
+        page_count = 0
+        remote = self.remote
+
+        with ProgressBar(message="Parsing Pages from Galaxy Collections API") as progress_bar:
+            metadata = await get_json_from_url(url=get_page_url(remote.url))
+
+            page_count = math.ceil(float(metadata["count"]) / float(PAGE_SIZE))
+            progress_bar.total = page_count
+            progress_bar.save()
+
+            yield metadata
+            progress_bar.increment()
+
+            # Concurrent downloads are limited by aiohttp...
+            not_done = set(
+                asyncio.ensure_future(get_json_from_url(url=get_page_url(remote.url, page)))
+                for page in range(2, page_count + 1)
+            )
+
+            while not_done:
+                done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
+                for item in done:
+                    yield item.result()
+                    progress_bar.increment()

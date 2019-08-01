@@ -30,6 +30,7 @@ class MazerConsumeCotentTestCase(unittest.TestCase):
         except exceptions.CalledProcessError:
             raise unittest.SkipTest("This test requires mazer client.")
 
+    @unittest.skip("Not using mazer on collections")
     def test_consume_content(self):
         """Test whether mazer can install content hosted by Pulp."""
         repo = self.client.post(REPO_PATH, gen_repo())

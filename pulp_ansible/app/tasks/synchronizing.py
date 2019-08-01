@@ -1,11 +1,9 @@
 import asyncio
-import json
 import logging
 import math
 
 from asyncio import FIRST_COMPLETED
 from gettext import gettext as _
-from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 from pulpcore.plugin.models import Artifact, ProgressBar, Remote, Repository
 from pulpcore.plugin.stages import (
@@ -15,6 +13,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 from pulp_ansible.app.models import AnsibleRemote, Role
+from pulp_ansible.app.tasks.utils import get_page_url, parse_metadata
 
 
 log = logging.getLogger(__name__)
@@ -131,18 +130,8 @@ class AnsibleFirstStage(Stage):
         page_count = 0
         remote = self.remote
 
-        def role_page_url(url, page=1):
-            parsed_url = urlparse(url)
-            new_query = parse_qs(parsed_url.query)
-            new_query["page"] = page
-            return urlunparse(parsed_url._replace(query=urlencode(new_query, doseq=True)))
-
-        def parse_metadata(download_result):
-            with open(download_result.path) as fd:
-                return json.load(fd)
-
         with ProgressBar(message="Parsing Pages from Galaxy Roles API") as progress_bar:
-            downloader = remote.get_downloader(url=role_page_url(remote.url))
+            downloader = remote.get_downloader(url=get_page_url(remote.url))
             metadata = parse_metadata(await downloader.run())
 
             page_count = math.ceil(float(metadata["count"]) / float(PAGE_SIZE))
@@ -154,7 +143,7 @@ class AnsibleFirstStage(Stage):
 
             # Concurrent downloads are limited by aiohttp...
             not_done = set(
-                remote.get_downloader(url=role_page_url(remote.url, page)).run()
+                remote.get_downloader(url=get_page_url(remote.url, page)).run()
                 for page in range(2, page_count + 1)
             )
 
