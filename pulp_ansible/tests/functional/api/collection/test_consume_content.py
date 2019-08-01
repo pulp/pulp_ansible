@@ -1,8 +1,6 @@
 # coding=utf-8
 """Tests that content hosted by Pulp can be consumed by mazer."""
 import unittest
-from functools import reduce
-from urllib.parse import urljoin
 
 from pulp_smash import api, cli, config, exceptions
 from pulp_smash.pulp3.constants import REPO_PATH
@@ -52,12 +50,10 @@ class MazerConsumeCotentTestCase(unittest.TestCase):
         )
         self.addCleanup(self.client.delete, distribution["_href"])
 
-        galaxy_url = reduce(
-            urljoin, (self.cfg.get_base_url(), "/pulp_ansible/galaxy/", distribution["base_path"])
-        )
-
         self.cli_client.run(
-            "mazer install {} -c -s {}".format(COLLECTION_WHITELIST, galaxy_url).split()
+            "mazer install {} -c -s {}".format(
+                COLLECTION_WHITELIST, distribution["mazer_url"]
+            ).split()
         )
         self.addCleanup(self.cli_client.run, "mazer remove {}".format(COLLECTION_WHITELIST).split())
 
