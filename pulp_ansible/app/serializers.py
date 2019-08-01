@@ -97,7 +97,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
         return data
 
     class Meta:
-        fields = RemoteSerializer.Meta.fields + ("whitelist",)
+        fields = RemoteSerializer.Meta.fields
         model = CollectionRemote
 
 

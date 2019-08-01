@@ -9,7 +9,7 @@ from pulp_smash.pulp3.utils import gen_distribution, gen_repo, sync
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_REMOTE_PATH,
     ANSIBLE_DISTRIBUTION_PATH,
-    ANSIBLE_GALAXY_COLLECTION_URL,
+    ANSIBLE_COLLECTION_FIXTURE_URL,
     COLLECTION_WHITELIST,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
@@ -35,7 +35,7 @@ class MazerConsumeCotentTestCase(unittest.TestCase):
         repo = self.client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_GALAXY_COLLECTION_URL, whitelist=COLLECTION_WHITELIST)
+        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["_href"])
 
