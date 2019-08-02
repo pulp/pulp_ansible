@@ -104,6 +104,10 @@ def sync(remote_pk, repository_pk, mirror):
                                     tag, created = Tag.objects.get_or_create(name=name)
                                     collection_version.tags.add(tag)
 
+                                # Remove fields not used by this model
+                                info.pop("license_file")
+                                info.pop("readme")
+
                                 # Update with the additional data from the Collection
                                 for attr_name, attr_value in info.items():
                                     if attr_value is None:
@@ -152,6 +156,10 @@ def import_collection(artifact_pk):
                 CreatedResource.objects.create(content_object=collection)
 
             tags = collection_info.pop("tags")
+
+            # Remove fields not used by this model
+            collection_info.pop("license_file")
+            collection_info.pop("readme")
 
             # Mazer returns many None values. We need to let the defaults in models.py prevail
             for key in ["description", "documentation", "homepage", "issues", "repository"]:
