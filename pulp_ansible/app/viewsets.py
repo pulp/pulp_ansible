@@ -5,7 +5,7 @@ from packaging.version import parse
 from django.db import IntegrityError
 from django_filters import filters
 from drf_yasg.utils import swagger_auto_schema
-from rest_framework import serializers, viewsets
+from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 
@@ -18,14 +18,22 @@ from pulpcore.plugin.serializers import (
 )
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
+    BaseDistributionViewSet,
     ContentFilter,
     ContentViewSet,
+    NamedModelViewSet,
     OperationPostponedResponse,
     RemoteViewSet,
-    BaseDistributionViewSet,
 )
 
-from .models import AnsibleDistribution, AnsibleRemote, CollectionVersion, CollectionRemote, Role
+from .models import (
+    AnsibleDistribution,
+    AnsibleRemote,
+    CollectionVersion,
+    CollectionRemote,
+    Role,
+    Tag,
+)
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
@@ -33,6 +41,7 @@ from .serializers import (
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
     RoleSerializer,
+    TagSerializer,
 )
 from .tasks.collections import sync as collection_sync
 from .tasks.collections import import_collection
@@ -239,3 +248,13 @@ class AnsibleDistributionViewSet(BaseDistributionViewSet):
     endpoint_name = "ansible"
     queryset = AnsibleDistribution.objects.all()
     serializer_class = AnsibleDistributionSerializer
+
+
+class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
+    """
+    ViewSet for Tag models.
+    """
+
+    endpoint_name = "pulp_ansible/tags"
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
