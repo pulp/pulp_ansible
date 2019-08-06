@@ -36,6 +36,7 @@ UPDATE ansible_collectionversion AS c
 SET search_vector = (
     SELECT {TS_VECTOR_SELECT}
     FROM ansible_collectionversion cv
+    WHERE c.content_ptr_id = cv.content_ptr_id
 )
 '''
 
