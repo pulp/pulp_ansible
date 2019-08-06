@@ -16,6 +16,7 @@ from pulpcore.plugin.models import (
     Repository,
     RepositoryVersion,
 )
+import semantic_version as semver
 
 from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVersion, Tag
 
@@ -113,6 +114,9 @@ def sync(remote_pk, repository_pk, mirror):
                                     if attr_value is None:
                                         continue
                                     setattr(collection_version, attr_name, attr_value)
+
+                                _update_highest_version(collection_version)
+
                                 collection_version.save()
 
                                 artifact = Artifact.init_and_validate(newtar.name)
@@ -171,6 +175,8 @@ def import_collection(artifact_pk):
                 tag, created = Tag.objects.get_or_create(name=name)
                 collection_version.tags.add(tag)
 
+            _update_highest_version(collection_version)
+
             collection_version.save()  # Save the FK updates
 
             ContentArtifact.objects.create(
@@ -179,3 +185,23 @@ def import_collection(artifact_pk):
                 relative_path=collection_version.relative_path,
             )
             CreatedResource.objects.create(content_object=collection_version)
+
+
+def _update_highest_version(collection_version):
+    """
+    Checks if this version is greater than the most highest one.
+
+    If this version is the first version in collection, is_highest is set to True.
+    If this version is greater than the highest version in collection, set is_highest
+    equals False on the last highest version and True on this version.
+    Otherwise does nothing.
+    """
+    last_highest = collection_version.collection.versions.filter(is_highest=True).first()
+    if not last_highest:
+        collection_version.is_highest = True
+        return None
+    if semver.compare(collection_version.version, last_highest.version) > 0:
+        last_highest.is_highest = False
+        collection_version.is_highest = True
+        last_highest.save()
+        collection_version.save()
