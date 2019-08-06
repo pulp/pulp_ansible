@@ -152,8 +152,6 @@ def import_collection(artifact_pk):
             collection, created = Collection.objects.get_or_create(
                 namespace=collection_info["namespace"], name=collection_info["name"]
             )
-            if created:
-                CreatedResource.objects.create(content_object=collection)
 
             tags = collection_info.pop("tags")
 

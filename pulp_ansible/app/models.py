@@ -2,6 +2,7 @@ from logging import getLogger
 
 from django.db import models
 from django.contrib.postgres import fields as psql_fields
+from django.contrib.postgres import search as psql_search
 
 from pulpcore.plugin.models import Content, Model, Remote, RepositoryVersionDistribution
 
@@ -56,7 +57,7 @@ class Tag(Model):
 
 class CollectionVersion(Content):
     """
-    A content type representing a Collection.
+    A content type representing a CollectionVersion.
 
     This model is primarily designed to adhere to the data format for Collection content. That spec
     is here: https://docs.ansible.com/ansible/devel/dev_guide/collections_galaxy_meta.html
@@ -87,6 +88,7 @@ class CollectionVersion(Content):
 
     TYPE = "collection_version"
 
+    # Data Fields
     authors = psql_fields.ArrayField(models.CharField(max_length=64), default=list, editable=False)
     contents = psql_fields.JSONField(default=list, editable=False)
     dependencies = psql_fields.JSONField(default=dict, editable=False)
@@ -101,10 +103,14 @@ class CollectionVersion(Content):
     repository = models.URLField(default="", blank=True, max_length=128, editable=False)
     version = models.CharField(max_length=32, editable=False)
 
+    # Foreign Key Fields
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, related_name="versions", editable=False
     )
     tags = models.ManyToManyField(Tag, editable=False)
+
+    # Search Fields
+    search_vector = psql_search.SearchVectorField(default="")
 
     @property
     def relative_path(self):
