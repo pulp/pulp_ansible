@@ -12,6 +12,7 @@ set -mveuo pipefail
 
 export POST_SCRIPT=$TRAVIS_BUILD_DIR/.travis/post_script.sh
 export POST_DOCS_TEST=$TRAVIS_BUILD_DIR/.travis/post_docs_test.sh
+export FUNC_TEST_SCRIPT=$TRAVIS_BUILD_DIR/.travis/func_test_script.sh
 
 # Needed for both starting the service and building the docs.
 # Gets set in .travis/settings.yml, but doesn't seem to inherited by
@@ -41,7 +42,7 @@ if [ "$TEST" = 'docs' ]; then
   make html
   cd ..
 
-  if [ -x $POST_DOCS_TEST ]; then
+  if [ -f $POST_DOCS_TEST ]; then
       $POST_DOCS_TEST
   fi
   exit
@@ -66,6 +67,30 @@ if [ "$TEST" = 'bindings' ]; then
   pip install ./pulp_ansible-client
 
   python $TRAVIS_BUILD_DIR/.travis/test_bindings.py
+
+  if [ ! -f $TRAVIS_BUILD_DIR/.travis/test_bindings.rb ]
+  then
+    exit
+  fi
+
+  rm -rf ./pulpcore-client
+
+  ./generate.sh pulpcore ruby
+  cd pulpcore-client
+  gem build pulpcore_client
+  gem install --both ./pulpcore_client-0.gem
+  cd ..
+
+  rm -rf ./pulp_ansible-client
+
+  ./generate.sh pulp_ansible ruby
+
+  cd pulp_ansible-client
+  gem build pulp_ansible_client
+  gem install --both ./pulp_ansible_client-0.gem
+  cd ..
+
+  ruby $TRAVIS_BUILD_DIR/.travis/test_bindings.rb
   exit
 fi
 
@@ -94,11 +119,13 @@ coverage run $(which django-admin) runserver 24817 --noreload >> ~/django_runser
 wait_for_pulp 20
 
 # Run functional tests
-pytest -v -r sx --color=yes --pyargs pulpcore.tests.functional || show_logs_and_return_non_zero
-pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional || show_logs_and_return_non_zero
+if [ -f $FUNC_TEST_SCRIPT ]; then
+    $FUNC_TEST_SCRIPT
+else
+    pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional || show_logs_and_return_non_zero
+fi
 
 
-
-if [ -x $POST_SCRIPT ]; then
+if [ -f $POST_SCRIPT ]; then
     $POST_SCRIPT
 fi
