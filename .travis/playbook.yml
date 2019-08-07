@@ -20,6 +20,7 @@
         source_dir: "$TRAVIS_BUILD_DIR"
     ansible_python_interpreter: '/opt/pyenv/shims/python3'
     pulp_user: 'travis'
+    pulp_group: 'travis'
     developer_user: 'travis'
     pulp_install_db: false
     pulp_preq_packages: []
