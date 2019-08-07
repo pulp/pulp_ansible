@@ -9,6 +9,7 @@ from pulp_ansible.app.galaxy.views import (
     RoleList,
     RoleVersionList,
 )
+from pulp_ansible.app.galaxy.v3 import views as views_v3
 
 from pulp_ansible.app.viewsets import CollectionUploadViewSet
 
@@ -30,9 +31,31 @@ v2_urls = [
     ),
 ]
 
+v3_urls = [
+    path(
+        "collections/", views_v3.CollectionViewSet.as_view({"get": "list"}), name="collections-list"
+    ),
+    path(
+        "collections/<str:namespace>/<str:name>/",
+        views_v3.CollectionViewSet.as_view({"get": "retrieve"}),
+        name="collections-detail",
+    ),
+    path(
+        "collections/<str:namespace>/<str:name>/versions/",
+        views_v3.CollectionVersionViewSet.as_view({"get": "list"}),
+        name="collection-versions-list",
+    ),
+    path(
+        "collections/<str:namespace>/<str:name>/versions/<str:version>/",
+        views_v3.CollectionVersionViewSet.as_view({"get": "retrieve"}),
+        name="collection-versions-detail",
+    ),
+]
+
 urlpatterns = [
     path("ansible/collections/", CollectionUploadViewSet.as_view({"post": "create"})),
     path(galaxy_api_prefix, GalaxyVersionView.as_view()),
     path(galaxy_api_prefix + "v1/", include(v1_urls)),
     path(galaxy_api_prefix + "v2/", include(v2_urls)),
+    path(galaxy_api_prefix + "v3/", include(v3_urls)),
 ]
