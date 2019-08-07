@@ -3,6 +3,7 @@ from logging import getLogger
 from django.db import models
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
+from django.db.models import UniqueConstraint, Q
 
 from pulpcore.plugin.models import Content, Model, Remote, RepositoryVersionDistribution
 
@@ -79,6 +80,8 @@ class CollectionVersion(Content):
         namespace (models.CharField): The namespace of the collection.
         repository (models.URLField): The URL of the originating SCM repository.
         version (models.CharField): The version of the collection.
+        is_highest (models.BooleanField): Indicates that the version is the highest one
+            in the collection.
 
     Relations:
 
@@ -103,6 +106,8 @@ class CollectionVersion(Content):
     repository = models.URLField(default="", blank=True, max_length=128, editable=False)
     version = models.CharField(max_length=32, editable=False)
 
+    is_highest = models.BooleanField(editable=False, default=False)
+
     # Foreign Key Fields
     collection = models.ForeignKey(
         Collection, on_delete=models.CASCADE, related_name="versions", editable=False
@@ -123,6 +128,13 @@ class CollectionVersion(Content):
 
     class Meta:
         unique_together = ("namespace", "name", "version")
+        constraints = [
+            UniqueConstraint(
+                fields=("collection", "is_highest"),
+                name="unique_is_highest",
+                condition=Q(is_highest=True),
+            )
+        ]
 
 
 class AnsibleRemote(Remote):
