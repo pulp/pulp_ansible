@@ -55,6 +55,10 @@ class Tag(Model):
 
     name = models.CharField(max_length=32, unique=True, editable=False)
 
+    def __str__(self):
+        """Returns tag name."""
+        return self.name
+
 
 class CollectionVersion(Content):
     """
