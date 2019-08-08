@@ -28,12 +28,12 @@ Reference (pulpcore): `Repository API Usage
 Create a CollectionRemote
 -------------------------
 
-Creating a CollectionRemote object allows Pulp to sync a whitelist of Collections from an external
+Creating a CollectionRemote object allows Pulp to sync Collections from an external
 content source. This is most commonly is ``https://galaxy.ansible.com/`` or another ``pulp_ansible``
 instance.
 
-In this example we will be syncing the ``testing.ansible_testing_content`` Collection from
-``https://galaxy-dev.ansible.com``.
+In this example we will be syncing the Collection with ``namespace=testing``  and ``name=ansible_testing_content``
+from ``https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing_content/``.
 
 .. literalinclude:: ../_scripts/remote-collection.sh
    :language: bash
@@ -53,8 +53,7 @@ Remote GET Response::
         "ssl_client_certificate": null,
         "ssl_client_key": null,
         "ssl_validation": true,
-        "url": "https://galaxy-dev.ansible.com",
-        "whitelist": "testing.ansible_testing_content"
+        "url": "https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing_content/",
     }
 
 .. todo::

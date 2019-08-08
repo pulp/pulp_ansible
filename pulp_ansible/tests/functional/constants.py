@@ -25,6 +25,8 @@ NAMESPACE_ELASTIC = "?namespace__name=elastic"
 
 NAMESPACE_PULP = "?namespace__name=pulp"
 
+NAMESPACE_TESTING = "?namespace__name=testing"
+
 ANSIBLE_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_URL, NAMESPACE_ANSIBLE)
 
 ANSIBLE_PULP_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_URL, NAMESPACE_PULP)
@@ -38,11 +40,13 @@ ANSIBLE_FIXTURE_COUNT = 5
 # FIXME: replace this with the location of one specific content unit of your choosing
 ANSIBLE_URL = urljoin(ANSIBLE_FIXTURE_URL, "")
 
-ANSIBLE_GALAXY_COLLECTION_URL = "https://galaxy-dev.ansible.com"
+ANSIBLE_GALAXY_COLLECTION_URL = "https://galaxy.ansible.com/api/v2/collections/"
+
+ANSIBLE_COLLECTION_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_COLLECTION_URL, NAMESPACE_TESTING)
 
 ANSIBLE_COLLECTION_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "ansible/collection/")
 
-COLLECTION_WHITELIST = "testing.ansible_testing_content"
+COLLECTION_WHITELIST = "testing.k8s_demo_collection"
 
 ANSIBLE_COLLECTION_CONTENT_NAME = "ansible.collection_version"
 
