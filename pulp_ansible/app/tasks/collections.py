@@ -7,6 +7,10 @@ import tarfile
 
 from django.db import transaction
 
+# TODO(awcrosby) rename in galaxy-importer to support this:
+# from galaxy_importer.importer import process_collection
+from galaxy_importer.collection import import_collection as process_collection
+
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -74,45 +78,44 @@ def import_collection(artifact_pk):
         artifact_pk (str): The pk or the Artifact to create the Collection from.
     """
     artifact = Artifact.objects.get(pk=artifact_pk)
-    with tarfile.open(str(artifact.file.path), "r") as tar:
-        log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.path))
-        file_obj = tar.extractfile("MANIFEST.json")
-        manifest_data = json.load(file_obj)
-        collection_info = manifest_data["collection_info"]
 
-        with transaction.atomic():
-            collection, created = Collection.objects.get_or_create(
-                namespace=collection_info["namespace"], name=collection_info["name"]
-            )
+    log.info("Processing collection from {path}".format(path=artifact.file.path))
+    importer_result = process_collection(str(artifact.file.path))
+    metadata = importer_result["metadata"]
 
-            tags = collection_info.pop("tags")
+    with transaction.atomic():
+        collection, created = Collection.objects.get_or_create(
+            namespace=metadata["namespace"], name=metadata["name"]
+        )
 
-            # Remove fields not used by this model
-            collection_info.pop("license_file")
-            collection_info.pop("readme")
+        tags = metadata.pop("tags")
 
-            # Mazer returns many None values. We need to let the defaults in models.py prevail
-            for key in ["description", "documentation", "homepage", "issues", "repository"]:
-                if collection_info[key] is None:
-                    collection_info.pop(key)
+        # Remove fields not used by this model
+        metadata.pop("license_file")
+        metadata.pop("readme")
 
-            collection_version = CollectionVersion(collection=collection, **collection_info)
-            collection_version.save()
+        # Mazer returns many None values. We need to let the defaults in models.py prevail
+        for key in ["description", "documentation", "homepage", "issues", "repository"]:
+            if metadata[key] is None:
+                metadata.pop(key)
 
-            for name in tags:
-                tag, created = Tag.objects.get_or_create(name=name)
-                collection_version.tags.add(tag)
+        collection_version = CollectionVersion(collection=collection, **metadata)
+        collection_version.save()
 
-            _update_highest_version(collection_version)
+        for name in tags:
+            tag, created = Tag.objects.get_or_create(name=name)
+            collection_version.tags.add(tag)
 
-            collection_version.save()  # Save the FK updates
+        _update_highest_version(collection_version)
 
-            ContentArtifact.objects.create(
-                artifact=artifact,
-                content=collection_version,
-                relative_path=collection_version.relative_path,
-            )
-            CreatedResource.objects.create(content_object=collection_version)
+        collection_version.save()  # Save the FK updates
+
+        ContentArtifact.objects.create(
+            artifact=artifact,
+            content=collection_version,
+            relative_path=collection_version.relative_path,
+        )
+        CreatedResource.objects.create(content_object=collection_version)
 
 
 def _update_highest_version(collection_version):
