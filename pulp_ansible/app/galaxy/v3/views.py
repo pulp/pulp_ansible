@@ -4,7 +4,7 @@ from django.shortcuts import get_object_or_404
 from rest_framework import viewsets
 from rest_framework import mixins
 
-from pulpcore.app.models import RepositoryVersion, ContentArtifact
+from pulpcore.app.models import Content, ContentArtifact, RepositoryVersion
 from rest_framework.response import Response
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
@@ -29,7 +29,11 @@ class AnsibleDistributionMixin:
         if distro.repository_version:
             return distro.repository_version.content
         else:
-            return RepositoryVersion.latest(distro.repository).content
+            repo_version = RepositoryVersion.latest(distro.repository)
+            if repo_version is None:
+                return Content.objects.none()
+            else:
+                return repo_version.content
 
     def get_serializer_context(self):
         """Inserts distribution path to a serializer context."""
