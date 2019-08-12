@@ -1,1 +1,0 @@
-Fixes exception when generating initial full text search index on more than one collection.
