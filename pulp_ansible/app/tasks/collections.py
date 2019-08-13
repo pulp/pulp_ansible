@@ -1,11 +1,11 @@
 import asyncio
 from gettext import gettext as _
-import json
 import logging
 import math
-import tarfile
 
 from django.db import transaction
+
+from galaxy_importer.collection import import_collection as process_collection
 
 from pulpcore.plugin.models import (
     Artifact,
@@ -74,45 +74,43 @@ def import_collection(artifact_pk):
         artifact_pk (str): The pk or the Artifact to create the Collection from.
     """
     artifact = Artifact.objects.get(pk=artifact_pk)
-    with tarfile.open(str(artifact.file.path), "r") as tar:
-        log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.path))
-        file_obj = tar.extractfile("MANIFEST.json")
-        manifest_data = json.load(file_obj)
-        collection_info = manifest_data["collection_info"]
+    log.info("Processing collection from {path}".format(path=artifact.file.path))
+    importer_result = process_collection(str(artifact.file.path))
+    collection_info = importer_result["metadata"]
 
-        with transaction.atomic():
-            collection, created = Collection.objects.get_or_create(
-                namespace=collection_info["namespace"], name=collection_info["name"]
-            )
+    with transaction.atomic():
+        collection, created = Collection.objects.get_or_create(
+            namespace=collection_info["namespace"], name=collection_info["name"]
+        )
 
-            tags = collection_info.pop("tags")
+        tags = collection_info.pop("tags")
 
-            # Remove fields not used by this model
-            collection_info.pop("license_file")
-            collection_info.pop("readme")
+        # Remove fields not used by this model
+        collection_info.pop("license_file")
+        collection_info.pop("readme")
 
-            # Mazer returns many None values. We need to let the defaults in models.py prevail
-            for key in ["description", "documentation", "homepage", "issues", "repository"]:
-                if collection_info[key] is None:
-                    collection_info.pop(key)
+        # Mazer returns many None values. We need to let the defaults in models.py prevail
+        for key in ["description", "documentation", "homepage", "issues", "repository"]:
+            if collection_info[key] is None:
+                collection_info.pop(key)
 
-            collection_version = CollectionVersion(collection=collection, **collection_info)
-            collection_version.save()
+        collection_version = CollectionVersion(collection=collection, **collection_info)
+        collection_version.save()
 
-            for name in tags:
-                tag, created = Tag.objects.get_or_create(name=name)
-                collection_version.tags.add(tag)
+        for name in tags:
+            tag, created = Tag.objects.get_or_create(name=name)
+            collection_version.tags.add(tag)
 
-            _update_highest_version(collection_version)
+        _update_highest_version(collection_version)
 
-            collection_version.save()  # Save the FK updates
+        collection_version.save()  # Save the FK updates
 
-            ContentArtifact.objects.create(
-                artifact=artifact,
-                content=collection_version,
-                relative_path=collection_version.relative_path,
-            )
-            CreatedResource.objects.create(content_object=collection_version)
+        ContentArtifact.objects.create(
+            artifact=artifact,
+            content=collection_version,
+            relative_path=collection_version.relative_path,
+        )
+        CreatedResource.objects.create(content_object=collection_version)
 
 
 def _update_highest_version(collection_version):
@@ -328,28 +326,26 @@ class CollectionContentSaver(ContentSaver):
             collection_version = d_content.content
             for d_artifact in d_content.d_artifacts:
                 artifact = d_artifact.artifact
-                with tarfile.open(str(artifact.file.path), "r") as tar:
-                    log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.path))
-                    file_obj = tar.extractfile("MANIFEST.json")
-                    manifest_data = json.load(file_obj)
-                    info = manifest_data["collection_info"]
+                log.info("Processing collection from {path}".format(path=artifact.file.path))
+                importer_result = process_collection(str(artifact.file.path))
+                info = importer_result["metadata"]
 
-                    # Create the tags
-                    tags = info.pop("tags")
-                    for name in tags:
-                        tag, created = Tag.objects.get_or_create(name=name)
-                        collection_version.tags.add(tag)
+                # Create the tags
+                tags = info.pop("tags")
+                for name in tags:
+                    tag, created = Tag.objects.get_or_create(name=name)
+                    collection_version.tags.add(tag)
 
-                    # Remove fields not used by this model
-                    info.pop("license_file")
-                    info.pop("readme")
+                # Remove fields not used by this model
+                info.pop("license_file")
+                info.pop("readme")
 
-                    # Update with the additional data from the Collection
-                    for attr_name, attr_value in info.items():
-                        if attr_value is None:
-                            continue
-                        setattr(collection_version, attr_name, attr_value)
+                # Update with the additional data from the Collection
+                for attr_name, attr_value in info.items():
+                    if attr_value is None:
+                        continue
+                    setattr(collection_version, attr_name, attr_value)
 
-                    _update_highest_version(collection_version)
+                _update_highest_version(collection_version)
 
-                    collection_version.save()
+                collection_version.save()
