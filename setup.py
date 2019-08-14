@@ -2,7 +2,7 @@
 
 from setuptools import setup, find_packages
 
-requirements = ["galaxy_importer==0.1.0", "mazer", "packaging", "pulpcore-plugin~=0.1rc3"]
+requirements = ["galaxy_importer==0.1.0", "mazer", "packaging", "pulpcore-plugin~=0.1rc3", "PyYAML"]
 
 with open("README.rst") as f:
     long_description = f.read()

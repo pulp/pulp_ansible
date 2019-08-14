@@ -32,7 +32,12 @@ from pulpcore.plugin.stages import (
 import semantic_version as semver
 
 from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVersion, Tag
-from pulp_ansible.app.tasks.utils import get_page_url, parse_metadata, filter_namespace
+from pulp_ansible.app.tasks.utils import (
+    get_page_url,
+    parse_metadata,
+    filter_namespace,
+    parse_collections_requirements_file,
+)
 
 
 log = logging.getLogger(__name__)
@@ -183,6 +188,7 @@ class CollectionSyncFirstStage(Stage):
         """
         super().__init__()
         self.remote = remote
+        self.collection_info = parse_collections_requirements_file(remote.requirements_file)
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -252,15 +258,27 @@ class CollectionSyncFirstStage(Stage):
             async generator: dicts that represent pages from galaxy api
 
         """
-        page_count = 0
+        page_count = 1
         remote = self.remote
+        collection_info = self.collection_info
+
+        def _get_url(page):
+            if collection_info:
+                name, version, source = collection_info[page - 1]
+                namespace, name = name.split(".")
+                root = source or remote.url
+                url = f"{root}/api/v2/collections/{namespace}/{name}"
+                return url
+
+            return get_page_url(remote.url, page)
 
         with ProgressBar(message="Parsing Pages from Galaxy Collections API") as progress_bar:
-            downloader = remote.get_downloader(url=get_page_url(remote.url))
+            url = _get_url(page_count)
+            downloader = remote.get_downloader(url=url)
             metadata = parse_metadata(await downloader.run())
-            metadata = filter_namespace(metadata, remote.url)
+            metadata = filter_namespace(metadata, url)
 
-            count = metadata.get("count", 1)
+            count = len(self.collection_info) or metadata.get("count", 1)
             page_count = math.ceil(float(count) / float(PAGE_SIZE))
             progress_bar.total = page_count
             progress_bar.save()
@@ -270,14 +288,15 @@ class CollectionSyncFirstStage(Stage):
 
             # Concurrent downloads are limited by aiohttp...
             not_done = set(
-                remote.get_downloader(url=get_page_url(remote.url, page)).run()
-                for page in range(2, page_count + 1)
+                remote.get_downloader(url=_get_url(page)).run() for page in range(2, page_count + 1)
             )
+
+            filtering = not collection_info
 
             while not_done:
                 done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
                 for item in done:
-                    yield filter_namespace(parse_metadata(item.result()), remote.url)
+                    yield filter_namespace(parse_metadata(item.result()), remote.url, filtering)
                     progress_bar.increment()
 
 

@@ -65,3 +65,11 @@ https://galaxy.ansible.com/api/v2/collections/testing/k8s_demo_collection/versio
 ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL = urljoin(
     GALAXY_ANSIBLE_BASE_URL, "download/testing-k8s_demo_collection-0.0.3.tar.gz"
 )
+ANSIBLE_COLLECTION_REQUIREMENT = """
+---
+collections:
+- name: testing.ansible_testing_content
+  version: ">=1.0.0,<=2.0.0"
+  source: https://galaxy-dev.ansible.com
+- testing.k8s_demo_collection
+"""

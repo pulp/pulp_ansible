@@ -21,6 +21,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
+    ANSIBLE_COLLECTION_REQUIREMENT,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -93,7 +94,7 @@ class SyncTestCase(unittest.TestCase):
         self.assertEqual(latest_repo_version, number_of_syncs, repo)
 
     def test_mirror_sync(self):
-        """Sync multiple plugin into the same repo with mirror as `True`.
+        """Sync multiple remotes into the same repo with mirror as `True`.
 
         This test targets the following issue: 5167
 
@@ -137,3 +138,75 @@ class SyncTestCase(unittest.TestCase):
         # Step 5
         self.assertDictEqual(get_content_summary(repo), ANSIBLE_COLLECTION_FIXTURE_SUMMARY)
         self.assertDictEqual(get_removed_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
+
+    def test_mirror_sync_with_requirements(self):
+        """
+        Sync multiple remotes into the same repo with mirror as `True` using requirements.
+
+        This test targets the following issue: 5250
+
+        * `<https://pulp.plan.io/issues/5250>`_
+
+        This test does the following:
+
+        1. Create a repo.
+        2. Create two remotes
+            a. Role remote
+            b. Collection remote
+        3. Sync the repo with Role remote.
+        4. Sync the repo with Collection remote with ``Mirror=True``.
+        5. Verify whether the content in the latest version of the repo
+            has only Collection content and Role content is deleted.
+        """
+        # Step 1
+        repo = self.client.post(REPO_PATH, gen_repo())
+        self.addCleanup(self.client.delete, repo["_href"])
+
+        # Step 2
+        role_remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote())
+        self.addCleanup(self.client.delete, role_remote["_href"])
+
+        collection_remote = self.client.post(
+            ANSIBLE_COLLECTION_REMOTE_PATH,
+            gen_ansible_remote(
+                url=ANSIBLE_COLLECTION_FIXTURE_URL, requirements_file=ANSIBLE_COLLECTION_REQUIREMENT
+            ),
+        )
+
+        self.addCleanup(self.client.delete, collection_remote["_href"])
+
+        # Step 3
+        sync(self.cfg, role_remote, repo)
+        repo = self.client.get(repo["_href"])
+        self.assertIsNotNone(repo["_latest_version_href"], repo)
+        self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
+
+        # Step 4
+        sync(self.cfg, collection_remote, repo, mirror=True)
+        repo = self.client.get(repo["_href"])
+        expected = ANSIBLE_COLLECTION_FIXTURE_SUMMARY
+        expected["ansible.collection_version"] = 2
+        self.assertDictEqual(get_added_content_summary(repo), expected)
+
+        # Step 5
+        self.assertDictEqual(get_content_summary(repo), ANSIBLE_COLLECTION_FIXTURE_SUMMARY)
+        self.assertDictEqual(get_removed_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
+
+    def test_mirror_sync_with_invalid_requirements(self):
+        """
+        Sync multiple remotes into the same repo with mirror as `True` with invalid requirement.
+
+        This test targets the following issue: 5250
+
+        * `<https://pulp.plan.io/issues/5250>`_
+
+        This test does the following:
+
+        Try to create a Collection remote with invalid requirement
+        """
+        collection_remote = self.client.using_handler(api.echo_handler).post(
+            ANSIBLE_COLLECTION_REMOTE_PATH,
+            gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL, requirements_file="INVALID"),
+        )
+
+        self.assertEqual(collection_remote.status_code, 400, collection_remote)
