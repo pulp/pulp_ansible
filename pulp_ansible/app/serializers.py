@@ -19,6 +19,7 @@ from .models import (
     Role,
     Tag,
 )
+from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -75,9 +76,18 @@ class CollectionRemoteSerializer(RemoteSerializer):
     A serializer for Collection Remotes.
     """
 
+    requirements_file = serializers.CharField(
+        help_text=_("The string version of Collection requirements yaml."),
+        required=False,
+        allow_null=True,
+    )
+
     def validate(self, data):
         """
-        Validate a a url to ensure it does not end with slashes.
+        Validate collection remote data.
+
+            - url: to ensure it does not end with slashes.
+            - requirements_file: to ensure it is a valid yaml file.
 
         Args:
             data (dict): User data to validate
@@ -86,10 +96,13 @@ class CollectionRemoteSerializer(RemoteSerializer):
             dict: Validated data
 
         Raises:
-            rest_framework.serializers.ValidationError: If the url is invalid
+            rest_framework.serializers.ValidationError: If the url or requirements_file is invalid
 
         """
         data = super().validate(data)
+
+        if data.get("requirements_file"):
+            parse_collections_requirements_file(data["requirements_file"])
 
         if data["url"].endswith("/"):
             raise serializers.ValidationError(_("url should not end with '/'"))
@@ -97,7 +110,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
         return data
 
     class Meta:
-        fields = RemoteSerializer.Meta.fields
+        fields = RemoteSerializer.Meta.fields + ("requirements_file",)
         model = CollectionRemote
 
 

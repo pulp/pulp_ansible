@@ -159,6 +159,8 @@ class CollectionRemote(Remote):
 
     TYPE = "collection"
 
+    requirements_file = models.TextField(null=True, max_length=255)
+
 
 class AnsibleDistribution(RepositoryVersionDistribution):
     """
