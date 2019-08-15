@@ -50,6 +50,13 @@ v3_urls = [
         views_v3.CollectionVersionViewSet.as_view({"get": "retrieve"}),
         name="collection-versions-detail",
     ),
+    path(
+        "collections/<str:namespace>/<str:name>/versions/<str:version>/certified/",
+        views_v3.CollectionVersionViewSet.as_view(
+            {"put": "set_certified", "delete": "set_certified"}
+        ),
+        name="collection-versions-detail",
+    ),
 ]
 
 urlpatterns = [
