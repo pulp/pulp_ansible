@@ -21,30 +21,6 @@ def parse_metadata(download_result):
         return json.load(fd)
 
 
-def filter_namespace(metadata, url, filtering=True):
-    """
-    Filter namespace.
-
-    filtering namespace for speeding up the tests, while issue:
-    https://github.com/ansible/galaxy/issues/1974
-    is not addressed
-    """
-    parsed_url = urlparse(url)
-    new_query = parse_qs(parsed_url.query)
-
-    namespace = new_query.get("namespace__name")
-
-    if filtering and namespace and metadata.get("results"):
-        results = []
-        for result in metadata["results"]:
-            if [result["namespace"]["name"]] == namespace:
-                results.append(result)
-
-        metadata["results"] = results
-
-    return metadata
-
-
 def parse_collections_requirements_file(requirements_file_string):
     """
     Parses an Ansible requirement.yml file and returns all the collections defined in it.
