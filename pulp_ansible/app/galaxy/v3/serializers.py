@@ -64,7 +64,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
     updated_at = serializers.DateTimeField(source="collection._last_updated")
 
     class Meta:
-        fields = ("version", "href", "created_at", "updated_at")
+        fields = ("version", "is_certified", "href", "created_at", "updated_at")
         model = models.CollectionVersion
 
     def get_href(self, obj):
@@ -134,6 +134,7 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
             "namespace",
             "repository",
             "tags",
+            "is_certified",
         )
 
     def get_artifact(self, obj):

@@ -86,6 +86,8 @@ class CollectionVersion(Content):
         version (models.CharField): The version of the collection.
         is_highest (models.BooleanField): Indicates that the version is the highest one
             in the collection.
+        is_certified (models.BooleanField): Indicates that the version was approved as
+            certified version.
 
     Relations:
 
@@ -111,6 +113,7 @@ class CollectionVersion(Content):
     version = models.CharField(max_length=32, editable=False)
 
     is_highest = models.BooleanField(editable=False, default=False)
+    is_certified = models.BooleanField(default=False)
 
     # Foreign Key Fields
     collection = models.ForeignKey(

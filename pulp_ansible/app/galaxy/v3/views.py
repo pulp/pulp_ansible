@@ -1,11 +1,12 @@
 import semantic_version
 
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from rest_framework.decorators import action
 from rest_framework import mixins
+from rest_framework.response import Response
+from rest_framework import viewsets
 
 from pulpcore.app.models import Content, ContentArtifact, RepositoryVersion
-from rest_framework.response import Response
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
@@ -135,3 +136,13 @@ class CollectionVersionViewSet(
         serializer = CollectionVersionSerializer(instance, context=context)
 
         return Response(serializer.data)
+
+    @action(methods=["PUT", "DELETE"], detail=True, url_path="certified")
+    def set_certified(self, request, *args, **kwargs):
+        """
+        Set collection version certified status.
+        """
+        obj = self.get_object()
+        obj.is_certified = request.method == "PUT"
+        obj.save()
+        return Response({})
