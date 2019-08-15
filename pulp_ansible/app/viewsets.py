@@ -76,6 +76,7 @@ class CollectionVersionFilter(ContentFilter):
 
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
+    is_highest = filters.BooleanFilter(field_name="is_highest")
     q = filters.CharFilter(field_name="q", method="filter_by_q")
 
     def filter_by_q(self, queryset, name, value):
@@ -104,7 +105,7 @@ class CollectionVersionFilter(ContentFilter):
 
     class Meta:
         model = CollectionVersion
-        fields = ["namespace", "name", "version"]
+        fields = ["namespace", "name", "version", "q", "is_highest"]
 
 
 class CollectionVersionViewSet(ContentViewSet):
