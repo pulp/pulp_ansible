@@ -27,6 +27,7 @@ Table of Contents
    workflows/index
    restapi
    bindings
+   settings
    contributing
    changes
 
