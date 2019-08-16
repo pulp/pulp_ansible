@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.urls import include, path
 
 from pulp_ansible.app.galaxy.views import (
@@ -14,7 +15,8 @@ from pulp_ansible.app.galaxy.v3 import views as views_v3
 from pulp_ansible.app.viewsets import CollectionUploadViewSet
 
 
-galaxy_api_prefix = "pulp_ansible/galaxy/<path:path>/api/"
+GALAXY_API_ROOT = getattr(settings, "GALAXY_API_ROOT", "pulp_ansible/galaxy/<path:path>/api/")
+
 
 v1_urls = [
     path("roles/", RoleList.as_view()),
@@ -61,8 +63,8 @@ v3_urls = [
 
 urlpatterns = [
     path("ansible/collections/", CollectionUploadViewSet.as_view({"post": "create"})),
-    path(galaxy_api_prefix, GalaxyVersionView.as_view()),
-    path(galaxy_api_prefix + "v1/", include(v1_urls)),
-    path(galaxy_api_prefix + "v2/", include(v2_urls)),
-    path(galaxy_api_prefix + "v3/", include(v3_urls)),
+    path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
+    path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
+    path(GALAXY_API_ROOT + "v2/", include(v2_urls)),
+    path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
 ]
