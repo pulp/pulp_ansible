@@ -35,7 +35,6 @@ from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVers
 from pulp_ansible.app.tasks.utils import (
     get_page_url,
     parse_metadata,
-    filter_namespace,
     parse_collections_requirements_file,
 )
 
@@ -200,62 +199,39 @@ class CollectionSyncFirstStage(Stage):
         with ProgressBar(message="Parsing Collection Metadata") as pb:
             async for metadata in self._fetch_collections():
 
-                for version in metadata["versions"]:
+                url = metadata["download_url"]
 
-                    downloader = self.remote.get_downloader(url=version["href"])
-                    response = parse_metadata(await downloader.run())
+                collection_version = CollectionVersion(
+                    namespace=metadata["namespace"]["name"],
+                    name=metadata["collection"]["name"],
+                    version=metadata["version"],
+                )
 
-                    url = response["download_url"]
+                relative_path = "%s.%s.%s" % (
+                    metadata["namespace"]["name"],
+                    metadata["collection"]["name"],
+                    metadata["version"],
+                )
 
-                    collection_version = CollectionVersion(
-                        namespace=metadata["namespace"],
-                        name=metadata["name"],
-                        version=version["version"],
-                    )
+                artifact = metadata["artifact"]
 
-                    relative_path = "%s.%s.%s" % (
-                        metadata["namespace"],
-                        metadata["name"],
-                        version["version"],
-                    )
-
-                    artifact = response["artifact"]
-
-                    d_artifact = DeclarativeArtifact(
-                        artifact=Artifact(sha256=artifact["sha256"], size=artifact["size"]),
-                        url=url,
-                        relative_path=relative_path,
-                        remote=self.remote,
-                        deferred_download=self.deferred_download,
-                    )
-                    d_content = DeclarativeContent(
-                        content=collection_version, d_artifacts=[d_artifact]
-                    )
-                    pb.increment()
-                    await self.put(d_content)
+                d_artifact = DeclarativeArtifact(
+                    artifact=Artifact(sha256=artifact["sha256"], size=artifact["size"]),
+                    url=url,
+                    relative_path=relative_path,
+                    remote=self.remote,
+                    deferred_download=self.deferred_download,
+                )
+                d_content = DeclarativeContent(content=collection_version, d_artifacts=[d_artifact])
+                pb.increment()
+                await self.put(d_content)
 
     async def _fetch_collections(self):
-        async for metadata in self._fetch_galaxy_pages():
-
-            for result in metadata.get("results", [metadata]):
-
-                downloader = self.remote.get_downloader(url=result["versions_url"])
-                response = parse_metadata(await downloader.run())
-
-                collection = {
-                    "href": result["href"],
-                    "name": result["name"],
-                    "namespace": result["namespace"]["name"],
-                    "versions": response["results"],
-                }
-                yield collection
-
-    async def _fetch_galaxy_pages(self):
         """
         Fetch the collections in a remote repository.
 
         Returns:
-            async generator: dicts that represent pages from galaxy api
+            async generator: dicts that represent collections from galaxy api
 
         """
         page_count = 1
@@ -272,32 +248,40 @@ class CollectionSyncFirstStage(Stage):
 
             return get_page_url(remote.url, page)
 
-        with ProgressBar(message="Parsing Pages from Galaxy Collections API") as progress_bar:
+        with ProgressBar(message="Parsing Galaxy Collections API") as progress_bar:
             url = _get_url(page_count)
             downloader = remote.get_downloader(url=url)
-            metadata = parse_metadata(await downloader.run())
-            metadata = filter_namespace(metadata, url)
+            initial_data = parse_metadata(await downloader.run())
 
-            count = len(self.collection_info) or metadata.get("count", 1)
+            count = len(self.collection_info) or initial_data.get("count", 1)
             page_count = math.ceil(float(count) / float(PAGE_SIZE))
-            progress_bar.total = page_count
+            progress_bar.total = count
             progress_bar.save()
 
-            yield metadata
-            progress_bar.increment()
-
             # Concurrent downloads are limited by aiohttp...
-            not_done = set(
-                remote.get_downloader(url=_get_url(page)).run() for page in range(2, page_count + 1)
-            )
-
-            filtering = not collection_info
+            not_done = set()
+            for page in range(1, page_count + 1):
+                downloader = remote.get_downloader(url=_get_url(page))
+                not_done.add(downloader.run())
 
             while not_done:
                 done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
                 for item in done:
-                    yield filter_namespace(parse_metadata(item.result()), remote.url, filtering)
-                    progress_bar.increment()
+                    data = parse_metadata(item.result())
+                    for result in data.get("results", [data]):
+                        download_url = result.get("download_url")
+
+                        if result.get("versions_url"):
+                            not_done.update(
+                                [remote.get_downloader(url=result["versions_url"]).run()]
+                            )
+
+                        if result.get("version") and not download_url:
+                            not_done.update([remote.get_downloader(url=result["href"]).run()])
+
+                        if download_url:
+                            yield data
+                            progress_bar.increment()
 
 
 class CollectionContentSaver(ContentSaver):

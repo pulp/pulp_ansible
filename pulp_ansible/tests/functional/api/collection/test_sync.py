@@ -16,8 +16,10 @@ from pulp_smash.pulp3.utils import (
 
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_COLLECTION_FIXTURE_SUMMARY,
+    ANSIBLE_COLLECTION_FIXTURE_COUNT,
+    ANSIBLE_COLLECTION_CONTENT_NAME,
     ANSIBLE_COLLECTION_REMOTE_PATH,
+    ANSIBLE_COLLECTION_TESTING_URL,
     ANSIBLE_COLLECTION_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
@@ -53,7 +55,7 @@ class SyncTestCase(unittest.TestCase):
         repo = self.client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL)
+        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["_href"])
 
@@ -80,7 +82,7 @@ class SyncTestCase(unittest.TestCase):
         repo = self.client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL)
+        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["_href"])
 
@@ -133,10 +135,16 @@ class SyncTestCase(unittest.TestCase):
         # Step 4
         sync(self.cfg, collection_remote, repo, mirror=True)
         repo = self.client.get(repo["_href"])
-        self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_COLLECTION_FIXTURE_SUMMARY)
+        added_content_summary = get_added_content_summary(repo)
+        self.assertGreaterEqual(
+            added_content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
+        )
 
         # Step 5
-        self.assertDictEqual(get_content_summary(repo), ANSIBLE_COLLECTION_FIXTURE_SUMMARY)
+        content_summary = get_content_summary(repo)
+        self.assertGreaterEqual(
+            content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
+        )
         self.assertDictEqual(get_removed_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
     def test_mirror_sync_with_requirements(self):
@@ -169,7 +177,7 @@ class SyncTestCase(unittest.TestCase):
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
             gen_ansible_remote(
-                url=ANSIBLE_COLLECTION_FIXTURE_URL, requirements_file=ANSIBLE_COLLECTION_REQUIREMENT
+                url=ANSIBLE_COLLECTION_TESTING_URL, requirements_file=ANSIBLE_COLLECTION_REQUIREMENT
             ),
         )
 
@@ -184,12 +192,16 @@ class SyncTestCase(unittest.TestCase):
         # Step 4
         sync(self.cfg, collection_remote, repo, mirror=True)
         repo = self.client.get(repo["_href"])
-        expected = ANSIBLE_COLLECTION_FIXTURE_SUMMARY
-        expected["ansible.collection_version"] = 2
-        self.assertDictEqual(get_added_content_summary(repo), expected)
+        added_content_summary = get_added_content_summary(repo)
+        self.assertGreaterEqual(
+            added_content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
+        )
 
         # Step 5
-        self.assertDictEqual(get_content_summary(repo), ANSIBLE_COLLECTION_FIXTURE_SUMMARY)
+        content_summary = get_content_summary(repo)
+        self.assertGreaterEqual(
+            content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
+        )
         self.assertDictEqual(get_removed_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
     def test_mirror_sync_with_invalid_requirements(self):
