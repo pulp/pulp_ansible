@@ -194,9 +194,11 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         child=serializers.CharField(max_length=64),
     )
 
-    contents = serializers.JSONField(help_text=_("A JSON field with data about the contents."))
+    contents = serializers.ListField(
+        child=serializers.DictField(), help_text=_("A JSON field with data about the contents.")
+    )
 
-    dependencies = serializers.JSONField(
+    dependencies = serializers.DictField(
         help_text=_(
             "A dict declaring Collections that this collection requires to be installed for it to "
             "be usable."
@@ -207,7 +209,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         help_text=_("A short summary description of the collection."), allow_blank=True
     )
 
-    docs_blob = serializers.JSONField(
+    docs_blob = serializers.DictField(
         help_text=_("A JSON field holding the various documentation blobs in the collection.")
     )
 
