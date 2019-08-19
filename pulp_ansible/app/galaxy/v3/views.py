@@ -1,12 +1,19 @@
+from gettext import gettext as _
 import semantic_version
 
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
-from rest_framework import mixins
+from rest_framework import mixins, serializers
 from rest_framework.response import Response
 from rest_framework import viewsets
 
-from pulpcore.app.models import Content, ContentArtifact, RepositoryVersion
+from pulpcore.plugin.exceptions import DigestValidationError
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact, RepositoryVersion
+from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
+from pulpcore.plugin.tasking import enqueue_with_reservation
+from pulpcore.plugin.viewsets import OperationPostponedResponse
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -16,6 +23,8 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionImportSerializer,
 )
 from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
+from pulp_ansible.app.serializers import CollectionOneShotSerializer
+from pulp_ansible.app.tasks.collections import import_collection
 
 
 class AnsibleDistributionMixin:
@@ -78,6 +87,53 @@ class CollectionViewSet(
         return get_object_or_404(
             queryset, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
         )
+
+
+class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
+    """
+    ViewSet for Collection Uploads.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = CollectionSerializer
+
+    @swagger_auto_schema(
+        operation_description="Create an artifact and trigger an asynchronous task to create "
+        "Collection content from it.",
+        operation_summary="Upload a collection",
+        request_body=CollectionOneShotSerializer,
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    def create(self, request, path=None):
+        """
+        Dispatch a Collection creation task.
+        """
+        serializer = CollectionOneShotSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        expected_digests = {}
+        if serializer.validated_data["sha256"]:
+            expected_digests["sha256"] = serializer.validated_data["sha256"]
+        try:
+            artifact = Artifact.init_and_validate(
+                serializer.validated_data["file"], expected_digests=expected_digests
+            )
+        except DigestValidationError:
+            raise serializers.ValidationError(
+                _("The provided sha256 value does not match the sha256 of the uploaded file.")
+            )
+
+        try:
+            artifact.save()
+        except IntegrityError:
+            raise serializers.ValidationError(_("Artifact already exists."))
+
+        async_result = enqueue_with_reservation(
+            import_collection, [str(artifact.pk)], kwargs={"artifact_pk": artifact.pk}
+        )
+
+        return OperationPostponedResponse(async_result, request)
 
 
 class CollectionVersionViewSet(

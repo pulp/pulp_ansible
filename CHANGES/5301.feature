@@ -1,1 +1,1 @@
-Add collection imports endpoins.
+Add collection imports endpoints.
