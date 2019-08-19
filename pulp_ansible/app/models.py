@@ -5,6 +5,8 @@ from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
 from django.db.models import UniqueConstraint, Q
 
+# NOTE(cutwater): Module pulpcore.plugin.models doesn't provide Task model
+from pulpcore.app.models import Task
 from pulpcore.plugin.models import Content, Model, Remote, RepositoryVersionDistribution
 
 
@@ -43,6 +45,18 @@ class Collection(Model):
 
     class Meta:
         unique_together = ("namespace", "name")
+
+
+class CollectionImport(Model):
+    """A model representing a collection import task details."""
+
+    namespace = models.CharField(max_length=64, editable=False)
+    name = models.CharField(max_length=64, editable=False)
+    version = models.CharField(max_length=32, editable=False)
+
+    task = models.OneToOneField(Task, on_delete=models.CASCADE, editable=False, related_name="+")
+
+    messages = psql_fields.JSONField(default=list, editable=False)
 
 
 class Tag(Model):
