@@ -32,6 +32,7 @@ class Role(Content):
         return self.contentartifact_set.get().relative_path
 
     class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("version", "name", "namespace")
 
 
@@ -148,6 +149,7 @@ class CollectionVersion(Content):
         )
 
     class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("namespace", "name", "version")
         constraints = [
             UniqueConstraint(
@@ -165,6 +167,9 @@ class AnsibleRemote(Remote):
 
     TYPE = "ansible"
 
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
 
 class CollectionRemote(Remote):
     """
@@ -175,6 +180,9 @@ class CollectionRemote(Remote):
 
     requirements_file = models.TextField(null=True, max_length=255)
 
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
 
 class AnsibleDistribution(RepositoryVersionDistribution):
     """
@@ -182,3 +190,6 @@ class AnsibleDistribution(RepositoryVersionDistribution):
     """
 
     TYPE = "ansible"
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
