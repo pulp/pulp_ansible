@@ -57,6 +57,11 @@ v3_urls = [
         ),
         name="collection-versions-detail",
     ),
+    path(
+        "imports/collections/<uuid:pk>/",
+        views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
+        name="collection-imports-detail",
+    ),
 ]
 
 urlpatterns = [

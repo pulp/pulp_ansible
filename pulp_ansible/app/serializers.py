@@ -3,6 +3,7 @@ from gettext import gettext as _
 from django.conf import settings
 from rest_framework import serializers
 
+from pulpcore.app.serializers import TaskSerializer
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     ModelSerializer,
@@ -14,6 +15,7 @@ from pulpcore.plugin.serializers import (
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
+    CollectionImport,
     CollectionVersion,
     CollectionRemote,
     Role,
@@ -266,3 +268,18 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
             )
         )
         model = CollectionVersion
+
+
+class CollectionImportSerializer(serializers.ModelSerializer):
+    """
+    A serializer for a CollectionImport list view.
+    """
+
+    id = serializers.UUIDField(source="pk")
+    task = TaskSerializer()
+    messages = serializers.JSONField()
+
+    class Meta:
+        ref_name = "CollectionImportSerializer"
+        model = CollectionImport
+        fields = ("id", "namespace", "name", "version", "task", "messages")
