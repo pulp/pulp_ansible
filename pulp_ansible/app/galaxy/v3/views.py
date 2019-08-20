@@ -9,7 +9,6 @@ from rest_framework import viewsets
 from pulpcore.app.models import Content, ContentArtifact, RepositoryVersion
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
-from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
@@ -57,7 +56,6 @@ class CollectionViewSet(
 
     authentication_classes = []
     permission_classes = []
-    pagination_class = LimitOffsetPagination
     serializer_class = CollectionSerializer
 
     def get_queryset(self):
@@ -91,7 +89,6 @@ class CollectionVersionViewSet(
 
     authentication_classes = []
     permission_classes = []
-    pagination_class = LimitOffsetPagination
 
     lookup_field = "version"
 
