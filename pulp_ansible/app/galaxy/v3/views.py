@@ -14,8 +14,9 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionListSerializer,
+    CollectionImportSerializer,
 )
-from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion
+from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
 
 
 class AnsibleDistributionMixin:
@@ -146,3 +147,14 @@ class CollectionVersionViewSet(
         obj.is_certified = request.method == "PUT"
         obj.save()
         return Response({})
+
+
+class CollectionImportViewSet(
+    ExceptionHandlerMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+):
+    """
+    ViewSet for CollectionImports.
+    """
+
+    queryset = CollectionImport.objects.prefetch_related("task").all()
+    serializer_class = CollectionImportSerializer

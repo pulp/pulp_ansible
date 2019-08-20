@@ -19,16 +19,17 @@ from pulpcore.plugin.serializers import (
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     BaseDistributionViewSet,
+    BaseFilterSet,
     ContentFilter,
     ContentViewSet,
     NamedModelViewSet,
     OperationPostponedResponse,
     RemoteViewSet,
 )
-
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
+    CollectionImport,
     CollectionVersion,
     CollectionRemote,
     Role,
@@ -37,6 +38,7 @@ from .models import (
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
+    CollectionImportSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
@@ -106,6 +108,20 @@ class CollectionVersionFilter(ContentFilter):
     class Meta:
         model = CollectionVersion
         fields = ["namespace", "name", "version", "q", "is_highest"]
+
+
+class CollectionImportFilter(BaseFilterSet):
+    """
+    FilterSet for CollectionImports.
+    """
+
+    namespace = filters.CharFilter(field_name="namespace")
+    name = filters.CharFilter(field_name="name")
+    version = filters.CharFilter(field_name="version")
+
+    class Meta:
+        model = CollectionImport
+        fields = ["namespace", "name", "version"]
 
 
 class CollectionVersionViewSet(ContentViewSet):
@@ -253,3 +269,14 @@ class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
     endpoint_name = "pulp_ansible/tags"
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+
+class CollectionImportViewSet(NamedModelViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
+    """
+    ViewSet for CollectionImports.
+    """
+
+    endpoint_name = "pulp_ansible/imports"
+    queryset = CollectionImport.objects.prefetch_related("task").all()
+    serializer_class = CollectionImportSerializer
+    filterset_class = CollectionImportFilter

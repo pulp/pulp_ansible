@@ -59,6 +59,9 @@ class CollectionImport(Model):
 
     messages = psql_fields.JSONField(default=list, editable=False)
 
+    class Meta:
+        ordering = ["_created"]
+
 
 class Tag(Model):
     """A model representing a Tag.
