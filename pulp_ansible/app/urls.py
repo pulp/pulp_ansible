@@ -38,6 +38,11 @@ v3_urls = [
         "collections/", views_v3.CollectionViewSet.as_view({"get": "list"}), name="collections-list"
     ),
     path(
+        "artifacts/collections/",
+        views_v3.CollectionUploadViewSet.as_view({"post": "create"}),
+        name="collection-artifact-upload",
+    ),
+    path(
         "collections/<str:namespace>/<str:name>/",
         views_v3.CollectionViewSet.as_view({"get": "retrieve"}),
         name="collections-detail",
