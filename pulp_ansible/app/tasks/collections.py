@@ -1,7 +1,8 @@
-import asyncio
+from asyncio import wait, FIRST_COMPLETED
 from gettext import gettext as _
 import logging
 import math
+import resource
 
 from django.db import transaction
 
@@ -235,6 +236,7 @@ class CollectionSyncFirstStage(Stage):
 
         """
         page_count = 1
+        ulimit = resource.getrlimit(resource.RLIMIT_NOFILE)[0]
         remote = self.remote
         collection_info = self.collection_info
 
@@ -255,33 +257,36 @@ class CollectionSyncFirstStage(Stage):
 
             count = len(self.collection_info) or initial_data.get("count", 1)
             page_count = math.ceil(float(count) / float(PAGE_SIZE))
+            batch = min(page_count, math.floor(float(ulimit) / float(PAGE_SIZE * 3)))
             progress_bar.total = count
             progress_bar.save()
 
-            # Concurrent downloads are limited by aiohttp...
-            not_done = set()
-            for page in range(1, page_count + 1):
-                downloader = remote.get_downloader(url=_get_url(page))
-                not_done.add(downloader.run())
+            for n in range(1, page_count + 1, batch):
+                # Concurrent downloads are limited by aiohttp...
+                not_done = set()
 
-            while not_done:
-                done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
-                for item in done:
-                    data = parse_metadata(item.result())
-                    for result in data.get("results", [data]):
-                        download_url = result.get("download_url")
+                for page in range(n, n + batch):
+                    downloader = remote.get_downloader(url=_get_url(page))
+                    not_done.add(downloader.run())
 
-                        if result.get("versions_url"):
-                            not_done.update(
-                                [remote.get_downloader(url=result["versions_url"]).run()]
-                            )
+                while not_done:
+                    done, not_done = await wait(not_done, return_when=FIRST_COMPLETED)
+                    for item in done:
+                        data = parse_metadata(item.result())
+                        for result in data.get("results", [data]):
+                            download_url = result.get("download_url")
 
-                        if result.get("version") and not download_url:
-                            not_done.update([remote.get_downloader(url=result["href"]).run()])
+                            if result.get("versions_url"):
+                                not_done.update(
+                                    [remote.get_downloader(url=result["versions_url"]).run()]
+                                )
 
-                        if download_url:
-                            yield data
-                            progress_bar.increment()
+                            if result.get("version") and not download_url:
+                                not_done.update([remote.get_downloader(url=result["href"]).run()])
+
+                            if download_url:
+                                yield data
+                                progress_bar.increment()
 
 
 class CollectionContentSaver(ContentSaver):
