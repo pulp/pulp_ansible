@@ -107,34 +107,48 @@ class CollectionRefSerializer(serializers.Serializer):
         )
 
 
+class CollectionMetadataSerializer(serializers.ModelSerializer):
+    """
+    A serializer for a CollectionVersion metadata.
+    """
+
+    tags = relations.ManyRelatedField(relations.StringRelatedField())
+
+    class Meta:
+        model = models.CollectionVersion
+        fields = (
+            "authors",
+            "contents",
+            "dependencies",
+            "description",
+            "documentation",
+            "homepage",
+            "issues",
+            "license",
+            "repository",
+            "tags",
+        )
+
+
 class CollectionVersionSerializer(CollectionVersionListSerializer):
     """
     A serializer for a CollectionVersion.
     """
 
     collection = CollectionRefSerializer()
-    tags = relations.ManyRelatedField(relations.StringRelatedField())
     artifact = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+
+    metadata = CollectionMetadataSerializer(source="*")
 
     class Meta(CollectionVersionListSerializer.Meta):
         fields = CollectionVersionListSerializer.Meta.fields + (
             "artifact",
-            "authors",
-            "contents",
             "collection",
-            "dependencies",
-            "description",
-            "documentation",
             "download_url",
-            "homepage",
-            "issues",
-            "license",
             "name",
             "namespace",
-            "repository",
-            "tags",
-            "is_certified",
+            "metadata",
         )
 
     def get_artifact(self, obj):
