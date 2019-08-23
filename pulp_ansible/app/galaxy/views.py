@@ -125,10 +125,11 @@ class GalaxyCollectionView(views.APIView):
     authentication_classes = []
     permission_classes = []
 
-    def post(self, request, *args, **kwargs):
+    def post(self, request, path):
         """
         Queues a task that creates a new Collection from an uploaded artifact.
         """
+        distro = get_object_or_404(AnsibleDistribution, base_path=path)
         serializer = GalaxyCollectionUploadSerializer(
             data=request.data, context={"request": request}
         )
@@ -140,9 +141,13 @@ class GalaxyCollectionView(views.APIView):
         )
         artifact.save()
 
-        async_result = enqueue_with_reservation(
-            import_collection, [str(artifact.pk)], kwargs={"artifact_pk": artifact.pk}
-        )
+        locks = [str(artifact.pk)]
+        kwargs = {"artifact_pk": artifact.pk}
+        if distro.repository:
+            locks.append(distro.repository)
+            kwargs["repository_pk"] = distro.repository.pk
+
+        async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
         return OperationPostponedResponse(async_result, request)
 
 

@@ -105,10 +105,11 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
         request_body=CollectionOneShotSerializer,
         responses={202: AsyncOperationResponseSerializer},
     )
-    def create(self, request, path=None):
+    def create(self, request, path):
         """
         Dispatch a Collection creation task.
         """
+        distro = get_object_or_404(AnsibleDistribution, base_path=path)
         serializer = CollectionOneShotSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
@@ -129,9 +130,14 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
         except IntegrityError:
             raise serializers.ValidationError(_("Artifact already exists."))
 
-        async_result = enqueue_with_reservation(
-            import_collection, [str(artifact.pk)], kwargs={"artifact_pk": artifact.pk}
-        )
+        locks = [str(artifact.pk)]
+        kwargs = {"artifact_pk": artifact.pk}
+
+        if distro.repository:
+            locks.append(distro.repository)
+            kwargs["repository_pk"] = distro.repository.pk
+
+        async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
 
         return OperationPostponedResponse(async_result, request)
 
