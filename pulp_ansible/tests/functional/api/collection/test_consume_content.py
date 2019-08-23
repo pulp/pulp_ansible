@@ -1,6 +1,7 @@
 # coding=utf-8
 """Tests that content hosted by Pulp can be consumed by mazer."""
 import unittest
+from urllib.parse import urljoin
 
 from pulp_smash import api, cli, config, exceptions
 from pulp_smash.pulp3.constants import REPO_PATH
@@ -16,12 +17,13 @@ from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class MazerConsumeCotentTestCase(unittest.TestCase):
-    """Test whether mazer can install content hosted by Pulp.
+class ConsumeCotentTestCase(unittest.TestCase):
+    """Test whether a client can install collections content hosted by Pulp.
 
-    This test targets the following issue:
+    This test targets the following issues:
 
-    `Pulp #4915 <https://pulp.plan.io/issues/4915>`_
+    * `Pulp #4915 <https://pulp.plan.io/issues/4915>`_
+    * `Pulp #5335 <https://pulp.plan.io/issues/5335>`_
     """
 
     @classmethod
@@ -30,10 +32,11 @@ class MazerConsumeCotentTestCase(unittest.TestCase):
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg)
         cls.cli_client = cli.Client(cls.cfg, local=True)
+        # TODO pip install git+https://github.com/ansible/ansible.git@devel
         try:
-            cls.cli_client.run(["which", "mazer"])
+            cls.cli_client.run(["which", "ansible-galaxy"])
         except exceptions.CalledProcessError:
-            raise unittest.SkipTest("This test requires mazer client.")
+            raise unittest.SkipTest("This test requires ansible-galaxy.")
 
     def test_consume_content(self):
         """Test whether mazer can install content hosted by Pulp."""
@@ -51,16 +54,17 @@ class MazerConsumeCotentTestCase(unittest.TestCase):
 
         # Create distribution
         distribution = self.client.post(
-            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=repo["_href"])
+            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(
+                repository=repo["_href"])
         )
         self.addCleanup(self.client.delete, distribution["_href"])
 
-        self.cli_client.run(
-            "mazer install {} -c -s {}".format(
-                COLLECTION_WHITELIST, distribution["mazer_url"]
-            ).split()
-        )
-        self.addCleanup(self.cli_client.run, "mazer remove {}".format(COLLECTION_WHITELIST).split())
+        cmd = "ansible-galaxy -vvv collection install {} -p {} -s {}".format(
+            COLLECTION_WHITELIST, "~/.ansible/collections/", distribution['mazer_url']).split()
+        self.cli_client.run(cmd)
 
-        response = self.cli_client.run(["mazer", "list"])
-        self.assertIn(COLLECTION_WHITELIST, response.stdout, response)
+        # self.addCleanup(self.cli_client.run, "mazer remove {}".format(
+        #     COLLECTION_WHITELIST).split())
+
+        # response = self.cli_client.run(["mazer", "list"])
+        # self.assertIn(COLLECTION_WHITELIST, response.stdout, response)
