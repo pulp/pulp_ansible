@@ -14,6 +14,7 @@ from pulpcore.plugin.models import (
     ProgressBar,
     Remote,
     Repository,
+    RepositoryVersion,
 )
 from pulpcore.plugin.stages import (
     ArtifactDownloader,
@@ -70,12 +71,16 @@ def sync(remote_pk, repository_pk, mirror):
     d_version.create()
 
 
-def import_collection(artifact_pk):
+def import_collection(artifact_pk, repository_pk=None):
     """
     Create a Collection from an uploaded artifact.
 
     Args:
         artifact_pk (str): The pk or the Artifact to create the Collection from.
+
+    Keyword Args:
+        repository_pk (str): Optional. If specified, a new RepositoryVersion will be created for the
+            Repository and any new Collection content associated with it.
     """
     artifact = Artifact.objects.get(pk=artifact_pk)
     log.info("Processing collection from {path}".format(path=artifact.file.path))
@@ -115,6 +120,13 @@ def import_collection(artifact_pk):
             relative_path=collection_version.relative_path,
         )
         CreatedResource.objects.create(content_object=collection_version)
+
+        if repository_pk:
+            repository = Repository.objects.get(pk=repository_pk)
+            content_q = CollectionVersion.objects.filter(_id=collection_version.pk)
+            with RepositoryVersion.create(repository) as new_version:
+                new_version.add_content(content_q)
+            CreatedResource.objects.create(content_object=repository)
 
 
 def _update_highest_version(collection_version):
