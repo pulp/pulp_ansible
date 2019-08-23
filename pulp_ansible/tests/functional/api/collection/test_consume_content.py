@@ -17,7 +17,12 @@ from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # 
 
 
 class MazerConsumeCotentTestCase(unittest.TestCase):
-    """Test whether mazer can install content hosted by Pulp."""
+    """Test whether mazer can install content hosted by Pulp.
+
+    This test targets the following issue:
+
+    `Pulp #4915 <https://pulp.plan.io/issues/4915>`_
+    """
 
     @classmethod
     def setUpClass(cls):
