@@ -2,13 +2,16 @@
 """Tests related to sync ansible plugin collection content type."""
 import unittest
 from random import randint
-from urllib.parse import urlsplit
+from functools import reduce
+from urllib.parse import urlsplit, urljoin
 
 from pulp_smash import api, config
 from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
+    gen_distribution,
     gen_repo,
     get_added_content_summary,
+    get_content,
     get_content_summary,
     get_removed_content_summary,
     sync,
@@ -16,14 +19,15 @@ from pulp_smash.pulp3.utils import (
 
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_COLLECTION_FIXTURE_COUNT,
     ANSIBLE_COLLECTION_CONTENT_NAME,
-    ANSIBLE_COLLECTION_REMOTE_PATH,
-    ANSIBLE_COLLECTION_TESTING_URL,
+    ANSIBLE_COLLECTION_FIXTURE_COUNT,
     ANSIBLE_COLLECTION_FIXTURE_URL,
-    ANSIBLE_REMOTE_PATH,
-    ANSIBLE_FIXTURE_CONTENT_SUMMARY,
+    ANSIBLE_COLLECTION_REMOTE_PATH,
     ANSIBLE_COLLECTION_REQUIREMENT,
+    ANSIBLE_COLLECTION_TESTING_URL,
+    ANSIBLE_DISTRIBUTION_PATH,
+    ANSIBLE_FIXTURE_CONTENT_SUMMARY,
+    ANSIBLE_REMOTE_PATH,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -164,7 +168,7 @@ class SyncTestCase(unittest.TestCase):
         3. Sync the repo with Role remote.
         4. Sync the repo with Collection remote with ``Mirror=True``.
         5. Verify whether the content in the latest version of the repo
-            has only Collection content and Role content is deleted.
+           has only Collection content and Role content is deleted.
         """
         # Step 1
         repo = self.client.post(REPO_PATH, gen_repo())
@@ -222,3 +226,53 @@ class SyncTestCase(unittest.TestCase):
         )
 
         self.assertEqual(collection_remote.status_code, 400, collection_remote)
+
+
+class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
+    """Test whether one can sync collections from a Pulp server.
+
+    This test targets the following issue:
+
+    `Pulp #5333 <https://pulp.plan.io/issues/5333>`_
+    """
+
+    def test_sync_collections_from_pulp(self):
+        """Test sync collections from pulp server."""
+        cfg = config.get_config()
+        client = api.Client(cfg)
+        repo = client.post(REPO_PATH, gen_repo())
+        self.addCleanup(client.delete, repo["_href"])
+
+        remote = client.post(
+            ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL)
+        )
+        self.addCleanup(client.delete, remote["_href"])
+
+        sync(cfg, remote, repo)
+        repo = client.get(repo["_href"])
+
+        distribution = client.post(
+            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=repo["_href"])
+        )
+        self.addCleanup(client.delete, distribution["_href"])
+
+        second_repo = client.post(REPO_PATH, gen_repo())
+        self.addCleanup(client.delete, second_repo["_href"])
+
+        url = reduce(
+            urljoin,
+            (
+                cfg.get_base_url(),
+                "pulp_ansible/galaxy/",
+                distribution["base_path"] + "/",
+                "api/v2/collections",
+            ),
+        )
+
+        pulp_remote = client.post(ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=url))
+        self.addCleanup(client.delete, pulp_remote["_href"])
+
+        sync(cfg, pulp_remote, second_repo)
+        second_repo = client.get(second_repo["_href"])
+
+        self.assertEqual(get_content(repo), get_content(second_repo))
