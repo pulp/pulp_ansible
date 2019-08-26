@@ -173,8 +173,8 @@ class CollectionImportSerializer(serializers.ModelSerializer):
     id = serializers.UUIDField(source="pk")
 
     state = serializers.CharField(source="task.state")
-    created_at = serializers.DateTimeField(source="_created")
-    updated_at = serializers.DateTimeField(source="_last_updated")
+    created_at = serializers.DateTimeField(source="task._created")
+    updated_at = serializers.DateTimeField(source="task._last_updated")
     started_at = serializers.DateTimeField(source="task.started_at")
     finished_at = serializers.DateTimeField(source="task.finished_at")
     error = serializers.JSONField(source="task.error")
