@@ -13,8 +13,9 @@ from pulp_ansible.app.tasks.collections import import_collection
 from pulp_ansible.app.models import AnsibleDistribution, Collection, CollectionVersion, Role
 
 from .serializers import (
-    GalaxyCollectionVersionSerializer,
+    GalaxyCollectionSerializer,
     GalaxyCollectionUploadSerializer,
+    GalaxyCollectionVersionSerializer,
     GalaxyRoleSerializer,
     GalaxyRoleVersionSerializer,
 )
@@ -110,11 +111,9 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
         """
         Get the detail view of a Collection.
         """
-        version = get_object_or_404(
-            CollectionVersion, collection__namespace=namespace, collection__name=name
-        )
-        version.path = path
-        return response.Response(GalaxyCollectionVersionSerializer(version).data)
+        collection = get_object_or_404(Collection, namespace=namespace, name=name)
+        collection.path = path
+        return response.Response(GalaxyCollectionSerializer(collection).data)
 
 
 class GalaxyCollectionView(views.APIView):
@@ -213,5 +212,8 @@ class GalaxyCollectionVersionDetail(views.APIView):
             base_path=distro.base_path,
             relative_path=version.relative_path,
         )
-        to_return = {"download_url": download_url}
-        return response.Response(to_return)
+
+        version.path = path
+        data = GalaxyCollectionVersionSerializer(version).data
+        data["download_url"] = download_url
+        return response.Response(data)

@@ -3,7 +3,7 @@ from gettext import gettext as _
 from django.conf import settings
 from rest_framework import serializers
 
-from pulp_ansible.app.models import CollectionVersion, Role
+from pulp_ansible.app.models import Collection, CollectionVersion, Role
 
 
 class GalaxyRoleSerializer(serializers.ModelSerializer):
@@ -55,14 +55,13 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         model = Role
 
 
-class GalaxyCollectionVersionSerializer(serializers.Serializer):
+class GalaxyCollectionSerializer(serializers.Serializer):
     """
     A serializer for a Collection.
     """
 
     name = serializers.CharField()
     namespace = serializers.CharField()
-    version = serializers.CharField()
     href = serializers.SerializerMethodField(read_only=True)
     versions_url = serializers.SerializerMethodField(read_only=True)
 
@@ -85,18 +84,61 @@ class GalaxyCollectionVersionSerializer(serializers.Serializer):
         Get href.
         """
         return (
-            "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/"
-            "versions/{version}/".format(
+            "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/"
+            "{name}/".format(
                 path=obj.path,
                 hostname=settings.ANSIBLE_API_HOSTNAME,
                 namespace=obj.namespace,
                 name=obj.name,
-                version=obj.version,
             )
         )
 
     class Meta:
-        fields = ("name", "namespace", "version", "href")
+        fields = ("name", "namespace", "href", "versions_url")
+        model = Collection
+
+
+class GalaxyCollectionVersionSerializer(serializers.Serializer):
+    """
+    A serializer for a CollectionVersion.
+    """
+
+    version = serializers.CharField()
+    href = serializers.SerializerMethodField(read_only=True)
+    namespace = serializers.SerializerMethodField(read_only=True)
+    collection = serializers.SerializerMethodField(read_only=True)
+    artifact = serializers.SerializerMethodField(read_only=True)
+
+    def get_href(self, obj):
+        """
+        Get href.
+        """
+        return (
+            "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/"
+            "versions/{version}/".format(
+                path=obj.path,
+                hostname=settings.ANSIBLE_API_HOSTNAME,
+                namespace=obj.collection.namespace,
+                name=obj.collection.name,
+                version=obj.version,
+            )
+        )
+
+    def get_namespace(self, obj):
+        """Create a namespace dict."""
+        return {"name": obj.collection.namespace}
+
+    def get_collection(self, obj):
+        """Create a collection dict."""
+        return {"name": obj.collection.name}
+
+    def get_artifact(self, obj):
+        """Create an artifact dict."""
+        artifact = obj.contentartifact_set.get().artifact
+        return {"sha256": artifact.sha256, "size": artifact.size}
+
+    class Meta:
+        fields = ("version", "href")
         model = CollectionVersion
 
 
