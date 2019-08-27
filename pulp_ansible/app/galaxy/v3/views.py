@@ -5,15 +5,17 @@ from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
-from rest_framework import mixins, serializers
+from rest_framework import mixins
 from rest_framework.response import Response
+from rest_framework import serializers
+from rest_framework import status as http_status
 from rest_framework import viewsets
 
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import Artifact, Content, ContentArtifact, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import enqueue_with_reservation
-from pulpcore.plugin.viewsets import OperationPostponedResponse
+from rest_framework.reverse import reverse
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -139,7 +141,14 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
 
         async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
 
-        return OperationPostponedResponse(async_result, request)
+        data = {
+            "task": reverse(
+                "collection-imports-detail",
+                kwargs={"path": path, "pk": async_result.id},
+                request=None,
+            )
+        }
+        return Response(data, status=http_status.HTTP_202_ACCEPTED)
 
 
 class CollectionVersionViewSet(
