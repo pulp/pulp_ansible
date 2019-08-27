@@ -21,7 +21,10 @@ from .models import (
     Role,
     Tag,
 )
-from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
+from pulp_ansible.app.tasks.utils import (
+    parse_collections_requirements_file,
+    parse_collection_filename,
+)
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -128,6 +131,12 @@ class CollectionOneShotSerializer(serializers.Serializer):
         required=False,
         default=None,
     )
+
+    def validate(self, attrs):
+        """Parse and validate collection filename."""
+        attrs = super().validate(attrs)
+        attrs["filename"] = parse_collection_filename(attrs["file"].name)
+        return attrs
 
 
 class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):

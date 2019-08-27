@@ -10,6 +10,7 @@ from pulp_smash.utils import http_get
 from requests.exceptions import HTTPError
 
 from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_COLLECTION_FILE_NAME,
     ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL,
     COLLECTION_METADATA,
 )
@@ -26,8 +27,9 @@ class UploadCollectionTestCase(unittest.TestCase):
         delete_orphans(cls.cfg)
         cls.client = api.Client(cls.cfg)
 
-        cls.collection = {"file": http_get(ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL)}
-        cls.collection_sha256 = hashlib.sha256(cls.collection["file"]).hexdigest()
+        collection_content = http_get(ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL)
+        cls.collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, collection_content)}
+        cls.collection_sha256 = hashlib.sha256(collection_content).hexdigest()
 
     def test_collection_upload(self):
         """Upload a collection.

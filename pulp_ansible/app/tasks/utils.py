@@ -1,10 +1,20 @@
+from collections import namedtuple
 from gettext import gettext as _
 import json
+import re
 import yaml
 
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from rest_framework.serializers import ValidationError
+import semantic_version as semver
 from yaml.error import YAMLError
+
+
+CollectionFilename = namedtuple("CollectionFilename", ["namespace", "name", "version"])
+
+FILENAME_RE = re.compile(
+    r"^(?P<namespace>\w+)-(?P<name>\w+)-" r"(?P<version>[0-9a-zA-Z.+-]+)\.tar\.gz$"
+)
 
 
 def get_page_url(url, page=1):
@@ -83,3 +93,22 @@ def parse_collections_requirements_file(requirements_file_string):
                 collection_info.append((collection_req, "*", None))
 
     return collection_info
+
+
+def parse_collection_filename(filename):
+    """
+    Parses collection filename.
+
+    Parses and validates collection filename. Returns CollectionFilename named tuple.
+    Raises ValueError if filename is not a valid collection filename.
+    """
+    match = FILENAME_RE.match(filename)
+
+    if not match:
+        raise ValueError("Invalid filename. Expected: {namespace}-{name}-{version}.tar.gz")
+
+    namespace, name, version = match.groups()
+    # NOTE: Raises ValueError if version is invalid
+    semver.Version.parse(version)
+
+    return CollectionFilename(namespace, name, version)

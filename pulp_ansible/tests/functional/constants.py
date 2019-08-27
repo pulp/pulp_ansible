@@ -66,8 +66,10 @@ COLLECTION_METADATA = {"name": "k8s_demo_collection", "version": "0.0.3"}
 """Metadata was extracted from
 https://galaxy.ansible.com/api/v2/collections/testing/k8s_demo_collection/versions/0.0.3/"""
 
+ANSIBLE_COLLECTION_FILE_NAME = "testing-k8s_demo_collection-0.0.3.tar.gz"
+
 ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL = urljoin(
-    GALAXY_ANSIBLE_BASE_URL, "download/testing-k8s_demo_collection-0.0.3.tar.gz"
+    GALAXY_ANSIBLE_BASE_URL, f"download/{ANSIBLE_COLLECTION_FILE_NAME}"
 )
 ANSIBLE_COLLECTION_REQUIREMENT = """
 ---
