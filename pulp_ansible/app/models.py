@@ -9,7 +9,6 @@ from django.db.models import UniqueConstraint, Q
 from pulpcore.app.models import Task
 from pulpcore.plugin.models import Content, Model, Remote, RepositoryVersionDistribution
 
-
 log = getLogger(__name__)
 
 
@@ -48,19 +47,20 @@ class Collection(Model):
         unique_together = ("namespace", "name")
 
 
-class CollectionImport(Model):
+class CollectionImport(models.Model):
     """A model representing a collection import task details."""
+
+    task = models.OneToOneField(
+        Task, on_delete=models.CASCADE, editable=False, related_name="+", primary_key=True
+    )
 
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
     version = models.CharField(max_length=32, editable=False)
-
-    task = models.OneToOneField(Task, on_delete=models.CASCADE, editable=False, related_name="+")
-
     messages = psql_fields.JSONField(default=list, editable=False)
 
     class Meta:
-        ordering = ["_created"]
+        ordering = ["task__created"]
 
 
 class Tag(Model):
