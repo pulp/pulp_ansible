@@ -60,7 +60,7 @@ class CollectionImport(models.Model):
     messages = psql_fields.JSONField(default=list, editable=False)
 
     class Meta:
-        ordering = ["task__created"]
+        ordering = ["task___created"]
 
 
 class Tag(Model):
