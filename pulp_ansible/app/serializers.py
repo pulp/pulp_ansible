@@ -190,6 +190,8 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
     A serializer for CollectionVersion Content.
     """
 
+    id = serializers.UUIDField(source="pk", help_text="A collection identifier.")
+
     authors = serializers.ListField(
         help_text=_("A list of the CollectionVersion content's authors."),
         child=serializers.CharField(max_length=64),
@@ -252,6 +254,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
             tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"_relative_path"})
             + ContentChecksumSerializer.Meta.fields
             + (
+                "id",
                 "authors",
                 "contents",
                 "dependencies",
