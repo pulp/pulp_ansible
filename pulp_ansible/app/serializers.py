@@ -3,7 +3,6 @@ from gettext import gettext as _
 from django.conf import settings
 from rest_framework import serializers
 
-from pulpcore.app.serializers import TaskSerializer
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     ModelSerializer,
@@ -272,16 +271,40 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         model = CollectionVersion
 
 
-class CollectionImportSerializer(serializers.ModelSerializer):
+class CollectionImportListSerializer(serializers.ModelSerializer):
     """
     A serializer for a CollectionImport list view.
     """
 
     id = serializers.UUIDField(source="pk")
-    task = TaskSerializer()
-    messages = serializers.JSONField()
+    state = serializers.CharField(source="task.state")
+    created_at = serializers.DateTimeField(source="task._created")
+    updated_at = serializers.DateTimeField(source="task._last_updated")
+    started_at = serializers.DateTimeField(source="task.started_at")
+    finished_at = serializers.DateTimeField(source="task.finished_at")
 
     class Meta:
-        ref_name = "CollectionImportSerializer"
         model = CollectionImport
-        fields = ("id", "namespace", "name", "version", "task", "messages")
+        fields = (
+            "id",
+            "namespace",
+            "name",
+            "version",
+            "state",
+            "created_at",
+            "updated_at",
+            "started_at",
+            "finished_at",
+        )
+
+
+class CollectionImportDetailSerializer(CollectionImportListSerializer):
+    """
+    A serializer for a CollectionImport detail view.
+    """
+
+    error = serializers.JSONField(source="task.error")
+    messages = serializers.JSONField()
+
+    class Meta(CollectionImportListSerializer.Meta):
+        fields = CollectionImportListSerializer.Meta.fields + ("error", "messages")
