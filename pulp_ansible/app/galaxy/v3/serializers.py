@@ -163,36 +163,3 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
         """
         filename = self.context["content_artifact"].relative_path
         return "/api/v3/artifacts/collections/" + filename
-
-
-class CollectionImportSerializer(serializers.ModelSerializer):
-    """
-    A serializer for a CollectionImport.
-    """
-
-    id = serializers.UUIDField(source="pk")
-
-    state = serializers.CharField(source="task.state")
-    created_at = serializers.DateTimeField(source="task._created")
-    updated_at = serializers.DateTimeField(source="task._last_updated")
-    started_at = serializers.DateTimeField(source="task.started_at")
-    finished_at = serializers.DateTimeField(source="task.finished_at")
-    error = serializers.JSONField(source="task.error")
-    messages = serializers.JSONField()
-
-    class Meta:
-        ref_name = "GalaxyV3CollectionImportSerializer"
-        model = models.CollectionImport
-        fields = (
-            "id",
-            "namespace",
-            "name",
-            "version",
-            "state",
-            "created_at",
-            "updated_at",
-            "started_at",
-            "finished_at",
-            "error",
-            "messages",
-        )

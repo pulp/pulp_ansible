@@ -38,7 +38,8 @@ from .models import (
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
-    CollectionImportSerializer,
+    CollectionImportDetailSerializer,
+    CollectionImportListSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
@@ -278,5 +279,15 @@ class CollectionImportViewSet(NamedModelViewSet, mixins.ListModelMixin, mixins.R
 
     endpoint_name = "pulp_ansible/imports"
     queryset = CollectionImport.objects.prefetch_related("task").all()
-    serializer_class = CollectionImportSerializer
     filterset_class = CollectionImportFilter
+
+    def get_serializer_class(self):
+        """
+        Return serializer class depending on action.
+        """
+        if self.action == "list":
+            return CollectionImportListSerializer
+        elif self.action == "retrieve":
+            return CollectionImportDetailSerializer
+        else:
+            raise RuntimeError(f"Unexpected action: {self.action}")

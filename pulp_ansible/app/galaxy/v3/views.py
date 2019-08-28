@@ -22,10 +22,12 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionListSerializer,
-    CollectionImportSerializer,
 )
 from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
-from pulp_ansible.app.serializers import CollectionOneShotSerializer
+from pulp_ansible.app.serializers import (
+    CollectionOneShotSerializer,
+    CollectionImportDetailSerializer,
+)
 from pulp_ansible.app.tasks.collections import import_collection
 
 
@@ -225,4 +227,4 @@ class CollectionImportViewSet(
     """
 
     queryset = CollectionImport.objects.prefetch_related("task").all()
-    serializer_class = CollectionImportSerializer
+    serializer_class = CollectionImportDetailSerializer
