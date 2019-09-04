@@ -2,7 +2,7 @@ import re
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-from rest_framework import generics, response, views
+from rest_framework import generics, pagination, response, views
 
 from pulpcore.app.models import Artifact, RepositoryVersion
 from pulpcore.app.response import OperationPostponedResponse
@@ -102,8 +102,8 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
     View for a Collection Detail.
     """
 
-    model = CollectionVersion
-    serializer_class = GalaxyCollectionVersionSerializer
+    model = Collection
+    serializer_class = GalaxyCollectionSerializer
     authentication_classes = []
     permission_classes = []
 
@@ -116,13 +116,33 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
         return response.Response(GalaxyCollectionSerializer(collection).data)
 
 
-class GalaxyCollectionView(views.APIView):
+class GalaxyCollectionView(generics.ListAPIView):
     """
     View for Collection models.
     """
 
+    model = Collection
+    serializer_class = GalaxyCollectionSerializer
     authentication_classes = []
     permission_classes = []
+    pagination_class = pagination.PageNumberPagination
+
+    def get_queryset(self):
+        """
+        Get the list of Collections for this view.
+        """
+        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
+        if distro.repository_version:
+            distro_content = distro.repository_version.content
+        else:
+            distro_content = RepositoryVersion.latest(distro.repository).content
+
+        collections = Collection.objects.filter(versions__pk__in=distro_content).distinct()
+
+        for c in collections:
+            c.path = self.kwargs["path"]  # annotation needed by the serializer
+
+        return collections
 
     def post(self, request, path):
         """
