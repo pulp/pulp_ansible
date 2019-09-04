@@ -18,7 +18,7 @@ fi
 
 
 mkdir -p ~/.config/pulp_smash
-cp ../pulpcore/.travis/pulp-smash-config.json ~/.config/pulp_smash/settings.json
+curl -o ~/.config/pulp_smash/settings.json https://raw.githubusercontent.com/pulp/pulpcore/d34076e6f9ac47e0f4074f35fa1f746ae7fe6962/.travis/pulp-smash-config.json
 
 
 if [ -f $POST_BEFORE_SCRIPT ]; then
