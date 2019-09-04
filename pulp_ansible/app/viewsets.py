@@ -19,7 +19,6 @@ from pulpcore.plugin.serializers import (
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     BaseDistributionViewSet,
-    BaseFilterSet,
     ContentFilter,
     ContentViewSet,
     NamedModelViewSet,
@@ -29,7 +28,6 @@ from pulpcore.plugin.viewsets import (
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
-    CollectionImport,
     CollectionVersion,
     CollectionRemote,
     Role,
@@ -38,8 +36,6 @@ from .models import (
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
-    CollectionImportDetailSerializer,
-    CollectionImportListSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
@@ -109,20 +105,6 @@ class CollectionVersionFilter(ContentFilter):
     class Meta:
         model = CollectionVersion
         fields = ["namespace", "name", "version", "q", "is_highest"]
-
-
-class CollectionImportFilter(BaseFilterSet):
-    """
-    FilterSet for CollectionImports.
-    """
-
-    namespace = filters.CharFilter(field_name="namespace")
-    name = filters.CharFilter(field_name="name")
-    version = filters.CharFilter(field_name="version")
-
-    class Meta:
-        model = CollectionImport
-        fields = ["namespace", "name", "version"]
 
 
 class CollectionVersionViewSet(ContentViewSet):
@@ -270,24 +252,3 @@ class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
     endpoint_name = "pulp_ansible/tags"
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-
-
-class CollectionImportViewSet(NamedModelViewSet, mixins.ListModelMixin, mixins.RetrieveModelMixin):
-    """
-    ViewSet for CollectionImports.
-    """
-
-    endpoint_name = "pulp_ansible/imports"
-    queryset = CollectionImport.objects.prefetch_related("task").all()
-    filterset_class = CollectionImportFilter
-
-    def get_serializer_class(self):
-        """
-        Return serializer class depending on action.
-        """
-        if self.action == "list":
-            return CollectionImportListSerializer
-        elif self.action == "retrieve":
-            return CollectionImportDetailSerializer
-        else:
-            raise RuntimeError(f"Unexpected action: {self.action}")
