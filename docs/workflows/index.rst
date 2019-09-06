@@ -36,7 +36,7 @@ Collection Workflows
 ====================
 
 This section documents the `Collection` capabilities of ``pulp_ansible`` in a "quickstart" style
-along with the ``mazer`` client.
+along with the ``ansible-galaxy`` client.
 
 
 .. toctree::
@@ -46,4 +46,4 @@ along with the ``mazer`` client.
    upload-collection
    add-remove
    distribution
-   mazer-client
+   collection-install

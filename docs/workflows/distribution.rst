@@ -9,9 +9,9 @@ Create a Distribution for Repository 'foo'
 ------------------------------------------
 
 This will distribute the 'latest' RepositoryVersion always which makes it consumable by
-``ansible-galaxy`` or ``mazer`` clients. Users create a Distribution which will serve the
-RepositoryVersion content at ``$CONTENT_HOST/pulp/content/<distribution.base_path>`` as
-demonstrated in the :ref:`ansible-galaxy usage documentation<ansible-galaxy-cli>`.
+``ansible-galaxy`` client. Users create a Distribution which will serve the RepositoryVersion
+content at ``$CONTENT_HOST/pulp/content/<distribution.base_path>`` as demonstrated in the
+:ref:`ansible-galaxy usage documentation<ansible-galaxy-cli>`.
 
 .. literalinclude:: ../_scripts/distribution_repo.sh
    :language: bash

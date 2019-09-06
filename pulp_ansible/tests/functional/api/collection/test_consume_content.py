@@ -1,5 +1,7 @@
 # coding=utf-8
-"""Tests that content hosted by Pulp can be consumed by mazer."""
+"""Tests that content hosted by Pulp can be consumed by ansible-galaxy."""
+from os import path
+import tempfile
 import unittest
 
 from pulp_smash import api, cli, config, exceptions
@@ -16,8 +18,8 @@ from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class MazerConsumeCotentTestCase(unittest.TestCase):
-    """Test whether mazer can install content hosted by Pulp.
+class ConsumeContentTestCase(unittest.TestCase):
+    """Test whether ansible-galaxy can install content hosted by Pulp.
 
     This test targets the following issue:
 
@@ -31,12 +33,12 @@ class MazerConsumeCotentTestCase(unittest.TestCase):
         cls.client = api.Client(cls.cfg)
         cls.cli_client = cli.Client(cls.cfg, local=True)
         try:
-            cls.cli_client.run(["which", "mazer"])
+            cls.cli_client.run(["which", "ansible-galaxy"])
         except exceptions.CalledProcessError:
-            raise unittest.SkipTest("This test requires mazer client.")
+            raise unittest.SkipTest("This test requires ansible-galaxy client.")
 
     def test_consume_content(self):
-        """Test whether mazer can install content hosted by Pulp."""
+        """Test whether ansible-galaxy can install content hosted by Pulp."""
         repo = self.client.post(REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["_href"])
 
@@ -55,12 +57,14 @@ class MazerConsumeCotentTestCase(unittest.TestCase):
         )
         self.addCleanup(self.client.delete, distribution["_href"])
 
-        self.cli_client.run(
-            "mazer install {} -c -s {}".format(
-                COLLECTION_WHITELIST, distribution["mazer_url"]
-            ).split()
-        )
-        self.addCleanup(self.cli_client.run, "mazer remove {}".format(COLLECTION_WHITELIST).split())
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.cli_client.run(
+                "ansible-galaxy collection install {} -c -s {} -p {}".format(
+                    COLLECTION_WHITELIST, distribution["client_url"], temp_dir
+                ).split()
+            )
 
-        response = self.cli_client.run(["mazer", "list"])
-        self.assertIn(COLLECTION_WHITELIST, response.stdout, response)
+            directory = "{}/ansible_collections/{}".format(
+                temp_dir, COLLECTION_WHITELIST.replace(".", "/")
+            )
+            self.assertTrue(path.exists(directory), "Could not find directory {}".format(directory))

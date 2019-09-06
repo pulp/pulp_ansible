@@ -19,11 +19,11 @@ being uploaded. Assume a sha256 of
     http --form POST :24817/ansible/collections/ file@collection.tgz sha256=35281bc21343d60f865a091ecc97e28e362c47a52bb6edd6ffd279f94f4ccb0d
 
 
-Upload a Collection via 'mazer'
--------------------------------
+Upload a Collection via 'ansible-galaxy'
+----------------------------------------
 
-See the :ref:`mazer-publish` documentation on how to us ``mazer publish`` to publish Collections to
-``pulp_ansible``.
+See the :ref:`collection-publish` documentation on how to us ``ansible-galaxy`` to publish
+Collections to ``pulp_ansible``.
 
 
 Add Content to a Repository

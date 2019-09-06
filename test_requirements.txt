@@ -1,3 +1,4 @@
+git+https://github.com/ansible/ansible.git@devel#egg=ansible
 coverage
 flake8
 flake8-black
