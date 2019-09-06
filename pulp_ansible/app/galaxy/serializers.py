@@ -4,6 +4,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from pulp_ansible.app.models import Collection, CollectionVersion, Role
+from pulp_ansible.app.galaxy.v3.serializers import CollectionMetadataSerializer
 
 
 class GalaxyRoleSerializer(serializers.ModelSerializer):
@@ -108,6 +109,7 @@ class GalaxyCollectionVersionSerializer(serializers.Serializer):
     namespace = serializers.SerializerMethodField(read_only=True)
     collection = serializers.SerializerMethodField(read_only=True)
     artifact = serializers.SerializerMethodField(read_only=True)
+    metadata = CollectionMetadataSerializer(source="*")
 
     def get_href(self, obj):
         """
@@ -138,7 +140,7 @@ class GalaxyCollectionVersionSerializer(serializers.Serializer):
         return {"sha256": artifact.sha256, "size": artifact.size}
 
     class Meta:
-        fields = ("version", "href")
+        fields = ("version", "href", "metadata")
         model = CollectionVersion
 
 

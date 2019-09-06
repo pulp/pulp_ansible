@@ -143,13 +143,13 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
     Serializer for Ansible Distributions.
     """
 
-    mazer_url = serializers.SerializerMethodField(
-        read_only=True, help_text=_("The URL of a mazer content source.")
+    client_url = serializers.SerializerMethodField(
+        read_only=True, help_text=_("The URL of a Collection content source.")
     )
 
-    def get_mazer_url(self, obj):
+    def get_client_url(self, obj):
         """
-        Get mazer_url.
+        Get client_url.
         """
         return "{hostname}/pulp_ansible/galaxy/{base_path}".format(
             hostname=settings.ANSIBLE_API_HOSTNAME, base_path=obj.base_path
@@ -164,7 +164,7 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
             "name",
             "repository",
             "repository_version",
-            "mazer_url",
+            "client_url",
         )
         model = AnsibleDistribution
 
