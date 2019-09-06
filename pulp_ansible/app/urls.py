@@ -62,7 +62,7 @@ v3_urls = [
         views_v3.CollectionVersionViewSet.as_view(
             {"put": "set_certified", "delete": "set_certified"}
         ),
-        name="collection-versions-detail",
+        name="collection-versions-set-certified",
     ),
     path(
         "imports/collections/<uuid:pk>/",
