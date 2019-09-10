@@ -288,7 +288,7 @@ class CollectionSyncFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        with ProgressBar(message="Parsing Collection Metadata") as pb:
+        with ProgressBar(message="Parsing Collection Metadata", code="parsing.metadata") as pb:
             async for metadata in self._fetch_collections():
 
                 url = metadata["download_url"]
@@ -340,7 +340,8 @@ class CollectionSyncFirstStage(Stage):
 
             return get_page_url(remote.url, page)
 
-        with ProgressBar(message="Parsing Galaxy Collections API") as progress_bar:
+        progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
+        with ProgressBar(**progress_data) as progress_bar:
             url = _get_url(page_count)
             downloader = remote.get_downloader(url=url)
             initial_data = parse_metadata(await downloader.run())
