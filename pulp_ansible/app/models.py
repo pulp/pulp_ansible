@@ -53,14 +53,22 @@ class CollectionImport(models.Model):
     task = models.OneToOneField(
         Task, on_delete=models.CASCADE, editable=False, related_name="+", primary_key=True
     )
-
-    namespace = models.CharField(max_length=64, editable=False)
-    name = models.CharField(max_length=64, editable=False)
-    version = models.CharField(max_length=32, editable=False)
     messages = psql_fields.JSONField(default=list, editable=False)
 
     class Meta:
         ordering = ["task___created"]
+
+    def add_log_record(self, log_record):
+        """
+        Records a single log message but does not save the CollectionImport object.
+
+        Args:
+            log_record(logging.LogRecord): The logging record to record on messages.
+
+        """
+        self.messages.append(
+            {"message": log_record.msg, "level": log_record.levelname, "time": log_record.created}
+        )
 
 
 class Tag(Model):

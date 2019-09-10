@@ -20,10 +20,7 @@ from .models import (
     Role,
     Tag,
 )
-from pulp_ansible.app.tasks.utils import (
-    parse_collections_requirements_file,
-    parse_collection_filename,
-)
+from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -131,11 +128,32 @@ class CollectionOneShotSerializer(serializers.Serializer):
         default=None,
     )
 
-    def validate(self, attrs):
-        """Parse and validate collection filename."""
-        attrs = super().validate(attrs)
-        attrs["filename"] = parse_collection_filename(attrs["file"].name)
-        return attrs
+    expected_namespace = serializers.CharField(
+        help_text=_(
+            "The expected 'namespace' of the Collection to be verified against the "
+            "metadata during import."
+        ),
+        required=False,
+        default=None,
+    )
+
+    expected_name = serializers.CharField(
+        help_text=_(
+            "The expected 'name' of the Collection to be verified against the metadata during "
+            "import."
+        ),
+        required=False,
+        default=None,
+    )
+
+    expected_version = serializers.CharField(
+        help_text=_(
+            "The expected version of the Collection to be verified against the metadata during "
+            "import."
+        ),
+        required=False,
+        default=None,
+    )
 
 
 class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
@@ -297,17 +315,7 @@ class CollectionImportListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CollectionImport
-        fields = (
-            "id",
-            "namespace",
-            "name",
-            "version",
-            "state",
-            "created_at",
-            "updated_at",
-            "started_at",
-            "finished_at",
-        )
+        fields = ("id", "state", "created_at", "updated_at", "started_at", "finished_at")
 
 
 class CollectionImportDetailSerializer(CollectionImportListSerializer):

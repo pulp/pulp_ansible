@@ -137,19 +137,22 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
         locks = [str(artifact.pk)]
         kwargs = {"artifact_pk": artifact.pk}
 
+        if serializer.validated_data["expected_namespace"]:
+            kwargs["expected_namespace"] = serializer.validated_data["expected_namespace"]
+
+        if serializer.validated_data["expected_name"]:
+            kwargs["expected_name"] = serializer.validated_data["expected_name"]
+
+        if serializer.validated_data["expected_version"]:
+            kwargs["expected_version"] = serializer.validated_data["expected_version"]
+
         if distro.repository:
             locks.append(distro.repository)
             kwargs["repository_pk"] = distro.repository.pk
 
-        filename = serializer.validated_data["filename"]
         with transaction.atomic():
             async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
-            CollectionImport.objects.create(
-                namespace=filename.namespace,
-                name=filename.name,
-                version=filename.version,
-                task_id=async_result.id,
-            )
+            CollectionImport.objects.create(task_id=async_result.id)
 
         data = {
             "task": reverse(

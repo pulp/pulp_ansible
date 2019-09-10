@@ -3,6 +3,7 @@ from gettext import gettext as _
 import logging
 import math
 
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
 from galaxy_importer.collection import import_collection as process_collection
@@ -71,21 +72,79 @@ def sync(remote_pk, repository_pk, mirror):
     d_version.create()
 
 
-def import_collection(artifact_pk, repository_pk=None):
+def import_collection(
+    artifact_pk,
+    repository_pk=None,
+    expected_namespace=None,
+    expected_name=None,
+    expected_version=None,
+):
     """
-    Create a Collection from an uploaded artifact.
+    Create a Collection from an uploaded artifact and optionally validate its expected metadata.
+
+    This task provides optional validation of the `namespace`, `name`, and `version` metadata
+    attributes. If the Artifact fails validation or parsing, the Artifact is deleted and the
+    Collection is not created.
 
     Args:
-        artifact_pk (str): The pk or the Artifact to create the Collection from.
+        artifact_pk (str): The pk of the Artifact to create the Collection from.
 
     Keyword Args:
         repository_pk (str): Optional. If specified, a new RepositoryVersion will be created for the
             Repository and any new Collection content associated with it.
+        expected_namespace (str): Optional. The namespace is validated against the namespace
+            specified in the Collection's metadata. If it does not match a ValidationError is
+            raised.
+        expected_name (str): Optional. The name is validated against the name specified in the
+            Collection's metadata. If it does not match a ValidationError is raised.
+        expected_version (str): Optional. The version is validated against the version specified in
+            the Collection's metadata. If it does not match a ValidationError is raised.
+
+    Raises:
+        ValidationError: If the `expected_namespace`, `expected_name`, or `expected_version` do not
+            match the metadata in the tarball.
+
     """
     artifact = Artifact.objects.get(pk=artifact_pk)
     log.info("Processing collection from {path}".format(path=artifact.file.path))
     importer_result = process_collection(str(artifact.file.path))
-    collection_info = importer_result["metadata"]
+    try:
+        collection_info = importer_result["metadata"]
+
+        if expected_namespace and expected_namespace != collection_info["namespace"]:
+            msg = _(
+                "Expected namespace '{expected_namespace}', but instead Collection has namespace "
+                "'{collection_namespace}'."
+            )
+            raise ValidationError(
+                msg.format(
+                    expected_namespace=expected_namespace,
+                    collection_namespace=collection_info["namespace"],
+                )
+            )
+
+        if expected_name and expected_name != collection_info["name"]:
+            msg = _(
+                "Expected name '{expected_name}', but instead Collection has name "
+                "'{collection_name}'."
+            )
+            raise ValidationError(
+                msg.format(expected_name=expected_name, collection_name=collection_info["name"])
+            )
+
+        if expected_version and expected_version != collection_info["version"]:
+            msg = _(
+                "Expected version '{expected_version}', but instead Collection has version "
+                "'{collection_version}'."
+            )
+            raise ValidationError(
+                msg.format(
+                    expected_version=expected_version, collection_version=collection_info["version"]
+                )
+            )
+    except Exception:
+        artifact.delete()
+        raise
 
     with transaction.atomic():
         collection, created = Collection.objects.get_or_create(
@@ -98,7 +157,7 @@ def import_collection(artifact_pk, repository_pk=None):
         collection_info.pop("license_file")
         collection_info.pop("readme")
 
-        # Mazer returns many None values. We need to let the defaults in models.py prevail
+        # the importer returns many None values. We need to let the defaults in the model prevail
         for key in ["description", "documentation", "homepage", "issues", "repository"]:
             if collection_info[key] is None:
                 collection_info.pop(key)
