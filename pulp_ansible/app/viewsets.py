@@ -112,7 +112,7 @@ class CollectionVersionViewSet(ContentViewSet):
     ViewSet for Ansible Collection.
     """
 
-    endpoint_name = "collections"
+    endpoint_name = "collection_versions"
     queryset = CollectionVersion.objects.prefetch_related("_artifacts")
     serializer_class = CollectionVersionSerializer
     filterset_class = CollectionVersionFilter
