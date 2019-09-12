@@ -1,13 +1,15 @@
 import asyncio
+import contextlib
 from gettext import gettext as _
 import json
 import logging
 import math
 import tarfile
 
-from django.core.exceptions import ValidationError
 from django.db import transaction
 from galaxy_importer.collection import import_collection as process_collection
+from galaxy_importer.collection import CollectionFilename
+from galaxy_importer.exceptions import ImporterError
 from rq.job import get_current_job
 
 from pulpcore.plugin.models import (
@@ -104,15 +106,15 @@ def import_collection(
         repository_pk (str): Optional. If specified, a new RepositoryVersion will be created for the
             Repository and any new Collection content associated with it.
         expected_namespace (str): Optional. The namespace is validated against the namespace
-            specified in the Collection's metadata. If it does not match a ValidationError is
+            specified in the Collection's metadata. If it does not match a ImporterError is
             raised.
         expected_name (str): Optional. The name is validated against the name specified in the
-            Collection's metadata. If it does not match a ValidationError is raised.
+            Collection's metadata. If it does not match a ImporterError is raised.
         expected_version (str): Optional. The version is validated against the version specified in
-            the Collection's metadata. If it does not match a ValidationError is raised.
+            the Collection's metadata. If it does not match a ImporterError is raised.
 
     Raises:
-        ValidationError: If the `expected_namespace`, `expected_name`, or `expected_version` do not
+        ImporterError: If the `expected_namespace`, `expected_name`, or `expected_version` do not
             match the metadata in the tarball.
 
     """
@@ -120,47 +122,22 @@ def import_collection(
     CollectionImport.objects.get_or_create(task_id=get_current_job().id)
 
     artifact = Artifact.objects.get(pk=artifact_pk)
-    log.info("Processing collection from {path}".format(path=artifact.file.path))
+    filename = CollectionFilename(expected_namespace, expected_name, expected_version)
+    log.info(f"Processing collection from {artifact.file.name}")
     import_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
 
-    try:
-        importer_result = process_collection(str(artifact.file.path), logger=import_logger)
-        collection_info = importer_result["metadata"]
-
-        if expected_namespace and expected_namespace != collection_info["namespace"]:
-            msg = _(
-                "Expected namespace '{expected_namespace}', but instead Collection has namespace "
-                "'{collection_namespace}'."
-            )
-            raise ValidationError(
-                msg.format(
-                    expected_namespace=expected_namespace,
-                    collection_namespace=collection_info["namespace"],
+    with _artifact_guard(artifact):
+        try:
+            with artifact.file.open() as artifact_file:
+                importer_result = process_collection(
+                    artifact_file, filename=filename, logger=import_logger
                 )
-            )
 
-        if expected_name and expected_name != collection_info["name"]:
-            msg = _(
-                "Expected name '{expected_name}', but instead Collection has name "
-                "'{collection_name}'."
-            )
-            raise ValidationError(
-                msg.format(expected_name=expected_name, collection_name=collection_info["name"])
-            )
+        except ImporterError as exc:
+            log.info(f"Collection processing was not successfull: {exc}")
+            raise
 
-        if expected_version and expected_version != collection_info["version"]:
-            msg = _(
-                "Expected version '{expected_version}', but instead Collection has version "
-                "'{collection_version}'."
-            )
-            raise ValidationError(
-                msg.format(
-                    expected_version=expected_version, collection_version=collection_info["version"]
-                )
-            )
-    except Exception:
-        artifact.delete()
-        raise
+    collection_info = importer_result["metadata"]
 
     with transaction.atomic():
         collection, created = Collection.objects.get_or_create(
@@ -227,6 +204,16 @@ def _update_highest_version(collection_version):
         collection_version.is_highest = True
         last_highest.save()
         collection_version.save()
+
+
+@contextlib.contextmanager
+def _artifact_guard(artifact):
+    """Will delete artifact in case of exception."""
+    try:
+        yield artifact
+    except Exception:
+        artifact.delete()
+        raise
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
@@ -422,8 +409,10 @@ class CollectionContentSaver(ContentSaver):
             collection_version = d_content.content
             for d_artifact in d_content.d_artifacts:
                 artifact = d_artifact.artifact
-                with tarfile.open(str(artifact.file.path), "r") as tar:
-                    log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.path))
+                with artifact.file.open() as artifact_file, tarfile.open(
+                    fileobj=artifact_file, mode="r"
+                ) as tar:
+                    log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.name))
                     file_obj = tar.extractfile("MANIFEST.json")
                     manifest_data = json.load(file_obj)
                     info = manifest_data["collection_info"]
