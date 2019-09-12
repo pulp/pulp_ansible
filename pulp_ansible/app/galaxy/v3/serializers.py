@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
@@ -161,5 +162,7 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get artifact download URL.
         """
-        filename = self.context["content_artifact"].relative_path
-        return "/api/v3/artifacts/collections/" + filename
+        host = settings.CONTENT_HOST.strip("/")
+        prefix = settings.CONTENT_PATH_PREFIX.strip("/")
+        base_path = self.context["content_artifact"].relative_path.lstrip("/")
+        return f"{host}/{prefix}/{base_path}"
