@@ -5,8 +5,8 @@ import math
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
-
 from galaxy_importer.collection import import_collection as process_collection
+from rq.job import get_current_job
 
 from pulpcore.plugin.models import (
     Artifact,
@@ -33,7 +33,13 @@ from pulpcore.plugin.stages import (
 )
 import semantic_version as semver
 
-from pulp_ansible.app.models import Collection, CollectionRemote, CollectionVersion, Tag
+from pulp_ansible.app.models import (
+    Collection,
+    CollectionImport,
+    CollectionRemote,
+    CollectionVersion,
+    Tag,
+)
 from pulp_ansible.app.tasks.utils import (
     get_page_url,
     parse_metadata,
@@ -86,6 +92,9 @@ def import_collection(
     attributes. If the Artifact fails validation or parsing, the Artifact is deleted and the
     Collection is not created.
 
+    This task performs a CollectionImport object get_or_create() to allow import messages to be
+    logged.
+
     Args:
         artifact_pk (str): The pk of the Artifact to create the Collection from.
 
@@ -105,10 +114,14 @@ def import_collection(
             match the metadata in the tarball.
 
     """
+
+    CollectionImport.objects.get_or_create(task_id=get_current_job().id)
+
     artifact = Artifact.objects.get(pk=artifact_pk)
     log.info("Processing collection from {path}".format(path=artifact.file.path))
-    importer_result = process_collection(str(artifact.file.path))
+
     try:
+        importer_result = process_collection(str(artifact.file.path))
         collection_info = importer_result["metadata"]
 
         if expected_namespace and expected_namespace != collection_info["namespace"]:

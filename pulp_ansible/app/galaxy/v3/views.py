@@ -1,7 +1,7 @@
 from gettext import gettext as _
 import semantic_version
 
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
@@ -150,9 +150,7 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
             locks.append(distro.repository)
             kwargs["repository_pk"] = distro.repository.pk
 
-        with transaction.atomic():
-            async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
-            CollectionImport.objects.create(task_id=async_result.id)
+        async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
 
         data = {
             "task": reverse(
