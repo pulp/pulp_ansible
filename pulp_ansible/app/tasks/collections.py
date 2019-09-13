@@ -1,7 +1,9 @@
 import asyncio
 from gettext import gettext as _
+import json
 import logging
 import math
+import tarfile
 
 from django.core.exceptions import ValidationError
 from django.db import transaction
@@ -119,9 +121,10 @@ def import_collection(
 
     artifact = Artifact.objects.get(pk=artifact_pk)
     log.info("Processing collection from {path}".format(path=artifact.file.path))
+    import_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
 
     try:
-        importer_result = process_collection(str(artifact.file.path))
+        importer_result = process_collection(str(artifact.file.path), logger=import_logger)
         collection_info = importer_result["metadata"]
 
         if expected_namespace and expected_namespace != collection_info["namespace"]:
@@ -175,7 +178,12 @@ def import_collection(
             if collection_info[key] is None:
                 collection_info.pop(key)
 
-        collection_version = CollectionVersion(collection=collection, **collection_info)
+        collection_version = CollectionVersion(
+            collection=collection,
+            **collection_info,
+            contents=importer_result["contents"],
+            docs_blob=importer_result["docs_blob"],
+        )
         collection_version.save()
 
         for name in tags:
@@ -413,9 +421,11 @@ class CollectionContentSaver(ContentSaver):
             collection_version = d_content.content
             for d_artifact in d_content.d_artifacts:
                 artifact = d_artifact.artifact
-                log.info("Processing collection from {path}".format(path=artifact.file.path))
-                importer_result = process_collection(str(artifact.file.path))
-                info = importer_result["metadata"]
+                with tarfile.open(str(artifact.file.path), "r") as tar:
+                    log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.path))
+                    file_obj = tar.extractfile("MANIFEST.json")
+                    manifest_data = json.load(file_obj)
+                    info = manifest_data["collection_info"]
 
                 # Create the tags
                 tags = info.pop("tags")
