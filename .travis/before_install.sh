@@ -39,39 +39,48 @@ flake8 --config flake8.cfg
 
 cd ..
 git clone --depth=1 https://github.com/pulp/ansible-pulp.git
-if [ -n "$PULP_ROLES_PR_NUMBER" ]; then
-  cd ansible-pulp
-  git fetch --depth=1 origin +refs/pull/$PULP_ROLES_PR_NUMBER/merge
-  git checkout FETCH_HEAD
-  cd ..
+if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+  if [ -n "$PULP_ROLES_PR_NUMBER" ]; then
+    cd ansible-pulp
+    git fetch --depth=1 origin +refs/pull/$PULP_ROLES_PR_NUMBER/merge
+    git checkout FETCH_HEAD
+    cd ..
+  fi
 fi
 
 git clone --depth=1 https://github.com/pulp/pulpcore.git
 
-if [ -n "$PULP_PR_NUMBER" ]; then
-  cd pulpcore
-  git fetch --depth=1 origin +refs/pull/$PULP_PR_NUMBER/merge
-  git checkout FETCH_HEAD
-  cd ..
+if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+  if [ -n "$PULP_PR_NUMBER" ]; then
+    cd pulpcore
+    git fetch --depth=1 origin +refs/pull/$PULP_PR_NUMBER/merge
+    git checkout FETCH_HEAD
+    cd ..
+  fi
 fi
 
 
 git clone --depth=1 https://github.com/pulp/pulpcore-plugin.git
 
-if [ -n "$PULP_PLUGIN_PR_NUMBER" ]; then
-  cd pulpcore-plugin
-  git fetch --depth=1 origin +refs/pull/$PULP_PLUGIN_PR_NUMBER/merge
-  git checkout FETCH_HEAD
-  cd ..
+if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+  if [ -n "$PULP_PLUGIN_PR_NUMBER" ]; then
+    cd pulpcore-plugin
+    git fetch --depth=1 origin +refs/pull/$PULP_PLUGIN_PR_NUMBER/merge
+    git checkout FETCH_HEAD
+    cd ..
+  fi
 fi
 
 
-if [ -n "$PULP_SMASH_PR_NUMBER" ]; then
-  git clone --depth=1 https://github.com/PulpQE/pulp-smash.git
-  cd pulp-smash
-  git fetch --depth=1 origin +refs/pull/$PULP_SMASH_PR_NUMBER/merge
-  git checkout FETCH_HEAD
-  cd ..
+git clone --depth=1 https://github.com/PulpQE/pulp-smash.git
+
+if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+  if [ -n "$PULP_SMASH_PR_NUMBER" ]; then
+    cd pulp-smash
+    git fetch --depth=1 origin +refs/pull/$PULP_SMASH_PR_NUMBER/merge
+    git checkout FETCH_HEAD
+    cd ..
+  fi
 fi
 
 psql -c 'CREATE DATABASE pulp OWNER travis;'
