@@ -50,11 +50,11 @@ class RoleSerializer(SingleArtifactContentSerializer):
         relative_path = "{namespace}/{name}/{version}.tar.gz".format(
             namespace=data["namespace"], name=data["name"], version=data["version"]
         )
-        data["_relative_path"] = relative_path
+        data["relative_path"] = relative_path
         return data
 
     class Meta:
-        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"_relative_path"}) + (
+        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"}) + (
             "version",
             "name",
             "namespace",
@@ -278,7 +278,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
 
     class Meta:
         fields = (
-            tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"_relative_path"})
+            tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"})
             + ContentChecksumSerializer.Meta.fields
             + (
                 "id",

@@ -23,7 +23,7 @@ class TestRoleSerializer(TestCase):
             file=SimpleUploadedFile("test_filename", b"test content"),
         )
         self.data = {
-            "_artifact": "/pulp/api/v3/artifacts/{}/".format(self.artifact.pk),
+            "artifact": "/pulp/api/v3/artifacts/{}/".format(self.artifact.pk),
             "version": "0.1.2.3",
             "name": "test1",
             "namespace": "testns",
