@@ -18,9 +18,6 @@
     pulp_install_db: false
     pulp_preq_packages: []
     pulp_settings:
-      content_host: 'localhost:24816'
-      ansible_api_hostname: 'http://localhost:24817'
-      ansible_content_hostname: 'http://localhost:24816/pulp/content'
       secret_key: 'secret'
       databases:
         default:

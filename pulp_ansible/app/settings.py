@@ -1,3 +1,6 @@
+import socket
+
+
 LOGGING = {
     "loggers": {
         "pulp_ansible.app.tasks.collection.import_collection": {
@@ -15,3 +18,6 @@ LOGGING = {
     },
     "dynaconf_merge": True,
 }
+
+ANSIBLE_API_HOSTNAME = "http://" + socket.getfqdn()
+ANSIBLE_CONTENT_HOSTNAME = "http://" + socket.getfqdn() + "/pulp/content"
