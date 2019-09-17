@@ -1,0 +1,2 @@
+Fix CollectionVersion view imcompatibilty with ansible-galaxy.
+Fixes ansible issue https://github.com/ansible/ansible/issues/62076

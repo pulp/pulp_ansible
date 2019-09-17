@@ -131,6 +131,14 @@ class CollectionMetadataSerializer(serializers.ModelSerializer):
         )
 
 
+class CollectionNamespaceSerializer(serializers.Serializer):
+    """
+    A serializer for a Collection Version namespace field.
+    """
+
+    name = serializers.CharField(source="namespace")
+
+
 class CollectionVersionSerializer(CollectionVersionListSerializer):
     """
     A serializer for a CollectionVersion.
@@ -141,6 +149,7 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
     download_url = serializers.SerializerMethodField()
 
     metadata = CollectionMetadataSerializer(source="*")
+    namespace = CollectionNamespaceSerializer(source="*")
 
     class Meta(CollectionVersionListSerializer.Meta):
         fields = CollectionVersionListSerializer.Meta.fields + (
