@@ -1,1 +1,0 @@
-Add `requirements.yaml <https://docs.ansible.com/ansible/devel/dev_guide/collections_tech_preview.html#install-multiple-collections-with-a-requirements-file>`_ specification support to collection sync.

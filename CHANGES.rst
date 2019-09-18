@@ -13,6 +13,92 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b3 (2019-09-18)
+====================
+
+Features
+--------
+
+- Setting `code` on `ProgressBar`.
+  `#5184 <https://pulp.plan.io/issues/5184>`_
+- Add galaxy-importer into import_collection to parse and validate collection.
+  `#5239 <https://pulp.plan.io/issues/5239>`_
+- Add Collection upload endpoint to Galaxy V3 API.
+  `#5243 <https://pulp.plan.io/issues/5243>`_
+- Introduces the `GALAXY_API_ROOT` setting that lets you re-root the Galaxy API.
+  `#5244 <https://pulp.plan.io/issues/5244>`_
+- Add `requirements.yaml <https://docs.ansible.com/ansible/devel/dev_guide/collections_tech_preview.html#install-multiple-collections-with-a-requirements-file>`_ specification support to collection sync.
+  `#5250 <https://pulp.plan.io/issues/5250>`_
+- Adding `is_highest` filter for Collection Version.
+  `#5278 <https://pulp.plan.io/issues/5278>`_
+- Add certified collections status support.
+  `#5287 <https://pulp.plan.io/issues/5287>`_
+- Support pulp-to-pulp syncing of collections by expanding galaxy API views/serializers
+  `#5288 <https://pulp.plan.io/issues/5288>`_
+- Add model for tracking collection import status.
+  `#5300 <https://pulp.plan.io/issues/5300>`_
+- Add collection imports endpoints.
+  `#5301 <https://pulp.plan.io/issues/5301>`_
+- Uploaded collections through the Galaxy V2 and V3 APIs now auto-create a RepositoryVersion for the
+  Repository associated with the AnsibleDistribution.
+  `#5334 <https://pulp.plan.io/issues/5334>`_
+- Added support for `ansible-galaxy collections` command and removed mazer.
+  `#5335 <https://pulp.plan.io/issues/5335>`_
+- CollectionImport object is created on collection upload.
+  `#5358 <https://pulp.plan.io/issues/5358>`_
+- Adds id field to collection version items returned by API.
+  `#5365 <https://pulp.plan.io/issues/5365>`_
+- The Galaxy V3 artifacts/collections/ API now logs correctly during the import process.
+  `#5366 <https://pulp.plan.io/issues/5366>`_
+- Write galaxy-importer result of contents and docs_blob into CollectionVersion model
+  `#5368 <https://pulp.plan.io/issues/5368>`_
+- The Galaxy v3 API validates the tarball's binary data before import using the optional arguments
+  `expected_namespace`, `expected_name`, and `expected_version`.
+  `#5422 <https://pulp.plan.io/issues/5422>`_
+- Settings ``ANSIBLE_API_HOSTNAME`` and ``ANSIBLE_CONTENT_HOSTNAME`` now have defaults that use your
+  FQDN, which works with `the installer <https://github.com/pulp/ansible-pulp>`_ defaults.
+  `#5466 <https://pulp.plan.io/issues/5466>`_
+
+
+Bugfixes
+--------
+
+- Treating how JSONFields will be handled by OpenAPI.
+  `#5299 <https://pulp.plan.io/issues/5299>`_
+- Galaxy API v3 collection upload returns valid imports URL.
+  `#5357 <https://pulp.plan.io/issues/5357>`_
+- Fix CollectionVersion view imcompatibilty with ansible-galaxy.
+  Fixes ansible issue https://github.com/ansible/ansible/issues/62076
+  `#5459 <https://pulp.plan.io/issues/5459>`_
+
+
+Improved Documentation
+----------------------
+
+- Added documentation on all settings.
+  `#5244 <https://pulp.plan.io/issues/5244>`_
+
+
+Deprecations and Removals
+-------------------------
+
+- Removing `latest` filter Collection Version.
+  `#5227 <https://pulp.plan.io/issues/5227>`_
+- Removed support for mazer cli.
+  `#5335 <https://pulp.plan.io/issues/5335>`_
+- Renamed _artifact on content creation to artifact.
+  `#5428 <https://pulp.plan.io/issues/5428>`_
+
+
+Misc
+----
+
+- `#4681 <https://pulp.plan.io/issues/4681>`_, `#5236 <https://pulp.plan.io/issues/5236>`_, `#5262 <https://pulp.plan.io/issues/5262>`_, `#5332 <https://pulp.plan.io/issues/5332>`_, `#5333 <https://pulp.plan.io/issues/5333>`_
+
+
+----
+
+
 0.2.0b2 (2019-08-12)
 ====================
 
