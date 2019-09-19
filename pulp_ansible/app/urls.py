@@ -12,7 +12,7 @@ from pulp_ansible.app.galaxy.views import (
 )
 from pulp_ansible.app.galaxy.v3 import views as views_v3
 
-from pulp_ansible.app.viewsets import CollectionUploadViewSet
+from pulp_ansible.app.viewsets import CollectionVersionViewSet
 
 
 GALAXY_API_ROOT = getattr(settings, "GALAXY_API_ROOT", "pulp_ansible/galaxy/<path:path>/api/")
@@ -39,7 +39,7 @@ v3_urls = [
     ),
     path(
         "artifacts/collections/",
-        views_v3.CollectionUploadViewSet.as_view({"post": "create"}),
+        views_v3.CollectionVersionViewSet.as_view({"post": "create"}),
         name="collection-artifact-upload",
     ),
     path(
@@ -72,7 +72,7 @@ v3_urls = [
 ]
 
 urlpatterns = [
-    path("ansible/collections/", CollectionUploadViewSet.as_view({"post": "create"})),
+    path("ansible/collections/", CollectionVersionViewSet.as_view({"post": "create"})),
     path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
     path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
     path(GALAXY_API_ROOT + "v2/", include(v2_urls)),
