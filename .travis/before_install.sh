@@ -39,7 +39,7 @@ flake8 --config flake8.cfg
 
 cd ..
 git clone --depth=1 https://github.com/pulp/ansible-pulp.git
-if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   if [ -n "$PULP_ROLES_PR_NUMBER" ]; then
     cd ansible-pulp
     git fetch --depth=1 origin +refs/pull/$PULP_ROLES_PR_NUMBER/merge
@@ -50,7 +50,7 @@ fi
 
 git clone --depth=1 https://github.com/pulp/pulpcore.git
 
-if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   if [ -n "$PULP_PR_NUMBER" ]; then
     cd pulpcore
     git fetch --depth=1 origin +refs/pull/$PULP_PR_NUMBER/merge
@@ -62,7 +62,7 @@ fi
 
 git clone --depth=1 https://github.com/pulp/pulpcore-plugin.git
 
-if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   if [ -n "$PULP_PLUGIN_PR_NUMBER" ]; then
     cd pulpcore-plugin
     git fetch --depth=1 origin +refs/pull/$PULP_PLUGIN_PR_NUMBER/merge
@@ -74,7 +74,7 @@ fi
 
 git clone --depth=1 https://github.com/PulpQE/pulp-smash.git
 
-if [[ -v TRAVIS_EVENT_TYPE ]] && [[ "$TRAVIS_EVENT_TYPE" == "pull_request"  ]]; then
+if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
   if [ -n "$PULP_SMASH_PR_NUMBER" ]; then
     cd pulp-smash
     git fetch --depth=1 origin +refs/pull/$PULP_SMASH_PR_NUMBER/merge
