@@ -5,7 +5,7 @@ import math
 from asyncio import FIRST_COMPLETED
 from gettext import gettext as _
 
-from pulpcore.plugin.models import Artifact, ProgressBar, Remote, Repository
+from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
@@ -78,7 +78,7 @@ class AnsibleFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        with ProgressBar(message="Parsing Role Metadata", code="parsing.metadata") as pb:
+        with ProgressReport(message="Parsing Role Metadata", code="parsing.metadata") as pb:
             async for metadata in self._fetch_roles():
                 for version in metadata["summary_fields"]["versions"]:
                     url = GITHUB_URL % (
@@ -131,7 +131,7 @@ class AnsibleFirstStage(Stage):
         remote = self.remote
 
         progress_data = dict(message="Parsing Pages from Galaxy Roles API", code="parsing.roles")
-        with ProgressBar(**progress_data) as progress_bar:
+        with ProgressReport(**progress_data) as progress_bar:
             downloader = remote.get_downloader(url=get_page_url(remote.url))
             metadata = parse_metadata(await downloader.run())
 
