@@ -13,6 +13,16 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b4 (2019-09-23)
+====================
+
+No significant changes. This release is for compatiblity against the already-released pulpcore
+3.0.0rc5 release.
+
+
+----
+
+
 0.2.0b3 (2019-09-18)
 ====================
 
