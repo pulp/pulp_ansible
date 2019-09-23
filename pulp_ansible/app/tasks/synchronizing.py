@@ -78,7 +78,7 @@ class AnsibleFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        with ProgressBar(message="Parsing Role Metadata", code="parsing.metadata") as pb:
+        with ProgressBar(message="Parsing Role Metadata") as pb:
             async for metadata in self._fetch_roles():
                 for version in metadata["summary_fields"]["versions"]:
                     url = GITHUB_URL % (
@@ -130,8 +130,7 @@ class AnsibleFirstStage(Stage):
         page_count = 0
         remote = self.remote
 
-        progress_data = dict(message="Parsing Pages from Galaxy Roles API", code="parsing.roles")
-        with ProgressBar(**progress_data) as progress_bar:
+        with ProgressBar(message="Parsing Pages from Galaxy Roles API") as progress_bar:
             downloader = remote.get_downloader(url=get_page_url(remote.url))
             metadata = parse_metadata(await downloader.run())
 
