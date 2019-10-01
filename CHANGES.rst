@@ -13,6 +13,18 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b5 (2019-10-01)
+====================
+
+Misc
+----
+
+- `#5462 <https://pulp.plan.io/issues/5462>`_, `#5468 <https://pulp.plan.io/issues/5468>`_
+
+
+----
+
+
 0.2.0b3 (2019-09-18)
 ====================
 
