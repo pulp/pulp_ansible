@@ -15,7 +15,7 @@ with open("README.rst") as f:
 
 setup(
     name="pulp-ansible",
-    version="0.2.0b5",
+    version="0.2.0b6.dev",
     description="Pulp plugin to manage Ansible content, e.g. roles",
     long_description=long_description,
     license="GPLv2+",
