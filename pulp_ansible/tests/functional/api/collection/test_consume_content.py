@@ -40,22 +40,22 @@ class ConsumeContentTestCase(unittest.TestCase):
     def test_consume_content(self):
         """Test whether ansible-galaxy can install content hosted by Pulp."""
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo["_href"])
+        self.addCleanup(self.client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote["_href"])
+        self.addCleanup(self.client.delete, remote["pulp_href"])
 
         # Sync the repository.
         self.assertIsNone(repo["_latest_version_href"])
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo["_href"])
+        repo = self.client.get(repo["pulp_href"])
 
         # Create distribution
         distribution = self.client.post(
-            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=repo["_href"])
+            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=repo["pulp_href"])
         )
-        self.addCleanup(self.client.delete, distribution["_href"])
+        self.addCleanup(self.client.delete, distribution["pulp_href"])
 
         with tempfile.TemporaryDirectory() as temp_dir:
             self.cli_client.run(

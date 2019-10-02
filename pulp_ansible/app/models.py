@@ -56,7 +56,7 @@ class CollectionImport(models.Model):
     messages = psql_fields.JSONField(default=list, editable=False)
 
     class Meta:
-        ordering = ["task___created"]
+        ordering = ["task__pulp_created"]
 
     def add_log_record(self, log_record):
         """

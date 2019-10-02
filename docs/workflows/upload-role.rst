@@ -13,13 +13,13 @@ locally with::
 Each Artifact in Pulp represents a file. They can be created during sync or created manually by
 uploading a file::
 
-    $ export ARTIFACT_HREF=$(http --form POST :24817/pulp/api/v3/artifacts/ file@pg.tar.gz | jq -r '._href')
+    $ export ARTIFACT_HREF=$(http --form POST :24817/pulp/api/v3/artifacts/ file@pg.tar.gz | jq -r '.pulp_href')
 
 
 Response::
 
     {
-        "_href": "/pulp/api/v3/artifacts/5741288b-7ed5-4199-a5a6-3d82fb97055c/",
+        "pulp_href": "/pulp/api/v3/artifacts/5741288b-7ed5-4199-a5a6-3d82fb97055c/",
     }
 
 
@@ -40,8 +40,8 @@ Response::
 
     {
         "_artifact": "/pulp/api/v3/artifacts/c4f518e5-0f98-41fa-8c64-a363159f3193/",
-        "_created": "2019-07-26T13:41:33.691481Z",
-        "_href": "/pulp/api/v3/content/ansible/roles/b059a742-1d5d-452d-8085-856844b70f1a/",
+        "pulp_created": "2019-07-26T13:41:33.691481Z",
+        "pulp_href": "/pulp/api/v3/content/ansible/roles/b059a742-1d5d-452d-8085-856844b70f1a/",
         "_type": "ansible.role",
         "name": "postgresql",
         "namespace": "pulp",
@@ -51,7 +51,7 @@ Response::
 
 Create a variable for convenience::
 
-    $ export CONTENT_HREF=$(http $BASE_ADDR/pulp/api/v3/content/ansible/roles/ | jq -r '.results[] | select(.filename == "pg.tar.gz") | ._href')
+    $ export CONTENT_HREF=$(http $BASE_ADDR/pulp/api/v3/content/ansible/roles/ | jq -r '.results[] | select(.filename == "pg.tar.gz") | .pulp_href')
 
 
 .. todo::

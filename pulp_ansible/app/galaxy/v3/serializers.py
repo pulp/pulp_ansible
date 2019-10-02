@@ -8,8 +8,8 @@ from pulp_ansible.app import models
 class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
 
-    created_at = serializers.DateTimeField(source="collection._created")
-    updated_at = serializers.DateTimeField(source="collection._last_updated")
+    created_at = serializers.DateTimeField(source="collection.pulp_created")
+    updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
     deprecated = serializers.BooleanField(source="collection.deprecated")
     href = serializers.SerializerMethodField()
 
@@ -61,8 +61,8 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
     """A serializer for a CollectionVersion list item."""
 
     href = serializers.SerializerMethodField()
-    created_at = serializers.DateTimeField(source="collection._created")
-    updated_at = serializers.DateTimeField(source="collection._last_updated")
+    created_at = serializers.DateTimeField(source="collection.pulp_created")
+    updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
 
     class Meta:
         fields = ("version", "is_certified", "href", "created_at", "updated_at")

@@ -18,7 +18,7 @@ TS_VECTOR_SELECT = '''
           coalesce(string_agg("ansible_tag"."name", ' '), '')
         ), 'B')
       FROM
-        "ansible_tag" INNER JOIN "ansible_collectionversion_tags" ON ("ansible_tag"."_id" = "ansible_collectionversion_tags"."tag_id")
+        "ansible_tag" INNER JOIN "ansible_collectionversion_tags" ON ("ansible_tag"."pulp_id" = "ansible_collectionversion_tags"."tag_id")
     )
     || (
       SELECT
@@ -80,6 +80,11 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RenameField(
+            model_name='tag',
+            old_name='_id',
+            new_name='pulp_id',
+        ),
         migrations.AddField(
             model_name='collectionversion',
             name='search_vector',

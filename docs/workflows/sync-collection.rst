@@ -13,8 +13,8 @@ Create a Repository
 Repository GET Response::
 
     {
-        "_created": "2019-04-29T15:57:59.763712Z",
-        "_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
+        "pulp_created": "2019-04-29T15:57:59.763712Z",
+        "pulp_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
         "_latest_version_href": null,
         "_versions_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
         "description": null,
@@ -41,9 +41,9 @@ from ``https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing
 Remote GET Response::
 
     {
-        "_created": "2019-04-29T13:51:10.860792Z",
-        "_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
-        "_last_updated": "2019-04-29T13:51:10.860805Z",
+        "pulp_created": "2019-04-29T13:51:10.860792Z",
+        "pulp_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
+        "pulp_last_updated": "2019-04-29T13:51:10.860805Z",
         "_type": "ansible.collection",
         "download_concurrency": 20,
         "name": "bar",
@@ -74,8 +74,8 @@ Repository Version GET Response (when complete)::
 
 
     {
-        "_href": "/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/",
-        "_created": "2019-05-28T21:51:08.172095Z",
+        "pulp_href": "/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/",
+        "pulp_created": "2019-05-28T21:51:08.172095Z",
         "number": 1,
         "base_version": null,
         "content_summary": {

@@ -19,8 +19,8 @@ content at ``$CONTENT_HOST/pulp/content/<distribution.base_path>`` as demonstrat
 .. code:: json
 
     {
-        "_created": "2019-07-26T16:46:23.666410Z",
-        "_href": "/pulp/api/v3/distributions/ansible/ansible/4262ed83-e86c-4a13-baff-fc543c46a391/",
+        "pulp_created": "2019-07-26T16:46:23.666410Z",
+        "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/4262ed83-e86c-4a13-baff-fc543c46a391/",
         "base_path": "foo",
         "base_url": "/pulp/content/foo",
         "content_guard": null,
@@ -46,8 +46,8 @@ RepositoryVersion for a Distribution.
 .. code:: json
 
     {
-        "_created": "2019-07-26T16:51:04.803014Z",
-        "_href": "/pulp/api/v3/distributions/ansible/ansible/c9879338-8656-46aa-a2b2-46fa5d7b0329/",
+        "pulp_created": "2019-07-26T16:51:04.803014Z",
+        "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/c9879338-8656-46aa-a2b2-46fa5d7b0329/",
         "base_path": "foo",
         "base_url": "/pulp/content/foo",
         "content_guard": null,

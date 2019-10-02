@@ -57,16 +57,16 @@ class SyncTestCase(unittest.TestCase):
         4. Assert that repository version is not None.
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo["_href"])
+        self.addCleanup(self.client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote["_href"])
+        self.addCleanup(self.client.delete, remote["pulp_href"])
 
         # Sync the repository.
         self.assertIsNone(repo["_latest_version_href"], repo)
         sync(self.cfg, remote, repo)
-        repo = self.client.get(repo["_href"])
+        repo = self.client.get(repo["pulp_href"])
         self.assertIsNotNone(repo["_latest_version_href"], repo)
 
     def test_successive_syncs_repo_version(self):
@@ -84,17 +84,17 @@ class SyncTestCase(unittest.TestCase):
            of syncs.
         """
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo["_href"])
+        self.addCleanup(self.client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
-        self.addCleanup(self.client.delete, remote["_href"])
+        self.addCleanup(self.client.delete, remote["pulp_href"])
 
         number_of_syncs = randint(1, 5)
         for _ in range(number_of_syncs):
             sync(self.cfg, remote, repo)
 
-        repo = self.client.get(repo["_href"])
+        repo = self.client.get(repo["pulp_href"])
         path = urlsplit(repo["_latest_version_href"]).path
         latest_repo_version = int(path.split("/")[-2])
         self.assertEqual(latest_repo_version, number_of_syncs, repo)
@@ -119,26 +119,26 @@ class SyncTestCase(unittest.TestCase):
         """
         # Step 1
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo["_href"])
+        self.addCleanup(self.client.delete, repo["pulp_href"])
 
         # Step 2
         role_remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote())
-        self.addCleanup(self.client.delete, role_remote["_href"])
+        self.addCleanup(self.client.delete, role_remote["pulp_href"])
 
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL)
         )
-        self.addCleanup(self.client.delete, collection_remote["_href"])
+        self.addCleanup(self.client.delete, collection_remote["pulp_href"])
 
         # Step 3
         sync(self.cfg, role_remote, repo)
-        repo = self.client.get(repo["_href"])
+        repo = self.client.get(repo["pulp_href"])
         self.assertIsNotNone(repo["_latest_version_href"])
         self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
         # Step 4
         sync(self.cfg, collection_remote, repo, mirror=True)
-        repo = self.client.get(repo["_href"])
+        repo = self.client.get(repo["pulp_href"])
         added_content_summary = get_added_content_summary(repo)
         self.assertGreaterEqual(
             added_content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
@@ -172,11 +172,11 @@ class SyncTestCase(unittest.TestCase):
         """
         # Step 1
         repo = self.client.post(REPO_PATH, gen_repo())
-        self.addCleanup(self.client.delete, repo["_href"])
+        self.addCleanup(self.client.delete, repo["pulp_href"])
 
         # Step 2
         role_remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote())
-        self.addCleanup(self.client.delete, role_remote["_href"])
+        self.addCleanup(self.client.delete, role_remote["pulp_href"])
 
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
@@ -185,17 +185,17 @@ class SyncTestCase(unittest.TestCase):
             ),
         )
 
-        self.addCleanup(self.client.delete, collection_remote["_href"])
+        self.addCleanup(self.client.delete, collection_remote["pulp_href"])
 
         # Step 3
         sync(self.cfg, role_remote, repo)
-        repo = self.client.get(repo["_href"])
+        repo = self.client.get(repo["pulp_href"])
         self.assertIsNotNone(repo["_latest_version_href"], repo)
         self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
         # Step 4
         sync(self.cfg, collection_remote, repo, mirror=True)
-        repo = self.client.get(repo["_href"])
+        repo = self.client.get(repo["pulp_href"])
         added_content_summary = get_added_content_summary(repo)
         self.assertGreaterEqual(
             added_content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
@@ -241,23 +241,23 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
         cfg = config.get_config()
         client = api.Client(cfg)
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo["_href"])
+        self.addCleanup(client.delete, repo["pulp_href"])
 
         remote = client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL)
         )
-        self.addCleanup(client.delete, remote["_href"])
+        self.addCleanup(client.delete, remote["pulp_href"])
 
         sync(cfg, remote, repo)
-        repo = client.get(repo["_href"])
+        repo = client.get(repo["pulp_href"])
 
         distribution = client.post(
-            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=repo["_href"])
+            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=repo["pulp_href"])
         )
-        self.addCleanup(client.delete, distribution["_href"])
+        self.addCleanup(client.delete, distribution["pulp_href"])
 
         second_repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, second_repo["_href"])
+        self.addCleanup(client.delete, second_repo["pulp_href"])
 
         url = reduce(
             urljoin,
@@ -270,9 +270,9 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
         )
 
         pulp_remote = client.post(ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=url))
-        self.addCleanup(client.delete, pulp_remote["_href"])
+        self.addCleanup(client.delete, pulp_remote["pulp_href"])
 
         sync(cfg, pulp_remote, second_repo)
-        second_repo = client.get(second_repo["_href"])
+        second_repo = client.get(second_repo["pulp_href"])
 
         self.assertEqual(get_content(repo), get_content(second_repo))
