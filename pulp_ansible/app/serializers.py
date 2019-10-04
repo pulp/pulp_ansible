@@ -172,6 +172,19 @@ class TagNestedSerializer(ModelSerializer):
         fields = ("name",)
 
 
+class CollectionSerializer(ModelSerializer):
+    """
+    A serializer for Ansible Collections.
+    """
+
+    name = serializers.CharField(help_text=_("The name of the Collection."))
+    namespace = serializers.CharField(help_text=_("The namespace of the Collection."))
+
+    class Meta:
+        model = Collection
+        fields = ("name", "namespace")
+
+
 class CollectionVersionSerializer(SingleArtifactContentUploadSerializer, ContentChecksumSerializer):
     """
     A serializer for CollectionVersion Content.

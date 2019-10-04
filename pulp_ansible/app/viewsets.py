@@ -13,6 +13,7 @@ from pulpcore.plugin.serializers import (
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     BaseDistributionViewSet,
+    BaseFilterSet,
     ContentFilter,
     SingleArtifactContentUploadViewSet,
     NamedModelViewSet,
@@ -22,6 +23,7 @@ from pulpcore.plugin.viewsets import (
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
+    Collection,
     CollectionVersion,
     CollectionRemote,
     Role,
@@ -30,6 +32,7 @@ from .models import (
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
+    CollectionSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
     RoleSerializer,
@@ -60,9 +63,33 @@ class RoleViewSet(SingleArtifactContentUploadViewSet):
     filterset_class = RoleFilter
 
 
-class CollectionVersionFilter(ContentFilter):
+class CollectionFilter(BaseFilterSet):
     """
     FilterSet for Ansible Collections.
+    """
+
+    namespace = filters.CharFilter(field_name="namespace")
+    name = filters.CharFilter(field_name="name")
+
+    class Meta:
+        model = Collection
+        fields = ["namespace", "name"]
+
+
+class CollectionViewset(NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
+    """
+    Viewset for Ansible Collections.
+    """
+
+    endpoint_name = "ansible/collections"
+    queryset = Collection.objects.all()
+    serializer_class = CollectionSerializer
+    filterset_class = CollectionFilter
+
+
+class CollectionVersionFilter(ContentFilter):
+    """
+    FilterSet for Ansible CollectionVersions.
     """
 
     namespace = filters.CharFilter(field_name="namespace")
