@@ -108,7 +108,7 @@ show_logs_and_return_non_zero() {
 }
 
 # Stop services started by ansible roles
-sudo systemctl stop pulp-worker* pulp-resource-manager pulp-content-app pulp-api
+sudo systemctl stop pulpcore-worker* pulpcore-resource-manager pulpcore-content pulpcore-api
 
 # Start services with logs and coverage
 export PULP_CONTENT_HOST=localhost:24816
