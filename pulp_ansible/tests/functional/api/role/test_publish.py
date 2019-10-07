@@ -61,7 +61,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         repo = client.get(repo["pulp_href"])
         for ansible_content in get_content(repo)[ANSIBLE_ROLE_NAME]:
             client.post(
-                repo["_versions_href"], {"add_content_units": [ansible_content["pulp_href"]]}
+                repo["versions_href"], {"add_content_units": [ansible_content["pulp_href"]]}
             )
         version_hrefs = tuple(ver["pulp_href"] for ver in get_versions(repo))
         non_latest = choice(version_hrefs[:-1])

@@ -54,11 +54,11 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
 
         self.addCleanup(self.client.delete, remote["pulp_href"])
 
-        self.assertIsNone(self.repo["_latest_version_href"])
+        self.assertIsNone(self.repo["latest_version_href"])
         sync(self.cfg, remote, self.repo)
 
         self.repo.update(self.client.get(self.repo["pulp_href"]))
-        self.assertIsNotNone(self.repo["_latest_version_href"])
+        self.assertIsNotNone(self.repo["latest_version_href"])
 
     @skip_if(bool, "repo", False)
     def test_02_positive_create_distribution_with_repo(self):
@@ -91,11 +91,11 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
         self.distribution.update(
             self.client.patch(
                 self.distribution["pulp_href"],
-                {"repository_version": self.repo["_latest_version_href"]},
+                {"repository_version": self.repo["latest_version_href"]},
             )
         )
 
-        self.assertEqual(self.distribution["repository_version"], self.repo["_latest_version_href"])
+        self.assertEqual(self.distribution["repository_version"], self.repo["latest_version_href"])
         self.assertIsNone(self.distribution["repository"])
 
     @skip_if(bool, "distribution", False)
@@ -103,13 +103,13 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
     def test_04_positive_full_update_distribution_to_use_repo_version(self):
         """Put a distribution with 'repository_version' field set."""
         new_dist = self.distribution.copy()
-        new_dist["repository_version"] = self.repo["_latest_version_href"]
+        new_dist["repository_version"] = self.repo["latest_version_href"]
         del new_dist["repository"]
         del self.distribution["repository"]
 
         self.distribution.update(self.client.put(self.distribution["pulp_href"], new_dist))
 
-        self.assertEqual(self.distribution["repository_version"], self.repo["_latest_version_href"])
+        self.assertEqual(self.distribution["repository_version"], self.repo["latest_version_href"])
 
         self.assertIsNone(self.distribution["repository"])
 
@@ -136,7 +136,7 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
     def test_06_negative_update_distribution_with_repo_and_version(self):
         """Assert 'repo' and 'repo_version' cannot be used together."""
         new_dist = self.distribution.copy()
-        new_dist["repository_version"] = self.repo["_latest_version_href"]
+        new_dist["repository_version"] = self.repo["latest_version_href"]
         new_dist["repository"] = self.repo["pulp_href"]
         with self.assertRaises(HTTPError):
             self.client.put(self.distribution["pulp_href"], new_dist)
