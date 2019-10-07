@@ -1,4 +1,4 @@
-git+https://github.com/ansible/ansible.git@devel#egg=ansible
+ansible==2.9.0b1
 coverage
 flake8
 flake8-black
