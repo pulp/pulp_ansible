@@ -64,10 +64,10 @@ class SyncTestCase(unittest.TestCase):
         self.addCleanup(self.client.delete, remote["pulp_href"])
 
         # Sync the repository.
-        self.assertIsNone(repo["_latest_version_href"], repo)
+        self.assertIsNone(repo["latest_version_href"], repo)
         sync(self.cfg, remote, repo)
         repo = self.client.get(repo["pulp_href"])
-        self.assertIsNotNone(repo["_latest_version_href"], repo)
+        self.assertIsNotNone(repo["latest_version_href"], repo)
 
     def test_successive_syncs_repo_version(self):
         """Test whether successive syncs update repository versions.
@@ -95,7 +95,7 @@ class SyncTestCase(unittest.TestCase):
             sync(self.cfg, remote, repo)
 
         repo = self.client.get(repo["pulp_href"])
-        path = urlsplit(repo["_latest_version_href"]).path
+        path = urlsplit(repo["latest_version_href"]).path
         latest_repo_version = int(path.split("/")[-2])
         self.assertEqual(latest_repo_version, number_of_syncs, repo)
 
@@ -133,7 +133,7 @@ class SyncTestCase(unittest.TestCase):
         # Step 3
         sync(self.cfg, role_remote, repo)
         repo = self.client.get(repo["pulp_href"])
-        self.assertIsNotNone(repo["_latest_version_href"])
+        self.assertIsNotNone(repo["latest_version_href"])
         self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
         # Step 4
@@ -190,7 +190,7 @@ class SyncTestCase(unittest.TestCase):
         # Step 3
         sync(self.cfg, role_remote, repo)
         repo = self.client.get(repo["pulp_href"])
-        self.assertIsNotNone(repo["_latest_version_href"], repo)
+        self.assertIsNotNone(repo["latest_version_href"], repo)
         self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
         # Step 4
