@@ -81,6 +81,8 @@ if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then
     git checkout FETCH_HEAD
     cd ..
   fi
+  # pulp-smash already got installed via test_requirements.txt
+  pip install --upgrade --force-reinstall ./pulp-smash
 fi
 
 psql -c 'CREATE DATABASE pulp OWNER travis;'

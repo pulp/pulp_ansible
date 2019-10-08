@@ -44,7 +44,6 @@ Remote GET Response::
         "pulp_created": "2019-04-29T13:51:10.860792Z",
         "pulp_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
         "pulp_last_updated": "2019-04-29T13:51:10.860805Z",
-        "_type": "ansible.collection",
         "download_concurrency": 20,
         "name": "bar",
         "policy": "immediate",

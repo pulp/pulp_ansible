@@ -60,7 +60,6 @@ Collection to pulp_ansible and display it::
                 "_artifact": "/pulp/api/v3/artifacts/8d77cbc1-fcc7-4239-b369-323ef2080e2f/",
                 "pulp_created": "2019-04-30T22:12:01.452493Z",
                 "pulp_href": "/pulp/api/v3/content/ansible/collections/505e7a21-49c6-4287-936e-b043ec6f76d1/",
-                "_type": "ansible.collection",
                 "name": "hello",
                 "namespace": "greetings_namespace",
                 "sha1": "e33a25765f87bfdb6c5cba9c7a5b4acb78933fd3",
