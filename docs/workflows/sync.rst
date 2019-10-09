@@ -13,8 +13,8 @@ Create a Repository
 Repository GET Response::
 
     {
-        "_created": "2019-04-29T15:57:59.763712Z",
-        "_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
+        "pulp_created": "2019-04-29T15:57:59.763712Z",
+        "pulp_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
         "_latest_version_href": null,
         "_versions_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
         "description": "",
@@ -39,7 +39,7 @@ syncing all Roles where ``namespace=elastic`` on Galaxy. You can see those Roles
 Remote GET Response::
 
     {
-        "_href": "/pulp/api/v3/remotes/ansible/ansible/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
+        "pulp_href": "/pulp/api/v3/remotes/ansible/ansible/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
     }
 
 .. todo::
@@ -59,7 +59,7 @@ sync with. You are telling Pulp to fetch content from the Remote and add to the 
 Repository Version GET Response (when complete)::
 
   {
-      "_href": "/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/",
+      "pulp_href": "/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/",
       "base_version": null,
       "content_summary": {
           "added": {

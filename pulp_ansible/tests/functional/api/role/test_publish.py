@@ -47,21 +47,23 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
 
         body = gen_ansible_remote()
         remote = client.post(ANSIBLE_REMOTE_PATH, body)
-        self.addCleanup(client.delete, remote["_href"])
+        self.addCleanup(client.delete, remote["pulp_href"])
 
         repo = client.post(REPO_PATH, gen_repo())
-        self.addCleanup(client.delete, repo["_href"])
+        self.addCleanup(client.delete, repo["pulp_href"])
 
         sync(cfg, remote, repo)
 
         publisher = client.post(ANSIBLE_PUBLISHER_PATH, gen_ansible_publisher())
-        self.addCleanup(client.delete, publisher["_href"])
+        self.addCleanup(client.delete, publisher["pulp_href"])
 
         # Step 1
-        repo = client.get(repo["_href"])
+        repo = client.get(repo["pulp_href"])
         for ansible_content in get_content(repo)[ANSIBLE_ROLE_NAME]:
-            client.post(repo["_versions_href"], {"add_content_units": [ansible_content["_href"]]})
-        version_hrefs = tuple(ver["_href"] for ver in get_versions(repo))
+            client.post(
+                repo["_versions_href"], {"add_content_units": [ansible_content["pulp_href"]]}
+            )
+        version_hrefs = tuple(ver["pulp_href"] for ver in get_versions(repo))
         non_latest = choice(version_hrefs[:-1])
 
         # Step 2
@@ -78,5 +80,5 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
 
         # Step 6
         with self.assertRaises(HTTPError):
-            body = {"repository": repo["_href"], "repository_version": non_latest}
-            client.post(urljoin(publisher["_href"], "publish/"), body)
+            body = {"repository": repo["pulp_href"], "repository_version": non_latest}
+            client.post(urljoin(publisher["pulp_href"], "publish/"), body)

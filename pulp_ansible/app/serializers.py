@@ -176,8 +176,8 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
 
     class Meta:
         fields = (
-            "_href",
-            "_created",
+            "pulp_href",
+            "pulp_created",
             "base_path",
             "content_guard",
             "name",
@@ -325,8 +325,8 @@ class CollectionImportListSerializer(serializers.ModelSerializer):
 
     id = serializers.UUIDField(source="pk")
     state = serializers.CharField(source="task.state")
-    created_at = serializers.DateTimeField(source="task._created")
-    updated_at = serializers.DateTimeField(source="task._last_updated")
+    created_at = serializers.DateTimeField(source="task.pulp_created")
+    updated_at = serializers.DateTimeField(source="task.pulp_last_updated")
     started_at = serializers.DateTimeField(source="task.started_at")
     finished_at = serializers.DateTimeField(source="task.finished_at")
 

@@ -58,9 +58,8 @@ Collection to pulp_ansible and display it::
         "results": [
             {
                 "_artifact": "/pulp/api/v3/artifacts/8d77cbc1-fcc7-4239-b369-323ef2080e2f/",
-                "_created": "2019-04-30T22:12:01.452493Z",
-                "_href": "/pulp/api/v3/content/ansible/collections/505e7a21-49c6-4287-936e-b043ec6f76d1/",
-                "_type": "ansible.collection",
+                "pulp_created": "2019-04-30T22:12:01.452493Z",
+                "pulp_href": "/pulp/api/v3/content/ansible/collections/505e7a21-49c6-4287-936e-b043ec6f76d1/",
                 "name": "hello",
                 "namespace": "greetings_namespace",
                 "sha1": "e33a25765f87bfdb6c5cba9c7a5b4acb78933fd3",
@@ -83,10 +82,10 @@ You could do these steps with a script like::
 
     # Create a Repository
     http POST :/pulp/api/v3/repositories/ name=foo
-    export REPO_HREF=$(http :/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | ._href')
+    export REPO_HREF=$(http :/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | .pulp_href')
 
     # Find the 'hello' collection
-    export COLLECTION_HREF=$(http :/pulp/api/v3/content/ansible/collections/ | jq -r '.results[0]._href')
+    export COLLECTION_HREF=$(http :/pulp/api/v3/content/ansible/collections/ | jq -r '.results[0].pulp_href')
 
     # Create a Repository Version with the 'hello' collection
     http POST ':'$REPO_HREF'versions/' add_content_units:="[\"$COLLECTION_HREF\"]"

@@ -52,23 +52,23 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
 
         remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_remote(url=ANSIBLE_ELASTIC_FIXTURE_URL))
 
-        self.addCleanup(self.client.delete, remote["_href"])
+        self.addCleanup(self.client.delete, remote["pulp_href"])
 
         self.assertIsNone(self.repo["_latest_version_href"])
         sync(self.cfg, remote, self.repo)
 
-        self.repo.update(self.client.get(self.repo["_href"]))
+        self.repo.update(self.client.get(self.repo["pulp_href"]))
         self.assertIsNotNone(self.repo["_latest_version_href"])
 
     @skip_if(bool, "repo", False)
     def test_02_positive_create_distribution_with_repo(self):
         """Create a distribution with 'repository' field set to repo."""
         distribution = self.client.post(
-            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=self.repo["_href"])
+            ANSIBLE_DISTRIBUTION_PATH, gen_distribution(repository=self.repo["pulp_href"])
         )
-        self.distribution.update(self.client.get(distribution["_href"]))
+        self.distribution.update(self.client.get(distribution["pulp_href"]))
 
-        self.assertEqual(self.distribution["repository"], self.repo["_href"])
+        self.assertEqual(self.distribution["repository"], self.repo["pulp_href"])
         self.assertIsNone(self.distribution["repository_version"])
 
     @skip_if(bool, "distribution", False)
@@ -77,7 +77,7 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
         """Assert invalid repo raises invalid hyperlink error."""
         with self.assertRaises(HTTPError):
             self.client.patch(
-                self.distribution["_href"], {"repository": "this-is-invalid-repository"}
+                self.distribution["pulp_href"], {"repository": "this-is-invalid-repository"}
             )
 
     @skip_if(bool, "distribution", False)
@@ -85,12 +85,12 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
     def test_03_positive_partial_update_distribution_to_use_repo_version(self):
         """Patch a distribution with 'repository_version' field set."""
         # Patch repository to None
-        self.client.patch(self.distribution["_href"], {"repository": None})
+        self.client.patch(self.distribution["pulp_href"], {"repository": None})
 
         # Patch repository version
         self.distribution.update(
             self.client.patch(
-                self.distribution["_href"],
+                self.distribution["pulp_href"],
                 {"repository_version": self.repo["_latest_version_href"]},
             )
         )
@@ -107,7 +107,7 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
         del new_dist["repository"]
         del self.distribution["repository"]
 
-        self.distribution.update(self.client.put(self.distribution["_href"], new_dist))
+        self.distribution.update(self.client.put(self.distribution["pulp_href"], new_dist))
 
         self.assertEqual(self.distribution["repository_version"], self.repo["_latest_version_href"])
 
@@ -121,12 +121,12 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
             raise unittest.SkipTest("Issue 4910 is not resolved")
 
         new_dist = self.distribution.copy()
-        new_dist["repository"] = self.repo["_href"]
+        new_dist["repository"] = self.repo["pulp_href"]
         del new_dist["repository_version"]
         del self.distribution["repository_version"]
 
         response = self.client.using_handler(api.echo_handler).put(
-            self.distribution["_href"], new_dist
+            self.distribution["pulp_href"], new_dist
         )
 
         self.assertEqual(response.status_code, 400, response)
@@ -137,18 +137,18 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
         """Assert 'repo' and 'repo_version' cannot be used together."""
         new_dist = self.distribution.copy()
         new_dist["repository_version"] = self.repo["_latest_version_href"]
-        new_dist["repository"] = self.repo["_href"]
+        new_dist["repository"] = self.repo["pulp_href"]
         with self.assertRaises(HTTPError):
-            self.client.put(self.distribution["_href"], new_dist)
+            self.client.put(self.distribution["pulp_href"], new_dist)
 
     @skip_if(bool, "distribution", False)
     @skip_if(bool, "repo", False)
     def test_07_negative_create_distribution_after_repo_is_deleted(self):
         """Assert distribution cannot be created with deleted repo."""
-        self.client.delete(self.repo["_href"])
+        self.client.delete(self.repo["pulp_href"])
 
         response = self.client.using_handler(api.echo_handler).patch(
-            self.distribution["_href"], {"repository": self.repo["_href"]}
+            self.distribution["pulp_href"], {"repository": self.repo["pulp_href"]}
         )
         self.assertEqual(response.status_code, 400)
 
@@ -159,6 +159,6 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
     @skip_if(bool, "distribution", False)
     def test_08_positive_delete_distribution(self):
         """Delete a distribution."""
-        self.client.delete(self.distribution["_href"])
+        self.client.delete(self.distribution["pulp_href"])
         with self.assertRaises(HTTPError):
-            self.client.get(self.distribution["_href"])
+            self.client.get(self.distribution["pulp_href"])
