@@ -1,12 +1,21 @@
+from gettext import gettext as _
 import semantic_version
 
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework import mixins
 from rest_framework.response import Response
+from rest_framework import serializers
+from rest_framework import status as http_status
 from rest_framework import viewsets
 
-from pulpcore.plugin.models import Content, ContentArtifact, RepositoryVersion
+from pulpcore.plugin.exceptions import DigestValidationError
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact, RepositoryVersion
+from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
+from pulpcore.plugin.tasking import enqueue_with_reservation
+from rest_framework.reverse import reverse
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -15,7 +24,11 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionListSerializer,
 )
 from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
-from pulp_ansible.app.serializers import CollectionImportDetailSerializer
+from pulp_ansible.app.serializers import (
+    CollectionOneShotSerializer,
+    CollectionImportDetailSerializer,
+)
+from pulp_ansible.app.tasks.collections import import_collection
 
 
 class AnsibleDistributionMixin:
@@ -78,6 +91,75 @@ class CollectionViewSet(
         return get_object_or_404(
             queryset, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
         )
+
+
+class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
+    """
+    ViewSet for Collection Uploads.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = CollectionSerializer
+
+    @swagger_auto_schema(
+        operation_description="Create an artifact and trigger an asynchronous task to create "
+        "Collection content from it.",
+        operation_summary="Upload a collection",
+        request_body=CollectionOneShotSerializer,
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    def create(self, request, path):
+        """
+        Dispatch a Collection creation task.
+        """
+        distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        serializer = CollectionOneShotSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        expected_digests = {}
+        if serializer.validated_data["sha256"]:
+            expected_digests["sha256"] = serializer.validated_data["sha256"]
+        try:
+            artifact = Artifact.init_and_validate(
+                serializer.validated_data["file"], expected_digests=expected_digests
+            )
+        except DigestValidationError:
+            raise serializers.ValidationError(
+                _("The provided sha256 value does not match the sha256 of the uploaded file.")
+            )
+
+        try:
+            artifact.save()
+        except IntegrityError:
+            raise serializers.ValidationError(_("Artifact already exists."))
+
+        locks = [str(artifact.pk)]
+        kwargs = {"artifact_pk": artifact.pk}
+
+        if serializer.validated_data["expected_namespace"]:
+            kwargs["expected_namespace"] = serializer.validated_data["expected_namespace"]
+
+        if serializer.validated_data["expected_name"]:
+            kwargs["expected_name"] = serializer.validated_data["expected_name"]
+
+        if serializer.validated_data["expected_version"]:
+            kwargs["expected_version"] = serializer.validated_data["expected_version"]
+
+        if distro.repository:
+            locks.append(distro.repository)
+            kwargs["repository_pk"] = distro.repository.pk
+
+        async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
+
+        data = {
+            "task": reverse(
+                "collection-imports-detail",
+                kwargs={"path": path, "pk": async_result.id},
+                request=None,
+            )
+        }
+        return Response(data, status=http_status.HTTP_202_ACCEPTED)
 
 
 class CollectionVersionViewSet(

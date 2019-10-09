@@ -1,15 +1,13 @@
 from gettext import gettext as _
 
 from django.conf import settings
-from django.db import transaction
-from galaxy_importer.collection import CollectionFilename, import_collection
 from rest_framework import serializers
 
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     ModelSerializer,
     RemoteSerializer,
-    SingleArtifactContentUploadSerializer,
+    SingleArtifactContentSerializer,
     RepositoryVersionDistributionSerializer,
 )
 
@@ -26,7 +24,7 @@ from .models import (
 from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
 
 
-class RoleSerializer(SingleArtifactContentUploadSerializer):
+class RoleSerializer(SingleArtifactContentSerializer):
     """
     A serializer for Role versions.
     """
@@ -57,9 +55,11 @@ class RoleSerializer(SingleArtifactContentUploadSerializer):
         return data
 
     class Meta:
-        fields = tuple(
-            set(SingleArtifactContentUploadSerializer.Meta.fields) - {"relative_path"}
-        ) + ("version", "name", "namespace")
+        fields = tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"}) + (
+            "version",
+            "name",
+            "namespace",
+        )
         model = Role
 
 
@@ -114,6 +114,47 @@ class CollectionRemoteSerializer(RemoteSerializer):
     class Meta:
         fields = RemoteSerializer.Meta.fields + ("requirements_file",)
         model = CollectionRemote
+
+
+class CollectionOneShotSerializer(serializers.Serializer):
+    """
+    A serializer for the Collection One Shot Upload API.
+    """
+
+    file = serializers.FileField(help_text=_("The Collection tarball."), required=True)
+
+    sha256 = serializers.CharField(
+        help_text=_("An optional sha256 checksum of the uploaded file."),
+        required=False,
+        default=None,
+    )
+
+    expected_namespace = serializers.CharField(
+        help_text=_(
+            "The expected 'namespace' of the Collection to be verified against the "
+            "metadata during import."
+        ),
+        required=False,
+        default=None,
+    )
+
+    expected_name = serializers.CharField(
+        help_text=_(
+            "The expected 'name' of the Collection to be verified against the metadata during "
+            "import."
+        ),
+        required=False,
+        default=None,
+    )
+
+    expected_version = serializers.CharField(
+        help_text=_(
+            "The expected version of the Collection to be verified against the metadata during "
+            "import."
+        ),
+        required=False,
+        default=None,
+    )
 
 
 class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
@@ -185,207 +226,75 @@ class CollectionSerializer(ModelSerializer):
         fields = ("name", "namespace")
 
 
-class CollectionVersionSerializer(SingleArtifactContentUploadSerializer, ContentChecksumSerializer):
+class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecksumSerializer):
     """
     A serializer for CollectionVersion Content.
     """
 
-    id = serializers.UUIDField(source="pk", help_text="A collection identifier.", read_only=True)
+    id = serializers.UUIDField(source="pk", help_text="A collection identifier.")
 
     authors = serializers.ListField(
         help_text=_("A list of the CollectionVersion content's authors."),
         child=serializers.CharField(max_length=64),
-        read_only=True,
     )
 
     contents = serializers.ListField(
-        child=serializers.DictField(),
-        help_text=_("A JSON field with data about the contents."),
-        read_only=True,
+        child=serializers.DictField(), help_text=_("A JSON field with data about the contents.")
     )
 
     dependencies = serializers.DictField(
         help_text=_(
             "A dict declaring Collections that this collection requires to be installed for it to "
             "be usable."
-        ),
-        read_only=True,
+        )
     )
 
     description = serializers.CharField(
-        help_text=_("A short summary description of the collection."),
-        allow_blank=True,
-        read_only=True,
+        help_text=_("A short summary description of the collection."), allow_blank=True
     )
 
     docs_blob = serializers.DictField(
-        help_text=_("A JSON field holding the various documentation blobs in the collection."),
-        read_only=True,
+        help_text=_("A JSON field holding the various documentation blobs in the collection.")
     )
 
     documentation = serializers.URLField(
-        help_text=_("The URL to any online docs."), allow_blank=True, max_length=128, read_only=True
+        help_text=_("The URL to any online docs."), allow_blank=True, max_length=128
     )
 
     homepage = serializers.URLField(
         help_text=_("The URL to the homepage of the collection/project."),
         allow_blank=True,
         max_length=128,
-        read_only=True,
     )
 
     issues = serializers.URLField(
-        help_text=_("The URL to the collection issue tracker."),
-        allow_blank=True,
-        max_length=128,
-        read_only=True,
+        help_text=_("The URL to the collection issue tracker."), allow_blank=True, max_length=128
     )
 
-    is_certified = serializers.BooleanField(
-        help_text=_("Indicates that the version is certified"), read_only=True
-    )
+    is_certified = serializers.BooleanField(help_text=_("Indicates that the version is certified"))
 
     license = serializers.ListField(
         help_text=_("A list of licenses for content inside of a collection."),
         child=serializers.CharField(max_length=32),
-        read_only=True,
     )
 
-    name = serializers.CharField(
-        help_text=_("The name of the collection."), max_length=32, read_only=True
-    )
+    name = serializers.CharField(help_text=_("The name of the collection."), max_length=32)
 
     namespace = serializers.CharField(
-        help_text=_("The namespace of the collection."), max_length=32, read_only=True
+        help_text=_("The namespace of the collection."), max_length=32
+    )
+
+    repository = serializers.URLField(
+        help_text=_("The URL of the originating SCM repository."), allow_blank=True, max_length=128
     )
 
     tags = TagNestedSerializer(many=True, read_only=True)
 
-    version = serializers.CharField(
-        help_text=_("The version of the collection."), max_length=32, read_only=True
-    )
-
-    expected_namespace = serializers.CharField(
-        help_text=_(
-            "The expected 'namespace' of the Collection to be verified against the "
-            "metadata during import."
-        ),
-        required=False,
-        write_only=True,
-        default=None,
-    )
-
-    expected_name = serializers.CharField(
-        help_text=_(
-            "The expected 'name' of the Collection to be verified against the metadata during "
-            "import."
-        ),
-        required=False,
-        write_only=True,
-        default=None,
-    )
-
-    expected_version = serializers.CharField(
-        help_text=_(
-            "The expected version of the Collection to be verified against the metadata during "
-            "import."
-        ),
-        required=False,
-        write_only=True,
-        default=None,
-    )
-
-    def deferred_validate(self, data):
-        """
-        Validates data.
-
-        Args:
-            data (dict): User data to validate
-
-        Returns:
-            dict: Validated data
-
-        Raises:
-            rest_framework.serializers.ValidationError: If invalid data
-
-        """
-        data = super().deferred_validate(data)
-        artifact = data["artifact"]
-
-        expected_namespace = data.get("expected_namespace")
-        expected_name = data.get("expected_name")
-        expected_version = data.get("expected_version")
-        filename = CollectionFilename(expected_namespace, expected_name, expected_version)
-
-        with artifact.file.file.open() as artifact_file:
-            importer_result = import_collection(file=artifact_file, filename=filename)
-
-        collection_info = importer_result["metadata"]
-
-        # Remove fields not used by this model
-        collection_info.pop("license_file")
-        collection_info.pop("readme")
-
-        # the importer returns many None values. Letting the defaults in the model prevail
-        for key in ["description", "documentation", "homepage", "issues", "repository"]:
-            if collection_info[key] is None:
-                collection_info.pop(key)
-
-        collection_info.update(
-            dict(contents=importer_result["contents"], docs_blob=importer_result["docs_blob"])
-        )
-        data.update(collection_info)
-
-        collection_version = CollectionVersion.objects.filter(
-            namespace=data["namespace"], name=data["name"], version=data["version"]
-        )
-
-        if collection_version.exists():
-            raise serializers.ValidationError(
-                _(
-                    "There is already a collection_version with name '{name}', namespace "
-                    "'{namespace}' and version '{version}'."
-                ).format(name=data["name"], namespace=data["namespace"], version=data["version"])
-            )
-
-        return data
-
-    def create(self, validated_data):
-        """
-        Create a CollectionVersion.
-
-        Overriding default create() to write the tags nested field
-
-        Args:
-            validated_data (dict): Data used to create the CollectionVersion
-
-        Returns:
-            models.CollectionVersion: The created CollectionVersion
-
-        """
-        tags = validated_data.pop("tags")
-        fields = [f.name for f in CollectionVersion._meta.get_fields()]
-        data = {}
-        for key, value in validated_data.items():
-            if key in fields:
-                data[key] = value
-
-        with transaction.atomic():
-            collection, created = Collection.objects.get_or_create(
-                namespace=validated_data["namespace"], name=validated_data["name"]
-            )
-
-            collection_version = CollectionVersion.objects.create(collection=collection, **data)
-
-            for name in tags:
-                tag, created = Tag.objects.get_or_create(name=name)
-                collection_version.tags.add(tag)
-
-        return collection_version
+    version = serializers.CharField(help_text=_("The version of the collection."), max_length=32)
 
     class Meta:
         fields = (
-            SingleArtifactContentUploadSerializer.Meta.fields
+            tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"})
             + ContentChecksumSerializer.Meta.fields
             + (
                 "id",
@@ -401,11 +310,9 @@ class CollectionVersionSerializer(SingleArtifactContentUploadSerializer, Content
                 "license",
                 "name",
                 "namespace",
+                "repository",
                 "tags",
                 "version",
-                "expected_name",
-                "expected_namespace",
-                "expected_version",
             )
         )
         model = CollectionVersion
