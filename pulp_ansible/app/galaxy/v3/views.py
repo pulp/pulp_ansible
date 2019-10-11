@@ -1,8 +1,11 @@
+from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
+from django.utils.dateparse import parse_datetime
+from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework import mixins
@@ -238,3 +241,32 @@ class CollectionImportViewSet(
 
     queryset = CollectionImport.objects.prefetch_related("task").all()
     serializer_class = CollectionImportDetailSerializer
+
+    since_filter = openapi.Parameter(
+        "since",
+        openapi.IN_QUERY,
+        type=openapi.TYPE_STRING,
+        format=openapi.FORMAT_DATETIME,
+        description="Filter messages since a given timestamp",
+    )
+
+    @swagger_auto_schema(manual_parameters=[since_filter])
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Returns a CollectionImport object.
+        """
+        instance = self.get_object()
+
+        if "since" in self.request.query_params:
+            since = parse_datetime(self.request.query_params["since"])
+            messages = []
+            for message in instance.messages:
+                message_time = datetime.fromtimestamp(message["time"])
+                if message_time.replace(tzinfo=since.tzinfo) > since:
+                    messages.append(message)
+            instance.messages = messages
+
+        context = self.get_serializer_context()
+        serializer = CollectionImportDetailSerializer(instance, context=context)
+
+        return Response(serializer.data)
