@@ -154,6 +154,7 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
             kwargs["repository_pk"] = distro.repository.pk
 
         async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
+        CollectionImport.objects.create(task_id=async_result.id)
 
         data = {
             "task": reverse(
