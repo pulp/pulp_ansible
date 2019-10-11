@@ -152,6 +152,8 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
 
         async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
 
+        CollectionImport.objects.create(task_id=async_result.id)
+
         data = {
             "task": reverse(
                 "collection-imports-detail",
