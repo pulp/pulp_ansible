@@ -171,6 +171,7 @@ class CollectionVersionViewSet(
 
     authentication_classes = []
     permission_classes = []
+    serializer_class = CollectionVersionSerializer
 
     lookup_field = "version"
 
