@@ -1,0 +1,1 @@
+Fix bug where CollectionImport was not being created in viewset causing 404s for galaxy.
