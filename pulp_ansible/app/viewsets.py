@@ -217,6 +217,7 @@ class CollectionUploadViewSet(viewsets.ViewSet):
 
     Args:
         file@: package to upload
+
     """
 
     serializer_class = CollectionOneShotSerializer
