@@ -13,6 +13,8 @@ ANSIBLE_ROLE_NAME = "ansible.role"
 
 ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, "ansible/roles/")
 
+ANSIBLE_COLLECTION_VERSION_CONTENT_PATH = urljoin(CONTENT_PATH, "ansible/collection_versions/")
+
 ANSIBLE_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, "ansible/ansible/")
 
 ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "ansible/ansible/")
