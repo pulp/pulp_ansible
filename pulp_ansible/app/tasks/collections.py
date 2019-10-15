@@ -180,7 +180,7 @@ def import_collection(
 
         if repository_pk:
             repository = Repository.objects.get(pk=repository_pk)
-            content_q = CollectionVersion.objects.filter(_id=collection_version.pk)
+            content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
             with RepositoryVersion.create(repository) as new_version:
                 new_version.add_content(content_q)
             CreatedResource.objects.create(content_object=repository)
