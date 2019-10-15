@@ -104,6 +104,11 @@ class CollectionVersionFilter(ContentFilter):
     name = filters.CharFilter(field_name="name")
     is_highest = filters.BooleanFilter(field_name="is_highest")
     q = filters.CharFilter(field_name="q", method="filter_by_q")
+    tags = filters.CharFilter(
+        field_name="tags",
+        method="filter_by_tags",
+        help_text=_("Filter by comma separate list of tags that must all be matched"),
+    )
 
     def filter_by_q(self, queryset, name, value):
         """
@@ -129,9 +134,25 @@ class CollectionVersionFilter(ContentFilter):
         )
         return qs.annotate(rank=ts_rank_fn).order_by("-rank")
 
+    def filter_by_tags(self, qs, name, value):
+        """
+        Filter queryset qs by list of tags.
+
+        Args:
+            qs (django.db.models.query.QuerySet): CollectionVersion queryset
+            value (string): A comma separated list of tags
+
+        Returns:
+            Queryset of CollectionVersion that matches all tags
+
+        """
+        for tag in value.split(","):
+            qs = qs.filter(tags__name=tag)
+        return qs
+
     class Meta:
         model = CollectionVersion
-        fields = ["namespace", "name", "version", "q", "is_highest"]
+        fields = ["namespace", "name", "version", "q", "is_highest", "tags"]
 
 
 class CollectionVersionViewSet(ContentViewSet):
