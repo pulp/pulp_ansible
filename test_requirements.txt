@@ -1,4 +1,5 @@
-ansible==2.9.0b1
+# use 2.9 stable until https://github.com/ansible/ansible/pull/63473 is released
+git+https://github.com/ansible/ansible.git@stable-2.9#egg=ansible
 coverage
 flake8
 flake8-black
@@ -6,6 +7,4 @@ flake8-docstrings
 flake8-tuple
 flake8-quotes
 git+https://github.com/PulpQE/pulp-smash.git#egg=pulp-smash
-# pin pydocstyle until https://gitlab.com/pycqa/flake8-docstrings/issues/36 is resolved
-pydocstyle<4
 pytest
