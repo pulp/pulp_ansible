@@ -271,7 +271,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         help_text=_("The URL to the collection issue tracker."), allow_blank=True, max_length=128
     )
 
-    is_certified = serializers.BooleanField(help_text=_("Indicates that the version is certified"))
+    certification = serializers.CharField(help_text=_("Indicates that the version is certified"))
 
     license = serializers.ListField(
         help_text=_("A list of licenses for content inside of a collection."),
@@ -306,7 +306,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
                 "documentation",
                 "homepage",
                 "issues",
-                "is_certified",
+                "certification",
                 "license",
                 "name",
                 "namespace",

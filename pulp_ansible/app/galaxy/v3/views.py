@@ -238,7 +238,7 @@ class CollectionVersionViewSet(
         Set collection version certified status.
         """
         obj = self.get_object()
-        obj.is_certified = request.method == "PUT"
+        obj.certification = request.data["certification"]
         obj.save()
         return Response({})
 
