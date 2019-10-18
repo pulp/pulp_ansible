@@ -112,8 +112,7 @@ class CollectionVersion(Content):
         version (models.CharField): The version of the collection.
         is_highest (models.BooleanField): Indicates that the version is the highest one
             in the collection.
-        is_certified (models.BooleanField): Indicates that the version was approved as
-            certified version.
+        certification (models.CharField): Enum with certification status.
 
     Relations:
 
@@ -122,6 +121,12 @@ class CollectionVersion(Content):
     """
 
     TYPE = "collection_version"
+
+    CERTIFICATION_CHOICES = [
+        ("certified", "certified"),
+        ("not_certified", "not_certified"),
+        ("needs_review", "needs_review"),
+    ]
 
     # Data Fields
     authors = psql_fields.ArrayField(models.CharField(max_length=64), default=list, editable=False)
@@ -139,7 +144,9 @@ class CollectionVersion(Content):
     version = models.CharField(max_length=32, editable=False)
 
     is_highest = models.BooleanField(editable=False, default=False)
-    is_certified = models.BooleanField(default=False)
+    certification = models.CharField(
+        max_length=13, choices=CERTIFICATION_CHOICES, default="needs_review"
+    )
 
     # Foreign Key Fields
     collection = models.ForeignKey(
@@ -158,6 +165,19 @@ class CollectionVersion(Content):
         return "{namespace}.{name}.{version}".format(
             namespace=self.namespace, name=self.name, version=self.version
         )
+
+    def save(self, *args, **kwargs):
+        """
+        Validates certification before save.
+
+        """
+        certification_choices = [value for key, value in self.CERTIFICATION_CHOICES]
+        if self.certification not in certification_choices:
+            raise ValueError(
+                "Invalid certification value: '{value}'".format(value=self.certification)
+            )
+
+        super().save(*args, **kwargs)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

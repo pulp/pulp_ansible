@@ -1,10 +1,12 @@
+from collections import defaultdict
 from gettext import gettext as _
+from packaging.version import parse
 
 from django.contrib.postgres.search import SearchQuery
 from django.db import IntegrityError
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
-from django_filters import filters
+from django_filters import filters, MultipleChoiceFilter
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
@@ -102,7 +104,8 @@ class CollectionVersionFilter(ContentFilter):
 
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
-    is_highest = filters.BooleanFilter(field_name="is_highest")
+    is_highest = filters.BooleanFilter(field_name="is_highest", method="get_highest")
+    certification = MultipleChoiceFilter(choices=CollectionVersion.CERTIFICATION_CHOICES)
     q = filters.CharFilter(field_name="q", method="filter_by_q")
     tags = filters.CharFilter(
         field_name="tags",
@@ -150,9 +153,39 @@ class CollectionVersionFilter(ContentFilter):
             qs = qs.filter(tags__name=tag)
         return qs
 
+    def get_highest(self, qs, name, value):
+        """
+        Combine certification and is_highest filters.
+
+        If certification and is_highest are used together,
+        get the highest version for the specified certification
+        """
+        certification = self.data.get("certification")
+
+        if not certification:
+            return qs.filter(is_highest=value)
+
+        qs = qs.filter(certification=certification)
+        if not qs.count():
+            return qs
+
+        latest_pks = []
+        namespace_name_dict = defaultdict(lambda: defaultdict(list))
+        for collection in qs.all():
+            version_entry = (parse(collection.version), collection.pk)
+            namespace_name_dict[collection.namespace][collection.name].append(version_entry)
+
+        for namespace, name_dict in namespace_name_dict.items():
+            for name, version_list in name_dict.items():
+                version_list.sort(reverse=True)
+                latest_pk = version_list[0][1]
+                latest_pks.append(latest_pk)
+
+        return qs.filter(pk__in=latest_pks)
+
     class Meta:
         model = CollectionVersion
-        fields = ["namespace", "name", "version", "q", "is_highest", "tags"]
+        fields = ["namespace", "name", "version", "q", "is_highest", "certification", "tags"]
 
 
 class CollectionVersionViewSet(ContentViewSet):
