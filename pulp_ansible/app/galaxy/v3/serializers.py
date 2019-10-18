@@ -1,3 +1,4 @@
+from gettext import gettext as _
 from django.conf import settings
 from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
@@ -28,6 +29,15 @@ class CollectionSerializer(serializers.ModelSerializer):
             "highest_version",
         )
         model = models.CollectionVersion
+
+    def update(self, obj, validated_data):
+        """Update Collection."""
+        collection_data = validated_data.pop("collection")
+        if "deprecated" not in collection_data or len(collection_data.keys()) > 1:
+            raise serializers.ValidationError(_("Only `deprecated` could be updated."))
+        collection = models.Collection.objects.filter(pk=obj.collection.pk)
+        collection.update(**collection_data)
+        return super().update(obj, validated_data)
 
     def get_href(self, obj):
         """Get href."""
