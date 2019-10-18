@@ -95,6 +95,16 @@ class CollectionViewSet(
             queryset, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
         )
 
+    def update(self, request, *args, **kwargs):
+        """
+        Update a Collection object.
+        """
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
 
 class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
     """
