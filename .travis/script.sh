@@ -19,25 +19,7 @@ export FUNC_TEST_SCRIPT=$TRAVIS_BUILD_DIR/.travis/func_test_script.sh
 # this script.
 export DJANGO_SETTINGS_MODULE=pulpcore.app.settings
 
-wait_for_pulp() {
-  TIMEOUT=${1:-5}
-  while [ "$TIMEOUT" -gt 0 ]
-  do
-    echo -n .
-    sleep 1
-    TIMEOUT=$(($TIMEOUT - 1))
-    if [ "$(http :24817/pulp/api/v3/status/ 2>/dev/null | jq '.database_connection.connected and .redis_connection.connected')" = "true" ]
-    then
-      echo
-      return
-    fi
-  done
-  echo
-  return 1
-}
-
 if [ "$TEST" = 'docs' ]; then
-  sleep 5
   cd docs
   make html
   cd ..
@@ -94,37 +76,43 @@ if [ "$TEST" = 'bindings' ]; then
   exit
 fi
 
+# Aliases for running commands in the pulp-api container.
+export PULP_API_POD=$(sudo kubectl get pods | grep -E -o "pulp-api-(\w+)-(\w+)")
+# Run a command
+export CMD_PREFIX="sudo kubectl exec $PULP_API_POD --"
+# Run a command, and pass STDIN
+export CMD_STDIN_PREFIX="sudo kubectl exec -i $PULP_API_POD --"
+# The alias does not seem to work in Travis / the scripting framework
+#alias pytest="$CMD_PREFIX pytest"
+
 # Run unit tests.
-coverage run $(which django-admin) test ./pulp_ansible/tests/unit/
+$CMD_PREFIX bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python${TRAVIS_PYTHON_VERSION}/site-packages/pulp_ansible/tests/unit/"
 
-# Run functional tests, and upload coverage report to codecov.
+# Note: This function is in the process of being merged into after_failure
 show_logs_and_return_non_zero() {
-    readonly local rc="$?"
-    cat ~/django_runserver.log
-    cat ~/content_app.log
-    cat ~/resource_manager.log
-    cat ~/reserved_worker-1.log
-    return "${rc}"
+  readonly local rc="$?"
+  return "${rc}"
 }
-
-# Stop services started by ansible roles
-sudo systemctl stop pulpcore-worker* pulpcore-resource-manager pulpcore-content pulpcore-api
-
-# Start services with logs and coverage
-export PULP_CONTENT_HOST=localhost:24816
-rq worker -n 'resource-manager@%h' -w 'pulpcore.tasking.worker.PulpWorker' -c 'pulpcore.rqconfig' >> ~/resource_manager.log 2>&1 &
-rq worker -n 'reserved-resource-worker-1@%h' -w 'pulpcore.tasking.worker.PulpWorker' -c 'pulpcore.rqconfig' >> ~/reserved_worker-1.log 2>&1 &
-gunicorn pulpcore.tests.functional.content_with_coverage:server --bind 'localhost:24816' --worker-class 'aiohttp.GunicornWebWorker' -w 2 >> ~/content_app.log 2>&1 &
-coverage run $(which django-admin) runserver 24817 --noreload >> ~/django_runserver.log 2>&1 &
-wait_for_pulp 20
+export -f show_logs_and_return_non_zero
 
 # Run functional tests
+set +u
+
+export PYTHONPATH=$TRAVIS_BUILD_DIR:$TRAVIS_BUILD_DIR/../pulpcore:${PYTHONPATH}
+
+set -u
+
+if [[ "$TEST" == "performance" ]]; then
+  echo "--- Performance Tests ---"
+  pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance || show_logs_and_return_non_zero
+  exit
+fi
+
 if [ -f $FUNC_TEST_SCRIPT ]; then
     $FUNC_TEST_SCRIPT
 else
     pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional || show_logs_and_return_non_zero
 fi
-
 
 if [ -f $POST_SCRIPT ]; then
     $POST_SCRIPT
