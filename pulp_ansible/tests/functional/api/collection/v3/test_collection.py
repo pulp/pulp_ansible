@@ -80,6 +80,8 @@ def pulp_client():
     cfg = config.get_config()
     delete_orphans(cfg)
     client = api.Client(cfg)
+    headers = cfg.custom['headers']
+    client.request_kwargs.setdefault('headers', {}).update(headers)
     return client
 
 
@@ -201,8 +203,6 @@ def test_collection_download(artifact, pulp_client, collection_detail):
     tarball = open(artifact.filename, 'rb').read()
 
     c = pulp_client.using_handler(api.echo_handler)
-    headers = config.get_config().custom['headers']
-    c.request_kwargs.setdefault('headers', {}).update(headers)
     f = c.get(url)
     assert f.status_code == 200, (url, f.request.headers)
     assert f.content == tarball
