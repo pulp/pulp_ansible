@@ -126,7 +126,8 @@ class SyncTestCase(unittest.TestCase):
         self.addCleanup(self.client.delete, role_remote["pulp_href"])
 
         collection_remote = self.client.post(
-            ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL_V2)
+            ANSIBLE_COLLECTION_REMOTE_PATH,
+            gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL_V2),
         )
         self.addCleanup(self.client.delete, collection_remote["pulp_href"])
 
@@ -181,7 +182,8 @@ class SyncTestCase(unittest.TestCase):
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
             gen_ansible_remote(
-                url=ANSIBLE_COLLECTION_TESTING_URL_V2, requirements_file=ANSIBLE_COLLECTION_REQUIREMENT
+                url=ANSIBLE_COLLECTION_TESTING_URL_V2,
+                requirements_file=ANSIBLE_COLLECTION_REQUIREMENT,
             ),
         )
 
@@ -244,7 +246,8 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
         self.addCleanup(client.delete, repo["pulp_href"])
 
         remote = client.post(
-            ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+            ANSIBLE_COLLECTION_REMOTE_PATH,
+            gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2),
         )
         self.addCleanup(client.delete, remote["pulp_href"])
 

@@ -40,50 +40,48 @@ def upload_handler(client, response):
         return response
     api._handle_202(client._cfg, response, client.pulp_host)
     if response.request.method == "POST":
-        task_url = response.json()['task']
+        task_url = response.json()["task"]
         task = client.get(task_url)
         return task
     else:
         return response.json()
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def artifact():
-    artifact = build_collection('skeleton')
+    artifact = build_collection("skeleton")
     return artifact
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def collection_upload(pulp_client, artifact):
     # Publish a new collection
     cfg = config.get_config()
     UPLOAD_PATH = urljoin(cfg.get_base_url(), f"api/{repo}/v3/artifacts/collections/")
-    collection = {
-        "file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, 'rb'))
-    }
+    collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
 
     response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
     return response
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def collection_detail(collection_upload, pulp_client, artifact):
     url = f"/api/{repo}/v3/collections/{artifact.namespace}/{artifact.name}/"
     response = pulp_client.using_handler(api.json_handler).get(url)
     return response
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def pulp_client():
     cfg = config.get_config()
     delete_orphans(cfg)
     client = api.Client(cfg)
-    headers = cfg.custom['headers']
-    client.request_kwargs.setdefault('headers', {}).update(headers)
+    headers = cfg.custom["headers"]
+    client.request_kwargs.setdefault("headers", {}).update(headers)
     return client
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def known_collection():
     collection_content = http_get(ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL)
 
@@ -91,25 +89,30 @@ def known_collection():
     collection_sha256 = hashlib.sha256(collection_content).hexdigest()
     return collection
 
-    
+
 def test_collection_upload(collection_upload):
     """Upload a new collection.
 
     Uploads a newly generated collection and validates the resulting collection version details.
     """
-    
+
     # Validate the upload response
-    assert collection_upload['error'] == None
-    assert re.match(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}', collection_upload['id'])
-    assert collection_upload['messages'][0]['level'] == 'INFO'
-    assert collection_upload['messages'][0]['message'] == 'Content search - Analyzing collection structure'
+    assert collection_upload["error"] == None
+    assert re.match(
+        r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", collection_upload["id"]
+    )
+    assert collection_upload["messages"][0]["level"] == "INFO"
+    assert (
+        collection_upload["messages"][0]["message"]
+        == "Content search - Analyzing collection structure"
+    )
 
-    assert collection_upload['state'] == 'completed'
+    assert collection_upload["state"] == "completed"
 
-    assert 'updated_at' in collection_upload
-    assert 'started_at' in collection_upload
-    assert 'created_at' in collection_upload
-    assert 'finished_at' in collection_upload
+    assert "updated_at" in collection_upload
+    assert "started_at" in collection_upload
+    assert "created_at" in collection_upload
+    assert "finished_at" in collection_upload
 
     for key, value in collection_upload.items():
         if key in COLLECTION_METADATA.keys():
@@ -125,14 +128,14 @@ def test_collection_detail(artifact, collection_detail):
     url = f"/api/{repo}/v3/collections/{artifact.namespace}/{artifact.name}/"
 
     # Detail Endpoint
-    assert 'created_at' in collection_detail
-    assert 'updated_at' in collection_detail
+    assert "created_at" in collection_detail
+    assert "updated_at" in collection_detail
 
-    assert collection_detail['deprecated'] == False
-    assert collection_detail['href'] == url
-    assert collection_detail['namespace'] == artifact.namespace
-    assert collection_detail['name'] == artifact.name
-    assert collection_detail['highest_version']['version'] == '1.0.0'
+    assert collection_detail["deprecated"] == False
+    assert collection_detail["href"] == url
+    assert collection_detail["namespace"] == artifact.namespace
+    assert collection_detail["name"] == artifact.name
+    assert collection_detail["highest_version"]["version"] == "1.0.0"
 
 
 def test_collection_version_list(artifact, pulp_client, collection_detail):
@@ -142,13 +145,13 @@ def test_collection_version_list(artifact, pulp_client, collection_detail):
     """
 
     # Version List Endpoint
-    versions = pulp_client.using_handler(api.json_handler).get(collection_detail['versions_url'])
-    assert versions['count'] == 1
-    version = versions['results'][0]
+    versions = pulp_client.using_handler(api.json_handler).get(collection_detail["versions_url"])
+    assert versions["count"] == 1
+    version = versions["results"][0]
 
-    assert version['version'] == '1.0.0'
-    assert version['is_certified'] == False
-    assert version['href'] == collection_detail['highest_version']['href']
+    assert version["version"] == "1.0.0"
+    assert version["is_certified"] == False
+    assert version["href"] == collection_detail["highest_version"]["href"]
 
 
 def test_collection_version(artifact, pulp_client, collection_detail):
@@ -158,21 +161,23 @@ def test_collection_version(artifact, pulp_client, collection_detail):
     """
 
     # Version Endpoint
-    version = pulp_client.using_handler(api.json_handler).get(collection_detail['highest_version']['href'])
-    
-    assert version['name'] == artifact.name
-    assert version['namespace'] == {'name': artifact.namespace}
-    assert version['version'] == '1.0.0'
-    assert version['is_certified'] == False
+    version = pulp_client.using_handler(api.json_handler).get(
+        collection_detail["highest_version"]["href"]
+    )
 
-    tarball = open(artifact.filename, 'rb').read()
-    assert version['artifact']['sha256'] == hashlib.sha256(tarball).hexdigest()
-    assert version['artifact']['size'] == len(tarball)
-    
+    assert version["name"] == artifact.name
+    assert version["namespace"] == {"name": artifact.namespace}
+    assert version["version"] == "1.0.0"
+    assert version["is_certified"] == False
+
+    tarball = open(artifact.filename, "rb").read()
+    assert version["artifact"]["sha256"] == hashlib.sha256(tarball).hexdigest()
+    assert version["artifact"]["size"] == len(tarball)
+
     # assert version['artifact']['filename'] == artifact.filename
 
-    assert 'updated_at' in version
-    assert 'created_at' in version
+    assert "updated_at" in version
+    assert "created_at" in version
 
     #     # TODO: Test meta data
     #     # 'metadata': {'authors': ['Orion User 1'],
@@ -193,12 +198,14 @@ def test_collection_download(artifact, pulp_client, collection_detail):
     Should require authentication and redirect to a download location.
     """
 
-    version = pulp_client.using_handler(api.json_handler).get(collection_detail['highest_version']['href'])
+    version = pulp_client.using_handler(api.json_handler).get(
+        collection_detail["highest_version"]["href"]
+    )
 
     # Artifact Download Endoint
-    url = version['download_url']
+    url = version["download_url"]
 
-    tarball = open(artifact.filename, 'rb').read()
+    tarball = open(artifact.filename, "rb").read()
 
     c = pulp_client.using_handler(api.echo_handler)
     f = c.get(url)
@@ -219,16 +226,15 @@ def test_collection_upload_repeat(pulp_client, known_collection):
         response = pulp_client.post(UPLOAD_PATH, files=known_collection)
 
         assert ctx.exception.response.json()["errors"][0] == {
-            'status': '400',
-            'code': 'invalid',
-            'title': 'Invalid input.',
-            'detail': 'Artifact already exists.',
+            "status": "400",
+            "code": "invalid",
+            "title": "Invalid input.",
+            "detail": "Artifact already exists.",
         }
 
         for key, value in collection_upload.items():
             if key in COLLECTION_METADATA.keys():
                 assert COLLECTION_METADATA[key] == value, response
 
-        collection_sha256 = hashlib.sha256(known_collection['files'][1]).hexdigest()
+        collection_sha256 = hashlib.sha256(known_collection["files"][1]).hexdigest()
         assert response["sha256"] == collection_sha256, response
-
