@@ -32,10 +32,8 @@ repo = "automation-hub"
 
 
 def upload_handler(client, response):
-    """???
+    """Handle responses to collection upload by fetching and returning the task data."""
 
-    ???
-    """
     response.raise_for_status()
     logger.debug("response status: %s", response.status_code)
     if response.status_code == 204:
