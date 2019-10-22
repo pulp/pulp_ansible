@@ -191,14 +191,11 @@ def test_collection_download(artifact, pulp_client, collection_detail):
     """Test collection download URL.
 
     Should require authentication and redirect to a download location.
-
-    TODO: What is the authentication expectation for the download itself?
     """
 
     version = pulp_client.using_handler(api.json_handler).get(collection_detail['highest_version']['href'])
 
     # Artifact Download Endoint
-    # TODO: Fix download_url test and authentication to content host
     url = version['download_url']
 
     tarball = open(artifact.filename, 'rb').read()
