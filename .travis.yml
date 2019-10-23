@@ -15,16 +15,15 @@ python:
     - "3.7"
 env:
   matrix:
-    - DB=postgres TEST=pulp
-    - DB=postgres TEST=docs
-    - DB=postgres TEST=bindings
-
+    - TEST=pulp
+    - TEST=docs
+    - TEST=bindings
 matrix:
   exclude:
     - python: '3.7'
-      env: DB=postgres TEST=bindings
+      env: TEST=bindings
     - python: '3.6'
-      env: DB=postgres TEST=docs
+      env: TEST=docs
   fast_finish: true
 services:
     - postgresql
@@ -53,25 +52,21 @@ jobs:
   - stage: publish-daily-client-gem
     script: PULP_SETTINGS=/etc/pulp/settings.py bash .travis/publish_client_gem.sh
     env:
-      - DB=postgres
       - TEST=bindings
     if: type = cron
   - stage: publish-daily-client-pypi
     script: PULP_SETTINGS=/etc/pulp/settings.py bash .travis/publish_client_pypi.sh
     env:
-      - DB=postgres
       - TEST=bindings
     if: type = cron
   - stage: publish-client-gem
     script: PULP_SETTINGS=/etc/pulp/settings.py bash .travis/publish_client_gem.sh
     env:
-      - DB=postgres
       - TEST=bindings
     if: tag IS present
   - stage: publish-client-pypi
     script: PULP_SETTINGS=/etc/pulp/settings.py bash .travis/publish_client_pypi.sh
     env:
-      - DB=postgres
       - TEST=bindings
     if: tag IS present
 
