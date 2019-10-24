@@ -79,8 +79,9 @@ def pulp_client():
 
     cfg = config.get_config()
     client = api.Client(cfg)
-    headers = cfg.custom["headers"]
-    client.request_kwargs.setdefault("headers", {}).update(headers)
+    headers = cfg.custom.get("headers", None)
+    if headers:
+        client.request_kwargs.setdefault("headers", {}).update(headers)
     delete_orphans(cfg)
     return client
 
