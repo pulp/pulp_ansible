@@ -22,7 +22,7 @@
     pulp_install_db: false
     pulp_preq_packages: []
     pulp_settings:
-      content_host: 'localhost:24816'
+      content_origin: 'localhost:24816'
       secret_key: 'secret'
       databases:
         default:
