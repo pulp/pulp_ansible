@@ -8,13 +8,15 @@ from urllib.parse import urljoin
 import pytest
 
 from pulp_smash import api, config
-from pulp_smash.pulp3.utils import delete_orphans
+from pulp_smash.pulp3.utils import delete_orphans, gen_distribution
 from pulp_smash.utils import http_get
+
 from requests.exceptions import HTTPError
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_FILE_NAME,
     ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL,
+    ANSIBLE_DISTRIBUTION_PATH,
     COLLECTION_METADATA,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -23,9 +25,6 @@ from orionutils.generator import build_collection
 
 
 logger = logging.getLogger(__name__)
-
-
-repo = "automation-hub"
 
 
 def upload_handler(client, response):
@@ -53,11 +52,11 @@ def artifact():
 
 
 @pytest.fixture(scope="session")
-def collection_upload(pulp_client, artifact):
+def collection_upload(pulp_client, artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
 
     cfg = config.get_config()
-    UPLOAD_PATH = urljoin(cfg.get_base_url(), f"api/{repo}/v3/artifacts/collections/")
+    UPLOAD_PATH = urljoin(cfg.get_base_url(), f"api/{pulp_dist['name']}/v3/artifacts/collections/")
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
 
     response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
@@ -65,10 +64,10 @@ def collection_upload(pulp_client, artifact):
 
 
 @pytest.fixture(scope="session")
-def collection_detail(collection_upload, pulp_client, artifact):
+def collection_detail(collection_upload, pulp_client, pulp_dist, artifact):
     """Fetch and parse a collection details response from an uploaded collection."""
 
-    url = f"/api/{repo}/v3/collections/{artifact.namespace}/{artifact.name}/"
+    url = f"/api/{pulp_dist['name']}/v3/collections/{artifact.namespace}/{artifact.name}/"
     response = pulp_client.using_handler(api.json_handler).get(url)
     return response
 
@@ -84,6 +83,15 @@ def pulp_client():
         client.request_kwargs.setdefault("headers", {}).update(headers)
     delete_orphans(cfg)
     return client
+
+
+@pytest.fixture(scope="session")
+def pulp_dist(pulp_client):
+    """Create an Ansible Distribution to simulate the automation hub environment for testing."""
+
+    dist = pulp_client.post(ANSIBLE_DISTRIBUTION_PATH, gen_distribution(name="automation-hub"))
+    yield dist
+    pulp_client.delete(dist["pulp_href"])
 
 
 @pytest.fixture(scope="session")
@@ -124,13 +132,13 @@ def test_collection_upload(collection_upload):
             assert COLLECTION_METADATA[key] == value, collection_upload
 
 
-def test_collection_detail(artifact, collection_detail):
+def test_collection_detail(artifact, collection_detail, pulp_dist):
     """Test collection detail resulting from a successful upload of one version.
 
     Includes information of the most current version.
     """
 
-    url = f"/api/{repo}/v3/collections/{artifact.namespace}/{artifact.name}/"
+    url = f"/api/{pulp_dist['name']}/v3/collections/{artifact.namespace}/{artifact.name}/"
 
     # Detail Endpoint
     assert "created_at" in collection_detail
@@ -215,14 +223,14 @@ def test_collection_download(artifact, pulp_client, collection_detail):
     assert f.content == tarball
 
 
-def test_collection_upload_repeat(pulp_client, known_collection):
+def test_collection_upload_repeat(pulp_client, known_collection, pulp_dist):
     """Upload a duplicate collection.
 
     Should fail, because of the conflict of collection name and version.
     """
 
     cfg = config.get_config()
-    UPLOAD_PATH = urljoin(cfg.get_base_url(), f"api/{repo}/v3/artifacts/collections/")
+    UPLOAD_PATH = urljoin(cfg.get_base_url(), f"api/{pulp_dist['name']}/v3/artifacts/collections/")
 
     with pytest.raises(HTTPError) as ctx:
         response = pulp_client.post(UPLOAD_PATH, files=known_collection)
