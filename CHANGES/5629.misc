@@ -1,0 +1,1 @@
+Switch to using ``CONTENT_ORIGIN`` instead of ``CONTENT_HOST`` due to core changing the name.
