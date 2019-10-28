@@ -7,9 +7,6 @@
 
 ---
 - hosts: all
-  pre_tasks:
-    - name: Load DB variables
-      include_vars: '{{ pulp_db_type }}.yml'
   vars:
     pulp_default_admin_password: admin
     pulp_source_dir: '{{ ansible_env.TRAVIS_BUILD_DIR | dirname }}/pulpcore/'
@@ -29,7 +26,7 @@
       secret_key: 'secret'
       databases:
         default:
-          ENGINE: "{{ pulp_db_backend }}"
+          ENGINE: "django.db.backends.postgresql_psycopg2"
           USER: 'travis'
           PASSWORD: ''
   environment:
