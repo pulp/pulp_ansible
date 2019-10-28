@@ -8,7 +8,8 @@ from urllib.parse import urljoin
 import pytest
 
 from pulp_smash import api, config
-from pulp_smash.pulp3.utils import delete_orphans, gen_distribution
+from pulp_smash.pulp3.constants import REPO_PATH
+from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_smash.utils import http_get
 
 from requests.exceptions import HTTPError
@@ -56,7 +57,9 @@ def collection_upload(pulp_client, artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
 
     cfg = config.get_config()
-    UPLOAD_PATH = urljoin(cfg.get_base_url(), f"api/{pulp_dist['name']}/v3/artifacts/collections/")
+    UPLOAD_PATH = urljoin(
+        cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/"
+    )
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
 
     response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
@@ -67,7 +70,7 @@ def collection_upload(pulp_client, artifact, pulp_dist):
 def collection_detail(collection_upload, pulp_client, pulp_dist, artifact):
     """Fetch and parse a collection details response from an uploaded collection."""
 
-    url = f"/api/{pulp_dist['name']}/v3/collections/{artifact.namespace}/{artifact.name}/"
+    url = f"/api/{pulp_dist['base_path']}/v3/collections/{artifact.namespace}/{artifact.name}/"
     response = pulp_client.using_handler(api.json_handler).get(url)
     return response
 
@@ -81,17 +84,43 @@ def pulp_client():
     headers = cfg.custom.get("headers", None)
     if headers:
         client.request_kwargs.setdefault("headers", {}).update(headers)
-    delete_orphans(cfg)
     return client
 
 
 @pytest.fixture(scope="session")
-def pulp_dist(pulp_client):
+def pulp_repo(pulp_client):
+    """Find or create a Repository to attach to the Ansible Distribution we create."""
+
+    repos = pulp_client.get(REPO_PATH)
+    if repos:
+        yield repos[0]
+    else:
+        repo_data = gen_repo(name="automation-hub")
+        repo = pulp_client.post(REPO_PATH, repo_data)
+        yield repo
+        pulp_client.delete(repo["pulp_href"])
+
+
+@pytest.fixture(scope="session")
+def pulp_dist(pulp_client, pulp_repo):
     """Create an Ansible Distribution to simulate the automation hub environment for testing."""
 
-    dist = pulp_client.post(ANSIBLE_DISTRIBUTION_PATH, gen_distribution(name="automation-hub"))
+    dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH + "?base_path=automation-hub")
+    # import pdb;pdb.set_trace()
+    if len(dists) == 0:
+        dist_data = gen_distribution(
+            name="automation-hub", base_path="automation-hub", repository=pulp_repo["pulp_href"]
+        )
+        dist = pulp_client.post(ANSIBLE_DISTRIBUTION_PATH, dist_data)
+        created = True
+    elif len(dists) == 1:
+        dist = dists[0]
+        created = False
+    else:
+        raise ValueError("Found too many Ansible Distributions at 'automation-hub'.")
     yield dist
-    pulp_client.delete(dist["pulp_href"])
+    if created:
+        pulp_client.delete(dist["pulp_href"])
 
 
 @pytest.fixture(scope="session")
@@ -138,7 +167,7 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
     Includes information of the most current version.
     """
 
-    url = f"/api/{pulp_dist['name']}/v3/collections/{artifact.namespace}/{artifact.name}/"
+    url = f"/api/{pulp_dist['base_path']}/v3/collections/{artifact.namespace}/{artifact.name}/"
 
     # Detail Endpoint
     assert "created_at" in collection_detail
@@ -230,7 +259,9 @@ def test_collection_upload_repeat(pulp_client, known_collection, pulp_dist):
     """
 
     cfg = config.get_config()
-    UPLOAD_PATH = urljoin(cfg.get_base_url(), f"api/{pulp_dist['name']}/v3/artifacts/collections/")
+    UPLOAD_PATH = urljoin(
+        cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/"
+    )
 
     with pytest.raises(HTTPError) as ctx:
         response = pulp_client.post(UPLOAD_PATH, files=known_collection)
