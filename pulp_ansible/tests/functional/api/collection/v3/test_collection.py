@@ -60,6 +60,8 @@ def collection_upload(pulp_client, artifact, pulp_dist):
     UPLOAD_PATH = urljoin(
         cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/"
     )
+
+    logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
 
     response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
@@ -106,7 +108,7 @@ def pulp_dist(pulp_client, pulp_repo):
     """Create an Ansible Distribution to simulate the automation hub environment for testing."""
 
     dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH + "?base_path=automation-hub")
-    # import pdb;pdb.set_trace()
+
     if len(dists) == 0:
         dist_data = gen_distribution(
             name="automation-hub", base_path="automation-hub", repository=pulp_repo["pulp_href"]
