@@ -56,9 +56,11 @@ def artifact():
 def collection_upload(pulp_client, artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
 
-    # UPLOAD_PATH = f"/api/{pulp_dist['base_path']}/v3/artifacts/collections/"
-    # pulp_ansible/galaxy/<path:path>/api/
-    UPLOAD_PATH = f"pulp_ansible/galaxy/{pulp_dist['base_path']}/api/v3/artifacts/collections/"
+    cfg = config.get_config()
+    GALAXY_API_ROOT = cfg.custom.get(
+        "galaxy_api_root", "pulp_ansible/galaxy/%(base_path)s/api/"
+    ) % {"base_path": pulp_dist["base_path"]}
+    UPLOAD_PATH = GALAXY_API_ROOT + "v3/artifacts/collections/"
 
     logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
