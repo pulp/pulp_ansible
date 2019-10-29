@@ -56,10 +56,7 @@ def artifact():
 def collection_upload(pulp_client, artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
 
-    cfg = config.get_config()
-    UPLOAD_PATH = urljoin(
-        cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/"
-    )
+    UPLOAD_PATH = f"/api/{pulp_dist['base_path']}/v3/artifacts/collections/"
 
     logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
@@ -191,7 +188,7 @@ def test_collection_version_list(artifact, pulp_client, collection_detail):
     version = versions["results"][0]
 
     assert version["version"] == "1.0.0"
-    assert version["certification"] == 'needs_review'
+    assert version["certification"] == "needs_review"
     assert version["href"] == collection_detail["highest_version"]["href"]
 
 
@@ -209,7 +206,7 @@ def test_collection_version(artifact, pulp_client, collection_detail):
     assert version["name"] == artifact.name
     assert version["namespace"] == {"name": artifact.namespace}
     assert version["version"] == "1.0.0"
-    assert version["certification"] == 'needs_review'
+    assert version["certification"] == "needs_review"
 
     tarball = open(artifact.filename, "rb").read()
     assert version["artifact"]["sha256"] == hashlib.sha256(tarball).hexdigest()
