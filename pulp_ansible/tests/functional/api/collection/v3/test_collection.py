@@ -191,7 +191,7 @@ def test_collection_version_list(artifact, pulp_client, collection_detail):
     version = versions["results"][0]
 
     assert version["version"] == "1.0.0"
-    assert not version["is_certified"]
+    assert version["certification"] == 'needs_review'
     assert version["href"] == collection_detail["highest_version"]["href"]
 
 
@@ -209,7 +209,7 @@ def test_collection_version(artifact, pulp_client, collection_detail):
     assert version["name"] == artifact.name
     assert version["namespace"] == {"name": artifact.namespace}
     assert version["version"] == "1.0.0"
-    assert not version["is_certified"]
+    assert version["certification"] == 'needs_review'
 
     tarball = open(artifact.filename, "rb").read()
     assert version["artifact"]["sha256"] == hashlib.sha256(tarball).hexdigest()
