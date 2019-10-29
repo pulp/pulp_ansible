@@ -44,6 +44,20 @@ def upload_handler(client, response):
         return response.json()
 
 
+def get_galaxy_url(base, path):
+    """Given an Ansible Distribution base_path and an endpoint path, construct a URL.
+
+    Takes the expected GALAXY_API_ROOT setting of the target into consideration.
+    """
+
+    cfg = config.get_config()
+    path = path.lstrip("/")
+    GALAXY_API_ROOT = cfg.custom.get(
+        "galaxy_api_root", "pulp_ansible/galaxy/%(base_path)s/api/"
+    ) % {"base_path": base}
+    return urljoin(GALAXY_API_ROOT, path)
+
+
 @pytest.fixture(scope="session")
 def artifact():
     """Generate a randomized collection for testing."""
@@ -56,11 +70,7 @@ def artifact():
 def collection_upload(pulp_client, artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
 
-    cfg = config.get_config()
-    GALAXY_API_ROOT = cfg.custom.get(
-        "galaxy_api_root", "pulp_ansible/galaxy/%(base_path)s/api/"
-    ) % {"base_path": pulp_dist["base_path"]}
-    UPLOAD_PATH = GALAXY_API_ROOT + "v3/artifacts/collections/"
+    UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
 
     logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
@@ -73,7 +83,9 @@ def collection_upload(pulp_client, artifact, pulp_dist):
 def collection_detail(collection_upload, pulp_client, pulp_dist, artifact):
     """Fetch and parse a collection details response from an uploaded collection."""
 
-    url = f"/api/{pulp_dist['base_path']}/v3/collections/{artifact.namespace}/{artifact.name}/"
+    url = get_galaxy_url(
+        pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
+    )
     response = pulp_client.using_handler(api.json_handler).get(url)
     return response
 
@@ -170,7 +182,9 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
     Includes information of the most current version.
     """
 
-    url = f"/api/{pulp_dist['base_path']}/v3/collections/{artifact.namespace}/{artifact.name}/"
+    url = get_galaxy_url(
+        pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
+    )
 
     # Detail Endpoint
     assert "created_at" in collection_detail
@@ -262,12 +276,10 @@ def test_collection_upload_repeat(pulp_client, known_collection, pulp_dist):
     """
 
     cfg = config.get_config()
-    UPLOAD_PATH = urljoin(
-        cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/"
-    )
+    url = urljoin(cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/")
 
     with pytest.raises(HTTPError) as ctx:
-        response = pulp_client.post(UPLOAD_PATH, files=known_collection)
+        response = pulp_client.post(url, files=known_collection)
 
         assert ctx.exception.response.json()["errors"][0] == {
             "status": "400",
