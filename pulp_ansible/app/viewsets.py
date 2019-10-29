@@ -7,9 +7,11 @@ from django.db import IntegrityError
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters, MultipleChoiceFilter
+from django_filters.rest_framework import DjangoFilterBackend
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 
 from pulpcore.plugin.exceptions import DigestValidationError
@@ -197,6 +199,8 @@ class CollectionVersionViewSet(ContentViewSet):
     queryset = CollectionVersion.objects.prefetch_related("_artifacts")
     serializer_class = CollectionVersionSerializer
     filterset_class = CollectionVersionFilter
+    filter_backends = (OrderingFilter, DjangoFilterBackend)
+    ordering_fields = ("pulp_created", "name", "version", "namespace")
 
 
 class AnsibleRemoteViewSet(RemoteViewSet):
