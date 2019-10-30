@@ -7,6 +7,8 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 
+set -euv
+
 pip install twine
 
 django-admin runserver 24817 >> ~/django_runserver.log 2>&1 &
@@ -18,15 +20,17 @@ export DESCRIPTION="$(git describe --all --exact-match `git rev-parse HEAD`)"
 if [[ $DESCRIPTION == 'tags/'$REPORTED_VERSION ]]; then
   export VERSION=${REPORTED_VERSION}
 else
+  # Daily publishing of development version (ends in ".dev" reported as ".dev0")
+  [ "${REPORTED_VERSION%.dev*}" != "${REPORTED_VERSION}" ] || exit 1
   export EPOCH="$(date +%s)"
   export VERSION=${REPORTED_VERSION}${EPOCH}
 fi
 
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-file-client/$VERSION/)
+export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible-client/$VERSION/)
 
 if [ "$response" == "200" ];
 then
-    exit
+  exit
 fi
 
 cd

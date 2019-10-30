@@ -24,6 +24,10 @@ plugin_dash_short: ansible
 plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
+pulp_settings:
+  ansible_api_hostname: http://$(hostname):24817
+  ansible_content_hostname: http://$(hostname):24816/pulp/content
+  content_host: $(hostname):24816
 pydocstyle: true
 pypi_username: pulp
 test: false

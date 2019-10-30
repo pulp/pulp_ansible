@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 # WARNING: DO NOT EDIT!
 #
@@ -7,20 +7,39 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 
-set -v
+set -euv
 
 export PRE_BEFORE_SCRIPT=$TRAVIS_BUILD_DIR/.travis/pre_before_script.sh
 export POST_BEFORE_SCRIPT=$TRAVIS_BUILD_DIR/.travis/post_before_script.sh
 
-if [ -f $PRE_BEFORE_SCRIPT ]; then
+# Aliases for running commands in the pulp-api container.
+export PULP_API_POD=$(sudo kubectl get pods | grep -E -o "pulp-api-(\w+)-(\w+)")
+# Run a command
+export CMD_PREFIX="sudo kubectl exec $PULP_API_POD --"
+# Run a command, and pass STDIN
+export CMD_STDIN_PREFIX="sudo kubectl exec -i $PULP_API_POD --"
+
+if [[ -f $PRE_BEFORE_SCRIPT ]]; then
     $PRE_BEFORE_SCRIPT
 fi
 
-
 mkdir -p ~/.config/pulp_smash
-curl -o ~/.config/pulp_smash/settings.json https://raw.githubusercontent.com/pulp/pulpcore/d34076e6f9ac47e0f4074f35fa1f746ae7fe6962/.travis/pulp-smash-config.json
 
+if [[ -f .travis/pulp-smash-config.json ]]; then
+    sed "s/localhost/$(hostname)/g" .travis/pulp-smash-config.json > ~/.config/pulp_smash/settings.json
+else
+    sed "s/localhost/$(hostname)/g" ../pulpcore/.travis/pulp-smash-config.json > ~/.config/pulp_smash/settings.json
+fi
 
-if [ -f $POST_BEFORE_SCRIPT ]; then
+if [[ "$TEST" == 'pulp' || "$TEST" == 'performance' ]]; then
+    # Many tests require pytest/mock, but users do not need them at runtime
+    # (or to add plugins on top of pulpcore or pulp container images.)
+    # So install it here, rather than in the image Dockerfile.
+    $CMD_PREFIX pip3 install pytest mock
+    # Many functional tests require these
+    $CMD_PREFIX dnf install -yq lsof which dnf-plugins-core
+fi
+
+if [[ -f $POST_BEFORE_SCRIPT ]]; then
     $POST_BEFORE_SCRIPT
 fi
