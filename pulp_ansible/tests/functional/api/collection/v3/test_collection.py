@@ -53,7 +53,7 @@ def get_galaxy_url(base, path):
     cfg = config.get_config()
     path = path.lstrip("/")
     GALAXY_API_ROOT = cfg.custom.get(
-        "galaxy_api_root", "pulp_ansible/galaxy/%(base_path)s/api/"
+        "galaxy_api_root", "/pulp_ansible/galaxy/%(base_path)s/api/"
     ) % {"base_path": base}
     return urljoin(GALAXY_API_ROOT, path)
 
