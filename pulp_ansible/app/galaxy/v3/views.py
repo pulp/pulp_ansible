@@ -235,7 +235,7 @@ class CollectionVersionViewSet(
 
         return Response(serializer.data)
 
-    @action(methods=["PUT", "DELETE"], detail=True, url_path="certified")
+    @action(methods=["PUT"], detail=True, url_path="certified")
     def set_certified(self, request, *args, **kwargs):
         """
         Set collection version certified status.
