@@ -59,9 +59,7 @@ v3_urls = [
     ),
     path(
         "collections/<str:namespace>/<str:name>/versions/<str:version>/certified/",
-        views_v3.CollectionVersionViewSet.as_view(
-            {"put": "set_certified", "delete": "set_certified"}
-        ),
+        views_v3.CollectionVersionViewSet.as_view({"put": "set_certified"}),
         name="collection-versions-set-certified",
     ),
     path(
