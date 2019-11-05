@@ -31,6 +31,7 @@ setup(
             "flake8-quotes",
             "flake8-tuple",
             "mock",
+            "orionutils",
             "pulp-smash",
             "pytest",
         ]

@@ -112,6 +112,7 @@ if [[ "$TEST" == "performance" ]]; then
 fi
 
 if [ -f $FUNC_TEST_SCRIPT ]; then
+    export PULP_SMASH_LOG_LEVEL=DEBUG
     $FUNC_TEST_SCRIPT
 else
     pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional || show_logs_and_return_non_zero
