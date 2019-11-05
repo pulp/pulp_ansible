@@ -1,5 +1,4 @@
-# use 2.9 stable until https://github.com/ansible/ansible/pull/63473 is released
-git+https://github.com/ansible/ansible.git@stable-2.9#egg=ansible
+ansible
 coverage
 flake8
 flake8-black
