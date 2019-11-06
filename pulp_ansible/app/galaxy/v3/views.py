@@ -33,6 +33,8 @@ from pulp_ansible.app.serializers import (
 )
 from pulp_ansible.app.tasks.collections import import_collection
 
+from pulp_ansible.app.viewsets import CollectionVersionFilter
+
 
 class AnsibleDistributionMixin:
     """
@@ -186,6 +188,7 @@ class CollectionVersionViewSet(
     authentication_classes = []
     permission_classes = []
     serializer_class = CollectionVersionSerializer
+    filterset_class = CollectionVersionFilter
 
     lookup_field = "version"
 
@@ -204,7 +207,7 @@ class CollectionVersionViewSet(
         """
         Returns paginated CollectionVersions list.
         """
-        queryset = self.get_queryset()
+        queryset = self.filter_queryset(self.get_queryset())
         queryset = sorted(
             queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
         )
