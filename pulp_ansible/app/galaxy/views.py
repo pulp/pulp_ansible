@@ -4,7 +4,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, pagination, response, views
 
-from pulpcore.app.models import Artifact, RepositoryVersion
+from pulpcore.app.models import Artifact
 from pulpcore.app.response import OperationPostponedResponse
 from pulpcore.tasking.tasks import enqueue_with_reservation
 from pulpcore.plugin.models import ContentArtifact
@@ -57,7 +57,7 @@ class RoleList(generics.ListAPIView):
         if distro.repository_version:
             distro_content = distro.repository_version.content
         else:
-            distro_content = RepositoryVersion.latest(distro.repository).content
+            distro_content = distro.repository.latest_version().content
         roles = Role.objects.distinct("namespace", "name").filter(pk__in=distro_content)
 
         namespace = self.request.query_params.get("owner__username", None)
@@ -89,7 +89,7 @@ class RoleVersionList(generics.ListAPIView):
         if distro.repository_version:
             distro_content = distro.repository_version.content
         else:
-            distro_content = RepositoryVersion.latest(distro.repository).content
+            distro_content = distro.repository.latest_version().content
         namespace, name = re.split(r"\.", self.kwargs["role_pk"])
         versions = Role.objects.filter(pk__in=distro_content, name=name, namespace=namespace)
         for version in versions:
@@ -135,7 +135,7 @@ class GalaxyCollectionView(generics.ListAPIView):
         if distro.repository_version:
             distro_content = distro.repository_version.content
         else:
-            distro_content = RepositoryVersion.latest(distro.repository).content
+            distro_content = distro.repository.latest_version().content
 
         collections = Collection.objects.filter(versions__pk__in=distro_content).distinct()
 
@@ -188,7 +188,7 @@ class GalaxyCollectionVersionList(generics.ListAPIView):
         if distro.repository_version:
             distro_content = distro.repository_version.content
         else:
-            distro_content = RepositoryVersion.latest(distro.repository).content
+            distro_content = distro.repository.latest_version().content
 
         collection = get_object_or_404(
             Collection, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
@@ -217,7 +217,7 @@ class GalaxyCollectionVersionDetail(views.APIView):
         if distro.repository_version:
             distro_content = distro.repository_version.content
         else:
-            distro_content = RepositoryVersion.latest(distro.repository).content
+            distro_content = distro.repository.latest_version().content
 
         version = CollectionVersion.objects.get(
             collection__namespace=namespace, collection__name=name, version=version

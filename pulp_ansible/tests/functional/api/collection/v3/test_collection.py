@@ -8,7 +8,6 @@ from urllib.parse import urljoin
 import pytest
 
 from pulp_smash import api, config
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_smash.utils import http_get
 
@@ -18,6 +17,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_FILE_NAME,
     ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL,
     ANSIBLE_DISTRIBUTION_PATH,
+    ANSIBLE_REPO_PATH,
     COLLECTION_METADATA,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -106,12 +106,12 @@ def pulp_client():
 def pulp_repo(pulp_client):
     """Find or create a Repository to attach to the Ansible Distribution we create."""
 
-    repos = pulp_client.get(REPO_PATH)
+    repos = pulp_client.get(ANSIBLE_REPO_PATH)
     if repos:
         yield repos[0]
     else:
         repo_data = gen_repo(name="automation-hub")
-        repo = pulp_client.post(REPO_PATH, repo_data)
+        repo = pulp_client.post(ANSIBLE_REPO_PATH, repo_data)
         yield repo
         pulp_client.delete(repo["pulp_href"])
 

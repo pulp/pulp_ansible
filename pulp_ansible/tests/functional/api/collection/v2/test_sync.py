@@ -6,7 +6,6 @@ from functools import reduce
 from urllib.parse import urlsplit, urljoin
 
 from pulp_smash import api, config
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_repo,
@@ -28,6 +27,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
     ANSIBLE_REMOTE_PATH,
+    ANSIBLE_REPO_PATH,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -56,7 +56,7 @@ class SyncTestCase(unittest.TestCase):
         3. Sync the remote.
         4. Assert that repository version is not None.
         """
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
@@ -83,7 +83,7 @@ class SyncTestCase(unittest.TestCase):
         3. Verify that the repository version is equal to the previous number
            of syncs.
         """
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
@@ -118,7 +118,7 @@ class SyncTestCase(unittest.TestCase):
            has only Collection content and Role content is deleted.
         """
         # Step 1
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
         # Step 2
@@ -172,7 +172,7 @@ class SyncTestCase(unittest.TestCase):
            has only Collection content and Role content is deleted.
         """
         # Step 1
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
         # Step 2
@@ -242,7 +242,7 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
         """Test sync collections from pulp server."""
         cfg = config.get_config()
         client = api.Client(cfg)
-        repo = client.post(REPO_PATH, gen_repo())
+        repo = client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo["pulp_href"])
 
         remote = client.post(
@@ -259,7 +259,7 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
         )
         self.addCleanup(client.delete, distribution["pulp_href"])
 
-        second_repo = client.post(REPO_PATH, gen_repo())
+        second_repo = client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(client.delete, second_repo["pulp_href"])
 
         url = reduce(

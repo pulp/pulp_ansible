@@ -7,7 +7,13 @@ from django.db.models import UniqueConstraint, Q
 
 # NOTE(cutwater): Module pulpcore.plugin.models doesn't provide Task model
 from pulpcore.app.models import Task
-from pulpcore.plugin.models import Content, Model, Remote, RepositoryVersionDistribution
+from pulpcore.plugin.models import (
+    Content,
+    Model,
+    Remote,
+    Repository,
+    RepositoryVersionDistribution,
+)
 
 log = getLogger(__name__)
 
@@ -194,6 +200,17 @@ class CollectionVersion(Content):
 class AnsibleRemote(Remote):
     """
     A Remote for Ansible content.
+    """
+
+    TYPE = "ansible"
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class AnsibleRepository(Repository):
+    """
+    Repository for "ansible" content.
     """
 
     TYPE = "ansible"

@@ -15,7 +15,7 @@ from rest_framework import status as http_status
 from rest_framework import viewsets
 
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import Artifact, Content, ContentArtifact, RepositoryVersion
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from rest_framework.reverse import reverse
@@ -48,7 +48,7 @@ class AnsibleDistributionMixin:
         if distro.repository_version:
             return distro.repository_version.content
         else:
-            repo_version = RepositoryVersion.latest(distro.repository)
+            repo_version = distro.repository.latest_version()
             if repo_version is None:
                 return Content.objects.none()
             else:

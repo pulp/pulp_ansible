@@ -4,7 +4,6 @@ from functools import partial
 from unittest import SkipTest
 
 from pulp_smash import api, selectors
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import (
     gen_remote,
     gen_repo,
@@ -20,6 +19,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_ROLE_CONTENT_PATH,
     ANSIBLE_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
+    ANSIBLE_REPO_PATH,
 )
 
 
@@ -78,7 +78,7 @@ def populate_pulp(cfg, url=ANSIBLE_FIXTURE_URL):
     repo = {}
     try:
         remote.update(client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote(url)))
-        repo.update(client.post(REPO_PATH, gen_repo()))
+        repo.update(client.post(ANSIBLE_REPO_PATH, gen_repo()))
         sync(cfg, remote, repo)
     finally:
         if remote:

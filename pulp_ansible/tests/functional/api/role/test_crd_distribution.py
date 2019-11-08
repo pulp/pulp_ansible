@@ -5,13 +5,13 @@ import unittest
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, selectors
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_distribution, gen_remote, gen_repo, sync
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_ELASTIC_FIXTURE_URL,
     ANSIBLE_REMOTE_PATH,
+    ANSIBLE_REPO_PATH,
 )
 from pulp_ansible.tests.functional.utils import skip_if
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -48,7 +48,7 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
 
     def test_01_positive_create_and_sync_repo_and_repo_version(self):
         """Create a repo and repo_version with synced content."""
-        self.repo.update(self.client.post(REPO_PATH, gen_repo()))
+        self.repo.update(self.client.post(ANSIBLE_REPO_PATH, gen_repo()))
 
         remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_remote(url=ANSIBLE_ELASTIC_FIXTURE_URL))
 

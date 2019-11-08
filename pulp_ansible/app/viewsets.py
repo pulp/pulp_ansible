@@ -29,10 +29,13 @@ from pulpcore.plugin.viewsets import (
     NamedModelViewSet,
     OperationPostponedResponse,
     RemoteViewSet,
+    RepositoryViewSet,
+    RepositoryVersionViewSet,
 )
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
+    AnsibleRepository,
     Collection,
     CollectionVersion,
     CollectionRemote,
@@ -42,6 +45,7 @@ from .models import (
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
+    AnsibleRepositorySerializer,
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
@@ -213,6 +217,16 @@ class AnsibleRemoteViewSet(RemoteViewSet):
     queryset = AnsibleRemote.objects.all()
     serializer_class = AnsibleRemoteSerializer
 
+
+class AnsibleRepositoryViewSet(RepositoryViewSet):
+    """
+    ViewSet for Ansible Remotes.
+    """
+
+    endpoint_name = "ansible"
+    queryset = AnsibleRepository.objects.all()
+    serializer_class = AnsibleRepositorySerializer
+
     @swagger_auto_schema(
         operation_description="Trigger an asynchronous task to sync Ansible content.",
         responses={202: AsyncOperationResponseSerializer},
@@ -222,17 +236,33 @@ class AnsibleRemoteViewSet(RemoteViewSet):
         """
         Dispatches a sync task.
         """
-        remote = self.get_object()
+        repository = self.get_object()
         serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
-        repository = serializer.validated_data.get("repository")
+
+        remote = serializer.validated_data.get("remote")
+        remote.cast()
+
+        if isinstance(remote, AnsibleRemote):
+            sync_func = role_sync
+        elif isinstance(remote, CollectionRemote):
+            sync_func = collection_sync
+
         mirror = serializer.validated_data.get("mirror", False)
         result = enqueue_with_reservation(
-            role_sync,
+            sync_func,
             [repository, remote],
             kwargs={"remote_pk": remote.pk, "repository_pk": repository.pk, "mirror": mirror},
         )
         return OperationPostponedResponse(result, request)
+
+
+class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
+    """
+    RpmRepositoryVersion represents a single file repository version.
+    """
+
+    parent_viewset = AnsibleRepositoryViewSet
 
 
 class CollectionRemoteViewSet(RemoteViewSet):
@@ -243,31 +273,6 @@ class CollectionRemoteViewSet(RemoteViewSet):
     endpoint_name = "collection"
     queryset = CollectionRemote.objects.all()
     serializer_class = CollectionRemoteSerializer
-
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to sync Collection content.",
-        responses={202: AsyncOperationResponseSerializer},
-    )
-    @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
-    def sync(self, request, pk):
-        """
-        Dispatches a Collection sync task.
-        """
-        collection_remote = self.get_object()
-        serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        repository = serializer.validated_data.get("repository")
-        mirror = serializer.validated_data.get("mirror", False)
-        kwargs = {
-            "remote_pk": collection_remote.pk,
-            "repository_pk": repository.pk,
-            "mirror": mirror,
-        }
-
-        result = enqueue_with_reservation(
-            collection_sync, [repository, collection_remote], kwargs=kwargs
-        )
-        return OperationPostponedResponse(result, request)
 
 
 class CollectionUploadViewSet(viewsets.ViewSet):
