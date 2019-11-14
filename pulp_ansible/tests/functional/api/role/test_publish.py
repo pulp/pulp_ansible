@@ -7,13 +7,16 @@ from urllib.parse import urljoin
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, publish, sync
 
-from pulp_ansible.tests.functional.utils import gen_ansible_publisher, gen_ansible_remote
+from pulp_ansible.tests.functional.utils import (
+    gen_ansible_publisher,
+    gen_ansible_remote,
+)
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_PUBLISHER_PATH,
     ANSIBLE_REMOTE_PATH,
+    ANSIBLE_REPO_PATH,
     ANSIBLE_ROLE_NAME,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -49,7 +52,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         remote = client.post(ANSIBLE_REMOTE_PATH, body)
         self.addCleanup(client.delete, remote["pulp_href"])
 
-        repo = client.post(REPO_PATH, gen_repo())
+        repo = client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo["pulp_href"])
 
         sync(cfg, remote, repo)
@@ -61,7 +64,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
         repo = client.get(repo["pulp_href"])
         for ansible_content in get_content(repo)[ANSIBLE_ROLE_NAME]:
             client.post(
-                repo["versions_href"], {"add_content_units": [ansible_content["pulp_href"]]}
+                repo["pulp_href"] + "modify/", {"add_content_units": [ansible_content["pulp_href"]]}
             )
         version_hrefs = tuple(ver["pulp_href"] for ver in get_versions(repo))
         non_latest = choice(version_hrefs[:-1])

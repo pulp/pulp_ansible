@@ -6,7 +6,6 @@ from random import choice
 from urllib.parse import urljoin
 
 from pulp_smash import api, config, utils
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo, publish, sync
 
 from pulp_ansible.tests.functional.utils import (
@@ -19,6 +18,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_FIXTURE_URL,
     ANSIBLE_PUBLISHER_PATH,
     ANSIBLE_REMOTE_PATH,
+    ANSIBLE_REPO_PATH,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -56,7 +56,7 @@ class DownloadContentTestCase(unittest.TestCase):
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
 
-        repo = client.post(REPO_PATH, gen_repo())
+        repo = client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote()

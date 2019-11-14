@@ -3,12 +3,13 @@
 import unittest
 
 from pulp_smash import api, cli, config, exceptions
-from pulp_smash.pulp3.constants import MEDIA_PATH, REPO_PATH
+from pulp_smash.pulp3.constants import MEDIA_PATH
 from pulp_smash.pulp3.utils import gen_repo, get_added_content_summary, get_content_summary, sync
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
     ANSIBLE_REMOTE_PATH,
+    ANSIBLE_REPO_PATH,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -42,7 +43,7 @@ class BasicSyncTestCase(unittest.TestCase):
         if cli_client.run(("which", "lsof")).returncode != 0:
             raise unittest.SkipTest("lsof package is not present")
 
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
         remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote())
@@ -72,7 +73,7 @@ class BasicSyncTestCase(unittest.TestCase):
         7. Assert that repository version is different from the previous one.
         8. Assert that the same number of are present and that no units were added.
         """
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote()
@@ -111,7 +112,7 @@ class SyncInvalidURLTestCase(unittest.TestCase):
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)
 
-        repo = client.post(REPO_PATH, gen_repo())
+        repo = client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote(url="http://i-am-an-invalid-url.com/invalid/")

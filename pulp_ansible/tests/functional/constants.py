@@ -4,20 +4,23 @@ from pulp_smash.pulp3.constants import (
     BASE_DISTRIBUTION_PATH,
     BASE_PUBLISHER_PATH,
     BASE_REMOTE_PATH,
-    CONTENT_PATH,
+    BASE_REPO_PATH,
+    BASE_CONTENT_PATH,
 )
 
 GALAXY_ANSIBLE_BASE_URL = "https://galaxy.ansible.com"
 
 ANSIBLE_ROLE_NAME = "ansible.role"
 
-ANSIBLE_ROLE_CONTENT_PATH = urljoin(CONTENT_PATH, "ansible/roles/")
+ANSIBLE_ROLE_CONTENT_PATH = urljoin(BASE_CONTENT_PATH, "ansible/roles/")
 
-ANSIBLE_COLLECTION_VERSION_CONTENT_PATH = urljoin(CONTENT_PATH, "ansible/collection_versions/")
+ANSIBLE_COLLECTION_VERSION_CONTENT_PATH = urljoin(BASE_CONTENT_PATH, "ansible/collection_versions/")
 
 ANSIBLE_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, "ansible/ansible/")
 
 ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "ansible/ansible/")
+
+ANSIBLE_REPO_PATH = urljoin(BASE_REPO_PATH, "ansible/ansible/")
 
 ANSIBLE_PUBLISHER_PATH = urljoin(BASE_PUBLISHER_PATH, "ansible/ansible/")
 

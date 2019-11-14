@@ -5,13 +5,13 @@ import tempfile
 import unittest
 
 from pulp_smash import api, cli, config, exceptions
-from pulp_smash.pulp3.constants import REPO_PATH
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo, sync
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_REMOTE_PATH,
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_COLLECTION_TESTING_URL_V2,
+    ANSIBLE_REPO_PATH,
     COLLECTION_WHITELIST,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
@@ -39,7 +39,7 @@ class ConsumeContentTestCase(unittest.TestCase):
 
     def test_consume_content(self):
         """Test whether ansible-galaxy can install content hosted by Pulp."""
-        repo = self.client.post(REPO_PATH, gen_repo())
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
         body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)

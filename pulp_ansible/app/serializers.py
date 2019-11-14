@@ -7,6 +7,7 @@ from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     ModelSerializer,
     RemoteSerializer,
+    RepositorySerializer,
     SingleArtifactContentSerializer,
     RepositoryVersionDistributionSerializer,
 )
@@ -14,6 +15,7 @@ from pulpcore.plugin.serializers import (
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
+    AnsibleRepository,
     Collection,
     CollectionImport,
     CollectionVersion,
@@ -71,6 +73,16 @@ class AnsibleRemoteSerializer(RemoteSerializer):
     class Meta:
         fields = RemoteSerializer.Meta.fields
         model = AnsibleRemote
+
+
+class AnsibleRepositorySerializer(RepositorySerializer):
+    """
+    Serializer for Ansible Repositories.
+    """
+
+    class Meta:
+        fields = RepositorySerializer.Meta.fields
+        model = AnsibleRepository
 
 
 class CollectionRemoteSerializer(RemoteSerializer):
