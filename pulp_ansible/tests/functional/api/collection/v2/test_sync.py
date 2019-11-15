@@ -97,7 +97,7 @@ class SyncTestCase(unittest.TestCase):
         repo = self.client.get(repo["pulp_href"])
         path = urlsplit(repo["latest_version_href"]).path
         latest_repo_version = int(path.split("/")[-2])
-        self.assertEqual(latest_repo_version, number_of_syncs, repo)
+        self.assertEqual(latest_repo_version, 1, repo)
 
     def test_mirror_sync(self):
         """Sync multiple remotes into the same repo with mirror as `True`.

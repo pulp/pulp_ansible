@@ -28,7 +28,6 @@ from pulpcore.plugin.stages import (
     DeclarativeContent,
     DeclarativeVersion,
     RemoteArtifactSaver,
-    RemoveDuplicates,
     ResolveContentFutures,
     Stage,
     QueryExistingArtifacts,
@@ -244,8 +243,6 @@ class AnsibleDeclarativeVersion(DeclarativeVersion):
             RemoteArtifactSaver(),
             ResolveContentFutures(),
         ]
-        for dupe_query_dict in self.remove_duplicates:
-            pipeline.append(RemoveDuplicates(new_version, **dupe_query_dict))
 
         return pipeline
 
