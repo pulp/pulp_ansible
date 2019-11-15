@@ -94,9 +94,9 @@ class BasicSyncTestCase(unittest.TestCase):
         sync(self.cfg, remote, repo)
         repo = self.client.get(repo["pulp_href"])
 
-        self.assertNotEqual(latest_version_href, repo["latest_version_href"])
+        self.assertEqual(latest_version_href, repo["latest_version_href"])
         self.assertDictEqual(get_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
-        self.assertDictEqual(get_added_content_summary(repo), {})
+        self.assertDictEqual(get_added_content_summary(repo), {"ansible.role": 5})
 
 
 class SyncInvalidURLTestCase(unittest.TestCase):
