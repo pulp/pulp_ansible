@@ -154,12 +154,12 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
     A serializer for a CollectionVersion.
     """
 
-    collection = CollectionRefSerializer()
+    collection = CollectionRefSerializer(read_only=True)
     artifact = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
-    metadata = CollectionMetadataSerializer(source="*")
-    namespace = CollectionNamespaceSerializer(source="*")
+    metadata = CollectionMetadataSerializer(source="*", read_only=True)
+    namespace = CollectionNamespaceSerializer(source="*", read_only=True)
 
     class Meta(CollectionVersionListSerializer.Meta):
         fields = CollectionVersionListSerializer.Meta.fields + (
