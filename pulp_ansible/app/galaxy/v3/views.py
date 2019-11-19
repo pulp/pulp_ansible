@@ -57,7 +57,8 @@ class AnsibleDistributionMixin:
     def get_serializer_context(self):
         """Inserts distribution path to a serializer context."""
         context = super().get_serializer_context()
-        context["path"] = self.kwargs["path"]
+        if "path" in self.kwargs:
+            context["path"] = self.kwargs["path"]
         return context
 
 
