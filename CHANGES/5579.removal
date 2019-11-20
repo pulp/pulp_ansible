@@ -1,1 +1,0 @@
-Change `is_certified` to `certification` enum on `CollectionVersion`.
