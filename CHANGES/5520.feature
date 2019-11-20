@@ -1,1 +1,0 @@
-Add Ansible Collection endpoint.

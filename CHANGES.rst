@@ -13,6 +13,71 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b6 (2019-11-20)
+====================
+
+Features
+--------
+
+- Add Ansible Collection endpoint.
+  `#5520 <https://pulp.plan.io/issues/5520>`_
+- Added `since` filter for CollectionImport messsages.
+  `#5522 <https://pulp.plan.io/issues/5522>`_
+- Add a tags filter by which to filter collection versions.
+  `#5571 <https://pulp.plan.io/issues/5571>`_
+- Allow users to update `deprecated` for collections endpoint.
+  `#5577 <https://pulp.plan.io/issues/5577>`_
+- Add the ability to set a certification status for a collection version.
+  `#5579 <https://pulp.plan.io/issues/5579>`_
+- Add sorting parameters to the collection versions endpoint.
+  `#5621 <https://pulp.plan.io/issues/5621>`_
+- Expose the deprecated field on collection versions and added a deprecated filter.
+  `#5645 <https://pulp.plan.io/issues/5645>`_
+- Added filters to v3 collection version endpoint
+  `#5670 <https://pulp.plan.io/issues/5670>`_
+
+
+Bugfixes
+--------
+
+- Reverting back to the older upload serializers.
+  `#5555 <https://pulp.plan.io/issues/5555>`_
+- Fix bug where CollectionImport was not being created in viewset causing 404s for galaxy.
+  `#5569 <https://pulp.plan.io/issues/5569>`_
+- Fixed an old call to _id in a collection task.
+  `#5572 <https://pulp.plan.io/issues/5572>`_
+- Fix 500 error for /pulp/api/v3/ page and drf_yasg error on api docs.
+  `#5748 <https://pulp.plan.io/issues/5748>`_
+
+
+Deprecations and Removals
+-------------------------
+
+- Change `_id`, `_created`, `_last_updated`, `_href` to `pulp_id`, `pulp_created`, `pulp_last_updated`, `pulp_href`
+  `#5457 <https://pulp.plan.io/issues/5457>`_
+- Remove "_" from `_versions_href`, `_latest_version_href`
+  `#5548 <https://pulp.plan.io/issues/5548>`_
+- Removing base field: `_type` .
+  `#5550 <https://pulp.plan.io/issues/5550>`_
+- Change `is_certified` to `certification` enum on `CollectionVersion`.
+  `#5579 <https://pulp.plan.io/issues/5579>`_
+- Sync is no longer available at the {remote_href}/sync/ repository={repo_href} endpoint. Instead, use POST {repo_href}/sync/ remote={remote_href}.
+
+  Creating / listing / editing / deleting Ansible repositories is now performed on /pulp/api/v3/ansible/ansible/ instead of /pulp/api/v3/repositories/. Only Ansible content can be present in a Ansible repository, and only a Ansible repository can hold Ansible content.
+  `#5625 <https://pulp.plan.io/issues/5625>`_
+- Removing unnecessary `DELETE` action for `set_certified` method.
+  `#5711 <https://pulp.plan.io/issues/5711>`_
+
+
+Misc
+----
+
+- `#4554 <https://pulp.plan.io/issues/4554>`_, `#5580 <https://pulp.plan.io/issues/5580>`_, `#5629 <https://pulp.plan.io/issues/5629>`_
+
+
+----
+
+
 0.2.0b5 (2019-10-01)
 ====================
 
