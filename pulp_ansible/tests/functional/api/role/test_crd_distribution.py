@@ -54,7 +54,7 @@ class RepositoryVersionDistributionTestCase(unittest.TestCase):
 
         self.addCleanup(self.client.delete, remote["pulp_href"])
 
-        self.assertIsNone(self.repo["latest_version_href"])
+        self.assertEqual(self.repo["latest_version_href"], f"{self.repo['pulp_href']}versions/0/")
         sync(self.cfg, remote, self.repo)
 
         self.repo.update(self.client.get(self.repo["pulp_href"]))
