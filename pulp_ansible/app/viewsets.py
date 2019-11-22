@@ -14,6 +14,7 @@ from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 
+from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.serializers import (
@@ -218,7 +219,7 @@ class AnsibleRemoteViewSet(RemoteViewSet):
     serializer_class = AnsibleRemoteSerializer
 
 
-class AnsibleRepositoryViewSet(RepositoryViewSet):
+class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
     """
     ViewSet for Ansible Remotes.
     """
