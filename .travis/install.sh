@@ -75,7 +75,7 @@ images:
         - ./$PLUGIN
 VARSYAML
 fi
-ansible-playbook build.yaml
+ansible-playbook -v build.yaml
 
 cd $TRAVIS_BUILD_DIR/../pulp-operator
 # Tell pulp-perator to deploy our image
