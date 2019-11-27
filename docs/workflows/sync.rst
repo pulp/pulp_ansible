@@ -14,9 +14,9 @@ Repository GET Response::
 
     {
         "pulp_created": "2019-04-29T15:57:59.763712Z",
-        "pulp_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
+        "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
         "latest_version_href": null,
-        "versions_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
+        "versions_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
         "description": "",
         "name": "foo"
     }
@@ -59,19 +59,19 @@ sync with. You are telling Pulp to fetch content from the Remote and add to the 
 Repository Version GET Response (when complete)::
 
   {
-      "pulp_href": "/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/",
+      "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/",
       "base_version": null,
       "content_summary": {
           "added": {
               "ansible.role": {
                   "count": 16,
-                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version_added=/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
+                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version_added=/pulp/api/v3/repositories/ansible/ansible/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
               }
           },
           "present": {
               "ansible.role": {
                   "count": 16,
-                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version=/pulp/api/v3/repositories/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
+                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version=/pulp/api/v3/repositories/ansible/ansible/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
               }
           },
           "removed": {}

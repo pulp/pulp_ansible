@@ -25,7 +25,7 @@ content at ``$CONTENT_ORIGIN/pulp/content/<distribution.base_path>`` as demonstr
         "base_url": "/pulp/content/foo",
         "content_guard": null,
         "name": "baz",
-        "repository": "/pulp/api/v3/repositories/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/",
+        "repository": "/pulp/api/v3/repositories/ansible/ansible/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/",
         "repository_version": null
     }
 
@@ -53,7 +53,7 @@ RepositoryVersion for a Distribution.
         "content_guard": null,
         "name": "baz",
         "repository": null,
-        "repository_version": "/pulp/api/v3/repositories/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/versions/1/"
+        "repository_version": "/pulp/api/v3/repositories/ansible/ansible/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/versions/1/"
     }
 
 .. todo::

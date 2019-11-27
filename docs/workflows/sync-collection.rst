@@ -14,9 +14,9 @@ Repository GET Response::
 
     {
         "pulp_created": "2019-04-29T15:57:59.763712Z",
-        "pulp_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
+        "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
         "latest_version_href": null,
-        "versions_href": "/pulp/api/v3/repositories/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
+        "versions_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
         "description": null,
         "name": "foo"
     }
@@ -73,7 +73,7 @@ Repository Version GET Response (when complete)::
 
 
     {
-        "pulp_href": "/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/",
+        "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/",
         "pulp_created": "2019-05-28T21:51:08.172095Z",
         "number": 1,
         "base_version": null,
@@ -81,14 +81,14 @@ Repository Version GET Response (when complete)::
             "added": {
                 "ansible.collection": {
                     "count": 1,
-                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version_added=/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
+                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version_added=/pulp/api/v3/repositories/ansible/ansible/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
                 }
             },
             "removed": {},
             "present": {
                 "ansible.collection": {
                     "count": 1,
-                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version=/pulp/api/v3/repositories/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
+                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version=/pulp/api/v3/repositories/ansible/ansible/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
                 }
             }
         }
