@@ -82,13 +82,13 @@ You could do these steps with a script like::
 
     # Create a Repository
     http POST :/pulp/api/v3/repositories/ name=foo
-    export REPO_HREF=$(http :/pulp/api/v3/repositories/ | jq -r '.results[] | select(.name == "foo") | .pulp_href')
+    export REPO_HREF=$(http :/pulp/api/v3/repositories/ansible/ansible/ | jq -r '.results[] | select(.name == "foo") | .pulp_href')
 
     # Find the 'hello' collection
     export COLLECTION_HREF=$(http :/pulp/api/v3/content/ansible/collections/ | jq -r '.results[0].pulp_href')
 
     # Create a Repository Version with the 'hello' collection
-    http POST ':'$REPO_HREF'versions/' add_content_units:="[\"$COLLECTION_HREF\"]"
+    http POST ':'$REPO_HREF'modify/' add_content_units:="[\"$COLLECTION_HREF\"]"
 
     # Create a Distribution
     http POST :/pulp/api/v3/distributions/ansible/ansible/ name='baz' base_path='dev' repository=$REPO_HREF

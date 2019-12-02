@@ -6,7 +6,7 @@ Add/Remove Content to a Repository
 Whether your Role was fetched with a sync or uploaded, any content can also be added/removed to a
 repository manually::
 
-    $ http POST $BASE_ADDR$REPO_HREF'versions/' \
+    $ http POST $BASE_ADDR$REPO_HREF'modify/' \
                     add_content_units:="[\"$CONTENT_HREF\"]"
 
 
