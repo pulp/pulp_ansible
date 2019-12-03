@@ -5,14 +5,13 @@ from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
 from django.db.models import UniqueConstraint, Q
 
-# NOTE(cutwater): Module pulpcore.plugin.models doesn't provide Task model
-from pulpcore.app.models import Task
 from pulpcore.plugin.models import (
+    BaseModel,
     Content,
-    Model,
     Remote,
     Repository,
     RepositoryVersionDistribution,
+    Task,
 )
 
 log = getLogger(__name__)
@@ -41,7 +40,7 @@ class Role(Content):
         unique_together = ("version", "name", "namespace")
 
 
-class Collection(Model):
+class Collection(BaseModel):
     """A model representing a Collection."""
 
     namespace = models.CharField(max_length=64, editable=False)
@@ -77,7 +76,7 @@ class CollectionImport(models.Model):
         )
 
 
-class Tag(Model):
+class Tag(BaseModel):
     """A model representing a Tag.
 
     Fields:
