@@ -213,6 +213,7 @@ class AnsibleRepository(Repository):
     """
 
     TYPE = "ansible"
+    CONTENT_TYPES = [Role, CollectionVersion]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
