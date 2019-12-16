@@ -29,7 +29,7 @@ class PublishAnyRepoVersionTestCase(unittest.TestCase):
     This test targets the following issues:
 
     * `Pulp #3324 <https://pulp.plan.io/issues/3324>`_
-    * `Pulp Smash #897 <https://github.com/PulpQE/pulp-smash/issues/897>`_
+    * `Pulp Smash #897 <https://github.com/pulp/pulp-smash/issues/897>`_
     """
 
     def test_all(self):
