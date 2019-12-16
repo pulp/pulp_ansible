@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 requirements = [
     "galaxy_importer",
     "packaging",
-    "pulpcore>=3.0rc8,<3.2",
+    "pulpcore>=3.0.<3.1",
     "PyYAML",
     "semantic_version",
 ]
@@ -15,7 +15,7 @@ with open("README.rst") as f:
 
 setup(
     name="pulp-ansible",
-    version="0.2.0b7.dev",
+    version="0.2.0b7",
     description="Pulp plugin to manage Ansible content, e.g. roles",
     long_description=long_description,
     license="GPLv2+",
