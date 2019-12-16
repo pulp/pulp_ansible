@@ -13,6 +13,32 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b7 (2019-12-16)
+====================
+
+Features
+--------
+
+- Add "modify" endpoint as ``/pulp/api/v3/repositories/ansible/ansible/<uuid>/modify/``.
+  `#5783 <https://pulp.plan.io/issues/5783>`_
+
+
+Improved Documentation
+----------------------
+
+- Adds copyright notice to source.
+  `#4592 <https://pulp.plan.io/issues/4592>`_
+
+
+Misc
+----
+
+- `#5693 <https://pulp.plan.io/issues/5693>`_, `#5701 <https://pulp.plan.io/issues/5701>`_, `#5757 <https://pulp.plan.io/issues/5757>`_
+
+
+----
+
+
 0.2.0b6 (2019-11-20)
 ====================
 
