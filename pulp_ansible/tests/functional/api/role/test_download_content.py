@@ -51,7 +51,7 @@ class DownloadContentTestCase(unittest.TestCase):
         This test targets the following issues:
 
         * `Pulp #2895 <https://pulp.plan.io/issues/2895>`_
-        * `Pulp Smash #872 <https://github.com/PulpQE/pulp-smash/issues/872>`_
+        * `Pulp Smash #872 <https://github.com/pulp/pulp-smash/issues/872>`_
         """
         cfg = config.get_config()
         client = api.Client(cfg, api.json_handler)

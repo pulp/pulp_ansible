@@ -21,7 +21,7 @@ class ContentUnitTestCase(unittest.TestCase):
 
     * `Pulp #2872 <https://pulp.plan.io/issues/2872>`_
     * `Pulp #3445 <https://pulp.plan.io/issues/3445>`_
-    * `Pulp Smash #870 <https://github.com/PulpQE/pulp-smash/issues/870>`_
+    * `Pulp Smash #870 <https://github.com/pulp/pulp-smash/issues/870>`_
     """
 
     @classmethod
