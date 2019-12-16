@@ -1,3 +1,3 @@
-__version__ = "0.2.0b7"
+__version__ = "0.2.0b8.dev"
 
 default_app_config = "pulp_ansible.app.PulpAnsiblePluginAppConfig"
