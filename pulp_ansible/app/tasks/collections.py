@@ -116,7 +116,6 @@ def import_collection(
             match the metadata in the tarball.
 
     """
-
     CollectionImport.objects.get_or_create(task_id=get_current_job().id)
 
     artifact = Artifact.objects.get(pk=artifact_pk)

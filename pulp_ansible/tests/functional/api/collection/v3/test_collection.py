@@ -30,7 +30,6 @@ logger = logging.getLogger(__name__)
 
 def upload_handler(client, response):
     """Handle responses to collection upload by fetching and returning the task data."""
-
     response.raise_for_status()
     logger.debug("response status: %s", response.status_code)
     if response.status_code == 204:
@@ -49,7 +48,6 @@ def get_galaxy_url(base, path):
 
     Takes the expected GALAXY_API_ROOT setting of the target into consideration.
     """
-
     cfg = config.get_config()
     path = path.lstrip("/")
     GALAXY_API_ROOT = cfg.custom.get(
@@ -61,7 +59,6 @@ def get_galaxy_url(base, path):
 @pytest.fixture(scope="session")
 def artifact():
     """Generate a randomized collection for testing."""
-
     artifact = build_collection("skeleton")
     return artifact
 
@@ -69,7 +66,6 @@ def artifact():
 @pytest.fixture(scope="session")
 def collection_upload(pulp_client, artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
-
     UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
 
     logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
@@ -82,7 +78,6 @@ def collection_upload(pulp_client, artifact, pulp_dist):
 @pytest.fixture(scope="session")
 def collection_detail(collection_upload, pulp_client, pulp_dist, artifact):
     """Fetch and parse a collection details response from an uploaded collection."""
-
     url = get_galaxy_url(
         pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
     )
@@ -93,7 +88,6 @@ def collection_detail(collection_upload, pulp_client, pulp_dist, artifact):
 @pytest.fixture(scope="session")
 def pulp_client():
     """Create and configure a Pulp API client, including custom authentication headers."""
-
     cfg = config.get_config()
     client = api.Client(cfg)
     headers = cfg.custom.get("headers", None)
@@ -105,7 +99,6 @@ def pulp_client():
 @pytest.fixture(scope="session")
 def pulp_repo(pulp_client):
     """Find or create a Repository to attach to the Ansible Distribution we create."""
-
     repos = pulp_client.get(ANSIBLE_REPO_PATH)
     if repos:
         yield repos[0]
@@ -119,7 +112,6 @@ def pulp_repo(pulp_client):
 @pytest.fixture(scope="session")
 def pulp_dist(pulp_client, pulp_repo):
     """Create an Ansible Distribution to simulate the automation hub environment for testing."""
-
     dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH + "?base_path=automation-hub")
 
     if len(dists) == 0:
@@ -141,7 +133,6 @@ def pulp_dist(pulp_client, pulp_repo):
 @pytest.fixture(scope="session")
 def known_collection():
     """Fetch and prepare a known collection from Galaxy to use in an upload test."""
-
     collection_content = http_get(ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL)
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, collection_content)}
     return collection
@@ -152,7 +143,6 @@ def test_collection_upload(collection_upload):
 
     Uploads a newly generated collection and validates the resulting collection version details.
     """
-
     # Validate the upload response
     assert collection_upload["error"] is None
     assert re.match(
@@ -181,7 +171,6 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
 
     Includes information of the most current version.
     """
-
     url = get_galaxy_url(
         pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
     )
@@ -199,7 +188,6 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
 
 def test_collection_version_list(artifact, pulp_client, collection_detail):
     """Test the versions endpoint, listing the available versions of a given collection."""
-
     # Version List Endpoint
     versions = pulp_client.using_handler(api.json_handler).get(collection_detail["versions_url"])
     assert versions["count"] == 1
@@ -215,7 +203,6 @@ def test_collection_version(artifact, pulp_client, collection_detail):
 
     Each collection version details a specific uploaded artifact for the collection.
     """
-
     # Version Endpoint
     version = pulp_client.using_handler(api.json_handler).get(
         collection_detail["highest_version"]["href"]
@@ -254,7 +241,6 @@ def test_collection_download(artifact, pulp_client, collection_detail):
 
     Should require authentication and redirect to a download location.
     """
-
     version = pulp_client.using_handler(api.json_handler).get(
         collection_detail["highest_version"]["href"]
     )
@@ -275,7 +261,6 @@ def test_collection_upload_repeat(pulp_client, known_collection, pulp_dist):
 
     Should fail, because of the conflict of collection name and version.
     """
-
     cfg = config.get_config()
     url = urljoin(cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/")
 

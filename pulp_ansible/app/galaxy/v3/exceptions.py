@@ -26,7 +26,6 @@ def _get_errors(detail, *, status, title, source=None):
 
 def exception_handler(exc, context):
     """Custom exception handler."""
-
     if isinstance(exc, Http404):
         exc = exceptions.NotFound()
     elif isinstance(exc, PermissionDenied):
