@@ -6,4 +6,3 @@ flake8-docstrings
 flake8-tuple
 flake8-quotes
 requests
-regex==2019.11.1  # pin until https://github.com/psf/black/issues/1207 is fixed
