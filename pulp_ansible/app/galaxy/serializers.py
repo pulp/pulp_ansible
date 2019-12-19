@@ -149,12 +149,6 @@ class GalaxyCollectionUploadSerializer(serializers.Serializer):
     A serializer for Collection Uploads.
     """
 
-    sha256 = serializers.CharField(
-        help_text=_("The sha256 checksum of the Collection Artifact."),
-        required=True,
-        max_length=64,
-        min_length=64,
-    )
     file = serializers.FileField(
         help_text=_("The file containing the Artifact binary data."), required=True
     )

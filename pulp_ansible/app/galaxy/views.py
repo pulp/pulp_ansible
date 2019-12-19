@@ -154,10 +154,7 @@ class GalaxyCollectionView(generics.ListAPIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        expected_digests = {"sha256": serializer.validated_data["sha256"]}
-        artifact = Artifact.init_and_validate(
-            serializer.validated_data["file"], expected_digests=expected_digests
-        )
+        artifact = Artifact.init_and_validate(serializer.validated_data["file"])
         artifact.save()
 
         locks = [str(artifact.pk)]

@@ -4,8 +4,13 @@ from gettext import gettext as _
 import json
 import logging
 import math
+import subprocess
 import tarfile
+import tempfile
+import uuid
 
+from pulp_container.app.tasks.builder import build_image_from_dockerfile
+from pulp_container.app.models import ContainerRepository, ContainerDistribution
 from django.db import transaction
 from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
@@ -123,6 +128,45 @@ def import_collection(
     log.info(f"Processing collection from {artifact.file.name}")
     import_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
 
+    dockerfile = tempfile.NamedTemporaryFile(mode='w')
+    dockerfile_str = "#" + str(uuid.uuid4())
+    dockerfile_str += "\nFROM bmbouter/ansible-lint:latest\nCOPY collection.tar.gz /archive"
+    dockerfile.write(dockerfile_str)
+    dockerfile.flush()
+    dockerfile_artifact = Artifact.init_and_validate(file=dockerfile.name)
+    dockerfile_artifact.save()
+
+    with _artifact_guard(dockerfile_artifact):
+        new_container_repo = ContainerRepository(name=uuid.uuid4())
+        new_container_repo.save()
+        new_container_distribution = ContainerDistribution(
+            name=uuid.uuid4(),
+            base_path=uuid.uuid4(),
+            repository=new_container_repo
+        )
+        new_container_distribution.save()
+        artifact_dict = {artifact.pk: 'collection.tar.gz'}
+        repo_version = build_image_from_dockerfile(
+            dockerfile_pk=dockerfile_artifact.pk,
+            artifacts=artifact_dict,
+            repository_pk=new_container_repo.pk,
+            tag='latest'
+        )
+
+    dockerfile_artifact.delete()
+
+    path = "localhost:24816/" + str(new_container_distribution.base_path)
+    podman_pull_proc = subprocess.run(["podman", "pull", path], stdout=subprocess.PIPE,
+                                      stderr=subprocess.PIPE)
+    podman_run_proc = subprocess.run(["podman", "run", path], stdout=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
+
+    log.info(podman_run_proc.stdout)
+
+    new_container_distribution.delete()
+    new_container_repo.delete()
+
+
     with _artifact_guard(artifact):
         try:
             with artifact.file.open() as artifact_file:
@@ -135,6 +179,8 @@ def import_collection(
             raise
 
     collection_info = importer_result["metadata"]
+
+    raise Exception('oh no')
 
     with transaction.atomic():
         collection, created = Collection.objects.get_or_create(
