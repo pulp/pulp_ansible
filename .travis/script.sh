@@ -33,12 +33,9 @@ if [ "$TEST" = 'docs' ]; then
 fi
 
 if [ "$TEST" = 'bindings' ]; then
+  cd ../pulp-openapi-generator
   COMMIT_MSG=$(git log --format=%B --no-merges -1)
   export PULP_BINDINGS_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-openapi-generator\/pull\/(\d+)' | awk -F'/' '{print $7}')
-
-  cd ..
-  git clone https://github.com/pulp/pulp-openapi-generator.git
-  cd pulp-openapi-generator
 
   if [ -n "$PULP_BINDINGS_PR_NUMBER" ]; then
     git fetch origin +refs/pull/$PULP_BINDINGS_PR_NUMBER/merge
@@ -109,7 +106,7 @@ set -u
 
 if [[ "$TEST" == "performance" ]]; then
   echo "--- Performance Tests ---"
-  if [[ -z "$PERFORMANCE_TEST" ]]; then
+  if [[ -z ${PERFORMANCE_TEST+x} ]]; then
     pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance || show_logs_and_return_non_zero
   else
     pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_$PERFORMANCE_TEST || show_logs_and_return_non_zero

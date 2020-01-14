@@ -6,6 +6,7 @@ all: false
 black: true
 bootstrap: false
 check_commit_message: true
+cherry_pick_automation: false
 coverage: false
 deploy_client_to_pypi: true
 deploy_client_to_rubygems: true
@@ -28,8 +29,10 @@ pulp_settings:
   ansible_api_hostname: http://$(hostname):24817
   ansible_content_hostname: http://$(hostname):24816/pulp/content
   content_host: $(hostname):24816
+pulpcore_branch: master
 pydocstyle: true
 pypi_username: pulp
+stable_branch: null
 test: false
 test_bindings: true
 test_performance: false
