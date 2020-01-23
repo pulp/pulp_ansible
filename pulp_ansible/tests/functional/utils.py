@@ -2,6 +2,7 @@
 """Utilities for tests for the ansible plugin."""
 from functools import partial
 from unittest import SkipTest
+from time import sleep
 
 from pulp_smash import api, selectors
 from pulp_smash.pulp3.utils import (
@@ -22,11 +23,29 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_REPO_PATH,
 )
 
+from pulpcore.client.pulpcore import (
+    ApiClient as CoreApiClient,
+    Configuration,
+    TasksApi,
+)
+from pulpcore.client.pulp_ansible import ApiClient as AnsibleApiClient
+
+
+configuration = Configuration()
+configuration.username = "admin"
+configuration.password = "password"
+configuration.safe_chars_for_path_param = "/"
+
 
 def set_up_module():
     """Skip tests Pulp 3 isn't under test or if pulp_ansible isn't installed."""
     require_pulp_3(SkipTest)
     require_pulp_plugins({"pulp_ansible"}, SkipTest)
+
+
+def gen_ansible_client():
+    """Return an OBJECT for ansible client."""
+    return AnsibleApiClient(configuration)
 
 
 def gen_ansible_remote(url=ANSIBLE_FIXTURE_URL, **kwargs):
@@ -94,3 +113,31 @@ skip_if = partial(selectors.skip_if, exc=SkipTest)
 :func:`pulp_smash.selectors.skip_if` is test runner agnostic. This function is
 identical, except that ``exc`` has been set to ``unittest.SkipTest``.
 """
+
+
+core_client = CoreApiClient(configuration)
+tasks = TasksApi(core_client)
+
+
+def monitor_task(task_href):
+    """Polls the Task API until the task is in a completed state.
+
+    Prints the task details and a success or failure message. Exits on failure.
+
+    Args:
+        task_href(str): The href of the task to monitor
+
+    Returns:
+        list[str]: List of hrefs that identify resource created by the task
+
+    """
+    completed = ["completed", "failed", "canceled"]
+    task = tasks.read(task_href)
+    while task.state not in completed:
+        sleep(2)
+        task = tasks.read(task_href)
+
+    if task.state == "completed":
+        return task.created_resources
+
+    return task.to_dict()
