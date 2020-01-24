@@ -40,14 +40,8 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         """
         Get source.
         """
-        if settings.CONTENT_ORIGIN:
-            host = settings.CONTENT_ORIGIN
-        else:
-            host = self.context["request"].get_host()
-        host = "{}://{}".format(self.context["request"].scheme, host)
-
         distro_base = self.context["request"].parser_context["kwargs"]["path"]
-        distro_path = "".join([host, settings.CONTENT_PATH_PREFIX, distro_base])
+        distro_path = "".join([settings.CONTENT_ORIGIN, settings.CONTENT_PATH_PREFIX, distro_base])
 
         return "".join([distro_path, "/", obj.relative_path])
 
