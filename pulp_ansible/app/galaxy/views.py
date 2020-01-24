@@ -33,7 +33,7 @@ class GalaxyVersionView(views.APIView):
         """
         Return a response to the "GET" action.
         """
-        api_info = {"available_versions": {"v1": "/v1/"}, "current_version": "v1"}
+        api_info = {"available_versions": {"v1": "v1/", "v2": "v2/"}, "current_version": "v1"}
 
         return response.Response(api_info)
 
@@ -154,10 +154,7 @@ class GalaxyCollectionView(generics.ListAPIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        expected_digests = {"sha256": serializer.validated_data["sha256"]}
-        artifact = Artifact.init_and_validate(
-            serializer.validated_data["file"], expected_digests=expected_digests
-        )
+        artifact = Artifact.init_and_validate(serializer.validated_data["file"])
         artifact.save()
 
         locks = [str(artifact.pk)]

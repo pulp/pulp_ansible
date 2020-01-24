@@ -31,6 +31,10 @@ v2_urls = [
         "collections/<str:namespace>/<str:name>/versions/<str:version>/",
         GalaxyCollectionVersionDetail.as_view(),
     ),
+    path(
+        "collection-imports/<uuid:pk>",
+        views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
+    ),
 ]
 
 v3_urls = [
