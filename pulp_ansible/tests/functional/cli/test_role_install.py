@@ -1,4 +1,4 @@
-"""Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
+"""Tests that Roles hosted by Pulp can be installed by ansible-galaxy."""
 
 from os import path
 import subprocess
@@ -9,13 +9,14 @@ from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
     RepositoriesAnsibleApi,
     RepositorySyncURL,
-    RemotesCollectionApi,
+    RemotesAnsibleApi,
 )
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_COLLECTION_TESTING_URL_V2,
-    COLLECTION_WHITELIST,
+    ANSIBLE_ELASTIC_FIXTURE_URL,
+    ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME,
+    ANSIBLE_ELASTIC_ROLE_WHITELIST,
 )
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
@@ -25,25 +26,25 @@ from pulp_ansible.tests.functional.utils import (
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class InstallCollectionTestCase(unittest.TestCase):
-    """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+class InstallRoleTestCase(unittest.TestCase):
+    """Test whether ansible-galaxy can install a Role hosted by Pulp."""
 
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
-        cls.remote_collection_api = RemotesCollectionApi(cls.client)
+        cls.remote_role_api = RemotesAnsibleApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
 
-    def test_install_collection(self):
-        """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+    def test_install_role(self):
+        """Test whether ansible-galaxy can install a Role hosted by Pulp."""
         repo = self.repo_api.create(gen_repo())
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+        body = gen_ansible_remote(url=ANSIBLE_ELASTIC_FIXTURE_URL)
+        remote = self.remote_role_api.create(body)
+        self.addCleanup(self.remote_role_api.delete, remote.pulp_href)
 
         # Sync the repository.
         self.assertEqual(repo.latest_version_href, f"{repo.pulp_href}versions/0/")
@@ -62,13 +63,11 @@ class InstallCollectionTestCase(unittest.TestCase):
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            cmd = "ansible-galaxy collection install {} -c -s {} -p {}".format(
-                COLLECTION_WHITELIST, distribution.client_url, temp_dir
+            cmd = "ansible-galaxy role install {} -c -s {} -p {}".format(
+                ANSIBLE_ELASTIC_ROLE_WHITELIST, distribution.client_url, temp_dir
             )
 
-            directory = "{}/ansible_collections/{}".format(
-                temp_dir, COLLECTION_WHITELIST.replace(".", "/")
-            )
+            directory = "{}/{}".format(temp_dir, ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME)
 
             self.assertTrue(
                 not path.exists(directory), "Directory {} already exists".format(directory)
