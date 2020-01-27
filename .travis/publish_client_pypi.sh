@@ -36,6 +36,7 @@ fi
 cd
 git clone https://github.com/pulp/pulp-openapi-generator.git
 cd pulp-openapi-generator
+sed -i 's/podman/docker/g' generate.sh
 
 ./generate.sh pulp_ansible python $VERSION
 cd pulp_ansible-client
