@@ -59,13 +59,15 @@ Configure pulplift to install ``pulp_ansible``:
 
 .. code-block:: bash
 
-    cat >local.user-config.ymll <<EOL
+    cat > local.user-config.yml <<EOF
     pulp_default_admin_password: password
     pulp_install_plugins:
-      pulp-ansible:
-        app_label: "ansible"
-    pulp_secret_key: "unsafe_default"
-    EOL
+      pulp-ansible: {}
+
+    pulp_settings:
+      secret_key: "unsafe_default"
+      content_origin: "http://{{ ansible_fqdn }}"
+    EOF
 
 Then run Vagrant up for fedora30 using:
 
@@ -88,7 +90,7 @@ Install ``pulp_ansible`` From PyPI
    pip install pulp-ansible
 
 After installing the code, configure Pulp to connect to Redis and PostgreSQL with the `pulpcore
-configuration instructions <https://docs.pulpproject.org/en/3.0/nightly/installation/
+configuration instructions <https://docs.pulpproject.org/installation/
 instructions.html#database-setup>`_
 
 
@@ -99,10 +101,10 @@ Install ``pulp_ansible`` from source
 
    git clone https://github.com/pulp/pulp_ansible.git
    cd pulp_ansible
-   pip install -e .
+   python setup.py develop
 
 After installing the code, configure Pulp to connect to Redis and PostgreSQL with the `pulpcore
-configuration instructions <https://docs.pulpproject.org/en/3.0/nightly/installation/
+configuration instructions <https://docs.pulpproject.org/installation/
 instructions.html#database-setup>`_
 
 
@@ -123,3 +125,13 @@ Run Services
    gunicorn pulpcore.content:server --bind 'localhost:24816' --worker-class 'aiohttp.GunicornWebWorker' -w 2
    sudo systemctl restart pulpcore-resource-manager
    sudo systemctl restart pulpcore-worker@1
+
+
+Checking your Installation
+--------------------------
+
+The Status API is a good way to check your installation. Here's an example using httpie in a Fedora
+environment::
+
+    sudo yum install httpie -y
+    http :80/pulp/api/v3/status/

@@ -2,7 +2,7 @@
 # be served at the base path specified.
 export TASK_URL=$(http POST $BASE_ADDR/pulp/api/v3/distributions/ansible/ansible/ \
   name='baz' \
-  base_path='foo' \
+  base_path='my_content' \
   repository_version=${REPO_HREF}versions/1/ | jq -r '.task')
 
 # Poll the task (here we use a function defined in docs/_scripts/base.sh)
