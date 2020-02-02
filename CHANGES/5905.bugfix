@@ -1,1 +1,0 @@
-Fixed ``ansible-galaxy publish`` command which was failing with a 400 error.

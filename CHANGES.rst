@@ -13,6 +13,34 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b8 (2020-02-02)
+====================
+
+Bugfixes
+--------
+
+- Fixed ``ansible-galaxy publish`` command which was failing with a 400 error.
+  `#5905 <https://pulp.plan.io/issues/5905>`_
+- Fixes ``ansible-galaxy role install`` when installing from Pulp.
+  `#5929 <https://pulp.plan.io/issues/5929>`_
+
+
+Improved Documentation
+----------------------
+
+- Heavy overhaul of workflow docs to be two long pages that are focused on the ``ansible-galaxy`` cli.
+  `#4889 <https://pulp.plan.io/issues/4889>`_
+
+
+Misc
+----
+
+- `#5867 <https://pulp.plan.io/issues/5867>`_, `#5929 <https://pulp.plan.io/issues/5929>`_, `#5930 <https://pulp.plan.io/issues/5930>`_, `#5931 <https://pulp.plan.io/issues/5931>`_
+
+
+----
+
+
 0.2.0b7 (2019-12-16)
 ====================
 
