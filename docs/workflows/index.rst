@@ -19,31 +19,8 @@
        export BASE_ADDR=http://<hostname>:24817
 
 
-Role Workflows
-==============
-
 .. toctree::
    :maxdepth: 2
 
-   sync
-   upload-role
-   add-remove
-   distribution
-   ansible-galaxy-client
-
-
-Collection Workflows
-====================
-
-This section documents the `Collection` capabilities of ``pulp_ansible`` in a "quickstart" style
-along with the ``ansible-galaxy`` client.
-
-
-.. toctree::
-   :maxdepth: 2
-
-   sync-collection
-   upload-collection
-   add-remove
-   distribution
-   collection-install
+   roles
+   collections
