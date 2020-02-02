@@ -94,7 +94,6 @@ spec:
   pulp_settings:
      ansible_api_hostname: http://$(hostname):24817
      ansible_content_hostname: http://$(hostname):24816/pulp/content
-     content_host: $(hostname):24816
     
 CRYAML
 

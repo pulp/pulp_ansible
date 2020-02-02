@@ -1,9 +1,10 @@
 """Tests that Collections can be uploaded to  Pulp with the ansible-galaxy CLI."""
 
+import random
+import string
 import subprocess
 import tempfile
 import unittest
-import uuid
 
 from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
@@ -47,7 +48,7 @@ class InstallCollectionTestCase(unittest.TestCase):
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            collection_name = str(uuid.uuid4()).replace("-", "")
+            collection_name = "".join([random.choice(string.ascii_lowercase) for i in range(26)])
             cmd = "ansible-galaxy collection init --init-path {} pulp.{}".format(
                 temp_dir, collection_name
             )
