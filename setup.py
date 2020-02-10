@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 requirements = [
     "galaxy_importer",
     "packaging",
-    "pulpcore>=3.0.<3.2",
+    "pulpcore>=3.0.<3.3",
     "PyYAML",
     "semantic_version",
 ]
