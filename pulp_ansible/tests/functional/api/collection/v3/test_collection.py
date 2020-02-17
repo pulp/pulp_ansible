@@ -149,10 +149,7 @@ def test_collection_upload(collection_upload):
         r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", collection_upload["id"]
     )
     assert collection_upload["messages"][0]["level"] == "INFO"
-    assert (
-        collection_upload["messages"][0]["message"]
-        == "Content search - Analyzing collection structure"
-    )
+    assert collection_upload["messages"][0]["message"] == "Getting doc strings via ansible-doc"
 
     assert collection_upload["state"] == "completed"
 
