@@ -29,6 +29,7 @@ Table of Contents
    bindings
    settings
    contributing
+   testing
    changes
 
 
