@@ -13,6 +13,25 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b9 (2020-02-28)
+====================
+
+Bugfixes
+--------
+
+- Fix 404 error with ansible-galaxy 2.10.0 while staying compatible with 2.9.z CLI clients also.
+  `#6239 <https://pulp.plan.io/issues/6239>`_
+
+
+Misc
+----
+
+- `#6188 <https://pulp.plan.io/issues/6188>`_
+
+
+----
+
+
 0.2.0b8 (2020-02-02)
 ====================
 
