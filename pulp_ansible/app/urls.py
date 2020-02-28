@@ -32,7 +32,7 @@ v2_urls = [
         GalaxyCollectionVersionDetail.as_view(),
     ),
     path(
-        "collection-imports/<uuid:pk>",
+        "collection-imports/<uuid:pk>/",
         views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
     ),
 ]

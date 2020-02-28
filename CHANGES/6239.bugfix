@@ -1,0 +1,1 @@
+Fix 404 error with ansible-galaxy 2.10.0 while staying compatible with 2.9.z CLI clients also.
