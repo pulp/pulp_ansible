@@ -13,6 +13,25 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b10 (2020-02-29)
+=====================
+
+Bugfixes
+--------
+
+- Includes webserver snippets in the packaged version also.
+  `#6248 <https://pulp.plan.io/issues/6248>`_
+
+
+Misc
+----
+
+- `#6250 <https://pulp.plan.io/issues/6250>`_
+
+
+----
+
+
 0.2.0b9 (2020-02-28)
 ====================
 
