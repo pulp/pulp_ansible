@@ -85,12 +85,21 @@ fi
 
 git clone --depth=1 https://github.com/pulp/pulpcore.git --branch master
 
+cd pulpcore
 if [ -n "$PULP_PR_NUMBER" ]; then
-  cd pulpcore
   git fetch --depth=1 origin pull/$PULP_PR_NUMBER/head:$PULP_PR_NUMBER
   git checkout $PULP_PR_NUMBER
-  cd ..
 fi
+if [[ "$TEST" == 's3' ]]; then
+  export MINIO_ACCESS_KEY=AKIAIT2Z5TDYPX3ARJBA
+  export MINIO_SECRET_KEY=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
+  docker run -d -p 0.0.0.0:9000:9000 -e MINIO_ACCESS_KEY=$MINIO_ACCESS_KEY -e MINIO_SECRET_KEY=$MINIO_SECRET_KEY minio/minio server /data
+  wget https://dl.min.io/client/mc/release/linux-amd64/mc
+  chmod +x mc
+  sudo mv mc /usr/local/bin
+fi
+
+cd ..
 
 
 

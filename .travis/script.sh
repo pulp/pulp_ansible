@@ -89,6 +89,13 @@ export CMD_STDIN_PREFIX="sudo kubectl exec -i $PULP_API_POD --"
 cat unittest_requirements.txt | $CMD_STDIN_PREFIX bash -c "cat > /tmp/test_requirements.txt"
 $CMD_PREFIX pip3 install -r /tmp/test_requirements.txt
 
+if [[ "$TEST" == 's3' ]]; then
+  mc config host add s3 http://localhost:9000 AKIAIT2Z5TDYPX3ARJBA fqRvjWaPU5o0fCqQuUWbj9Fainj2pVZtBCiDiieS --api S3v4
+  mc config host rm local
+  mc mb s3/pulp3 --region eu-central-1
+  mc tree s3
+fi
+
 # Run unit tests.
 $CMD_PREFIX bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python${TRAVIS_PYTHON_VERSION}/site-packages/pulp_ansible/tests/unit/"
 
@@ -107,11 +114,12 @@ export PYTHONPATH=$TRAVIS_BUILD_DIR:$TRAVIS_BUILD_DIR/../pulpcore:${PYTHONPATH}
 set -u
 
 if [[ "$TEST" == "performance" ]]; then
+  wget -qO- https://github.com/crazy-max/travis-wait-enhanced/releases/download/v1.0.0/travis-wait-enhanced_1.0.0_linux_x86_64.tar.gz | sudo tar -C /usr/local/bin -zxvf - travis-wait-enhanced
   echo "--- Performance Tests ---"
   if [[ -z ${PERFORMANCE_TEST+x} ]]; then
-    pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance || show_logs_and_return_non_zero
+    travis-wait-enhanced --interval=1m --timeout=30m -- pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance || show_logs_and_return_non_zero
   else
-    pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_$PERFORMANCE_TEST || show_logs_and_return_non_zero
+    travis-wait-enhanced --interval=1m --timeout=30m -- pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_$PERFORMANCE_TEST || show_logs_and_return_non_zero
   fi
   exit
 fi
