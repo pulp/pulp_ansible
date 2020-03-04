@@ -17,6 +17,7 @@ from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
     monitor_task,
+    wait_tasks,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -66,6 +67,7 @@ class InstallCollectionTestCase(unittest.TestCase):
                 distribution.client_url, temp_dir, "/pulp-" + collection_name + "-1.0.0.tar.gz"
             )
             subprocess.run(cmd.split())
+            wait_tasks()
 
         repo = self.repo_api.read(repo.pulp_href)
         repo_version = self.repo_versions_api.read(repo.latest_version_href)

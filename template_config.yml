@@ -30,12 +30,15 @@ pulp_settings:
   ansible_api_hostname: http://$(hostname):24817
   ansible_content_hostname: http://$(hostname):24816/pulp/content
 pulpcore_branch: master
+pulpcore_pip_version_specifier: null
 pydocstyle: true
 pypi_username: pulp
 stable_branch: null
 test: false
 test_bindings: true
 test_performance: false
+test_s3: true
+travis_addtl_services: []
 travis_notifications:
   irc:
     channels:

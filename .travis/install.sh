@@ -54,6 +54,7 @@ images:
   - pulp_ansible-${TAG}:
       image_name: pulp_ansible
       tag: $TAG
+      pulpcore: pulpcore
       plugins:
         - ./pulp_ansible
 VARSYAML
@@ -69,6 +70,11 @@ images:
         - ./pulp_ansible
 VARSYAML
 fi
+
+if [ "$TEST" = 's3' ]; then
+  echo "s3_test: true" >> vars/vars.yaml
+fi
+
 ansible-playbook -v build.yaml
 
 cd $TRAVIS_BUILD_DIR/../pulp-operator
@@ -96,6 +102,42 @@ spec:
      ansible_content_hostname: http://$(hostname):24816/pulp/content
     
 CRYAML
+
+if [ "$TEST" = 's3' ]; then
+  cat > deploy/crds/pulpproject_v1alpha1_pulp_cr.yaml << CRYAML
+  apiVersion: pulpproject.org/v1alpha1
+  kind: Pulp
+  metadata:
+    name: example-pulp
+  spec:
+    pulp_file_storage:
+      # k3s local-path requires this
+      access_mode: "ReadWriteOnce"
+      # We have a little over 40GB free on Travis VMs/instances
+      size: "40Gi"
+    image: pulp_ansible
+    tag: "${TAG}"
+    database_connection:
+      username: pulp
+      password: pulp
+      admin_password: pulp
+    pulp_settings:
+      ansible_api_hostname: http://$(hostname):24817
+      ansible_content_hostname: http://$(hostname):24816/pulp/content
+      aws_access_key_id: "AKIAIT2Z5TDYPX3ARJBA"
+      aws_secret_access_key: "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"
+      aws_storage_bucket_name: "pulp3"
+      aws_default_acl: "@none None"
+      s3_use_sigv4: true
+      aws_s3_signature_version: "s3v4"
+      aws_s3_addressing_style: "path"
+      aws_s3_region_name: "eu-central-1"
+      default_file_storage: "storages.backends.s3boto3.S3Boto3Storage"
+      media_root: ''
+      aws_s3_endpoint_url: "http://$(hostname):9000"
+
+CRYAML
+fi
 
 # Install k3s, lightweight Kubernetes
 .travis/k3s-install.sh

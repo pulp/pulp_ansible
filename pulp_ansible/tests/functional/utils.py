@@ -134,10 +134,18 @@ def monitor_task(task_href):
     completed = ["completed", "failed", "canceled"]
     task = tasks.read(task_href)
     while task.state not in completed:
-        sleep(2)
+        sleep(1)
         task = tasks.read(task_href)
 
     if task.state == "completed":
         return task.created_resources
 
     return task.to_dict()
+
+
+def wait_tasks():
+    """Polls the Task API until all tasks are in a completed state."""
+    running_tasks = tasks.list(state="running")
+    while running_tasks.count:
+        sleep(1)
+        running_tasks = tasks.list(state="running")

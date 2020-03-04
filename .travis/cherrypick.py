@@ -67,7 +67,7 @@ repo.git.checkout(STABLE_BRANCH)
 g = Github(GITHUB_TOKEN)
 grepo = g.get_repo(REPOSITORY)
 (label,) = (l for l in grepo.get_labels() if l.name == PR_LABEL)
-issues = grepo.get_issues(labels=[label], state="all")
+issues = grepo.get_issues(labels=[label], state="all", sort="updated", direction="asc")
 
 cherrypicks = []
 
@@ -91,9 +91,9 @@ for issue in issues:
         if ret.returncode != 0:
             print(f"Failed to cherry-pick commit {commit.sha}: {ret.stderr.decode('ascii')}")
             exit(1)
-        else:
-            cherrypicks.append(issue)
-            print(f"Cherry-picked commit {commit.sha}.")
+
+    cherrypicks.append(issue)
+    print(f"Cherry-picked commit {commit.sha}.")
 
 # check if we cherry picked anything
 if len(cherrypicks) == 0:
