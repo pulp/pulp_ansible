@@ -281,18 +281,12 @@ class CollectionSyncFirstStage(Stage):
                     version=metadata["version"],
                 )
 
-                relative_path = "%s.%s.%s" % (
-                    metadata["namespace"]["name"],
-                    metadata["collection"]["name"],
-                    metadata["version"],
-                )
-
                 artifact = metadata["artifact"]
 
                 d_artifact = DeclarativeArtifact(
                     artifact=Artifact(sha256=artifact["sha256"], size=artifact["size"]),
                     url=url,
-                    relative_path=relative_path,
+                    relative_path=collection_version.relative_path,
                     remote=self.remote,
                     deferred_download=self.deferred_download,
                 )
