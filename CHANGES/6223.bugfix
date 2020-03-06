@@ -1,0 +1,2 @@
+Including file type extension when uploading collections.
+This comes with a data migration that will fix incorrect fields for already uploaded collections.
