@@ -10,7 +10,7 @@ def add_extension(apps, schema_editor):
     with transaction.atomic():
         ContentArtifact = apps.get_model('core', 'ContentArtifact')
         CollectionVersion = apps.get_model('ansible', 'CollectionVersion')
-        ContentArtifact.objects.filter(
+        ContentArtifact.objects.exclude(relative_path__endswith='.tar.gz').filter(
                 content__in=CollectionVersion.objects.all()
         ).all().update(relative_path=Concat(F('relative_path'), Value('.tar.gz'), output_field=CharField()))
 
