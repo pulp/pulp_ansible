@@ -58,7 +58,7 @@ if [ "$TEST" = 'bindings' ]; then
 
   rm -rf ./pulpcore-client
 
-  ./generate.sh pulpcore ruby
+  ./generate.sh pulpcore ruby 0
   cd pulpcore-client
   gem build pulpcore_client
   gem install --both ./pulpcore_client-0.gem
@@ -66,7 +66,7 @@ if [ "$TEST" = 'bindings' ]; then
 
   rm -rf ./pulp_ansible-client
 
-  ./generate.sh pulp_ansible ruby
+  ./generate.sh pulp_ansible ruby 0
 
   cd pulp_ansible-client
   gem build pulp_ansible_client
@@ -117,9 +117,9 @@ if [[ "$TEST" == "performance" ]]; then
   wget -qO- https://github.com/crazy-max/travis-wait-enhanced/releases/download/v1.0.0/travis-wait-enhanced_1.0.0_linux_x86_64.tar.gz | sudo tar -C /usr/local/bin -zxvf - travis-wait-enhanced
   echo "--- Performance Tests ---"
   if [[ -z ${PERFORMANCE_TEST+x} ]]; then
-    travis-wait-enhanced --interval=1m --timeout=30m -- pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance || show_logs_and_return_non_zero
+    travis-wait-enhanced --interval=1m --timeout=40m -- pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance || show_logs_and_return_non_zero
   else
-    travis-wait-enhanced --interval=1m --timeout=30m -- pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_$PERFORMANCE_TEST || show_logs_and_return_non_zero
+    travis-wait-enhanced --interval=1m --timeout=40m -- pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_$PERFORMANCE_TEST || show_logs_and_return_non_zero
   fi
   exit
 fi

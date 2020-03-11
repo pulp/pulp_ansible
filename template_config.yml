@@ -35,7 +35,7 @@ pydocstyle: true
 pypi_username: pulp
 stable_branch: null
 test: false
-test_bindings: true
+test_bindings: false
 test_performance: false
 test_s3: true
 travis_addtl_services: []
