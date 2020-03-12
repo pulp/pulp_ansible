@@ -9,6 +9,7 @@ from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
+from pulp_ansible.app.galaxy.v3.views import CollectionImportViewSet
 from pulp_ansible.app.models import AnsibleDistribution, Collection, CollectionVersion, Role
 
 from .serializers import (
@@ -27,6 +28,7 @@ class GalaxyVersionView(views.APIView):
 
     authentication_classes = []
     permission_classes = []
+    pulp_full_tag = True
 
     def get(self, request, path):
         """
@@ -46,6 +48,8 @@ class RoleList(generics.ListAPIView):
     serializer_class = GalaxyRoleSerializer
     authentication_classes = []
     permission_classes = []
+    pulp_slug = False
+    pulp_full_tag = True
 
     def get_queryset(self):
         """
@@ -78,6 +82,8 @@ class RoleVersionList(generics.ListAPIView):
     serializer_class = GalaxyRoleVersionSerializer
     authentication_classes = []
     permission_classes = []
+    pulp_slug = False
+    pulp_full_tag = True
 
     def get_queryset(self):
         """
@@ -105,6 +111,8 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
     serializer_class = GalaxyCollectionSerializer
     authentication_classes = []
     permission_classes = []
+    pulp_slug = False
+    pulp_full_tag = True
 
     def get(self, request, path=None, namespace=None, name=None):
         """
@@ -125,6 +133,8 @@ class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
     authentication_classes = []
     permission_classes = []
     pagination_class = pagination.PageNumberPagination
+    pulp_slug = False
+    pulp_full_tag = True
 
     def get_queryset(self):
         """
@@ -169,6 +179,8 @@ class GalaxyCollectionVersionList(generics.ListAPIView):
     serializer_class = GalaxyCollectionVersionSerializer
     authentication_classes = []
     permission_classes = []
+    pulp_slug = False
+    pulp_full_tag = True
 
     def get_queryset(self):
         """
@@ -198,6 +210,7 @@ class GalaxyCollectionVersionDetail(views.APIView):
 
     authentication_classes = []
     permission_classes = []
+    pulp_full_tag = True
 
     def get(self, request, path, namespace, name, version):
         """
@@ -227,3 +240,12 @@ class GalaxyCollectionVersionDetail(views.APIView):
         data = GalaxyCollectionVersionSerializer(version).data
         data["download_url"] = download_url
         return response.Response(data)
+
+
+class GalaxyCollectionImportViewSet(CollectionImportViewSet):
+    """
+    ViewSet for CollectionImports.
+    """
+
+    pulp_slug = False
+    pulp_full_tag = True

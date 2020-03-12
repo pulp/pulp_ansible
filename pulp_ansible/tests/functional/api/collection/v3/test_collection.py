@@ -7,6 +7,13 @@ from urllib.parse import urljoin
 
 import pytest
 
+from pulpcore.client.pulp_ansible import (
+    PulpAnsibleGalaxyApiV3ArtifactsCollectionsApi,
+    PulpAnsibleGalaxyApiV3CollectionsApi,
+    PulpAnsibleGalaxyApiV3ImportsCollectionsApi,
+    PulpAnsibleGalaxyApiV3CollectionsVersionsApi,
+)
+
 from pulp_smash import api, config
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_smash.utils import http_get
@@ -20,12 +27,22 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_REPO_PATH,
     COLLECTION_METADATA,
 )
+from pulp_ansible.tests.functional.utils import (
+    gen_ansible_client,
+    wait_tasks,
+)
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 from orionutils.generator import build_collection
 
 
 logger = logging.getLogger(__name__)
+
+
+artifacts_collections_api = PulpAnsibleGalaxyApiV3ArtifactsCollectionsApi(gen_ansible_client())
+collections_api = PulpAnsibleGalaxyApiV3CollectionsApi(gen_ansible_client())
+imports_api = PulpAnsibleGalaxyApiV3ImportsCollectionsApi(gen_ansible_client())
+versions_api = PulpAnsibleGalaxyApiV3CollectionsVersionsApi(gen_ansible_client())
 
 
 def upload_handler(client, response):
@@ -69,20 +86,18 @@ def collection_upload(pulp_client, artifact, pulp_dist):
     UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
 
     logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
-    collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
-
-    response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
-    return response
+    response = artifacts_collections_api.create(path=pulp_dist["base_path"], file=artifact.filename)
+    wait_tasks()
+    return imports_api.read(response.task).to_dict()
 
 
 @pytest.fixture(scope="session")
 def collection_detail(collection_upload, pulp_client, pulp_dist, artifact):
     """Fetch and parse a collection details response from an uploaded collection."""
-    url = get_galaxy_url(
-        pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
+    response = collections_api.read(
+        path=pulp_dist["base_path"], namespace=artifact.namespace, name=artifact.name
     )
-    response = pulp_client.using_handler(api.json_handler).get(url)
-    return response
+    return response.to_dict()
 
 
 @pytest.fixture(scope="session")

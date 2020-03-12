@@ -2,6 +2,7 @@ from django.conf import settings
 from django.urls import include, path
 
 from pulp_ansible.app.galaxy.views import (
+    GalaxyCollectionImportViewSet,
     GalaxyCollectionVersionDetail,
     GalaxyCollectionVersionList,
     GalaxyCollectionDetailView,
@@ -32,8 +33,7 @@ v2_urls = [
         GalaxyCollectionVersionDetail.as_view(),
     ),
     path(
-        "collection-imports/<uuid:pk>/",
-        views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
+        "collection-imports/<uuid:pk>/", GalaxyCollectionImportViewSet.as_view({"get": "retrieve"}),
     ),
 ]
 

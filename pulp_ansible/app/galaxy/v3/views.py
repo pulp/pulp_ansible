@@ -5,6 +5,8 @@ import semantic_version
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
+from django.utils.decorators import method_decorator
+
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
@@ -24,6 +26,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionListSerializer,
+    CertificationSerializer,
 )
 from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
 from pulp_ansible.app.serializers import (
@@ -39,6 +42,8 @@ class AnsibleDistributionMixin:
     """
     A mixin for ViewSets that use AnsibleDistribution.
     """
+
+    pulp_full_tag = True
 
     @staticmethod
     def get_distro_content(path):
@@ -61,6 +66,12 @@ class AnsibleDistributionMixin:
         return context
 
 
+@method_decorator(
+    name="list", decorator=swagger_auto_schema(operation_description="List Collections"),
+)
+@method_decorator(
+    name="retrieve", decorator=swagger_auto_schema(operation_description="Retrieve Collection",),
+)
 class CollectionViewSet(
     ExceptionHandlerMixin,
     AnsibleDistributionMixin,
@@ -118,6 +129,7 @@ class CollectionUploadViewSet(
     authentication_classes = []
     permission_classes = []
     serializer_class = CollectionSerializer
+    pulp_full_tag = True
 
     @swagger_auto_schema(
         operation_description="Create an artifact and trigger an asynchronous task to create "
@@ -202,6 +214,10 @@ class CollectionVersionViewSet(
         )
         return collections
 
+    @swagger_auto_schema(
+        operation_description="List CollectionVersions",
+        responses={200: CollectionVersionListSerializer},
+    )
     def list(self, request, *args, **kwargs):
         """
         Returns paginated CollectionVersions list.
@@ -220,6 +236,10 @@ class CollectionVersionViewSet(
         serializer = CollectionVersionListSerializer(queryset, many=True, context=context)
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        operation_description="Retrieve CollectionVersion",
+        responses={200: CollectionVersionSerializer},
+    )
     def retrieve(self, request, *args, **kwargs):
         """
         Returns a CollectionVersion object.
@@ -234,6 +254,9 @@ class CollectionVersionViewSet(
 
         return Response(serializer.data)
 
+    @swagger_auto_schema(
+        method="put", request_body=CertificationSerializer, operation_description="set_certified"
+    )
     @action(methods=["PUT"], detail=True, url_path="certified")
     def set_certified(self, request, *args, **kwargs):
         """
@@ -254,6 +277,7 @@ class CollectionImportViewSet(
 
     queryset = CollectionImport.objects.prefetch_related("task").all()
     serializer_class = CollectionImportDetailSerializer
+    pulp_full_tag = True
 
     since_filter = openapi.Parameter(
         "since",
@@ -263,7 +287,11 @@ class CollectionImportViewSet(
         description="Filter messages since a given timestamp",
     )
 
-    @swagger_auto_schema(manual_parameters=[since_filter])
+    @swagger_auto_schema(
+        manual_parameters=[since_filter],
+        operation_description="Retrieve CollectionImport",
+        responses={200: CollectionImportDetailSerializer},
+    )
     def retrieve(self, request, *args, **kwargs):
         """
         Returns a CollectionImport object.

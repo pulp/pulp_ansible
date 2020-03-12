@@ -359,7 +359,7 @@ class CollectionImportDetailSerializer(CollectionImportListSerializer):
     A serializer for a CollectionImport detail view.
     """
 
-    error = serializers.JSONField(source="task.error")
+    error = serializers.JSONField(source="task.error", read_only=True, allow_null=True)
     messages = serializers.JSONField()
 
     class Meta(CollectionImportListSerializer.Meta):

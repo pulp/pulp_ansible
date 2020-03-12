@@ -1,5 +1,6 @@
 from gettext import gettext as _
 from django.conf import settings
+from drf_yasg.utils import swagger_serializer_method
 from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
@@ -53,6 +54,7 @@ class CollectionSerializer(serializers.ModelSerializer):
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
 
+    @swagger_serializer_method(serializer_or_field=serializers.DictField)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
         href = reverse(
@@ -186,3 +188,11 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
         filename_path = self.context["content_artifact"].relative_path.lstrip("/")
         download_url = f"{host}/{distro_base_path}/{filename_path}"
         return download_url
+
+
+class CertificationSerializer(serializers.Serializer):
+    """
+    A serializer for a Certification.
+    """
+
+    certification = serializers.ChoiceField(["certified", "not_certified", "needs_review"])
