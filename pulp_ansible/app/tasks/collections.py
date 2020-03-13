@@ -5,6 +5,7 @@ import json
 import logging
 import math
 import tarfile
+from urllib.parse import urlparse, urlunparse
 
 from django.db import transaction
 from galaxy_importer.collection import import_collection as process_collection
@@ -316,6 +317,15 @@ class CollectionSyncFirstStage(Stage):
 
             return get_page_url(remote.url, page)
 
+        def _build_url(path_or_url):
+            """Check value and turn it into a url using remote.url if it's a relative path."""
+            url_parts = urlparse(path_or_url)
+            if not url_parts.netloc:
+                new_url_parts = urlparse(self.remote.url)._replace(path=url_parts.path)
+                return urlunparse(new_url_parts)
+            else:
+                return path_or_url
+
         progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
         with ProgressReport(**progress_data) as progress_bar:
             url = _get_url(page_count)
@@ -335,18 +345,23 @@ class CollectionSyncFirstStage(Stage):
 
             while not_done:
                 done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
+
                 for item in done:
                     data = parse_metadata(item.result())
-                    for result in data.get("results", [data]):
+
+                    # v2 uses 'results' as the key while v3 uses 'data'
+                    results = data.get("results") or data.get("data") or [data]
+
+                    for result in results:
                         download_url = result.get("download_url")
 
                         if result.get("versions_url"):
-                            not_done.update(
-                                [remote.get_downloader(url=result["versions_url"]).run()]
-                            )
+                            versions_url = _build_url(result.get("versions_url"))
+                            not_done.update([remote.get_downloader(url=versions_url).run()])
 
                         if result.get("version") and not download_url:
-                            not_done.update([remote.get_downloader(url=result["href"]).run()])
+                            version_url = _build_url(result["href"])
+                            not_done.update([remote.get_downloader(url=version_url).run()])
 
                         if download_url:
                             yield data
