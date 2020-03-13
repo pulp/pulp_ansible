@@ -13,6 +13,40 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b11 (2020-03-13)
+=====================
+
+Features
+--------
+
+- Add support for syncing collections from Automation Hub's v3 api.
+  `#6132 <https://pulp.plan.io/issues/6132>`_
+
+
+Bugfixes
+--------
+
+- Including file type extension when uploading collections.
+  This comes with a data migration that will fix incorrect fields for already uploaded collections.
+  `#6223 <https://pulp.plan.io/issues/6223>`_
+
+
+Improved Documentation
+----------------------
+
+- Added docs on how to use the new scale testing tools.
+  `#6272 <https://pulp.plan.io/issues/6272>`_
+
+
+Misc
+----
+
+- `#6155 <https://pulp.plan.io/issues/6155>`_, `#6223 <https://pulp.plan.io/issues/6223>`_, `#6272 <https://pulp.plan.io/issues/6272>`_, `#6300 <https://pulp.plan.io/issues/6300>`_
+
+
+----
+
+
 0.2.0b10 (2020-02-29)
 =====================
 
