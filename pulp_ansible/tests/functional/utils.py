@@ -4,7 +4,7 @@ from functools import partial
 from unittest import SkipTest
 from time import sleep
 
-from pulp_smash import api, selectors
+from pulp_smash import api, config, selectors
 from pulp_smash.pulp3.utils import (
     gen_remote,
     gen_repo,
@@ -25,16 +25,13 @@ from pulp_ansible.tests.functional.constants import (
 
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
-    Configuration,
     TasksApi,
 )
 from pulpcore.client.pulp_ansible import ApiClient as AnsibleApiClient
 
 
-configuration = Configuration()
-configuration.username = "admin"
-configuration.password = "password"
-configuration.safe_chars_for_path_param = "/"
+cfg = config.get_config()
+configuration = cfg.get_bindings_config()
 
 
 def set_up_module():
