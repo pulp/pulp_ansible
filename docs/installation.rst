@@ -4,13 +4,13 @@ Installation
 Install using Ansible
 ---------------------
 
-pulpcore provides an `Ansible Installer <https://github.com/pulp/ansible-pulp>`_ that can be used to
+pulpcore provides an `Ansible Installer <https://github.com/pulp/pulp_installer>`_ that can be used to
 install ``pulp_ansible``. For example if your host is in your Ansible inventory as ``myhost`` you
 can install onto it with:
 
 .. code-block:: bash
 
-    git clone https://github.com/pulp/ansible-pulp.git
+    git clone https://github.com/pulp/pulp_installer.git
 
 Create your pulp_ansible.yml playbook to use with the installer:
 
