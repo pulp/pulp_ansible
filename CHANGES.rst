@@ -13,6 +13,25 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b12 (2020-04-30)
+=====================
+
+Improved Documentation
+----------------------
+
+- Documented bindings installation on dev environment
+  `#6390 <https://pulp.plan.io/issues/6390>`_
+
+
+Misc
+----
+
+- `#6391 <https://pulp.plan.io/issues/6391>`_
+
+
+----
+
+
 0.2.0b11 (2020-03-13)
 =====================
 
