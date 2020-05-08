@@ -1,16 +1,15 @@
 import asyncio
-import contextlib
 from gettext import gettext as _
 import json
 import logging
 import math
+import os
 import tarfile
 from urllib.parse import urlparse, urlunparse
 
 from django.db import transaction
 from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
-from galaxy_importer.exceptions import ImporterError
 from rq.job import get_current_job
 
 from pulpcore.plugin.models import (
@@ -82,7 +81,7 @@ def sync(remote_pk, repository_pk, mirror):
 
 
 def import_collection(
-    artifact_pk,
+    temp_file_path,
     repository_pk=None,
     expected_namespace=None,
     expected_name=None,
@@ -99,7 +98,7 @@ def import_collection(
     logged.
 
     Args:
-        artifact_pk (str): The pk of the Artifact to create the Collection from.
+        temp_file_path (str): The temporary file to create the Collection from.
 
     Keyword Args:
         repository_pk (str): Optional. If specified, a new RepositoryVersion will be created for the
@@ -119,21 +118,20 @@ def import_collection(
     """
     CollectionImport.objects.get_or_create(task_id=get_current_job().id)
 
-    artifact = Artifact.objects.get(pk=artifact_pk)
     filename = CollectionFilename(expected_namespace, expected_name, expected_version)
-    log.info(f"Processing collection from {artifact.file.name}")
+    log.info(f"Processing collection from {temp_file_path}")
     import_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
 
-    with _artifact_guard(artifact):
-        try:
-            with artifact.file.open() as artifact_file:
-                importer_result = process_collection(
-                    artifact_file, filename=filename, logger=import_logger
-                )
+    try:
+        with open(temp_file_path, "rb") as artifact_file:
+            importer_result = process_collection(
+                artifact_file, filename=filename, logger=import_logger
+            )
 
-        except ImporterError as exc:
-            log.info(f"Collection processing was not successfull: {exc}")
-            raise
+    except Exception as exc:
+        log.info(f"Collection processing was not successfull: {exc}")
+        os.remove(temp_file_path)
+        raise
 
     collection_info = importer_result["metadata"]
 
@@ -169,6 +167,9 @@ def import_collection(
 
         collection_version.save()  # Save the FK updates
 
+        artifact = Artifact.init_and_validate(temp_file_path)
+        artifact.save()
+
         ContentArtifact.objects.create(
             artifact=artifact,
             content=collection_version,
@@ -202,16 +203,6 @@ def _update_highest_version(collection_version):
         collection_version.is_highest = True
         last_highest.save()
         collection_version.save()
-
-
-@contextlib.contextmanager
-def _artifact_guard(artifact):
-    """Will delete artifact in case of exception."""
-    try:
-        yield artifact
-    except Exception:
-        artifact.delete()
-        raise
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):

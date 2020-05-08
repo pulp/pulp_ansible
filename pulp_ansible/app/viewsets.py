@@ -3,7 +3,6 @@ from gettext import gettext as _
 from packaging.version import parse
 
 from django.contrib.postgres.search import SearchQuery
-from django.db import IntegrityError
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters, MultipleChoiceFilter
@@ -33,6 +32,7 @@ from pulpcore.plugin.viewsets import (
     RepositoryViewSet,
     RepositoryVersionViewSet,
 )
+from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
@@ -276,7 +276,7 @@ class CollectionRemoteViewSet(RemoteViewSet):
     serializer_class = CollectionRemoteSerializer
 
 
-class CollectionUploadViewSet(viewsets.ViewSet):
+class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
     """
     ViewSet for One Shot Collection Upload.
 
@@ -307,7 +307,7 @@ class CollectionUploadViewSet(viewsets.ViewSet):
         if serializer.validated_data["sha256"]:
             expected_digests["sha256"] = serializer.validated_data["sha256"]
         try:
-            artifact = Artifact.init_and_validate(
+            Artifact.init_and_validate(
                 serializer.validated_data["file"], expected_digests=expected_digests
             )
         except DigestValidationError:
@@ -315,13 +315,13 @@ class CollectionUploadViewSet(viewsets.ViewSet):
                 _("The provided sha256 value does not match the sha256 of the uploaded file.")
             )
 
-        try:
-            artifact.save()
-        except IntegrityError:
+        if Artifact.objects.filter(**expected_digests).count():
             raise serializers.ValidationError(_("Artifact already exists."))
 
+        temp_file_path = self._create_temp_file(serializer.validated_data["file"])
+
         async_result = enqueue_with_reservation(
-            import_collection, [str(artifact.pk)], kwargs={"artifact_pk": artifact.pk}
+            import_collection, [temp_file_path], kwargs={"temp_file_path": temp_file_path}
         )
 
         return OperationPostponedResponse(async_result, request)

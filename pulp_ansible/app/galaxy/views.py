@@ -4,12 +4,10 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, pagination, response, views
 
-from pulpcore.app.models import Artifact
 from pulpcore.app.response import OperationPostponedResponse
-from pulpcore.tasking.tasks import enqueue_with_reservation
 from pulpcore.plugin.models import ContentArtifact
 
-from pulp_ansible.app.tasks.collections import import_collection
+from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.models import AnsibleDistribution, Collection, CollectionVersion, Role
 
 from .serializers import (
@@ -116,7 +114,7 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
         return response.Response(GalaxyCollectionSerializer(collection).data)
 
 
-class GalaxyCollectionView(generics.ListAPIView):
+class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
     """
     View for Collection models.
     """
@@ -154,16 +152,9 @@ class GalaxyCollectionView(generics.ListAPIView):
         )
         serializer.is_valid(raise_exception=True)
 
-        artifact = Artifact.init_and_validate(serializer.validated_data["file"])
-        artifact.save()
+        temp_file_path = self._create_temp_file(serializer.validated_data["file"])
 
-        locks = [str(artifact.pk)]
-        kwargs = {"artifact_pk": artifact.pk}
-        if distro.repository:
-            locks.append(distro.repository)
-            kwargs["repository_pk"] = distro.repository.pk
-
-        async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
+        async_result = self._dispatch_import_collection_task(distro.repository, temp_file_path)
         return OperationPostponedResponse(async_result, request)
 
 
