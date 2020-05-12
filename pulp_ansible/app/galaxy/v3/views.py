@@ -17,7 +17,6 @@ from rest_framework import viewsets
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import Artifact, Content, ContentArtifact
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
-from pulpcore.plugin.tasking import enqueue_with_reservation
 from rest_framework.reverse import reverse
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
@@ -31,8 +30,8 @@ from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
     CollectionImportDetailSerializer,
 )
-from pulp_ansible.app.tasks.collections import import_collection
 
+from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.viewsets import CollectionVersionFilter
 
 
@@ -109,7 +108,9 @@ class CollectionViewSet(
         return Response(serializer.data)
 
 
-class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
+class CollectionUploadViewSet(
+    ExceptionHandlerMixin, viewsets.GenericViewSet, UploadGalaxyCollectionMixin
+):
     """
     ViewSet for Collection Uploads.
     """
@@ -150,8 +151,7 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
         except IntegrityError:
             raise serializers.ValidationError(_("Artifact already exists."))
 
-        locks = [str(artifact.pk)]
-        kwargs = {"artifact_pk": artifact.pk}
+        kwargs = {}
 
         if serializer.validated_data["expected_namespace"]:
             kwargs["expected_namespace"] = serializer.validated_data["expected_namespace"]
@@ -162,11 +162,9 @@ class CollectionUploadViewSet(ExceptionHandlerMixin, viewsets.GenericViewSet):
         if serializer.validated_data["expected_version"]:
             kwargs["expected_version"] = serializer.validated_data["expected_version"]
 
-        if distro.repository:
-            locks.append(distro.repository)
-            kwargs["repository_pk"] = distro.repository.pk
-
-        async_result = enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
+        async_result = self._dispatch_import_collection_task(
+            artifact.pk, distro.repository, **kwargs
+        )
         CollectionImport.objects.create(task_id=async_result.id)
 
         data = {

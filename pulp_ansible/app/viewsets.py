@@ -33,6 +33,7 @@ from pulpcore.plugin.viewsets import (
     RepositoryViewSet,
     RepositoryVersionViewSet,
 )
+from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleDistribution,
     AnsibleRemote,
@@ -55,7 +56,6 @@ from .serializers import (
     TagSerializer,
 )
 from .tasks.collections import sync as collection_sync
-from .tasks.collections import import_collection
 from .tasks.synchronizing import synchronize as role_sync
 
 
@@ -276,7 +276,7 @@ class CollectionRemoteViewSet(RemoteViewSet):
     serializer_class = CollectionRemoteSerializer
 
 
-class CollectionUploadViewSet(viewsets.ViewSet):
+class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
     """
     ViewSet for One Shot Collection Upload.
 
@@ -320,9 +320,7 @@ class CollectionUploadViewSet(viewsets.ViewSet):
         except IntegrityError:
             raise serializers.ValidationError(_("Artifact already exists."))
 
-        async_result = enqueue_with_reservation(
-            import_collection, [str(artifact.pk)], kwargs={"artifact_pk": artifact.pk}
-        )
+        async_result = self._dispatch_import_collection_task(artifact.pk)
 
         return OperationPostponedResponse(async_result, request)
 
