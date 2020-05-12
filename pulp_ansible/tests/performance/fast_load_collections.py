@@ -1,13 +1,17 @@
 import argparse
 import os
 
-import django  # noqa otherwise E402: module level not at top of file
+import django
 
-django.setup()  # noqa otherwise E402: module level not at top of file
+django.setup()
 
-from pulpcore.plugin.tasking import enqueue_with_reservation
+from pulpcore.plugin.tasking import (  # noqa otherwise E402: module level not at top of file
+    enqueue_with_reservation,
+)
 
-from pulp_ansible.app.tasks.test_tasks import import_collection_from_path
+from pulp_ansible.app.tasks.test_tasks import (  # noqa otherwise E402: module level not at top of file
+    import_collection_from_path,
+)
 
 
 parser = argparse.ArgumentParser(description="Quickly load collections form a folder.")

@@ -1,12 +1,16 @@
 import argparse
 
-import django  # noqa otherwise E402: module level not at top of file
+import django
 
-django.setup()  # noqa otherwise E402: module level not at top of file
+django.setup()
 
-from pulpcore.plugin.tasking import enqueue_with_reservation
+from pulpcore.plugin.tasking import (  # noqa otherwise E402: module level not at top of file
+    enqueue_with_reservation,
+)
 
-from pulp_ansible.app.tasks.test_tasks import create_namespace
+from pulp_ansible.app.tasks.test_tasks import (  # noqa otherwise E402: module level not at top of file
+    create_namespace,
+)
 
 
 parser = argparse.ArgumentParser(description="Generate some collections.")

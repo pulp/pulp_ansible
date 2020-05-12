@@ -12,6 +12,7 @@ from pulp_ansible.tests.functional.constants import ANSIBLE_URL, ANSIBLE_ROLE_CO
 from pulp_ansible.tests.functional.utils import gen_ansible_content_attrs, skip_if
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
+
 # Read the instructions provided below on the steps needed to enable this test.
 @unittest.skip("FIXME: plugin writer action required")
 class ContentUnitTestCase(unittest.TestCase):
