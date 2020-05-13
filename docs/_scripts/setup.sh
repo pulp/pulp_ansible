@@ -1,5 +1,5 @@
-export BASE_ADDR=http://localhost:24817
-export CONTENT_ADDR=http://localhost:24816
+export BASE_ADDR=${BASE_ADDR:-http://pulp:80}
+export CONTENT_ADDR=${CONTENT_ADDR:-http://pulp:80}
 
 wait_for_pulp() {
   unset CREATED_RESOURCE

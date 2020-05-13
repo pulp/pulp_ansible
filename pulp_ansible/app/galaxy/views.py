@@ -4,8 +4,8 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, pagination, response, views
 
-from pulpcore.app.models import Artifact
-from pulpcore.app.response import OperationPostponedResponse
+from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
