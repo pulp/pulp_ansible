@@ -27,12 +27,13 @@ plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
 pulp_settings:
-  ansible_api_hostname: http://$(hostname):24817
-  ansible_content_hostname: http://$(hostname):24816/pulp/content
+  ansible_api_hostname: http://pulp:80
+  ansible_content_hostname: http://pulp:80/pulp/content
 pulpcore_branch: master
 pulpcore_pip_version_specifier: null
 pydocstyle: true
 pypi_username: pulp
+redmine_project: ansible_plugin
 stable_branch: null
 test: false
 test_bindings: false

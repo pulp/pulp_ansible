@@ -7,6 +7,7 @@ SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = PulpAnsible
 SOURCEDIR     = .
 BUILDDIR      = _build
+PULP_URL      = "http://localhost:24817"
 
 # Put it first so that "make" without argument is like "make help".
 help:
@@ -20,7 +21,7 @@ clean:
 
 
 html:
-	curl -o _static/api.json "http://localhost:24817/pulp/api/v3/docs/api.json?plugin=pulp_ansible"
+	curl -o _static/api.json "$(PULP_URL)/pulp/api/v3/docs/api.json?plugin=pulp_ansible"
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
