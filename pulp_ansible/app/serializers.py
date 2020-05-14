@@ -270,17 +270,17 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
     )
 
     documentation = serializers.URLField(
-        help_text=_("The URL to any online docs."), allow_blank=True, max_length=128
+        help_text=_("The URL to any online docs."), allow_blank=True, max_length=2000
     )
 
     homepage = serializers.URLField(
         help_text=_("The URL to the homepage of the collection/project."),
         allow_blank=True,
-        max_length=128,
+        max_length=2000,
     )
 
     issues = serializers.URLField(
-        help_text=_("The URL to the collection issue tracker."), allow_blank=True, max_length=128
+        help_text=_("The URL to the collection issue tracker."), allow_blank=True, max_length=2000
     )
 
     certification = serializers.CharField(help_text=_("Indicates that the version is certified"))
@@ -297,7 +297,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
     )
 
     repository = serializers.URLField(
-        help_text=_("The URL of the originating SCM repository."), allow_blank=True, max_length=128
+        help_text=_("The URL of the originating SCM repository."), allow_blank=True, max_length=2000
     )
 
     tags = TagNestedSerializer(many=True, read_only=True)
