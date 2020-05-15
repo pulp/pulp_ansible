@@ -181,7 +181,8 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get artifact download URL.
         """
-        host = settings.CONTENT_ORIGIN.strip("/")
-        prefix = settings.CONTENT_PATH_PREFIX.strip("/")
-        base_path = self.context["content_artifact"].relative_path.lstrip("/")
-        return f"{host}/{prefix}/{base_path}"
+        host = settings.ANSIBLE_CONTENT_HOSTNAME.strip("/")
+        distro_base_path = self.context["path"]
+        filename_path = self.context["content_artifact"].relative_path.lstrip("/")
+        download_url = f"{host}/{distro_base_path}/{filename_path}"
+        return download_url
