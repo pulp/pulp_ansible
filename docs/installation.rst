@@ -26,11 +26,11 @@ Create your pulp_ansible.yml playbook to use with the installer:
          pulp-ansible:
            app_label: "ansible"
      roles:
-       - pulp-database
-       - pulp-workers
-       - pulp-resource-manager
-       - pulp-webserver
-       - pulp-content
+       - pulp_database
+       - pulp_workers
+       - pulp_resource_manager
+       - pulp_webserver
+       - pulp_content
      environment:
        DJANGO_SETTINGS_MODULE: pulpcore.app.settings
 
