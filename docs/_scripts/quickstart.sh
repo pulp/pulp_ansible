@@ -7,8 +7,7 @@
 
 # From the _scripts directory, run with `source quickstart.sh` (source to preserve the environment
 # variables)
-source clean.sh
-source base.sh
+source setup.sh
 
 source repo.sh
 source remote.sh
