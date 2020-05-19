@@ -122,19 +122,42 @@ def import_collection(
     artifact = Artifact.objects.get(pk=artifact_pk)
     filename = CollectionFilename(expected_namespace, expected_name, expected_version)
     log.info(f"Processing collection from {artifact.file.name}")
-    import_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
+    user_facing_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
 
     with _artifact_guard(artifact):
         try:
             with artifact.file.open() as artifact_file:
                 importer_result = process_collection(
-                    artifact_file, filename=filename, logger=import_logger
+                    artifact_file, filename=filename, logger=user_facing_logger
                 )
+                collection_version = create_collection_from_importer(importer_result)
 
         except ImporterError as exc:
             log.info(f"Collection processing was not successfull: {exc}")
             raise
+        except Exception as exc:
+            user_facing_logger.error(f"Collection processing was not successfull: {exc}")
+            raise
 
+        ContentArtifact.objects.create(
+            artifact=artifact,
+            content=collection_version,
+            relative_path=collection_version.relative_path,
+        )
+        CreatedResource.objects.create(content_object=collection_version)
+
+        if repository_pk:
+            repository = Repository.objects.get(pk=repository_pk)
+            content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
+            with repository.new_version() as new_version:
+                new_version.add_content(content_q)
+            CreatedResource.objects.create(content_object=repository)
+
+
+def create_collection_from_importer(importer_result):
+    """
+    Process results from importer.
+    """
     collection_info = importer_result["metadata"]
 
     with transaction.atomic():
@@ -159,6 +182,7 @@ def import_collection(
             contents=importer_result["contents"],
             docs_blob=importer_result["docs_blob"],
         )
+
         collection_version.save()
 
         for name in tags:
@@ -168,20 +192,7 @@ def import_collection(
         _update_highest_version(collection_version)
 
         collection_version.save()  # Save the FK updates
-
-        ContentArtifact.objects.create(
-            artifact=artifact,
-            content=collection_version,
-            relative_path=collection_version.relative_path,
-        )
-        CreatedResource.objects.create(content_object=collection_version)
-
-        if repository_pk:
-            repository = Repository.objects.get(pk=repository_pk)
-            content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
-            with repository.new_version() as new_version:
-                new_version.add_content(content_q)
-            CreatedResource.objects.create(content_object=repository)
+    return collection_version
 
 
 def _update_highest_version(collection_version):
