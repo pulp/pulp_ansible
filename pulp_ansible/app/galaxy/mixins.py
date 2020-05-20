@@ -15,7 +15,6 @@ class UploadGalaxyCollectionMixin:
         locks = [str(artifact_pk)]
         kwargs["artifact_pk"] = artifact_pk
         if repository:
-            locks.append(repository)
-            kwargs["repository_pk"] = repository.pk
+            kwargs["repository_pk"] = str(repository.pk)
 
         return enqueue_with_reservation(import_collection, locks, kwargs=kwargs)

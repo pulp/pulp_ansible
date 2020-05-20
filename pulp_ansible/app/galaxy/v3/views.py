@@ -269,6 +269,15 @@ class CollectionImportViewSet(
         Returns a CollectionImport object.
         """
         instance = self.get_object()
+        task = instance.task
+
+        completed = ["completed", "failed", "canceled"]
+
+        for child in task.child_tasks.all():
+            if child.state not in completed:
+                task.state = child.state
+                task.finished_at = child.finished_at
+                break
 
         if "since" in self.request.query_params:
             since = parse_datetime(self.request.query_params["since"])

@@ -34,6 +34,7 @@ from pulpcore.plugin.stages import (
     QueryExistingArtifacts,
     QueryExistingContents,
 )
+from pulpcore.plugin.tasking import enqueue_with_reservation
 import semantic_version as semver
 
 from pulp_ansible.app.models import (
@@ -147,11 +148,11 @@ def import_collection(
         CreatedResource.objects.create(content_object=collection_version)
 
         if repository_pk:
-            repository = Repository.objects.get(pk=repository_pk)
-            content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
-            with repository.new_version() as new_version:
-                new_version.add_content(content_q)
-            CreatedResource.objects.create(content_object=repository)
+            kwargs = {
+                "repository_pk": repository_pk,
+                "collection_version_pk": str(collection_version.pk),
+            }
+            enqueue_with_reservation(add_collection_to_repository, [repository_pk], kwargs=kwargs)
 
 
 def create_collection_from_importer(importer_result):
@@ -193,6 +194,17 @@ def create_collection_from_importer(importer_result):
 
         collection_version.save()  # Save the FK updates
     return collection_version
+
+
+def add_collection_to_repository(repository_pk, collection_version_pk):
+    """
+    Task for adding collection to repository.
+    """
+    repository = Repository.objects.get(pk=repository_pk)
+    content_q = CollectionVersion.objects.filter(pk=collection_version_pk)
+    with repository.new_version() as new_version:
+        new_version.add_content(content_q)
+    CreatedResource.objects.create(content_object=repository)
 
 
 def _update_highest_version(collection_version):

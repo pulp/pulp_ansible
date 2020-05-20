@@ -1,0 +1,1 @@
+Reduce the amount of time the repository lock is held while import collection
