@@ -2,13 +2,8 @@
 
 from setuptools import setup, find_packages
 
-requirements = [
-    "galaxy_importer",
-    "packaging",
-    "pulpcore>=3.0",
-    "PyYAML",
-    "semantic_version",
-]
+with open("requirements.txt") as requirements:
+    requirements = requirements.readlines()
 
 with open("README.rst") as f:
     long_description = f.read()
