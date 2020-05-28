@@ -13,41 +13,6 @@ Changelog
 
 .. towncrier release notes start
 
-0.2.0b13 (2020-05-27)
-=====================
-
-Features
---------
-
-- Increased max length for `documentation`, `homepage`, `issues`, `repository` in `CollectionVersion`
-  `#6648 <https://pulp.plan.io/issues/6648>`_
-
-
-Bugfixes
---------
-
-- Galaxy V3 download_url now uses fully qualified URL
-  `#6510 <https://pulp.plan.io/issues/6510>`_
-- Include readable error messages on user facing logger
-  `#6657 <https://pulp.plan.io/issues/6657>`_
-
-
-Improved Documentation
-----------------------
-
-- Updated the required roles names
-  `#6760 <https://pulp.plan.io/issues/6760>`_
-
-
-Misc
-----
-
-- `#6673 <https://pulp.plan.io/issues/6673>`_, `#6848 <https://pulp.plan.io/issues/6848>`_, `#6850 <https://pulp.plan.io/issues/6850>`_
-
-
-----
-
-
 0.2.0b12 (2020-04-30)
 =====================
 
