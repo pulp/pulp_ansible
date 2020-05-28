@@ -83,14 +83,8 @@ with open(f"{plugin_path}/requirements.txt", "rt") as setup_file:
 with open(f"{plugin_path}/requirements.txt", "wt") as setup_file:
     for line in setup_lines:
         if "pulpcore" in line and "pulpcore" not in release_path:
-            sep = "'" if len(line.split('"')) == 1 else '"'
-            for word in line.split(sep):
-                if "pulpcore" in word:
-                    pulpcore_word = word
-
-            line = line.replace(
-                pulpcore_word, f"pulpcore>={lower_pulpcore_version},<{upper_pulpcore_version}"
-            )
+            line = f"pulpcore>={lower_pulpcore_version},<{upper_pulpcore_version}\n"
+            break
 
         setup_file.write(line)
 
@@ -113,21 +107,18 @@ with open(f"{plugin_path}/requirements.txt", "rt") as setup_file:
 with open(f"{plugin_path}/requirements.txt", "wt") as setup_file:
     for line in setup_lines:
         if "pulpcore" in line and "pulpcore" not in release_path:
-            sep = "'" if len(line.split('"')) == 1 else '"'
-            for word in line.split(sep):
-                if "pulpcore" in word:
-                    pulpcore_word = word
-
-            line = line.replace(pulpcore_word, f"pulpcore>={lower_pulpcore_version}")
+            line = f"pulpcore>={lower_pulpcore_version}\n"
+            break
 
         setup_file.write(line)
 
 os.system(f"bump2version {release_part} --allow-dirty")
 
-major, minor, patch = release_version.split(".")
-version_ref = {"major": major, "minor": minor, "patch": patch}
-version_ref[release_part] = str(int(version_ref[release_part]) + 1)
-new_dev_version = f"{version_ref['major']}.{version_ref['minor']}.{version_ref['patch']}.dev"
+version = {}
+with open(f"{plugin_path}/pulp_ansible/__init__.py") as fp:
+    version_line = [line for line in fp.readlines() if "__version__" in line][0]
+    exec(version_line, version)
+new_dev_version = version["__version__"]
 
 
 git.add(f"{plugin_path}/{plugin_name}/__init__.py")
