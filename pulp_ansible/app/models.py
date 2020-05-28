@@ -167,7 +167,7 @@ class CollectionVersion(Content):
         """
         Return the relative path for the ContentArtifact.
         """
-        return "{namespace}.{name}.{version}.tar.gz".format(
+        return "{namespace}-{name}-{version}.tar.gz".format(
             namespace=self.namespace, name=self.name, version=self.version
         )
 
