@@ -1,2 +1,3 @@
 include LICENSE
 include pulp_ansible/app/webserver_snippets/*
+include requirements.txt
