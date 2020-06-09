@@ -8,6 +8,7 @@ import tarfile
 from urllib.parse import urlparse, urlunparse
 
 from django.db import transaction
+from django.urls import reverse
 from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
@@ -43,6 +44,7 @@ from pulp_ansible.app.models import (
     CollectionVersion,
     Tag,
 )
+from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
     get_page_url,
     parse_metadata,
@@ -130,6 +132,8 @@ def import_collection(
                 importer_result = process_collection(
                     artifact_file, filename=filename, logger=user_facing_logger
                 )
+
+                importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact_pk])
                 collection_version = create_collection_from_importer(importer_result)
 
         except ImporterError as exc:
@@ -182,6 +186,14 @@ def create_collection_from_importer(importer_result):
             contents=importer_result["contents"],
             docs_blob=importer_result["docs_blob"],
         )
+
+        serializer_fields = CollectionVersionSerializer.Meta.fields
+        data = {k: v for k, v in collection_version.__dict__.items() if k in serializer_fields}
+        data["id"] = collection_version.pulp_id
+        data["artifact"] = importer_result["artifact_url"]
+
+        serializer = CollectionVersionSerializer(data=data)
+        serializer.is_valid(raise_exception=True)
 
         collection_version.save()
 
