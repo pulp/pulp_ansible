@@ -8,6 +8,7 @@ from pulpcore.plugin.serializers import (
     ModelSerializer,
     RemoteSerializer,
     RepositorySerializer,
+    RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
     RepositoryVersionDistributionSerializer,
 )
@@ -23,6 +24,7 @@ from .models import (
     Role,
     Tag,
 )
+from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
 
 
@@ -83,6 +85,16 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     class Meta:
         fields = RepositorySerializer.Meta.fields
         model = AnsibleRepository
+
+
+class AnsibleRepositorySyncURLSerializer(RepositorySyncURLSerializer):
+    """
+    Serializer for Ansible RepositorySyncURL.
+    """
+
+    page_size = serializers.IntegerField(
+        help_text=_("The total of results per page."), default=PAGE_SIZE,
+    )
 
 
 class CollectionRemoteSerializer(RemoteSerializer):

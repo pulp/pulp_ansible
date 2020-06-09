@@ -17,10 +17,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import Artifact
-from pulpcore.plugin.serializers import (
-    AsyncOperationResponseSerializer,
-    RepositorySyncURLSerializer,
-)
+from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     BaseDistributionViewSet,
@@ -48,6 +45,7 @@ from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleRemoteSerializer,
     AnsibleRepositorySerializer,
+    AnsibleRepositorySyncURLSerializer,
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
@@ -232,16 +230,19 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         operation_description="Trigger an asynchronous task to sync Ansible content.",
         responses={202: AsyncOperationResponseSerializer},
     )
-    @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
+    @action(detail=True, methods=["post"], serializer_class=AnsibleRepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
         Dispatches a sync task.
         """
         repository = self.get_object()
-        serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
+        serializer = AnsibleRepositorySyncURLSerializer(
+            data=request.data, context={"request": request}
+        )
         serializer.is_valid(raise_exception=True)
 
         remote = serializer.validated_data.get("remote")
+        page_size = serializer.validated_data.get("page_size")
         remote.cast()
 
         if isinstance(remote, AnsibleRemote):
@@ -253,7 +254,12 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         result = enqueue_with_reservation(
             sync_func,
             [repository, remote],
-            kwargs={"remote_pk": remote.pk, "repository_pk": repository.pk, "mirror": mirror},
+            kwargs={
+                "remote_pk": remote.pk,
+                "repository_pk": repository.pk,
+                "mirror": mirror,
+                "page_size": page_size,
+            },
         )
         return OperationPostponedResponse(result, request)
 

@@ -7,11 +7,12 @@ from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
 
-def get_page_url(url, page=1):
+def get_page_url(url, page_size, page=1):
     """Get URL page."""
     parsed_url = urlparse(url)
     new_query = parse_qs(parsed_url.query)
     new_query["page"] = page
+    new_query["page_size"] = page_size
     return urlunparse(parsed_url._replace(query=urlencode(new_query, doseq=True)))
 
 

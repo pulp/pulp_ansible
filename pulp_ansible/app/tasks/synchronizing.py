@@ -12,6 +12,7 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
+from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import AnsibleRemote, Role
 from pulp_ansible.app.tasks.utils import get_page_url, parse_metadata
 
@@ -22,11 +23,8 @@ log = logging.getLogger(__name__)
 # The Github URL template to fetch a .tar.gz file from
 GITHUB_URL = "https://github.com/%s/%s/archive/%s.tar.gz"
 
-# default results per page. used to calculate number of pages
-PAGE_SIZE = 10
 
-
-def synchronize(remote_pk, repository_pk, mirror=False):
+def synchronize(remote_pk, repository_pk, mirror=False, page_size=PAGE_SIZE):
     """
     Sync content from the remote repository.
 
@@ -35,7 +33,10 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     Args:
         remote_pk (str): The remote PK.
         repository_pk (str): The repository PK.
+
+    Keyword Args:
         mirror (bool): True for mirror mode, False for additive.
+        page_size (int): The total of results per page.
 
     Raises:
         ValueError: If the remote does not specify a URL to sync.
@@ -50,7 +51,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     log.info(
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}
     )
-    first_stage = AnsibleFirstStage(remote)
+    first_stage = AnsibleFirstStage(remote, page_size)
     d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
     d_version.create()
 
@@ -60,16 +61,20 @@ class AnsibleFirstStage(Stage):
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote):
+    def __init__(self, remote, page_size=PAGE_SIZE):
         """
         The first stage of a pulp_ansible sync pipeline.
 
         Args:
             remote (AnsibleRemote): The remote data to be used when syncing
 
+        Keyword Args:
+            mirror (bool): True for mirror mode, False for additive.
+
         """
         super().__init__()
         self.remote = remote
+        self.page_size = page_size
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -132,10 +137,9 @@ class AnsibleFirstStage(Stage):
 
         progress_data = dict(message="Parsing Pages from Galaxy Roles API", code="parsing.roles")
         with ProgressReport(**progress_data) as progress_bar:
-            downloader = remote.get_downloader(url=get_page_url(remote.url))
+            downloader = remote.get_downloader(url=get_page_url(remote.url, self.page_size))
             metadata = parse_metadata(await downloader.run())
-
-            page_count = math.ceil(float(metadata["count"]) / float(PAGE_SIZE))
+            page_count = math.ceil(float(metadata["count"]) / float(self.page_size))
             progress_bar.total = page_count
             progress_bar.save()
 
@@ -144,7 +148,7 @@ class AnsibleFirstStage(Stage):
 
             # Concurrent downloads are limited by aiohttp...
             not_done = set(
-                remote.get_downloader(url=get_page_url(remote.url, page)).run()
+                remote.get_downloader(url=get_page_url(remote.url, self.page_size, page)).run()
                 for page in range(2, page_count + 1)
             )
 

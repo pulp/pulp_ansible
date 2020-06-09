@@ -36,6 +36,7 @@ from pulpcore.plugin.stages import (
 )
 import semantic_version as semver
 
+from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     Collection,
     CollectionImport,
@@ -53,11 +54,7 @@ from pulp_ansible.app.tasks.utils import (
 log = logging.getLogger(__name__)
 
 
-# default results per page. used to calculate number of pages
-PAGE_SIZE = 10
-
-
-def sync(remote_pk, repository_pk, mirror):
+def sync(remote_pk, repository_pk, mirror, page_size=PAGE_SIZE):
     """
     Sync Collections with ``remote_pk``, and save a new RepositoryVersion for ``repository_pk``.
 
@@ -65,6 +62,9 @@ def sync(remote_pk, repository_pk, mirror):
         remote_pk (str): The remote PK.
         repository_pk (str): The repository PK.
         mirror (bool): True for mirror mode, False for additive.
+
+    Keyword Args:
+        page_size (int): The total of results per page.
 
     Raises:
         ValueError: If the remote does not specify a URL to sync.
@@ -76,7 +76,7 @@ def sync(remote_pk, repository_pk, mirror):
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
-    first_stage = CollectionSyncFirstStage(remote)
+    first_stage = CollectionSyncFirstStage(remote, page_size)
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     d_version.create()
 
@@ -263,16 +263,20 @@ class CollectionSyncFirstStage(Stage):
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote):
+    def __init__(self, remote, page_size=PAGE_SIZE):
         """
         The first stage of a pulp_ansible sync pipeline.
 
         Args:
             remote (AnsibleRemote): The remote data to be used when syncing
 
+        Keyword Args:
+        page_size (int): The total of results per page.
+
         """
         super().__init__()
         self.remote = remote
+        self.page_size = page_size
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
 
         # Interpret download policy
@@ -326,7 +330,7 @@ class CollectionSyncFirstStage(Stage):
                 url = f"{root}/api/v2/collections/{namespace}/{name}"
                 return url
 
-            return get_page_url(remote.url, page)
+            return get_page_url(remote.url, self.page_size, page)
 
         def _build_url(path_or_url):
             """Check value and turn it into a url using remote.url if it's a relative path."""
@@ -344,7 +348,7 @@ class CollectionSyncFirstStage(Stage):
             initial_data = parse_metadata(await downloader.run())
 
             count = len(self.collection_info) or initial_data.get("count", 1)
-            page_count = math.ceil(float(count) / float(PAGE_SIZE))
+            page_count = math.ceil(float(count) / float(self.page_size))
             progress_bar.total = count
             progress_bar.save()
 
