@@ -12,6 +12,7 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
+from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import AnsibleRemote, Role
 from pulp_ansible.app.tasks.utils import get_page_url, parse_metadata
 
@@ -21,9 +22,6 @@ log = logging.getLogger(__name__)
 
 # The Github URL template to fetch a .tar.gz file from
 GITHUB_URL = "https://github.com/%s/%s/archive/%s.tar.gz"
-
-# default results per page. used to calculate number of pages
-PAGE_SIZE = 10
 
 
 def synchronize(remote_pk, repository_pk, mirror=False):

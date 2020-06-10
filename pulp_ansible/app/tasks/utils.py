@@ -6,12 +6,15 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
+from pulp_ansible.app.constants import PAGE_SIZE
+
 
 def get_page_url(url, page=1):
     """Get URL page."""
     parsed_url = urlparse(url)
     new_query = parse_qs(parsed_url.query)
     new_query["page"] = page
+    new_query["page_size"] = PAGE_SIZE
     return urlunparse(parsed_url._replace(query=urlencode(new_query, doseq=True)))
 
 
