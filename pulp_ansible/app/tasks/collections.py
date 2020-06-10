@@ -37,6 +37,7 @@ from pulpcore.plugin.stages import (
 )
 import semantic_version as semver
 
+from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     Collection,
     CollectionImport,
@@ -53,10 +54,6 @@ from pulp_ansible.app.tasks.utils import (
 
 
 log = logging.getLogger(__name__)
-
-
-# default results per page. used to calculate number of pages
-PAGE_SIZE = 10
 
 
 def sync(remote_pk, repository_pk, mirror):
