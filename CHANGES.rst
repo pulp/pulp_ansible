@@ -13,6 +13,27 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b14 (2020-06-19)
+=====================
+
+Bugfixes
+--------
+
+- Make default page size equals to 100
+  `#5494 <https://pulp.plan.io/issues/5494>`_
+- Including requirements.txt on MANIFEST.in
+  `#6889 <https://pulp.plan.io/issues/6889>`_
+
+
+Misc
+----
+
+- `#6772 <https://pulp.plan.io/issues/6772>`_
+
+
+----
+
+
 0.2.0b13 (2020-05-28)
 =====================
 

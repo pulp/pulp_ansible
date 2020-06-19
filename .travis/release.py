@@ -1,6 +1,7 @@
 import argparse
 import os
 import textwrap
+from pathlib import Path
 
 from git import Repo
 
@@ -18,9 +19,9 @@ with open(f"{plugin_path}/pulp_ansible/__init__.py") as fp:
 release_version = version["__version__"].replace(".dev", "")
 
 to_close = []
-for filename in os.listdir(f"{plugin_path}/CHANGES"):
-    if filename.split(".")[0].isdigit():
-        to_close.append(filename.split(".")[0])
+for filename in Path(f"{plugin_path}/CHANGES").rglob("*"):
+    if filename.stem.isdigit():
+        to_close.append(filename.stem)
 issues = ",".join(to_close)
 
 helper = textwrap.dedent(
@@ -44,7 +45,7 @@ helper = textwrap.dedent(
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description=helper)
 
 parser.add_argument(
-    "release_part", type=str, help="Whether the release should be major, minor or patch.",
+    "release_type", type=str, help="Whether the release should be major, minor or patch.",
 )
 
 parser.add_argument(
@@ -57,7 +58,7 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-release_part = args.release_part
+release_type = args.release_type
 
 if "pulpcore" not in release_path:
     lower_pulpcore_version = args.lower
@@ -84,7 +85,6 @@ with open(f"{plugin_path}/requirements.txt", "wt") as setup_file:
     for line in setup_lines:
         if "pulpcore" in line and "pulpcore" not in release_path:
             line = f"pulpcore>={lower_pulpcore_version},<{upper_pulpcore_version}\n"
-            break
 
         setup_file.write(line)
 
@@ -101,18 +101,14 @@ sha = repo.head.object.hexsha
 short_sha = git.rev_parse(sha, short=7)
 
 # Third commit: bump to .dev
-with open(f"{plugin_path}/requirements.txt", "rt") as setup_file:
-    setup_lines = setup_file.readlines()
-
 with open(f"{plugin_path}/requirements.txt", "wt") as setup_file:
     for line in setup_lines:
         if "pulpcore" in line and "pulpcore" not in release_path:
             line = f"pulpcore>={lower_pulpcore_version}\n"
-            break
 
         setup_file.write(line)
 
-os.system(f"bump2version {release_part} --allow-dirty")
+os.system(f"bump2version {release_type} --allow-dirty")
 
 version = {}
 with open(f"{plugin_path}/pulp_ansible/__init__.py") as fp:
@@ -128,4 +124,5 @@ git.add(f"{plugin_path}/.bumpversion.cfg")
 git.commit("-m", f"Bump to {new_dev_version}\n\n[noissue]")
 
 print(f"\n\nRedmine query of issues to close:\n{REDMINE_QUERY_URL}{issues}")
-print(f"\nRelease commit == {short_sha}")
+print(f"Release commit == {short_sha}")
+print(f"All changes were committed on branch: release_{release_version}")
