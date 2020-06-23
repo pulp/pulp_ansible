@@ -4,13 +4,14 @@ Installation
 Install using Ansible
 ---------------------
 
-pulpcore provides an `Ansible Installer <https://github.com/pulp/pulp_installer>`_ that can be used to
+pulpcore provides an `Ansible Installer <https://galaxy.ansible.com/pulp/pulp_installer>`_ that can be used to
 install ``pulp_ansible``. For example if your host is in your Ansible inventory as ``myhost`` you
 can install onto it with:
 
 .. code-block:: bash
 
-    git clone https://github.com/pulp/pulp_installer.git
+    ansible-galaxy install geerlingguy.postgresql
+    ansible-galaxy collection install pulp.pulp_installer
 
 Create your pulp_ansible.yml playbook to use with the installer:
 
@@ -20,26 +21,21 @@ Create your pulp_ansible.yml playbook to use with the installer:
    - hosts: all
      vars:
        pulp_settings:
-         secret_key: secret
-       pulp_default_admin_password: password
+         secret_key: << YOUR SECRET HERE >>
+         content_origin: "http://{{ ansible_fqdn }}"
+       pulp_default_admin_password: << YOUR PASSWORD HERE >>
        pulp_install_plugins:
-         pulp-ansible:
-           app_label: "ansible"
-     roles:
-       - pulp_database
-       - pulp_workers
-       - pulp_resource_manager
-       - pulp_webserver
-       - pulp_content
-     environment:
+         pulp-ansible: {}
+       roles:
+         - pulp.pulp_installer.pulp_all_services
+       environment:
        DJANGO_SETTINGS_MODULE: pulpcore.app.settings
 
 Then install it onto ``myhost`` with:
 
 .. code-block:: bash
 
-    ansible-playbook pulp_ansible.yaml -l myhost
-
+    ansible-playbook pulp_ansible.yml -l myhost
 
 
 Install with pulplift
