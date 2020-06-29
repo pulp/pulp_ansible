@@ -1,2 +1,0 @@
-# have QE own the functional tests
-/pulp_ansible/tests/functional/ @pulp/qe
