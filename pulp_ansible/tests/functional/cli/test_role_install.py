@@ -16,7 +16,7 @@ from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_ELASTIC_FIXTURE_URL,
     ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME,
-    ANSIBLE_ELASTIC_ROLE_WHITELIST,
+    ANSIBLE_ELASTIC_ROLE,
 )
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
@@ -64,7 +64,7 @@ class InstallRoleTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             cmd = "ansible-galaxy role install {} -c -s {} -p {}".format(
-                ANSIBLE_ELASTIC_ROLE_WHITELIST, distribution.client_url, temp_dir
+                ANSIBLE_ELASTIC_ROLE, distribution.client_url, temp_dir
             )
 
             directory = "{}/{}".format(temp_dir, ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME)

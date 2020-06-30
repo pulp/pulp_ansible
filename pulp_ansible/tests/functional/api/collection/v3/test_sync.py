@@ -13,7 +13,7 @@ from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_TESTING_URL_V2,
-    COLLECTION_WHITELIST,
+    ANSIBLE_DEMO_COLLECTION,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote, monitor_task
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -64,7 +64,7 @@ class PulpToPulpSyncCase(unittest.TestCase):
         url = (
             distribution.client_url
             + "/api/v3/collections/"
-            + COLLECTION_WHITELIST.replace(".", "/")
+            + ANSIBLE_DEMO_COLLECTION.replace(".", "/")
         )
         body = gen_ansible_remote(url=url)
         remote = self.remote_collection_api.create(body)
