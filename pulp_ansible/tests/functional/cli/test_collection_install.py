@@ -15,7 +15,7 @@ from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_TESTING_URL_V2,
-    COLLECTION_WHITELIST,
+    ANSIBLE_DEMO_COLLECTION,
 )
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
@@ -63,11 +63,11 @@ class InstallCollectionTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             cmd = "ansible-galaxy collection install {} -c -s {} -p {}".format(
-                COLLECTION_WHITELIST, distribution.client_url, temp_dir
+                ANSIBLE_DEMO_COLLECTION, distribution.client_url, temp_dir
             )
 
             directory = "{}/ansible_collections/{}".format(
-                temp_dir, COLLECTION_WHITELIST.replace(".", "/")
+                temp_dir, ANSIBLE_DEMO_COLLECTION.replace(".", "/")
             )
 
             self.assertTrue(
