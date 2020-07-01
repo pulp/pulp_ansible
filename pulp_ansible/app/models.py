@@ -13,6 +13,7 @@ from pulpcore.plugin.models import (
     RepositoryVersionDistribution,
     Task,
 )
+from .downloaders import AnsibleDownloaderFactory
 
 log = getLogger(__name__)
 
@@ -227,6 +228,29 @@ class CollectionRemote(Remote):
     TYPE = "collection"
 
     requirements_file = models.TextField(null=True, max_length=255)
+    auth_url = models.CharField(null=True, max_length=255)
+    token = models.TextField(null=True, max_length=2000)
+
+    @property
+    def download_factory(self):
+        """
+        Return the DownloaderFactory which can be used to generate asyncio capable downloaders.
+
+        Upon first access, the DownloaderFactory is instantiated and saved internally.
+
+        Plugin writers are expected to override when additional configuration of the
+        DownloaderFactory is needed.
+
+        Returns:
+            DownloadFactory: The instantiated DownloaderFactory to be used by
+                get_downloader()
+
+        """
+        try:
+            return self._download_factory
+        except AttributeError:
+            self._download_factory = AnsibleDownloaderFactory(self)
+            return self._download_factory
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

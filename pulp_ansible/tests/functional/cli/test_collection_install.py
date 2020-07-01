@@ -1,5 +1,5 @@
 """Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
-
+import os
 from os import path
 import subprocess
 import tempfile
@@ -14,14 +14,18 @@ from pulpcore.client.pulp_ansible import (
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
+    AH_AUTH_URL,
     ANSIBLE_COLLECTION_TESTING_URL_V2,
     ANSIBLE_DEMO_COLLECTION,
+    TOKEN_DEMO_COLLECTION,
+    TOKEN_AUTH_COLLECTION_TESTING_URL,
 )
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
     gen_ansible_remote,
     monitor_task,
 )
+from pulp_ansible.tests.functional.utils import skip_if
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -31,17 +35,18 @@ class InstallCollectionTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
+        cls.AH_token = "AUTOMATION_HUB_TOKEN_AUTH" in os.environ
+        cls.GH_token = "GITHUB_API_KEY" in os.environ
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
 
-    def test_install_collection(self):
-        """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+    def create_install_scenario(self, body, collection_name):
+        """Create Install scenario."""
         repo = self.repo_api.create(gen_repo())
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
@@ -63,11 +68,11 @@ class InstallCollectionTestCase(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             cmd = "ansible-galaxy collection install {} -c -s {} -p {}".format(
-                ANSIBLE_DEMO_COLLECTION, distribution.client_url, temp_dir
+                collection_name, distribution.client_url, temp_dir
             )
 
             directory = "{}/ansible_collections/{}".format(
-                temp_dir, ANSIBLE_DEMO_COLLECTION.replace(".", "/")
+                temp_dir, collection_name.replace(".", "/")
             )
 
             self.assertTrue(
@@ -77,3 +82,29 @@ class InstallCollectionTestCase(unittest.TestCase):
             subprocess.run(cmd.split())
 
             self.assertTrue(path.exists(directory), "Could not find directory {}".format(directory))
+
+    def test_install_collection(self):
+        """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        self.create_install_scenario(body, ANSIBLE_DEMO_COLLECTION)
+
+    @skip_if(bool, "AH_token", False)
+    def test_install_collection_with_token_from_automation_hub(self):
+        """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+        body = gen_ansible_remote(
+            url=TOKEN_AUTH_COLLECTION_TESTING_URL,
+            auth_url=AH_AUTH_URL,
+            token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
+            tls_validation=False,
+        )
+        self.create_install_scenario(body, TOKEN_DEMO_COLLECTION)
+
+    @skip_if(bool, "GH_token", False)
+    def test_install_collection_with_token_from_galaxy(self):
+        """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+        token = os.environ["GITHUB_API_KEY"]
+        PULP_COLLECTION = ANSIBLE_COLLECTION_TESTING_URL_V2.replace("testing", "pulp")
+        PULP_COLLECTION = PULP_COLLECTION.replace("k8s_demo_collection", "pulp_installer")
+
+        body = gen_ansible_remote(url=PULP_COLLECTION, token=token)
+        self.create_install_scenario(body, "pulp.pulp_installer")
