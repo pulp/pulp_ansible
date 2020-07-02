@@ -8,6 +8,8 @@ from pulp_smash.pulp3.constants import (
     BASE_CONTENT_PATH,
 )
 
+AH_AUTH_URL = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+
 GALAXY_ANSIBLE_BASE_URL = "https://galaxy.ansible.com"
 
 ANSIBLE_ROLE_NAME = "ansible.role"
@@ -55,6 +57,8 @@ ANSIBLE_COLLECTION_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "ansible/collection/"
 
 ANSIBLE_DEMO_COLLECTION = "testing.k8s_demo_collection"
 
+TOKEN_DEMO_COLLECTION = "ansible.posix"
+
 ANSIBLE_COLLECTION_CONTENT_NAME = "ansible.collection_version"
 
 ANSIBLE_COLLECTION_FIXTURE_COUNT = 1
@@ -81,6 +85,10 @@ collections:
   source: https://galaxy-dev.ansible.com
 - testing.k8s_demo_collection
 """
+
+TOKEN_AUTH_COLLECTIONS_URL = "https://cloud.redhat.com/api/automation-hub/v3/collections/"
+
+TOKEN_AUTH_COLLECTION_TESTING_URL = urljoin(TOKEN_AUTH_COLLECTIONS_URL, "ansible/posix")
 
 # Ansible Galaxy V2 Endpoints
 

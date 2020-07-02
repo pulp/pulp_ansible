@@ -136,6 +136,31 @@ Remote GET Response::
         "url": "https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing_content/",
     }
 
+For `remote sources that require authentication <https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#configuring-the-ansible-galaxy-client>`_, tokens can be used. You can provide the ``token``
+and/or ``auth_url``.
+
+In this example we will be syncing the Collection with ``namespace=testing``  and ``name=ansible_testing_content``
+from ``https://cloud.redhat.com/api/automation-hub/v3/collections/testing/ansible_testing_content``.
+
+.. literalinclude:: ../_scripts/remote-collection-token.sh
+   :language: bash
+
+Remote GET Response::
+
+    {
+        "pulp_created": "2019-04-29T13:51:10.860792Z",
+        "pulp_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
+        "pulp_last_updated": "2019-04-29T13:51:10.860805Z",
+        "download_concurrency": 20,
+        "name": "bar",
+        "policy": "immediate",
+        "proxy_url": null,
+        "ssl_ca_certificate": null,
+        "ssl_client_certificate": null,
+        "ssl_client_key": null,
+        "ssl_validation": true,
+        "url": "https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing_content/",
+    }
 
 Sync Repository foo with CollectionRemote
 -----------------------------------------

@@ -95,6 +95,22 @@ class CollectionRemoteSerializer(RemoteSerializer):
         required=False,
         allow_null=True,
     )
+    auth_url = serializers.CharField(
+        help_text=_("The URL to receive a session token from, e.g. used with Automation Hub."),
+        allow_null=True,
+        required=False,
+        max_length=255,
+    )
+    token = serializers.CharField(
+        help_text=_(
+            "The token key to use for authentication. See https://docs.ansible.com/ansible/"
+            "latest/user_guide/collections_using.html#configuring-the-ansible-galaxy-client"
+            "for more details"
+        ),
+        allow_null=True,
+        required=False,
+        max_length=2000,
+    )
 
     def validate(self, data):
         """
@@ -124,7 +140,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
         return data
 
     class Meta:
-        fields = RemoteSerializer.Meta.fields + ("requirements_file",)
+        fields = RemoteSerializer.Meta.fields + ("requirements_file", "auth_url", "token")
         model = CollectionRemote
 
 
