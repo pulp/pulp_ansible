@@ -148,15 +148,13 @@ def test_collection_upload(collection_upload):
     assert re.match(
         r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", collection_upload["id"]
     )
-    assert collection_upload["messages"][0]["level"] == "INFO"
-    assert collection_upload["messages"][0]["message"] == "Getting doc strings via ansible-doc"
-
     assert collection_upload["state"] == "completed"
 
     assert "updated_at" in collection_upload
     assert "started_at" in collection_upload
     assert "created_at" in collection_upload
     assert "finished_at" in collection_upload
+    assert "messages" in collection_upload
 
     for key, value in collection_upload.items():
         if key in COLLECTION_METADATA.keys():
