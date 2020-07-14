@@ -13,6 +13,20 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0b15 (2020-07-14)
+=====================
+
+Features
+--------
+
+- Enable token authentication for syncing Collections.
+  Added `auth_url` and `token` `fields <https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#configuring-the-ansible-galaxy-client>`_ to `CollectionRemote`
+  `#6540 <https://pulp.plan.io/issues/6540>`_
+
+
+----
+
+
 0.2.0b14 (2020-06-19)
 =====================
 
