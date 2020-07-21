@@ -8,7 +8,7 @@ from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters, MultipleChoiceFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_yasg.utils import swagger_auto_schema
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
@@ -228,8 +228,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
     queryset = AnsibleRepository.objects.all()
     serializer_class = AnsibleRepositorySerializer
 
-    @swagger_auto_schema(
-        operation_description="Trigger an asynchronous task to sync Ansible content.",
+    @extend_schema(
+        description="Trigger an asynchronous task to sync Ansible content.",
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
@@ -288,12 +288,12 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
     serializer_class = CollectionOneShotSerializer
     parser_classes = (MultiPartParser, FormParser)
 
-    @swagger_auto_schema(
-        operation_description="Create an artifact and trigger an asynchronous task to create "
+    @extend_schema(
+        description="Create an artifact and trigger an asynchronous task to create "
         "Collection content from it.",
-        operation_summary="Upload a collection",
+        summary="Upload a collection",
         operation_id="upload_collection",
-        request_body=CollectionOneShotSerializer,
+        request=CollectionOneShotSerializer,
         responses={202: AsyncOperationResponseSerializer},
     )
     def create(self, request):
