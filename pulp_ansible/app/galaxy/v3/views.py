@@ -2,7 +2,6 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.db import IntegrityError
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from drf_yasg import openapi
@@ -15,7 +14,7 @@ from rest_framework import status as http_status
 from rest_framework import viewsets
 
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import Artifact, Content, ContentArtifact
+from pulpcore.plugin.models import PulpTemporaryFile, Content, ContentArtifact
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from rest_framework.reverse import reverse
 
@@ -138,18 +137,15 @@ class CollectionUploadViewSet(
         if serializer.validated_data["sha256"]:
             expected_digests["sha256"] = serializer.validated_data["sha256"]
         try:
-            artifact = Artifact.init_and_validate(
-                serializer.validated_data["file"], expected_digests=expected_digests
+            temp_file = PulpTemporaryFile.init_and_validate(
+                serializer.validated_data["file"], expected_digests=expected_digests,
             )
         except DigestValidationError:
             raise serializers.ValidationError(
                 _("The provided sha256 value does not match the sha256 of the uploaded file.")
             )
 
-        try:
-            artifact.save()
-        except IntegrityError:
-            raise serializers.ValidationError(_("Artifact already exists."))
+        temp_file.save()
 
         kwargs = {}
 
@@ -163,7 +159,7 @@ class CollectionUploadViewSet(
             kwargs["expected_version"] = serializer.validated_data["expected_version"]
 
         async_result = self._dispatch_import_collection_task(
-            artifact.pk, distro.repository, **kwargs
+            temp_file.pk, distro.repository, **kwargs
         )
         CollectionImport.objects.create(task_id=async_result.id)
 

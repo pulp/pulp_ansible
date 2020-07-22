@@ -8,12 +8,12 @@ class UploadGalaxyCollectionMixin:
     Provides a method that dispatches a task.
     """
 
-    def _dispatch_import_collection_task(self, artifact_pk, repository=None, **kwargs):
+    def _dispatch_import_collection_task(self, temp_file_pk, repository=None, **kwargs):
         """
         Dispatch a Import Collection creation task.
         """
-        locks = [str(artifact_pk)]
-        kwargs["artifact_pk"] = artifact_pk
+        locks = []
+        kwargs["temp_file_pk"] = temp_file_pk
         if repository:
             locks.append(repository)
             kwargs["repository_pk"] = repository.pk

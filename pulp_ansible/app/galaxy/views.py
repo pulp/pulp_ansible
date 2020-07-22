@@ -4,7 +4,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, pagination, response, views
 
-from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.models import PulpTemporaryFile
 from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.models import ContentArtifact
 
@@ -153,10 +153,10 @@ class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
         )
         serializer.is_valid(raise_exception=True)
 
-        artifact = Artifact.init_and_validate(serializer.validated_data["file"])
-        artifact.save()
+        temp_file = PulpTemporaryFile.init_and_validate(serializer.validated_data["file"])
+        temp_file.save()
 
-        async_result = self._dispatch_import_collection_task(artifact.pk, distro.repository)
+        async_result = self._dispatch_import_collection_task(temp_file.pk, distro.repository)
         return OperationPostponedResponse(async_result, request)
 
 

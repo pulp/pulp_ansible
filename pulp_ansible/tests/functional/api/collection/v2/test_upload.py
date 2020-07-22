@@ -5,9 +5,9 @@ import unittest
 from urllib.parse import urljoin
 
 from pulp_smash import api, config
+from pulp_smash.exceptions import TaskReportError
 from pulp_smash.pulp3.utils import delete_orphans
 from pulp_smash.utils import http_get
-from requests.exceptions import HTTPError
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_FILE_NAME,
@@ -48,10 +48,12 @@ class UploadCollectionTestCase(unittest.TestCase):
 
         self.assertEqual(response["sha256"], self.collection_sha256, response)
 
-        with self.assertRaises(HTTPError) as ctx:
-            self.client.using_handler(api.code_handler).post(UPLOAD_PATH, files=self.collection)
+        with self.assertRaises(TaskReportError) as exc:
+            self.client.post(UPLOAD_PATH, files=self.collection)
 
+        self.assertEqual(exc.exception.task["state"], "failed")
+        error = exc.exception.task["error"]
         for key in ("artifact", "already", "exists"):
-            self.assertIn(key, ctx.exception.response.json()[0].lower(), ctx.exception.response)
+            self.assertIn(key, error["description"].lower(), error)
 
         delete_orphans(self.cfg)

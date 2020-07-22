@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 from gettext import gettext as _
 import json
 import logging
@@ -19,6 +18,7 @@ from pulpcore.plugin.models import (
     ContentArtifact,
     CreatedResource,
     ProgressReport,
+    PulpTemporaryFile,
     Remote,
     Repository,
 )
@@ -81,7 +81,7 @@ def sync(remote_pk, repository_pk, mirror):
 
 
 def import_collection(
-    artifact_pk,
+    temp_file_pk,
     repository_pk=None,
     expected_namespace=None,
     expected_name=None,
@@ -98,7 +98,7 @@ def import_collection(
     logged.
 
     Args:
-        artifact_pk (str): The pk of the Artifact to create the Collection from.
+        temp_file_pk (str): The pk of the PulpTemporaryFile to create the Collection from.
 
     Keyword Args:
         repository_pk (str): Optional. If specified, a new RepositoryVersion will be created for the
@@ -118,41 +118,42 @@ def import_collection(
     """
     CollectionImport.objects.get_or_create(task_id=get_current_job().id)
 
-    artifact = Artifact.objects.get(pk=artifact_pk)
+    temp_file = PulpTemporaryFile.objects.get(pk=temp_file_pk)
     filename = CollectionFilename(expected_namespace, expected_name, expected_version)
-    log.info(f"Processing collection from {artifact.file.name}")
+    log.info(f"Processing collection from {temp_file.file.name}")
     user_facing_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
 
-    with _artifact_guard(artifact):
-        try:
-            with artifact.file.open() as artifact_file:
-                importer_result = process_collection(
-                    artifact_file, filename=filename, logger=user_facing_logger
-                )
+    try:
+        with temp_file.file.open() as artifact_file:
+            importer_result = process_collection(
+                artifact_file, filename=filename, logger=user_facing_logger
+            )
+            artifact = Artifact.from_pulp_temporary_file(temp_file)
+            importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
+            collection_version = create_collection_from_importer(importer_result)
 
-                importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact_pk])
-                collection_version = create_collection_from_importer(importer_result)
+    except ImporterError as exc:
+        log.info(f"Collection processing was not successfull: {exc}")
+        temp_file.delete()
+        raise
+    except Exception as exc:
+        user_facing_logger.error(f"Collection processing was not successfull: {exc}")
+        temp_file.delete()
+        raise
 
-        except ImporterError as exc:
-            log.info(f"Collection processing was not successfull: {exc}")
-            raise
-        except Exception as exc:
-            user_facing_logger.error(f"Collection processing was not successfull: {exc}")
-            raise
+    ContentArtifact.objects.create(
+        artifact=artifact,
+        content=collection_version,
+        relative_path=collection_version.relative_path,
+    )
+    CreatedResource.objects.create(content_object=collection_version)
 
-        ContentArtifact.objects.create(
-            artifact=artifact,
-            content=collection_version,
-            relative_path=collection_version.relative_path,
-        )
-        CreatedResource.objects.create(content_object=collection_version)
-
-        if repository_pk:
-            repository = Repository.objects.get(pk=repository_pk)
-            content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
-            with repository.new_version() as new_version:
-                new_version.add_content(content_q)
-            CreatedResource.objects.create(content_object=repository)
+    if repository_pk:
+        repository = Repository.objects.get(pk=repository_pk)
+        content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
+        with repository.new_version() as new_version:
+            new_version.add_content(content_q)
+        CreatedResource.objects.create(content_object=repository)
 
 
 def create_collection_from_importer(importer_result):
@@ -222,16 +223,6 @@ def _update_highest_version(collection_version):
         collection_version.is_highest = True
         last_highest.save()
         collection_version.save()
-
-
-@contextlib.contextmanager
-def _artifact_guard(artifact):
-    """Will delete artifact in case of exception."""
-    try:
-        yield artifact
-    except Exception:
-        artifact.delete()
-        raise
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
