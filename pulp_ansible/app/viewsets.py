@@ -238,7 +238,9 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         Dispatches a sync task.
         """
         repository = self.get_object()
-        serializer = RepositorySyncURLSerializer(data=request.data, context={"request": request})
+        serializer = RepositorySyncURLSerializer(
+            data=request.data, context={"request": request, "repository_pk": repository.pk}
+        )
         serializer.is_valid(raise_exception=True)
 
         remote = serializer.validated_data.get("remote")

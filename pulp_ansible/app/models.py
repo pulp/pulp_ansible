@@ -208,18 +208,6 @@ class AnsibleRemote(Remote):
         default_related_name = "%(app_label)s_%(model_name)s"
 
 
-class AnsibleRepository(Repository):
-    """
-    Repository for "ansible" content.
-    """
-
-    TYPE = "ansible"
-    CONTENT_TYPES = [Role, CollectionVersion]
-
-    class Meta:
-        default_related_name = "%(app_label)s_%(model_name)s"
-
-
 class CollectionRemote(Remote):
     """
     A Remote for Collection content.
@@ -251,6 +239,19 @@ class CollectionRemote(Remote):
         except AttributeError:
             self._download_factory = AnsibleDownloaderFactory(self)
             return self._download_factory
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class AnsibleRepository(Repository):
+    """
+    Repository for "ansible" content.
+    """
+
+    TYPE = "ansible"
+    CONTENT_TYPES = [Role, CollectionVersion]
+    REMOTE_TYEPES = [AnsibleRemote, CollectionRemote]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
