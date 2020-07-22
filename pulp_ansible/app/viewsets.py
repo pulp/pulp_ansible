@@ -3,7 +3,6 @@ from gettext import gettext as _
 from packaging.version import parse
 
 from django.contrib.postgres.search import SearchQuery
-from django.db import IntegrityError
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters, MultipleChoiceFilter
@@ -16,7 +15,7 @@ from rest_framework.parsers import FormParser, MultiPartParser
 
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import Artifact
+from pulpcore.plugin.models import PulpTemporaryFile
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -307,20 +306,16 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
         if serializer.validated_data["sha256"]:
             expected_digests["sha256"] = serializer.validated_data["sha256"]
         try:
-            artifact = Artifact.init_and_validate(
-                serializer.validated_data["file"], expected_digests=expected_digests
+            temp_file = PulpTemporaryFile.init_and_validate(
+                serializer.validated_data["file"], expected_digests=expected_digests,
             )
         except DigestValidationError:
             raise serializers.ValidationError(
                 _("The provided sha256 value does not match the sha256 of the uploaded file.")
             )
 
-        try:
-            artifact.save()
-        except IntegrityError:
-            raise serializers.ValidationError(_("Artifact already exists."))
-
-        async_result = self._dispatch_import_collection_task(artifact.pk)
+        temp_file.save()
+        async_result = self._dispatch_import_collection_task(temp_file.pk)
 
         return OperationPostponedResponse(async_result, request)
 
