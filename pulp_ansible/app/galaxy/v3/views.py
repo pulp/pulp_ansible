@@ -4,8 +4,7 @@ import semantic_version
 
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
-from drf_yasg import openapi
-from drf_yasg.utils import swagger_auto_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.decorators import action
 from rest_framework import mixins
 from rest_framework.response import Response
@@ -118,11 +117,11 @@ class CollectionUploadViewSet(
     permission_classes = []
     serializer_class = CollectionSerializer
 
-    @swagger_auto_schema(
-        operation_description="Create an artifact and trigger an asynchronous task to create "
+    @extend_schema(
+        description="Create an artifact and trigger an asynchronous task to create "
         "Collection content from it.",
-        operation_summary="Upload a collection",
-        request_body=CollectionOneShotSerializer,
+        summary="Upload a collection",
+        request=CollectionOneShotSerializer,
         responses={202: AsyncOperationResponseSerializer},
     )
     def create(self, request, path):
@@ -251,15 +250,15 @@ class CollectionImportViewSet(
     queryset = CollectionImport.objects.prefetch_related("task").all()
     serializer_class = CollectionImportDetailSerializer
 
-    since_filter = openapi.Parameter(
-        "since",
-        openapi.IN_QUERY,
-        type=openapi.TYPE_STRING,
-        format=openapi.FORMAT_DATETIME,
+    since_filter = OpenApiParameter(
+        name="since",
+        location=OpenApiParameter.QUERY,
+        type=str,
+        # format=openapi.FORMAT_DATETIME,
         description="Filter messages since a given timestamp",
     )
 
-    @swagger_auto_schema(manual_parameters=[since_filter])
+    @extend_schema(parameters=[since_filter])
     def retrieve(self, request, *args, **kwargs):
         """
         Returns a CollectionImport object.
