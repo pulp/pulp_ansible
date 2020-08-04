@@ -27,6 +27,7 @@ class GalaxyVersionView(views.APIView):
 
     authentication_classes = []
     permission_classes = []
+    schema = None
 
     def get(self, request, path):
         """
@@ -46,6 +47,7 @@ class RoleList(generics.ListAPIView):
     serializer_class = GalaxyRoleSerializer
     authentication_classes = []
     permission_classes = []
+    schema = None
 
     def get_queryset(self):
         """
@@ -78,6 +80,7 @@ class RoleVersionList(generics.ListAPIView):
     serializer_class = GalaxyRoleVersionSerializer
     authentication_classes = []
     permission_classes = []
+    schema = None
 
     def get_queryset(self):
         """
@@ -105,6 +108,7 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
     serializer_class = GalaxyCollectionSerializer
     authentication_classes = []
     permission_classes = []
+    schema = None
 
     def get(self, request, path=None, namespace=None, name=None):
         """
@@ -125,6 +129,7 @@ class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
     authentication_classes = []
     permission_classes = []
     pagination_class = pagination.PageNumberPagination
+    schema = None
 
     def get_queryset(self):
         """
@@ -169,6 +174,7 @@ class GalaxyCollectionVersionList(generics.ListAPIView):
     serializer_class = GalaxyCollectionVersionSerializer
     authentication_classes = []
     permission_classes = []
+    schema = None
 
     def get_queryset(self):
         """
@@ -198,6 +204,7 @@ class GalaxyCollectionVersionDetail(views.APIView):
 
     authentication_classes = []
     permission_classes = []
+    schema = None
 
     def get(self, request, path, namespace, name, version):
         """

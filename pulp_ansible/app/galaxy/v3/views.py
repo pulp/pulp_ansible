@@ -73,6 +73,7 @@ class CollectionViewSet(
     authentication_classes = []
     permission_classes = []
     serializer_class = CollectionSerializer
+    schema = None
 
     def get_queryset(self):
         """
@@ -116,6 +117,7 @@ class CollectionUploadViewSet(
     authentication_classes = []
     permission_classes = []
     serializer_class = CollectionSerializer
+    schema = None
 
     @extend_schema(
         description="Create an artifact and trigger an asynchronous task to create "
@@ -183,6 +185,7 @@ class CollectionVersionViewSet(
     permission_classes = []
     serializer_class = CollectionVersionSerializer
     filterset_class = CollectionVersionFilter
+    schema = None
 
     lookup_field = "version"
 
@@ -249,6 +252,7 @@ class CollectionImportViewSet(
 
     queryset = CollectionImport.objects.prefetch_related("task").all()
     serializer_class = CollectionImportDetailSerializer
+    schema = None
 
     since_filter = OpenApiParameter(
         name="since",
