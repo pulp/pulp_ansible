@@ -288,6 +288,7 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
 
     serializer_class = CollectionOneShotSerializer
     parser_classes = (MultiPartParser, FormParser)
+    schema = None
 
     @extend_schema(
         description="Create an artifact and trigger an asynchronous task to create "
