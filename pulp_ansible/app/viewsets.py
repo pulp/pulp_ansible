@@ -35,7 +35,7 @@ from pulpcore.plugin.viewsets import (
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleDistribution,
-    AnsibleRemote,
+    RoleRemote,
     AnsibleRepository,
     Collection,
     CollectionVersion,
@@ -45,7 +45,7 @@ from .models import (
 )
 from .serializers import (
     AnsibleDistributionSerializer,
-    AnsibleRemoteSerializer,
+    RoleRemoteSerializer,
     AnsibleRepositorySerializer,
     CollectionSerializer,
     CollectionVersionSerializer,
@@ -55,7 +55,7 @@ from .serializers import (
     TagSerializer,
 )
 from .tasks.collections import sync as collection_sync
-from .tasks.synchronizing import synchronize as role_sync
+from .tasks.roles import synchronize as role_sync
 
 
 class RoleFilter(ContentFilter):
@@ -208,19 +208,19 @@ class CollectionVersionViewSet(ContentViewSet):
     ordering_fields = ("pulp_created", "name", "version", "namespace")
 
 
-class AnsibleRemoteViewSet(RemoteViewSet):
+class RoleRemoteViewSet(RemoteViewSet):
     """
-    ViewSet for Ansible Remotes.
+    ViewSet for Role Remotes.
     """
 
-    endpoint_name = "ansible"
-    queryset = AnsibleRemote.objects.all()
-    serializer_class = AnsibleRemoteSerializer
+    endpoint_name = "role"
+    queryset = RoleRemote.objects.all()
+    serializer_class = RoleRemoteSerializer
 
 
 class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
     """
-    ViewSet for Ansible Remotes.
+    ViewSet for Ansible Repositories.
     """
 
     endpoint_name = "ansible"
@@ -245,7 +245,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         remote = serializer.validated_data.get("remote")
         remote.cast()
 
-        if isinstance(remote, AnsibleRemote):
+        if isinstance(remote, RoleRemote):
             sync_func = role_sync
         elif isinstance(remote, CollectionRemote):
             sync_func = collection_sync
@@ -261,7 +261,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
 
 class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
     """
-    RpmRepositoryVersion represents a single file repository version.
+    AnsibleRepositoryVersion represents a single file repository version.
     """
 
     parent_viewset = AnsibleRepositoryViewSet

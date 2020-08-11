@@ -9,7 +9,7 @@ from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
     RepositoriesAnsibleApi,
     RepositorySyncURL,
-    RemotesAnsibleApi,
+    RemotesRoleApi,
 )
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
@@ -34,7 +34,7 @@ class InstallRoleTestCase(unittest.TestCase):
         """Create class-wide variables."""
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
-        cls.remote_role_api = RemotesAnsibleApi(cls.client)
+        cls.remote_role_api = RemotesRoleApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
 
     def test_install_role(self):

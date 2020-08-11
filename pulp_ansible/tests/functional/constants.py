@@ -20,7 +20,7 @@ ANSIBLE_COLLECTION_VERSION_CONTENT_PATH = urljoin(BASE_CONTENT_PATH, "ansible/co
 
 ANSIBLE_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, "ansible/ansible/")
 
-ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "ansible/ansible/")
+ANSIBLE_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "ansible/role/")
 
 ANSIBLE_REPO_PATH = urljoin(BASE_REPO_PATH, "ansible/ansible/")
 
