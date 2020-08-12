@@ -256,6 +256,8 @@ class AnsibleRepository(Repository):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
+        permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
+
 
 class AnsibleDistribution(RepositoryVersionDistribution):
     """
