@@ -13,7 +13,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 from pulp_ansible.app.constants import PAGE_SIZE
-from pulp_ansible.app.models import AnsibleRemote, Role
+from pulp_ansible.app.models import RoleRemote, Role
 from pulp_ansible.app.tasks.utils import get_page_url, parse_metadata
 
 
@@ -39,7 +39,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
         ValueError: If the remote does not specify a URL to sync.
 
     """
-    remote = AnsibleRemote.objects.get(pk=remote_pk)
+    remote = RoleRemote.objects.get(pk=remote_pk)
     repository = Repository.objects.get(pk=repository_pk)
 
     if not remote.url:
@@ -48,14 +48,14 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     log.info(
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}
     )
-    first_stage = AnsibleFirstStage(remote)
+    first_stage = RoleFirstStage(remote)
     d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
     d_version.create()
 
 
-class AnsibleFirstStage(Stage):
+class RoleFirstStage(Stage):
     """
-    The first stage of a pulp_ansible sync pipeline.
+    The first stage of a pulp_ansible sync pipeline for roles.
     """
 
     def __init__(self, remote):
@@ -63,7 +63,7 @@ class AnsibleFirstStage(Stage):
         The first stage of a pulp_ansible sync pipeline.
 
         Args:
-            remote (AnsibleRemote): The remote data to be used when syncing
+            remote (RoleRemote): The remote data to be used when syncing
 
         """
         super().__init__()

@@ -14,7 +14,7 @@ from pulpcore.plugin.serializers import (
 
 from .models import (
     AnsibleDistribution,
-    AnsibleRemote,
+    RoleRemote,
     AnsibleRepository,
     Collection,
     CollectionImport,
@@ -65,14 +65,14 @@ class RoleSerializer(SingleArtifactContentSerializer):
         model = Role
 
 
-class AnsibleRemoteSerializer(RemoteSerializer):
+class RoleRemoteSerializer(RemoteSerializer):
     """
     A serializer for Ansible Remotes.
     """
 
     class Meta:
         fields = RemoteSerializer.Meta.fields
-        model = AnsibleRemote
+        model = RoleRemote
 
 
 class AnsibleRepositorySerializer(RepositorySerializer):

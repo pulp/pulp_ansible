@@ -197,12 +197,12 @@ class CollectionVersion(Content):
         ]
 
 
-class AnsibleRemote(Remote):
+class RoleRemote(Remote):
     """
     A Remote for Ansible content.
     """
 
-    TYPE = "ansible"
+    TYPE = "role"
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -251,7 +251,7 @@ class AnsibleRepository(Repository):
 
     TYPE = "ansible"
     CONTENT_TYPES = [Role, CollectionVersion]
-    REMOTE_TYEPES = [AnsibleRemote, CollectionRemote]
+    REMOTE_TYEPES = [RoleRemote, CollectionRemote]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

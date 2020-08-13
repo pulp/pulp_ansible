@@ -119,7 +119,7 @@ syncing all Roles where ``namespace=elastic`` on Galaxy. You can browse those Ro
 Remote GET Response::
 
     {
-        "pulp_href": "/pulp/api/v3/remotes/ansible/ansible/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
+        "pulp_href": "/pulp/api/v3/remotes/ansible/role/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
     }
 
 

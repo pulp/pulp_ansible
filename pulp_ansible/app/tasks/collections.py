@@ -268,7 +268,7 @@ class CollectionSyncFirstStage(Stage):
         The first stage of a pulp_ansible sync pipeline.
 
         Args:
-            remote (AnsibleRemote): The remote data to be used when syncing
+            remote (CollectionRemote): The remote data to be used when syncing
 
         """
         super().__init__()
