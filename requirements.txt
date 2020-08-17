@@ -1,5 +1,5 @@
 galaxy_importer
 packaging
-pulpcore>=3.0
+pulpcore>=3.6,<3.7
 PyYAML
 semantic_version
