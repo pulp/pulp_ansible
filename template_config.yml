@@ -46,4 +46,5 @@ travis_notifications:
     - chat.freenode.net#pulp-ansible
     on_failure: always
     on_success: change
+update_redmine: true
 

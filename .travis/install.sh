@@ -44,13 +44,10 @@ else
   # Fallback
   TAG=$(git rev-parse --abbrev-ref HEAD | tr / _)
 fi
-
-mkdir vars
 if [ -n "$TRAVIS_TAG" ]; then
   # Install the plugin only and use published PyPI packages for the rest
   # Quoting ${TAG} ensures Ansible casts the tag as a string.
-  cat > vars/main.yaml << VARSYAML
----
+  cat >> vars/main.yaml << VARSYAML
 image:
   name: pulp
   tag: "${TAG}"
@@ -66,8 +63,7 @@ services:
       - ./settings:/etc/pulp
 VARSYAML
 else
-  cat > vars/main.yaml << VARSYAML
----
+  cat >> vars/main.yaml << VARSYAML
 image:
   name: pulp
   tag: "${TAG}"
