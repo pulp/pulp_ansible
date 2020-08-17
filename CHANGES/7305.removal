@@ -1,3 +1,0 @@
-Moved the role remote path from ``/pulp/api/v3/remotes/ansible/ansible/`` to
-``/pulp/api/v3/remotes/ansible/role/`` to be consistent with
-``/pulp/api/v3/remotes/ansible/collection/``.

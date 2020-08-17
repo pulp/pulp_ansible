@@ -13,6 +13,35 @@ Changelog
 
 .. towncrier release notes start
 
+0.2.0 (2020-08-17)
+==================
+
+Features
+--------
+
+- Allow a Remote to be associated with a Repository and automatically use it when syncing the
+  Repository.
+  `#7194 <https://pulp.plan.io/issues/7194>`_
+
+
+Deprecations and Removals
+-------------------------
+
+- Moved the role remote path from ``/pulp/api/v3/remotes/ansible/ansible/`` to
+  ``/pulp/api/v3/remotes/ansible/role/`` to be consistent with
+  ``/pulp/api/v3/remotes/ansible/collection/``.
+  `#7305 <https://pulp.plan.io/issues/7305>`_
+
+
+Misc
+----
+
+- `#6718 <https://pulp.plan.io/issues/6718>`_
+
+
+----
+
+
 0.2.0b15 (2020-07-14)
 =====================
 
