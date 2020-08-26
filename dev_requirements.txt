@@ -1,4 +1,5 @@
 ansible
+black==19.10b0
 coverage
 flake8
 flake8-black
