@@ -108,13 +108,13 @@ class CollectionVersion(Content):
         description (models.TextField): A short summary description of the collection.
         docs_blob (psql_fields.JSONField): A JSON field holding the various documentation blobs in
             the collection.
-        documentation (models.URLField): The URL to any online docs.
-        homepage (models.URLField): The URL to the homepage of the collection/project.
-        issues (models.URLField): The URL to the collection issue tracker.
+        documentation (models.CharField): The URL to any online docs.
+        homepage (models.CharField): The URL to the homepage of the collection/project.
+        issues (models.CharField): The URL to the collection issue tracker.
         license (psql_fields.ArrayField): A list of licenses for content inside of a collection.
         name (models.CharField): The name of the collection.
         namespace (models.CharField): The namespace of the collection.
-        repository (models.URLField): The URL of the originating SCM repository.
+        repository (models.CharField): The URL of the originating SCM repository.
         version (models.CharField): The version of the collection.
         is_highest (models.BooleanField): Indicates that the version is the highest one
             in the collection.
@@ -140,13 +140,13 @@ class CollectionVersion(Content):
     dependencies = psql_fields.JSONField(default=dict, editable=False)
     description = models.TextField(default="", blank=True, editable=False)
     docs_blob = psql_fields.JSONField(default=dict, editable=False)
-    documentation = models.URLField(default="", blank=True, max_length=2000, editable=False)
-    homepage = models.URLField(default="", blank=True, max_length=2000, editable=False)
-    issues = models.URLField(default="", blank=True, max_length=2000, editable=False)
+    documentation = models.CharField(default="", blank=True, max_length=2000, editable=False)
+    homepage = models.CharField(default="", blank=True, max_length=2000, editable=False)
+    issues = models.CharField(default="", blank=True, max_length=2000, editable=False)
     license = psql_fields.ArrayField(models.CharField(max_length=32), default=list, editable=False)
     name = models.CharField(max_length=64, editable=False)
     namespace = models.CharField(max_length=32, editable=False)
-    repository = models.URLField(default="", blank=True, max_length=2000, editable=False)
+    repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     version = models.CharField(max_length=32, editable=False)
 
     is_highest = models.BooleanField(editable=False, default=False)

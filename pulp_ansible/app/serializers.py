@@ -285,17 +285,17 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         help_text=_("A JSON field holding the various documentation blobs in the collection.")
     )
 
-    documentation = serializers.URLField(
+    documentation = serializers.CharField(
         help_text=_("The URL to any online docs."), allow_blank=True, max_length=2000
     )
 
-    homepage = serializers.URLField(
+    homepage = serializers.CharField(
         help_text=_("The URL to the homepage of the collection/project."),
         allow_blank=True,
         max_length=2000,
     )
 
-    issues = serializers.URLField(
+    issues = serializers.CharField(
         help_text=_("The URL to the collection issue tracker."), allow_blank=True, max_length=2000
     )
 
@@ -312,7 +312,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         help_text=_("The namespace of the collection."), max_length=32
     )
 
-    repository = serializers.URLField(
+    repository = serializers.CharField(
         help_text=_("The URL of the originating SCM repository."), allow_blank=True, max_length=2000
     )
 
