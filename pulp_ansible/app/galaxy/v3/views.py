@@ -137,7 +137,8 @@ class CollectionUploadViewSet(
             expected_digests["sha256"] = serializer.validated_data["sha256"]
         try:
             temp_file = PulpTemporaryFile.init_and_validate(
-                serializer.validated_data["file"], expected_digests=expected_digests,
+                serializer.validated_data["file"],
+                expected_digests=expected_digests,
             )
         except DigestValidationError:
             raise serializers.ValidationError(
