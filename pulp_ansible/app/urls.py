@@ -62,6 +62,11 @@ v3_urls = [
         name="collection-versions-detail",
     ),
     path(
+        "collections/<str:namespace>/<str:name>/versions/<str:version>/docs-blob/",
+        views_v3.CollectionVersionDocsViewSet.as_view({"get": "retrieve"}),
+        name="collection-versions-detail-docs",
+    ),
+    path(
         "collections/<str:namespace>/<str:name>/versions/<str:version>/certified/",
         views_v3.CollectionVersionViewSet.as_view({"put": "set_certified"}),
         name="collection-versions-set-certified",

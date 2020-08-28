@@ -21,6 +21,7 @@ from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
+    CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
 )
 from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
@@ -57,6 +58,37 @@ class AnsibleDistributionMixin:
         if "path" in self.kwargs:
             context["path"] = self.kwargs["path"]
         return context
+
+
+class CollectionVersionRetrieveMixin:
+    """
+    A mixin for ViewSets that get instance of CollectionVersion.
+    """
+
+    def get_queryset(self):
+        """
+        Returns a CollectionVersions queryset for specified distribution.
+        """
+        distro_content = self.get_distro_content(self.kwargs["path"])
+
+        collections = CollectionVersion.objects.select_related("collection").filter(
+            pk__in=distro_content, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
+        )
+        return collections
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Returns a CollectionVersion object.
+        """
+        instance = self.get_object()
+        artifact = ContentArtifact.objects.get(content=instance)
+
+        context = self.get_serializer_context()
+        context["content_artifact"] = artifact
+
+        serializer = self.get_serializer_class()(instance, context=context)
+
+        return Response(serializer.data)
 
 
 class CollectionViewSet(
@@ -174,7 +206,10 @@ class CollectionUploadViewSet(
 
 
 class CollectionVersionViewSet(
-    ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.GenericViewSet
+    CollectionVersionRetrieveMixin,
+    ExceptionHandlerMixin,
+    AnsibleDistributionMixin,
+    viewsets.GenericViewSet,
 ):
     """
     ViewSet for CollectionVersions.
@@ -186,17 +221,6 @@ class CollectionVersionViewSet(
     filterset_class = CollectionVersionFilter
 
     lookup_field = "version"
-
-    def get_queryset(self):
-        """
-        Returns a CollectionVersions queryset for specified distribution.
-        """
-        distro_content = self.get_distro_content(self.kwargs["path"])
-
-        collections = CollectionVersion.objects.select_related("collection").filter(
-            pk__in=distro_content, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
-        )
-        return collections
 
     def list(self, request, *args, **kwargs):
         """
@@ -216,20 +240,6 @@ class CollectionVersionViewSet(
         serializer = CollectionVersionListSerializer(queryset, many=True, context=context)
         return Response(serializer.data)
 
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Returns a CollectionVersion object.
-        """
-        instance = self.get_object()
-        artifact = ContentArtifact.objects.get(content=instance)
-
-        context = self.get_serializer_context()
-        context["content_artifact"] = artifact
-
-        serializer = CollectionVersionSerializer(instance, context=context)
-
-        return Response(serializer.data)
-
     @action(methods=["PUT"], detail=True, url_path="certified")
     def set_certified(self, request, *args, **kwargs):
         """
@@ -239,6 +249,23 @@ class CollectionVersionViewSet(
         obj.certification = request.data["certification"]
         obj.save()
         return Response({})
+
+
+class CollectionVersionDocsViewSet(
+    CollectionVersionRetrieveMixin,
+    ExceptionHandlerMixin,
+    AnsibleDistributionMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    ViewSet for docs_blob of CollectionVersion.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = CollectionVersionDocsSerializer
+
+    lookup_field = "version"
 
 
 class CollectionImportViewSet(
