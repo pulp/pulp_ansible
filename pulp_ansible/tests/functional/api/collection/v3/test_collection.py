@@ -173,7 +173,6 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
     # Detail Endpoint
     assert "created_at" in collection_detail
     assert "updated_at" in collection_detail
-
     assert not collection_detail["deprecated"]
     assert collection_detail["href"] == url
     assert collection_detail["namespace"] == artifact.namespace
@@ -222,12 +221,22 @@ def test_collection_version(artifact, pulp_client, collection_detail):
     #     #             'contents': [],
     #     #             'dependencies': {},
     #     #             'description': 'a collection with some deps on other collections',
+    #     #             'docs_blob': {
+    #     #                 "contents": [],
+    #     #                 "collection_readme": {
+    #     #                     "html": "This is collection_reqs_test collection",
+    #     #                     "name": "README.md"
+    #     #                  },
+    #     #                 "documentation_files": []
+    #     #              }
     #     #             'documentation': '',
     #     #             'homepage': '',
     #     #             'issues': '',
     #     #             'license': ['GPL-3.0-or-later'],
     #     #             'repository': 'http://github.example.com/orionuser1/skeleton',
     #     #             'tags': ['collectiontest']},
+
+    assert "docs_blob" in version["metadata"]
 
 
 @pytest.mark.skip("Blocked by open ticket: https://pulp.plan.io/issues/5647")

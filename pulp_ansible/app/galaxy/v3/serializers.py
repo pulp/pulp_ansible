@@ -132,6 +132,7 @@ class CollectionMetadataSerializer(serializers.ModelSerializer):
             "contents",
             "dependencies",
             "description",
+            "docs_blob",
             "documentation",
             "homepage",
             "issues",
