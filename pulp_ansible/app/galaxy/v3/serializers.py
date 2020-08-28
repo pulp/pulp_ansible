@@ -186,3 +186,13 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
         filename_path = self.context["content_artifact"].relative_path.lstrip("/")
         download_url = f"{host}/{distro_base_path}/{filename_path}"
         return download_url
+
+
+class CollectionVersionDocsSerializer(serializers.ModelSerializer):
+    """A serializer to display the docs_blob of a CollectionVersion."""
+
+    docs_blob = serializers.JSONField()
+
+    class Meta:
+        fields = ("docs_blob",)
+        model = models.CollectionVersion
