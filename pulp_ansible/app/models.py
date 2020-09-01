@@ -215,7 +215,7 @@ class CollectionRemote(Remote):
 
     TYPE = "collection"
 
-    requirements_file = models.TextField(null=True, max_length=255)
+    requirements_file = models.TextField(null=True)
     auth_url = models.CharField(null=True, max_length=255)
     token = models.TextField(null=True, max_length=2000)
 
