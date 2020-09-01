@@ -31,6 +31,7 @@ from pulp_ansible.app.serializers import (
 )
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
+from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import CollectionVersionFilter
 
 
@@ -105,6 +106,7 @@ class CollectionViewSet(
     authentication_classes = []
     permission_classes = []
     serializer_class = CollectionSerializer
+    pagination_class = LimitOffsetPagination
 
     def get_queryset(self):
         """
@@ -219,6 +221,7 @@ class CollectionVersionViewSet(
     permission_classes = []
     serializer_class = CollectionVersionSerializer
     filterset_class = CollectionVersionFilter
+    pagination_class = LimitOffsetPagination
 
     lookup_field = "version"
 

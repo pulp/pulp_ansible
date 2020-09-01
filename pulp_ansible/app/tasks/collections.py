@@ -47,6 +47,7 @@ from pulp_ansible.app.models import (
 )
 from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
+    get_api_version,
     get_page_url,
     parse_metadata,
     parse_collections_requirements_file,
@@ -318,7 +319,7 @@ class CollectionSyncFirstStage(Stage):
         remote = self.remote
         collection_info = self.collection_info
 
-        def _get_url(page):
+        def _get_url(page, api_version):
             if collection_info:
                 name, version, source = collection_info[page - 1]
                 namespace, name = name.split(".")
@@ -326,7 +327,7 @@ class CollectionSyncFirstStage(Stage):
                 url = f"{root}/api/v2/collections/{namespace}/{name}"
                 return url
 
-            return get_page_url(remote.url, page)
+            return get_page_url(remote.url, api_version, page)
 
         def _build_url(path_or_url):
             """Check value and turn it into a url using remote.url if it's a relative path."""
@@ -339,11 +340,13 @@ class CollectionSyncFirstStage(Stage):
 
         progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
         with ProgressReport(**progress_data) as progress_bar:
-            url = _get_url(page_count)
+            api_version = get_api_version(remote.url)
+            url = _get_url(page_count, api_version)
             downloader = remote.get_downloader(url=url)
             initial_data = parse_metadata(await downloader.run())
 
-            count = len(self.collection_info) or initial_data.get("count", 1)
+            _count = initial_data.get("count") or initial_data.get("meta", {}).get("count", 1)
+            count = len(self.collection_info) or _count
             page_count = math.ceil(float(count) / float(PAGE_SIZE))
             progress_bar.total = count
             progress_bar.save()
@@ -351,7 +354,7 @@ class CollectionSyncFirstStage(Stage):
             # Concurrent downloads are limited by aiohttp...
             not_done = set()
             for page in range(1, page_count + 1):
-                downloader = remote.get_downloader(url=_get_url(page))
+                downloader = remote.get_downloader(url=_get_url(page, api_version))
                 not_done.add(downloader.run())
 
             while not_done:
@@ -360,8 +363,10 @@ class CollectionSyncFirstStage(Stage):
                 for item in done:
                     data = parse_metadata(item.result())
 
-                    # v2 uses 'results' as the key while v3 uses 'data'
-                    results = data.get("results") or data.get("data") or [data]
+                    if api_version < 3:
+                        results = data.get("results", [data])
+                    else:
+                        results = data.get("data", [data])
 
                     for result in results:
                         download_url = result.get("download_url")

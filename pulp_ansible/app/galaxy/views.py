@@ -167,6 +167,7 @@ class GalaxyCollectionVersionList(generics.ListAPIView):
 
     model = CollectionVersion
     serializer_class = GalaxyCollectionVersionSerializer
+    pagination_class = pagination.PageNumberPagination
     authentication_classes = []
     permission_classes = []
 

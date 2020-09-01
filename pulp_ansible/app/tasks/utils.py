@@ -1,5 +1,6 @@
 from gettext import gettext as _
 import json
+import re
 import yaml
 
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
@@ -9,12 +10,26 @@ from yaml.error import YAMLError
 from pulp_ansible.app.constants import PAGE_SIZE
 
 
-def get_page_url(url, page=1):
+def get_api_version(url):
+    """Get API version."""
+    result = re.findall(r"/api/v(\d)", url)
+    if len(result) != 1:
+        raise RuntimeError("Could not determine Galaxy API version")
+    return int(result[0])
+
+
+def get_page_url(url, api_version, page=1):
     """Get URL page."""
     parsed_url = urlparse(url)
     new_query = parse_qs(parsed_url.query)
-    new_query["page"] = page
-    new_query["page_size"] = PAGE_SIZE
+
+    if api_version < 3:
+        new_query["page"] = page
+        new_query["page_size"] = PAGE_SIZE
+    else:
+        new_query["offset"] = (page - 1) * PAGE_SIZE
+        new_query["limit"] = PAGE_SIZE
+
     return urlunparse(parsed_url._replace(query=urlencode(new_query, doseq=True)))
 
 

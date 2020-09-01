@@ -185,8 +185,8 @@ def test_collection_version_list(artifact, pulp_client, collection_detail):
     """Test the versions endpoint, listing the available versions of a given collection."""
     # Version List Endpoint
     versions = pulp_client.using_handler(api.json_handler).get(collection_detail["versions_url"])
-    assert versions["count"] == 1
-    version = versions["results"][0]
+    assert versions["meta"]["count"] == 1
+    version = versions["data"][0]
 
     assert version["version"] == "1.0.0"
     assert version["certification"] == "needs_review"

@@ -14,7 +14,7 @@ from pulpcore.plugin.stages import (
 )
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import RoleRemote, Role
-from pulp_ansible.app.tasks.utils import get_page_url, parse_metadata
+from pulp_ansible.app.tasks.utils import get_api_version, get_page_url, parse_metadata
 
 
 log = logging.getLogger(__name__)
@@ -130,7 +130,8 @@ class RoleFirstStage(Stage):
 
         progress_data = dict(message="Parsing Pages from Galaxy Roles API", code="parsing.roles")
         with ProgressReport(**progress_data) as progress_bar:
-            downloader = remote.get_downloader(url=get_page_url(remote.url))
+            api_version = get_api_version(remote.url)
+            downloader = remote.get_downloader(url=get_page_url(remote.url, api_version))
             metadata = parse_metadata(await downloader.run())
 
             page_count = math.ceil(float(metadata["count"]) / float(PAGE_SIZE))
@@ -142,7 +143,7 @@ class RoleFirstStage(Stage):
 
             # Concurrent downloads are limited by aiohttp...
             not_done = set(
-                remote.get_downloader(url=get_page_url(remote.url, page)).run()
+                remote.get_downloader(url=get_page_url(remote.url, api_version, page)).run()
                 for page in range(2, page_count + 1)
             )
 
