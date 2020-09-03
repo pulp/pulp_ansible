@@ -12,8 +12,8 @@ from pulp_ansible.app.constants import PAGE_SIZE
 
 def get_api_version(url):
     """Get API version."""
-    result = re.findall(r"/api/v(\d)", url)
-    if len(result) != 1:
+    result = re.findall(r"/v(\d)/", url)
+    if len(result) == 0:
         raise RuntimeError("Could not determine Galaxy API version")
     return int(result[0])
 
