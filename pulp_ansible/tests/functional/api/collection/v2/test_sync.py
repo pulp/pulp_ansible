@@ -26,6 +26,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_TESTING_URL_V2,
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
+    ANSIBLE_GALAXY_COLLECTION_URL_V2,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_REPO_PATH,
 )
@@ -182,7 +183,7 @@ class SyncTestCase(unittest.TestCase):
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
             gen_ansible_remote(
-                url=ANSIBLE_COLLECTION_TESTING_URL_V2,
+                url=ANSIBLE_GALAXY_COLLECTION_URL_V2.rstrip("/"),
                 requirements_file=ANSIBLE_COLLECTION_REQUIREMENT,
             ),
         )

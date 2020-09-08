@@ -82,7 +82,7 @@ ANSIBLE_COLLECTION_REQUIREMENT = """
 collections:
 - name: testing.ansible_testing_content
   version: ">=1.0.0,<=2.0.0"
-  source: https://galaxy-dev.ansible.com
+  source: https://galaxy-dev.ansible.com/api/v2/collections
 - testing.k8s_demo_collection
 """
 
