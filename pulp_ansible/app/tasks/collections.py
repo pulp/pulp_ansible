@@ -324,7 +324,7 @@ class CollectionSyncFirstStage(Stage):
                 name, version, source = collection_info[page - 1]
                 namespace, name = name.split(".")
                 root = source or remote.url
-                url = f"{root}/api/v2/collections/{namespace}/{name}"
+                url = f"{root.rstrip('/')}/{namespace}/{name}"
                 return url
 
             return get_page_url(remote.url, api_version, page)
