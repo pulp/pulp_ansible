@@ -228,7 +228,7 @@ def _update_highest_version(collection_version):
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
     """
-    Subclassed Declarative version creates a custom pipeline for RPM sync.
+    Subclassed Declarative version creates a custom pipeline for Ansible sync.
     """
 
     def pipeline_stages(self, new_version):
@@ -251,6 +251,7 @@ class AnsibleDeclarativeVersion(DeclarativeVersion):
             ArtifactDownloader(),
             ArtifactSaver(),
             QueryExistingContents(),
+            DocsBlobDownloader(),
             CollectionContentSaver(),
             RemoteArtifactSaver(),
             ResolveContentFutures(),
@@ -303,7 +304,14 @@ class CollectionSyncFirstStage(Stage):
                     remote=self.remote,
                     deferred_download=self.deferred_download,
                 )
-                d_content = DeclarativeContent(content=collection_version, d_artifacts=[d_artifact])
+
+                extradata = dict(docs_blob_url=metadata["docs_blob_url"])
+
+                d_content = DeclarativeContent(
+                    content=collection_version,
+                    d_artifacts=[d_artifact],
+                    extra_data=extradata,
+                )
                 pb.increment()
                 await self.put(d_content)
 
@@ -357,6 +365,8 @@ class CollectionSyncFirstStage(Stage):
                 downloader = remote.get_downloader(url=_get_url(page, api_version))
                 not_done.add(downloader.run())
 
+            additional_metadata = {}
+
             while not_done:
                 done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
 
@@ -378,10 +388,53 @@ class CollectionSyncFirstStage(Stage):
                         if result.get("version") and not download_url:
                             version_url = _build_url(result["href"])
                             not_done.update([remote.get_downloader(url=version_url).run()])
+                            additional_metadata[version_url] = {
+                                "docs_blob_url": f"{version_url}docs-blob/"
+                            }
 
                         if download_url:
+                            metadata = additional_metadata.get(_build_url(data["href"]), {})
+                            data["docs_blob_url"] = metadata.get("docs_blob_url")
                             yield data
                             progress_bar.increment()
+
+
+class DocsBlobDownloader(ArtifactDownloader):
+    """
+    Stage for downloading docs_blob.
+
+    Args:
+        max_concurrent_content (int): The maximum number of
+            :class:`~pulpcore.plugin.stages.DeclarativeContent` instances to handle simultaneously.
+            Default is 200.
+        args: unused positional arguments passed along to :class:`~pulpcore.plugin.stages.Stage`.
+        kwargs: unused keyword arguments passed along to :class:`~pulpcore.plugin.stages.Stage`.
+    """
+
+    async def _handle_content_unit(self, d_content):
+        """Handle one content unit.
+
+        Returns:
+            The number of downloads
+        """
+        downloaded = 0
+        if d_content.d_artifacts:
+            remote = d_content.d_artifacts[0].remote
+            docs_blob = d_content.extra_data.get("docs_blob_url")
+            if docs_blob:
+                downloaded = 1
+                downloader = remote.get_downloader(
+                    url=docs_blob, silence_errors_for_response_status_codes={404}
+                )
+                try:
+                    download_result = await downloader.run()
+                    with open(download_result.path, "r") as docs_blob:
+                        d_content.extra_data["docs_blob"] = json.load(docs_blob)
+                except FileNotFoundError:
+                    pass
+
+        await self.put(d_content)
+        return downloaded
 
 
 class CollectionContentSaver(ContentSaver):
@@ -427,6 +480,9 @@ class CollectionContentSaver(ContentSaver):
             if not isinstance(d_content.content, CollectionVersion):
                 continue
             collection_version = d_content.content
+            docs_blob = d_content.extra_data.get("docs_blob", {})
+            collection_version.docs_blob = docs_blob
+
             for d_artifact in d_content.d_artifacts:
                 artifact = d_artifact.artifact
                 with artifact.file.open() as artifact_file, tarfile.open(

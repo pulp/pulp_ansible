@@ -6,10 +6,29 @@ import json
 from aiohttp import BasicAuth
 from aiohttp.client_exceptions import ClientResponseError
 
-from pulpcore.plugin.download import http_giveup, DownloaderFactory, HttpDownloader
+from pulpcore.plugin.download import http_giveup, DownloaderFactory, FileDownloader, HttpDownloader
 
 
 log = getLogger(__name__)
+
+
+class AnsibleFileDownloader(FileDownloader):
+    """
+    FileDownloader that strips out Ansible's custom http downloader arguments.
+
+    This is unfortunate, but there isn't currently a good pattern for customizing the downloader
+    factory machinery such that certain types of arguments only apply to certain downloaders,
+    so passing a kwarg into get_downloader() will pass it to constructor for any downloader.
+
+    TODO: https://pulp.plan.io/issues/7352
+    """
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize the downloader.
+        """
+        kwargs.pop("silence_errors_for_response_status_codes", None)
+        super().__init__(*args, **kwargs)
 
 
 class TokenAuthHttpDownloader(HttpDownloader):
@@ -19,13 +38,35 @@ class TokenAuthHttpDownloader(HttpDownloader):
 
     TOKEN_LOCK = asyncio.Lock()
 
-    def __init__(self, url, auth_url, token, **kwargs):
+    def __init__(
+        self, url, auth_url, token, silence_errors_for_response_status_codes=None, **kwargs
+    ):
         """
         Initialize the downloader.
         """
         self.ansible_auth_url = auth_url
         self.ansible_token = token
+        if silence_errors_for_response_status_codes is None:
+            silence_errors_for_response_status_codes = set()
+        self.silence_errors_for_response_status_codes = silence_errors_for_response_status_codes
         super().__init__(url, **kwargs)
+
+    def raise_for_status(self, response):
+        """
+        Raise error if aiohttp response status is >= 400 and not silenced.
+
+        Raises:
+            FileNotFoundError: If aiohttp response status is 404 and silenced.
+            aiohttp.ClientResponseError: If the response status is 400 or higher and not silenced.
+
+        """
+        silenced = response.status in self.silence_errors_for_response_status_codes
+
+        if not silenced:
+            response.raise_for_status()
+
+        if response.status == 404:
+            raise FileNotFoundError()
 
     @backoff.on_exception(backoff.expo, ClientResponseError, max_tries=10, giveup=http_giveup)
     async def _run(self, extra_data=None):
@@ -55,7 +96,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
             headers = {"Authorization": "Bearer {token}".format(token=token)}
 
         async with self.session.get(self.url, headers=headers, proxy=self.proxy) as response:
-            response.raise_for_status()
+            self.raise_for_status(response)
             to_return = await self._handle_response(response)
             await response.release()
 
@@ -99,6 +140,7 @@ class AnsibleDownloaderFactory(DownloaderFactory):
             downloader_overrides = {
                 "http": TokenAuthHttpDownloader,
                 "https": TokenAuthHttpDownloader,
+                "file": AnsibleFileDownloader,
             }
         super().__init__(remote, downloader_overrides)
 
