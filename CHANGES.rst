@@ -13,6 +13,49 @@ Changelog
 
 .. towncrier release notes start
 
+0.3.0 (2020-09-09)
+==================
+
+Features
+--------
+
+- Add endpoint to show docs_blob for a CollectionVersion
+  `#7397 <https://pulp.plan.io/issues/7397>`_
+- Allow the requirements file field on remotes to be of longer length.
+  `#7434 <https://pulp.plan.io/issues/7434>`_
+- Sync docs_blob information for collection versions
+  `#7439 <https://pulp.plan.io/issues/7439>`_
+
+
+Bugfixes
+--------
+
+- Replace URLField with CharField
+  `#7353 <https://pulp.plan.io/issues/7353>`_
+- Pagination query params according to API versions.
+  v1 and v2 - `page` and `page_size`
+  v3 or above - `offset` and `limit`
+  `#7396 <https://pulp.plan.io/issues/7396>`_
+- Build collections URL according to requirements.yml
+  `#7412 <https://pulp.plan.io/issues/7412>`_
+
+
+Deprecations and Removals
+-------------------------
+
+- Changed V3 pagination to match Galaxy V3 API pagination
+  `#7435 <https://pulp.plan.io/issues/7435>`_
+
+
+Misc
+----
+
+- `#7453 <https://pulp.plan.io/issues/7453>`_
+
+
+----
+
+
 0.2.0 (2020-08-17)
 ==================
 
