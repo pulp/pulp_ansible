@@ -36,6 +36,7 @@ class InstallCollectionTestCase(unittest.TestCase):
     def setUpClass(cls):
         """Create class-wide variables."""
         cls.AH_token = "AUTOMATION_HUB_TOKEN_AUTH" in os.environ
+        cls.CI_AH_token = "CI_AUTOMATION_HUB_TOKEN_AUTH" in os.environ
         cls.GH_token = "GITHUB_API_KEY" in os.environ
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
@@ -98,6 +99,21 @@ class InstallCollectionTestCase(unittest.TestCase):
             tls_validation=False,
         )
         self.create_install_scenario(body, TOKEN_DEMO_COLLECTION)
+
+    @skip_if(bool, "CI_AH_token", False)
+    def test_install_collection_with_token_from_ci_automation_hub(self):
+        """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+        name = "collection_dep_a_fdqqyxou"
+        namespace = "autohubtest2"
+        aurl = "https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+
+        body = gen_ansible_remote(
+            url=f"https://ci.cloud.redhat.com/api/automation-hub/v3/collections/{namespace}/{name}",
+            auth_url=aurl,
+            token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            tls_validation=False,
+        )
+        self.create_install_scenario(body, f"{namespace}.{name}")
 
     @skip_if(bool, "GH_token", False)
     def test_install_collection_with_token_from_galaxy(self):
