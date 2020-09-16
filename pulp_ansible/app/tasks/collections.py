@@ -354,7 +354,7 @@ class CollectionSyncFirstStage(Stage):
             initial_data = parse_metadata(await downloader.run())
 
             _count = initial_data.get("count") or initial_data.get("meta", {}).get("count", 1)
-            count = len(self.collection_info) or _count
+            count = len(self.collection_info) * PAGE_SIZE or _count
             page_count = math.ceil(float(count) / float(PAGE_SIZE))
             progress_bar.total = count
             progress_bar.save()
