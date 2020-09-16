@@ -305,7 +305,10 @@ class CollectionSyncFirstStage(Stage):
                     deferred_download=self.deferred_download,
                 )
 
-                extradata = dict(docs_blob_url=metadata["docs_blob_url"])
+                extradata = dict(
+                    docs_blob_url=metadata["docs_blob_url"],
+                    deprecated=metadata["deprecated"],
+                )
 
                 d_content = DeclarativeContent(
                     content=collection_version,
@@ -346,6 +349,18 @@ class CollectionSyncFirstStage(Stage):
             else:
                 return path_or_url
 
+        def _add_collection_level_metadata(data, additional_metadata):
+            """Additional metadata at collection level to be sent through stages."""
+            name = data["collection"]["name"]
+            namespace = data["namespace"]["name"]
+            metadata = additional_metadata.get(f"{namespace}_{name}", {})
+            data["deprecated"] = metadata.get("deprecated", False)
+
+        def _add_collection_version_level_metadata(data, additional_metadata):
+            """Additional metadata at collection version level to be sent through stages."""
+            metadata = additional_metadata.get(_build_url(data["href"]), {})
+            data["docs_blob_url"] = metadata.get("docs_blob_url")
+
         progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
         with ProgressReport(**progress_data) as progress_bar:
             api_version = get_api_version(remote.url)
@@ -381,6 +396,13 @@ class CollectionSyncFirstStage(Stage):
                     for result in results:
                         download_url = result.get("download_url")
 
+                        if result.get("deprecated"):
+                            name = result["name"]
+                            namespace = result["namespace"]
+                            additional_metadata[f"{namespace}_{name}"] = {
+                                "deprecated": result["deprecated"]
+                            }
+
                         if result.get("versions_url"):
                             versions_url = _build_url(result.get("versions_url"))
                             not_done.update([remote.get_downloader(url=versions_url).run()])
@@ -393,8 +415,8 @@ class CollectionSyncFirstStage(Stage):
                             }
 
                         if download_url:
-                            metadata = additional_metadata.get(_build_url(data["href"]), {})
-                            data["docs_blob_url"] = metadata.get("docs_blob_url")
+                            _add_collection_level_metadata(data, additional_metadata)
+                            _add_collection_version_level_metadata(data, additional_metadata)
                             yield data
                             progress_bar.increment()
 
@@ -463,6 +485,10 @@ class CollectionContentSaver(ContentSaver):
             collection, created = Collection.objects.get_or_create(
                 namespace=info["namespace"], name=info["name"]
             )
+            deprecated = d_content.extra_data.get("deprecated", False)
+            if created and deprecated:
+                collection.deprecated = deprecated
+                collection.save()
             d_content.content.collection = collection
 
     async def _post_save(self, batch):
