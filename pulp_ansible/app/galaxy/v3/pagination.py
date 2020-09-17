@@ -67,6 +67,39 @@ class LimitOffsetPagination(pagination.LimitOffsetPagination):
             }
         )
 
+    def get_paginated_response_schema(self, schema):
+        """Returns paginated response schema."""
+        return {
+            "type": "object",
+            "properties": {
+                "meta": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123,
+                    },
+                },
+                "links": {
+                    "first": {
+                        "type": "string",
+                        "nullable": True,
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": True,
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": True,
+                    },
+                    "last": {
+                        "type": "string",
+                        "nullable": True,
+                    },
+                },
+                "data": schema,
+            },
+        }
+
     # Custom methods for working with pulp client
     def init_from_request(self, request):
         """Init form request."""
