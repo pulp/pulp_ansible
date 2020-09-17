@@ -1,5 +1,7 @@
 from gettext import gettext as _
 from django.conf import settings
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
@@ -53,6 +55,7 @@ class CollectionSerializer(serializers.ModelSerializer):
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
 
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
         href = reverse(
