@@ -113,10 +113,17 @@ class CollectionViewSet(
         Returns a CollectionVersions queryset for specified distribution.
         """
         distro_content = self.get_distro_content(self.kwargs["path"])
+        query_params = {"pk__in": distro_content}
 
-        collections = CollectionVersion.objects.select_related("collection").filter(
-            pk__in=distro_content, is_highest=True
+        versions = CollectionVersion.objects.filter(pk__in=distro_content).values_list(
+            "version", flat=True
         )
+
+        if len(versions):
+            highest = sorted(versions, key=semantic_version.Version, reverse=True)[0]
+            query_params["version"] = highest
+
+        collections = CollectionVersion.objects.select_related("collection").filter(**query_params)
         return collections
 
     def get_object(self):
