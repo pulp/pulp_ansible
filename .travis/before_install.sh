@@ -48,6 +48,7 @@ pip install -r dev_requirements.txt
 ./.travis/check_commit.sh
 
 # run black separately from flake8 to get a diff
+black --version
 black --check --diff .
 
 # Lint code.
@@ -71,7 +72,7 @@ sed -i -e 's/localhost:24817/pulp/g' generate.sh
 sed -i -e 's/:24817/pulp/g' generate.sh
 cd ..
 
-git clone --depth=1 https://github.com/pulp/pulpcore.git --branch master
+git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.6
 
 cd pulpcore
 if [ -n "$PULPCORE_PR_NUMBER" ]; then

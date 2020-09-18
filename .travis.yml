@@ -20,16 +20,12 @@ env:
     - TEST=docs
     - TEST=s3
 services:
-  - postgresql
-  - redis-server
   - docker
 addons:
   apt:
     packages:
       - httpie
       - jq
-  # postgres versions provided by el7 RHSCL (lowest supportable version)
-  postgresql: '9.6'
 before_install: .travis/before_install.sh
 install: .travis/install.sh
 before_script: .travis/before_script.sh
@@ -72,6 +68,16 @@ jobs:
       env:
         - TEST=bindings
       if: tag IS present
+    - stage: publish-tagged-docs
+      script: bash .travis/publish_docs.sh tag
+      env:
+        - TEST=docs
+      if: tag IS present
+    - stage: publish-continuous-docs
+      script: bash .travis/publish_docs.sh nightly
+      env:
+        - TEST=docs
+      if: type != pull_request AND repo = pulp/pulp_ansible AND branch = master
     - stage: update-redmine
       before_install: skip
       install: skip
