@@ -2,6 +2,7 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
+from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -113,17 +114,23 @@ class CollectionViewSet(
         Returns a CollectionVersions queryset for specified distribution.
         """
         distro_content = self.get_distro_content(self.kwargs["path"])
-        query_params = {"pk__in": distro_content}
 
         versions = CollectionVersion.objects.filter(pk__in=distro_content).values_list(
-            "version", flat=True
+            "collection_id",
+            "version",
         )
 
-        if len(versions):
-            highest = sorted(versions, key=semantic_version.Version, reverse=True)[0]
-            query_params["version"] = highest
+        collection_versions = {}
+        for collection_id, version in versions:
+            value = collection_versions.get(str(collection_id))
+            if not value or semantic_version.Version(version) > semantic_version.Version(value):
+                collection_versions[str(collection_id)] = version
 
-        collections = CollectionVersion.objects.select_related("collection").filter(**query_params)
+        query_params = Q()
+        for collection_id, version in collection_versions.items():
+            query_params |= Q(collection_id=collection_id, version=version)
+
+        collections = CollectionVersion.objects.select_related("collection").filter(query_params)
         return collections
 
     def get_object(self):
