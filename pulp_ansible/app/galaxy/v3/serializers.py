@@ -1,5 +1,6 @@
 from gettext import gettext as _
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
@@ -13,7 +14,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     created_at = serializers.DateTimeField(source="collection.pulp_created")
     updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
-    deprecated = serializers.BooleanField(source="collection.deprecated")
+    deprecated = serializers.SerializerMethodField()
     href = serializers.SerializerMethodField()
 
     versions_url = serializers.SerializerMethodField()
@@ -47,6 +48,12 @@ class CollectionSerializer(serializers.ModelSerializer):
             "collections-detail",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
+
+    def get_deprecated(self, obj):
+        """Get href."""
+        distro = get_object_or_404(models.AnsibleDistribution, base_path=self.context["path"])
+        deprecation = distro.repository.cast().extra_data.get("deprecated", {})
+        return deprecation.get(str(obj.collection.pk), obj.collection.deprecated)
 
     def get_versions_url(self, obj):
         """Get a link to a collection versions list."""

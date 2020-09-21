@@ -109,6 +109,30 @@ class CollectionViewSet(
     serializer_class = CollectionSerializer
     pagination_class = LimitOffsetPagination
 
+    def filter_queryset(self, queryset):
+        """
+        Filter Repository related fields.
+        """
+        queryset = super().filter_queryset(queryset)
+
+        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
+
+        if self.request.query_params.get("deprecated", "").lower() == "true":
+            deprecated = True
+        else:
+            deprecated = False
+
+        collection_pks = []
+        data = distro.repository.cast().extra_data.get("deprecated", {})
+        for collection_id, deprecation in data.items():
+            if deprecation == deprecated:
+                collection_pks.append(collection_id)
+
+        if collection_pks:
+            queryset = queryset.filter(collection_id__in=collection_pks)
+
+        return queryset
+
     def get_queryset(self):
         """
         Returns a CollectionVersions queryset for specified distribution.

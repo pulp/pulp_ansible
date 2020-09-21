@@ -253,6 +253,8 @@ class AnsibleRepository(Repository):
     CONTENT_TYPES = [Role, CollectionVersion]
     REMOTE_TYEPES = [RoleRemote, CollectionRemote]
 
+    extra_data = psql_fields.JSONField(default=dict, editable=False)
+
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
