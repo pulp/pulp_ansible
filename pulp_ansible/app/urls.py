@@ -67,11 +67,6 @@ v3_urls = [
         name="collection-versions-detail-docs",
     ),
     path(
-        "collections/<str:namespace>/<str:name>/versions/<str:version>/certified/",
-        views_v3.CollectionVersionViewSet.as_view({"put": "set_certified"}),
-        name="collection-versions-set-certified",
-    ),
-    path(
         "imports/collections/<uuid:pk>/",
         views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
         name="collection-imports-detail",
