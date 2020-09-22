@@ -5,7 +5,7 @@ from packaging.version import parse
 from django.contrib.postgres.search import SearchQuery
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
-from django_filters import filters, MultipleChoiceFilter
+from django_filters import filters
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
@@ -111,7 +111,6 @@ class CollectionVersionFilter(ContentFilter):
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
     is_highest = filters.BooleanFilter(field_name="is_highest", method="get_highest")
-    certification = MultipleChoiceFilter(choices=CollectionVersion.CERTIFICATION_CHOICES)
     deprecated = filters.BooleanFilter(field_name="collection__deprecated")
     q = filters.CharFilter(field_name="q", method="filter_by_q")
     tags = filters.CharFilter(
@@ -162,20 +161,9 @@ class CollectionVersionFilter(ContentFilter):
 
     def get_highest(self, qs, name, value):
         """
-        Combine certification and is_highest filters.
+        Filter queryset qs by is_highest filter.
 
-        If certification and is_highest are used together,
-        get the highest version for the specified certification
         """
-        certification = self.data.get("certification")
-
-        if not certification:
-            return qs.filter(is_highest=value)
-
-        qs = qs.filter(certification=certification)
-        if not qs.count():
-            return qs
-
         latest_pks = []
         namespace_name_dict = defaultdict(lambda: defaultdict(list))
         for collection in qs.all():
@@ -192,7 +180,7 @@ class CollectionVersionFilter(ContentFilter):
 
     class Meta:
         model = CollectionVersion
-        fields = ["namespace", "name", "version", "q", "is_highest", "certification", "tags"]
+        fields = ["namespace", "name", "version", "q", "is_highest", "tags"]
 
 
 class CollectionVersionViewSet(ContentViewSet):

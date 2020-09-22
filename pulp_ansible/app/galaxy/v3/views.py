@@ -6,7 +6,6 @@ from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework.decorators import action
 from rest_framework import mixins
 from rest_framework.response import Response
 from rest_framework import serializers
@@ -256,16 +255,6 @@ class CollectionVersionViewSet(
 
         serializer = CollectionVersionListSerializer(queryset, many=True, context=context)
         return Response(serializer.data)
-
-    @action(methods=["PUT"], detail=True, url_path="certified")
-    def set_certified(self, request, *args, **kwargs):
-        """
-        Set collection version certified status.
-        """
-        obj = self.get_object()
-        obj.certification = request.data["certification"]
-        obj.save()
-        return Response({})
 
 
 class CollectionVersionDocsViewSet(
