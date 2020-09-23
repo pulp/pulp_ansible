@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.4.0 (2020-09-23)
+==================
+
+Bugfixes
+--------
+
+- List highest versions per repository
+  `#7428 <https://pulp.plan.io/issues/7428>`_
+- Fix skipped collections at requirements.yml
+  `#7512 <https://pulp.plan.io/issues/7512>`_
+
+
+----
+
+
 0.3.0 (2020-09-09)
 ==================
 
