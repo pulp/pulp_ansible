@@ -30,8 +30,8 @@ publish_docs_to_pulpprojectdotorg: true
 pulp_settings:
   ansible_api_hostname: http://pulp:80
   ansible_content_hostname: http://pulp:80/pulp/content
-pulpcore_branch: master
-pulpcore_pip_version_specifier: null
+pulpcore_branch: 3.7
+pulpcore_pip_version_specifier: ~=3.7.0
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
 pypi_username: pulp
