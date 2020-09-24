@@ -86,7 +86,7 @@ class InstallCollectionTestCase(unittest.TestCase):
 
     def test_install_collection(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2, policy="on_demand")
         self.create_install_scenario(body, ANSIBLE_DEMO_COLLECTION)
 
     @skip_if(bool, "AH_token", False)
@@ -96,6 +96,7 @@ class InstallCollectionTestCase(unittest.TestCase):
             url=TOKEN_AUTH_COLLECTION_TESTING_URL,
             auth_url=AH_AUTH_URL,
             token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
+            policy="on_demand",
             tls_validation=False,
         )
         self.create_install_scenario(body, TOKEN_DEMO_COLLECTION)
@@ -111,6 +112,7 @@ class InstallCollectionTestCase(unittest.TestCase):
             url=f"https://ci.cloud.redhat.com/api/automation-hub/v3/collections/{namespace}/{name}",
             auth_url=aurl,
             token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            policy="on_demand",
             tls_validation=False,
         )
         self.create_install_scenario(body, f"{namespace}.{name}")
@@ -122,5 +124,9 @@ class InstallCollectionTestCase(unittest.TestCase):
         PULP_COLLECTION = ANSIBLE_COLLECTION_TESTING_URL_V2.replace("testing", "pulp")
         PULP_COLLECTION = PULP_COLLECTION.replace("k8s_demo_collection", "pulp_installer")
 
-        body = gen_ansible_remote(url=PULP_COLLECTION, token=token)
+        body = gen_ansible_remote(
+            url=PULP_COLLECTION,
+            token=token,
+            policy="on_demand",
+        )
         self.create_install_scenario(body, "pulp.pulp_installer")

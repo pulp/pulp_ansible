@@ -3,7 +3,6 @@ from gettext import gettext as _
 import json
 import logging
 import math
-import tarfile
 from urllib.parse import urlparse, urlunparse
 
 from django.db import transaction
@@ -295,6 +294,14 @@ class CollectionSyncFirstStage(Stage):
                     version=metadata["version"],
                 )
 
+                info = metadata["metadata"]
+
+                tags = info.pop("tags")
+                for attr_name, attr_value in info.items():
+                    if attr_value is None or attr_name not in collection_version.__dict__:
+                        continue
+                    setattr(collection_version, attr_name, attr_value)
+
                 artifact = metadata["artifact"]
 
                 d_artifact = DeclarativeArtifact(
@@ -305,7 +312,7 @@ class CollectionSyncFirstStage(Stage):
                     deferred_download=self.deferred_download,
                 )
 
-                extradata = dict(docs_blob_url=metadata["docs_blob_url"])
+                extradata = dict(docs_blob_url=metadata["docs_blob_url"], tags=tags)
 
                 d_content = DeclarativeContent(
                     content=collection_version,
@@ -483,32 +490,12 @@ class CollectionContentSaver(ContentSaver):
             docs_blob = d_content.extra_data.get("docs_blob", {})
             collection_version.docs_blob = docs_blob
 
-            for d_artifact in d_content.d_artifacts:
-                artifact = d_artifact.artifact
-                with artifact.file.open() as artifact_file, tarfile.open(
-                    fileobj=artifact_file, mode="r"
-                ) as tar:
-                    log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.name))
-                    file_obj = tar.extractfile("MANIFEST.json")
-                    manifest_data = json.load(file_obj)
-                    info = manifest_data["collection_info"]
+            # Create the tags
+            tags = d_content.extra_data.get("tags", [])
+            for name in tags:
+                tag, created = Tag.objects.get_or_create(name=name)
+                collection_version.tags.add(tag)
 
-                # Create the tags
-                tags = info.pop("tags")
-                for name in tags:
-                    tag, created = Tag.objects.get_or_create(name=name)
-                    collection_version.tags.add(tag)
+            _update_highest_version(collection_version)
 
-                # Remove fields not used by this model
-                info.pop("license_file")
-                info.pop("readme")
-
-                # Update with the additional data from the Collection
-                for attr_name, attr_value in info.items():
-                    if attr_value is None:
-                        continue
-                    setattr(collection_version, attr_name, attr_value)
-
-                _update_highest_version(collection_version)
-
-                collection_version.save()
+            collection_version.save()

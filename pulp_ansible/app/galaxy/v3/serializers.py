@@ -100,8 +100,22 @@ class ArtifactRefSerializer(serializers.Serializer):
     """A serializer for an Artifact reference."""
 
     filename = serializers.CharField(source="relative_path")
-    sha256 = serializers.CharField(source="artifact.sha256")
-    size = serializers.IntegerField(source="artifact.size")
+    sha256 = serializers.SerializerMethodField()
+    size = serializers.SerializerMethodField()
+
+    def get_sha256(self, obj):
+        """Returns collection sha256."""
+        if obj.artifact:
+            return obj.artifact.sha256
+
+        return obj.remoteartifact_set.first().sha256
+
+    def get_size(self, obj):
+        """Returns collection size."""
+        if obj.artifact:
+            return obj.artifact.size
+
+        return obj.remoteartifact_set.first().size
 
 
 class CollectionRefSerializer(serializers.Serializer):

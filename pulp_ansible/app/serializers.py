@@ -3,6 +3,7 @@ from gettext import gettext as _
 from django.conf import settings
 from rest_framework import serializers
 
+from pulpcore.plugin.models import Remote
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     ModelSerializer,
@@ -110,6 +111,14 @@ class CollectionRemoteSerializer(RemoteSerializer):
         allow_null=True,
         required=False,
         max_length=2000,
+    )
+    policy = serializers.ChoiceField(
+        help_text=_(
+            "The policy to use when downloading content. The possible values include: "
+            "'immediate', 'on_demand', and 'streamed'. 'immediate' is the default."
+        ),
+        choices=Remote.POLICY_CHOICES,
+        default=Remote.IMMEDIATE,
     )
 
     def validate(self, data):

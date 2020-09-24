@@ -131,6 +131,9 @@ class GalaxyCollectionVersionSerializer(serializers.Serializer):
     def get_artifact(self, obj):
         """Create an artifact dict."""
         artifact = obj.contentartifact_set.get().artifact
+        if not artifact:
+            artifact = obj.contentartifact_set.get().remoteartifact_set.first()
+
         return {"sha256": artifact.sha256, "size": artifact.size}
 
     class Meta:
