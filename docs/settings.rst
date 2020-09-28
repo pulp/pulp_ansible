@@ -21,9 +21,9 @@ ANSIBLE_CONTENT_HOSTNAME
    The origin, e.g. "http://example.com" that will instruct the client how to find the Pulp content
    app. This URL is formed in various Galaxy APIs (V1, V2, V3) responses.
 
-   This defaults to http on your fqdn, which is usable with the Ansible installer's default Nginx
-   configuration. By default it includes the ``pulp/content`` subpath. So if `example.com` is your
-   fqdn, this would default to "http://example.com/pulp/content".
+   This defaults to `CONTENT_ORIGIN <https://docs.pulpproject.org/pulpcore/settings.html?#content-origin>`_.
+   By default it includes the ``pulp/content`` subpath. So if `https://example.com` is your
+   CONTENT_ORIGIN, this would default to "https://example.com/pulp/content".
 
 
 GALAXY_API_ROOT

@@ -1,5 +1,6 @@
 import socket
 
+from dynaconf import settings
 
 LOGGING = {
     "loggers": {
@@ -20,4 +21,4 @@ LOGGING = {
 }
 
 ANSIBLE_API_HOSTNAME = "http://" + socket.getfqdn()
-ANSIBLE_CONTENT_HOSTNAME = "http://" + socket.getfqdn() + "/pulp/content"
+ANSIBLE_CONTENT_HOSTNAME = settings.CONTENT_ORIGIN + "/pulp/content"
