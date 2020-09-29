@@ -428,8 +428,9 @@ class DocsBlobDownloader(ArtifactDownloader):
                 )
                 try:
                     download_result = await downloader.run()
-                    with open(download_result.path, "r") as docs_blob:
-                        d_content.extra_data["docs_blob"] = json.load(docs_blob)
+                    with open(download_result.path, "r") as docs_blob_file:
+                        docs_blob_json = json.load(docs_blob_file)
+                        d_content.extra_data["docs_blob"] = docs_blob_json.get("docs_blob", {})
                 except FileNotFoundError:
                     pass
 
