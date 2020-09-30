@@ -295,6 +295,14 @@ class CollectionSyncFirstStage(Stage):
                     version=metadata["version"],
                 )
 
+                info = metadata["metadata"]
+
+                info.pop("tags")
+                for attr_name, attr_value in info.items():
+                    if attr_value is None or attr_name not in collection_version.__dict__:
+                        continue
+                    setattr(collection_version, attr_name, attr_value)
+
                 artifact = metadata["artifact"]
 
                 d_artifact = DeclarativeArtifact(
