@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.4.1 (2020-09-30)
+==================
+
+Bugfixes
+--------
+
+- Fixing docs-blob file parser
+  `#7551 <https://pulp.plan.io/issues/7551>`_
+- Sync CollectionVersion metadata
+  `#7632 <https://pulp.plan.io/issues/7632>`_
+
+
+----
+
+
 0.4.0 (2020-09-23)
 ==================
 
