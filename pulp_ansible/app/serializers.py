@@ -331,12 +331,6 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
 
     version = serializers.CharField(help_text=_("The version of the collection."), max_length=32)
 
-    deprecated = serializers.BooleanField(
-        source="collection.deprecated",
-        help_text=_("Whether or not the collection has been deprecated."),
-        read_only=True,
-    )
-
     class Meta:
         fields = (
             tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"})
@@ -357,7 +351,6 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
                 "repository",
                 "tags",
                 "version",
-                "deprecated",
             )
         )
         model = CollectionVersion
