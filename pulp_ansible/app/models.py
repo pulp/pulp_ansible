@@ -47,8 +47,6 @@ class Collection(BaseModel):
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
 
-    deprecated = models.BooleanField(default=False)
-
     class Meta:
         unique_together = ("namespace", "name")
 
@@ -234,6 +232,20 @@ class AnsibleRepository(Repository):
         default_related_name = "%(app_label)s_%(model_name)s"
 
         permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
+
+
+class AnsibleCollectionDeprecated(BaseModel):
+    """
+    A model that represents if a Collection is `deprecated` for a given AnsibleRepository.
+    """
+
+    repository = models.ForeignKey(
+        AnsibleRepository, on_delete=models.CASCADE, related_name="collection_memberships"
+    )
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ("collection", "repository")
 
 
 class AnsibleDistribution(RepositoryVersionDistribution):

@@ -24,7 +24,11 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
 )
-from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
+from pulp_ansible.app.models import (
+    AnsibleDistribution,
+    CollectionVersion,
+    CollectionImport,
+)
 from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
     CollectionImportDetailSerializer,
@@ -107,6 +111,26 @@ class CollectionViewSet(
     permission_classes = []
     serializer_class = CollectionSerializer
     pagination_class = LimitOffsetPagination
+
+    def filter_queryset(self, queryset):
+        """
+        Filter Repository related fields.
+        """
+        queryset = super().filter_queryset(queryset)
+        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
+        repo = distro.repository or distro.repository_version.repository
+        deprecated = False
+        if self.request.query_params.get("deprecated", "").lower() in ["true", "yes", "1"]:
+            deprecated = True
+
+        if deprecated:
+            return queryset.filter(
+                collection__ansiblecollectiondeprecated__in=repo.cast().collection_memberships.all()
+            )
+
+        return queryset.exclude(
+            collection__ansiblecollectiondeprecated__in=repo.cast().collection_memberships.all()
+        )
 
     def get_queryset(self):
         """
