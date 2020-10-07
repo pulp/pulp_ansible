@@ -47,8 +47,6 @@ class Collection(BaseModel):
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
 
-    deprecated = models.BooleanField(default=False)
-
     class Meta:
         unique_together = ("namespace", "name")
 
@@ -90,6 +88,25 @@ class Tag(BaseModel):
     def __str__(self):
         """Returns tag name."""
         return self.name
+
+
+class CollectionRepoMetadata(Content):
+    """
+    A content type representing a Collection Metadata.
+    """
+
+    TYPE = "collection_repometadata"
+
+    namespace = models.CharField(max_length=64, editable=False)
+    name = models.CharField(max_length=64, editable=False)
+    deprecated = models.BooleanField(default=False)
+    collection = models.ForeignKey(
+        Collection, on_delete=models.CASCADE, related_name="repometadata", editable=False
+    )
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("name", "namespace", "deprecated")
 
 
 class CollectionVersion(Content):
@@ -227,7 +244,7 @@ class AnsibleRepository(Repository):
     """
 
     TYPE = "ansible"
-    CONTENT_TYPES = [Role, CollectionVersion]
+    CONTENT_TYPES = [Role, CollectionVersion, CollectionRepoMetadata]
     REMOTE_TYEPES = [RoleRemote, CollectionRemote]
 
     class Meta:

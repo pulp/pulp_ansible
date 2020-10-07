@@ -40,6 +40,7 @@ from .models import (
     Collection,
     CollectionVersion,
     CollectionRemote,
+    CollectionRepoMetadata,
     Role,
     Tag,
 )
@@ -50,6 +51,7 @@ from .serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
+    CollectionRepoMetadataSerializer,
     CollectionOneShotSerializer,
     RoleSerializer,
     TagSerializer,
@@ -103,6 +105,27 @@ class CollectionViewset(NamedModelViewSet, mixins.RetrieveModelMixin, mixins.Lis
     filterset_class = CollectionFilter
 
 
+class CollectionRepoMetadataFilter(ContentFilter):
+    """
+    FilterSet for CollectionRepoMetadatas.
+    """
+
+    class Meta:
+        model = CollectionRepoMetadata
+        fields = ["name", "namespace", "deprecated"]
+
+
+class CollectionRepoMetadataViewSet(ContentViewSet):
+    """
+    ViewSet for CollectionRepoMetadata.
+    """
+
+    endpoint_name = "repo_metadata"
+    queryset = CollectionRepoMetadata.objects.all()
+    serializer_class = CollectionRepoMetadataSerializer
+    filterset_class = CollectionRepoMetadataFilter
+
+
 class CollectionVersionFilter(ContentFilter):
     """
     FilterSet for Ansible CollectionVersions.
@@ -111,7 +134,6 @@ class CollectionVersionFilter(ContentFilter):
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
     is_highest = filters.BooleanFilter(field_name="is_highest", method="get_highest")
-    deprecated = filters.BooleanFilter(field_name="collection__deprecated")
     q = filters.CharFilter(field_name="q", method="filter_by_q")
     tags = filters.CharFilter(
         field_name="tags",

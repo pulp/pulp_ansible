@@ -6,6 +6,7 @@ from rest_framework import serializers
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     ModelSerializer,
+    NoArtifactContentSerializer,
     RemoteSerializer,
     RepositorySerializer,
     SingleArtifactContentSerializer,
@@ -20,6 +21,7 @@ from .models import (
     CollectionImport,
     CollectionVersion,
     CollectionRemote,
+    CollectionRepoMetadata,
     Role,
     Tag,
 )
@@ -267,6 +269,22 @@ class CollectionSerializer(ModelSerializer):
         fields = ("name", "namespace")
 
 
+class CollectionRepoMetadataSerializer(NoArtifactContentSerializer):
+    """
+    A serializer for Ansible Collection Repo Metadata.
+    """
+
+    name = serializers.CharField(help_text=_("The name of the collection."), max_length=32)
+
+    namespace = serializers.CharField(
+        help_text=_("The namespace of the collection."), max_length=32
+    )
+
+    class Meta:
+        fields = NoArtifactContentSerializer.Meta.fields + ("name", "namespace")
+        model = CollectionRepoMetadata
+
+
 class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecksumSerializer):
     """
     A serializer for CollectionVersion Content.
@@ -331,12 +349,6 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
 
     version = serializers.CharField(help_text=_("The version of the collection."), max_length=32)
 
-    deprecated = serializers.BooleanField(
-        source="collection.deprecated",
-        help_text=_("Whether or not the collection has been deprecated."),
-        read_only=True,
-    )
-
     class Meta:
         fields = (
             tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"})
@@ -357,7 +369,6 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
                 "repository",
                 "tags",
                 "version",
-                "deprecated",
             )
         )
         model = CollectionVersion

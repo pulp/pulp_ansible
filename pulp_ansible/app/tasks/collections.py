@@ -39,6 +39,7 @@ import semantic_version as semver
 
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
+    CollectionRepoMetadata,
     Collection,
     CollectionImport,
     CollectionRemote,
@@ -166,6 +167,12 @@ def create_collection_from_importer(importer_result):
     with transaction.atomic():
         collection, created = Collection.objects.get_or_create(
             namespace=collection_info["namespace"], name=collection_info["name"]
+        )
+
+        CollectionRepoMetadata.objects.get_or_create(
+            namespace=collection_info["namespace"],
+            name=collection_info["name"],
+            collection=collection,
         )
 
         tags = collection_info.pop("tags")
@@ -323,6 +330,18 @@ class CollectionSyncFirstStage(Stage):
                 pb.increment()
                 await self.put(d_content)
 
+                collection_metadata = CollectionRepoMetadata(
+                    namespace=metadata["namespace"]["name"],
+                    name=metadata["collection"]["name"],
+                    deprecated=metadata.get("deprecated", False),
+                )
+
+                meta_dc = DeclarativeContent(
+                    content=collection_metadata,
+                    extra_data={},
+                )
+                await self.put(meta_dc)
+
     async def _fetch_collections(self):
         """
         Fetch the collections in a remote repository.
@@ -353,6 +372,18 @@ class CollectionSyncFirstStage(Stage):
                 return urlunparse(new_url_parts)
             else:
                 return path_or_url
+
+        def _add_collection_level_metadata(data, additional_metadata):
+            """Additional metadata at collection level to be sent through stages."""
+            name = data["collection"]["name"]
+            namespace = data["namespace"]["name"]
+            metadata = additional_metadata.get(f"{namespace}_{name}", {})
+            data["deprecated"] = metadata.get("deprecated", False)
+
+        def _add_collection_version_level_metadata(data, additional_metadata):
+            """Additional metadata at collection version level to be sent through stages."""
+            metadata = additional_metadata.get(_build_url(data["href"]), {})
+            data["docs_blob_url"] = metadata.get("docs_blob_url")
 
         progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
         with ProgressReport(**progress_data) as progress_bar:
@@ -389,6 +420,13 @@ class CollectionSyncFirstStage(Stage):
                     for result in results:
                         download_url = result.get("download_url")
 
+                        if result.get("deprecated"):
+                            name = result["name"]
+                            namespace = result["namespace"]
+                            additional_metadata[f"{namespace}_{name}"] = {
+                                "deprecated": result["deprecated"]
+                            }
+
                         if result.get("versions_url"):
                             versions_url = _build_url(result.get("versions_url"))
                             not_done.update([remote.get_downloader(url=versions_url).run()])
@@ -401,8 +439,8 @@ class CollectionSyncFirstStage(Stage):
                             }
 
                         if download_url:
-                            metadata = additional_metadata.get(_build_url(data["href"]), {})
-                            data["docs_blob_url"] = metadata.get("docs_blob_url")
+                            _add_collection_level_metadata(data, additional_metadata)
+                            _add_collection_version_level_metadata(data, additional_metadata)
                             yield data
                             progress_bar.increment()
 
@@ -465,7 +503,9 @@ class CollectionContentSaver(ContentSaver):
         for d_content in batch:
             if d_content is None:
                 continue
-            if not isinstance(d_content.content, CollectionVersion):
+            if not isinstance(d_content.content, CollectionVersion) and not isinstance(
+                d_content.content, CollectionRepoMetadata
+            ):
                 continue
 
             info = d_content.content.natural_key_dict()
