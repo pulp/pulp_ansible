@@ -126,6 +126,9 @@ class CollectionViewSet(
             if not value or semantic_version.Version(version) > semantic_version.Version(value):
                 collection_versions[str(collection_id)] = version
 
+        if not collection_versions.items():
+            return CollectionVersion.objects.none()
+
         query_params = Q()
         for collection_id, version in collection_versions.items():
             query_params |= Q(collection_id=collection_id, version=version)
