@@ -2,7 +2,6 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.db.models import Q
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -32,6 +31,7 @@ from pulp_ansible.app.serializers import (
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
+from pulp_ansible.app.utils import filter_highest_version
 from pulp_ansible.app.viewsets import CollectionVersionFilter
 
 
@@ -114,26 +114,9 @@ class CollectionViewSet(
         """
         distro_content = self.get_distro_content(self.kwargs["path"])
 
-        versions = CollectionVersion.objects.filter(pk__in=distro_content).values_list(
-            "collection_id",
-            "version",
-        )
-
-        collection_versions = {}
-        for collection_id, version in versions:
-            value = collection_versions.get(str(collection_id))
-            if not value or semantic_version.Version(version) > semantic_version.Version(value):
-                collection_versions[str(collection_id)] = version
-
-        if not collection_versions.items():
-            return CollectionVersion.objects.none()
-
-        query_params = Q()
-        for collection_id, version in collection_versions.items():
-            query_params |= Q(collection_id=collection_id, version=version)
-
-        collections = CollectionVersion.objects.select_related("collection").filter(query_params)
-        return collections
+        return filter_highest_version(
+            CollectionVersion.objects.filter(pk__in=distro_content)
+        ).select_related("collection")
 
     def get_object(self):
         """
