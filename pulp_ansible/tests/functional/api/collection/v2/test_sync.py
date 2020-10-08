@@ -19,6 +19,7 @@ from pulp_smash.pulp3.utils import (
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_CONTENT_NAME,
+    ANSIBLE_DEMO_COLLECTION,
     ANSIBLE_COLLECTION_FIXTURE_COUNT,
     ANSIBLE_COLLECTION_FIXTURE_URL_V2,
     ANSIBLE_COLLECTION_REMOTE_PATH,
@@ -280,3 +281,12 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
         second_repo = client.get(second_repo["pulp_href"])
 
         self.assertEqual(get_content(repo), get_content(second_repo))
+
+        galaxy_collection_data = client.get(ANSIBLE_COLLECTION_TESTING_URL_V2)
+        pulp_collection_data = client.get(
+            urljoin(url + "/", ANSIBLE_DEMO_COLLECTION.replace(".", "/"))
+        )
+
+        galaxy_keys = [i for i in galaxy_collection_data.keys() if i != "deprecated"].sort()
+        pulp_keys = [*pulp_collection_data].sort()
+        self.assertEqual(galaxy_keys, pulp_keys)
