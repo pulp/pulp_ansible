@@ -39,6 +39,7 @@ import semantic_version as semver
 
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
+    MutableCollectionMetadata,
     Collection,
     CollectionImport,
     CollectionRemote,
@@ -154,6 +155,9 @@ def import_collection(
         content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
         with repository.new_version() as new_version:
             new_version.add_content(content_q)
+            MutableCollectionMetadata.objects.get_or_create(
+                repository_version=new_version, collection=collection_version.collection
+            )
         CreatedResource.objects.create(content_object=repository)
 
 
@@ -252,7 +256,7 @@ class AnsibleDeclarativeVersion(DeclarativeVersion):
             ArtifactSaver(),
             QueryExistingContents(),
             DocsBlobDownloader(),
-            CollectionContentSaver(),
+            CollectionContentSaver(new_version),
             RemoteArtifactSaver(),
             ResolveContentFutures(),
         ]
@@ -475,6 +479,11 @@ class CollectionContentSaver(ContentSaver):
     Saves Collection and Tag objects related to the CollectionVersion content unit.
     """
 
+    def __init__(self, repository_version, *args, **kwargs):
+        """Initialize CollectionContentSaver."""
+        super().__init__(*args, **kwargs)
+        self.repository_version = repository_version
+
     async def _pre_save(self, batch):
         """
         Save a batch of Collection objects.
@@ -484,6 +493,8 @@ class CollectionContentSaver(ContentSaver):
                 :class:`~pulpcore.plugin.stages.DeclarativeContent` objects to be saved.
 
         """
+        mutable_metadata = []
+
         for d_content in batch:
             if d_content is None:
                 continue
@@ -494,7 +505,19 @@ class CollectionContentSaver(ContentSaver):
             collection, created = Collection.objects.get_or_create(
                 namespace=info["namespace"], name=info["name"]
             )
+
             d_content.content.collection = collection
+
+            mutable_metadata.append(
+                MutableCollectionMetadata(
+                    repository_version=self.repository_version,
+                    collection=collection,
+                    deprecated=d_content.extra_data.get("deprecated", False),
+                )
+            )
+
+        if mutable_metadata:
+            MutableCollectionMetadata.objects.bulk_create(mutable_metadata, ignore_conflicts=True)
 
     async def _post_save(self, batch):
         """

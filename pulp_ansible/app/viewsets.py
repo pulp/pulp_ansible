@@ -111,7 +111,6 @@ class CollectionVersionFilter(ContentFilter):
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
     is_highest = filters.BooleanFilter(field_name="is_highest", method="get_highest")
-    deprecated = filters.BooleanFilter(field_name="collection__deprecated")
     q = filters.CharFilter(field_name="q", method="filter_by_q")
     tags = filters.CharFilter(
         field_name="tags",

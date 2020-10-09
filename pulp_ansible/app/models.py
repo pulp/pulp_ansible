@@ -257,5 +257,19 @@ class AnsibleDistribution(RepositoryVersionDistribution):
 
     TYPE = "ansible"
 
+    @property
+    def mutable_data(self):
+        """
+        Return the relative path of the ContentArtifact.
+        """
+        if self.repository_version:
+            return MutableCollectionMetadata.objects.filter(
+                repository_version=self.repository_version
+            )
+
+        return MutableCollectionMetadata.objects.filter(
+            repository_version__repository=self.repository
+        )
+
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

@@ -13,7 +13,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     created_at = serializers.DateTimeField(source="collection.pulp_created")
     updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
-    deprecated = serializers.BooleanField(source="collection.deprecated")
+    deprecated = serializers.SerializerMethodField()
     href = serializers.SerializerMethodField()
 
     versions_url = serializers.SerializerMethodField()
@@ -46,6 +46,15 @@ class CollectionSerializer(serializers.ModelSerializer):
         return reverse(
             "collections-detail",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
+        )
+
+    def get_deprecated(self, obj):
+        """Get deprecated."""
+        return (
+            models.AnsibleDistribution.objects.get(base_path=self.context["path"])
+            .mutable_data.filter(collection=obj.collection)
+            .latest("repository_version")
+            .deprecated
         )
 
     def get_versions_url(self, obj):

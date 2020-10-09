@@ -24,7 +24,11 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
 )
-from pulp_ansible.app.models import AnsibleDistribution, CollectionVersion, CollectionImport
+from pulp_ansible.app.models import (
+    AnsibleDistribution,
+    CollectionVersion,
+    CollectionImport,
+)
 from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
     CollectionImportDetailSerializer,
@@ -41,17 +45,22 @@ class AnsibleDistributionMixin:
     """
 
     @staticmethod
-    def get_distro_content(path):
-        """Returns distribution content."""
+    def get_repository_version(path):
+        """Returns repository version."""
         distro = get_object_or_404(AnsibleDistribution, base_path=path)
         if distro.repository_version:
-            return distro.repository_version.content
-        else:
-            repo_version = distro.repository.latest_version()
-            if repo_version is None:
-                return Content.objects.none()
-            else:
-                return repo_version.content
+            return distro.repository_version
+
+        return distro.repository.latest_version()
+
+    @staticmethod
+    def get_distro_content(path):
+        """Returns distribution content."""
+        repo_version = AnsibleDistributionMixin.get_repository_version(path)
+        if repo_version is None:
+            return Content.objects.none()
+
+        return repo_version.content
 
     def get_serializer_context(self):
         """Inserts distribution path to a serializer context."""
@@ -107,6 +116,21 @@ class CollectionViewSet(
     permission_classes = []
     serializer_class = CollectionSerializer
     pagination_class = LimitOffsetPagination
+
+    def filter_queryset(self, queryset):
+        """
+        Filter Repository related fields.
+        """
+        queryset = super().filter_queryset(queryset)
+        repo_version = self.get_repository_version(self.kwargs["path"])
+        if not repo_version:
+            return queryset
+
+        deprecated = False
+        if self.request.query_params.get("deprecated", "").lower() in ["true", "yes", "1"]:
+            deprecated = True
+
+        return queryset.filter(collection__mutablecollectionmetadata__deprecated=deprecated)
 
     def get_queryset(self):
         """
