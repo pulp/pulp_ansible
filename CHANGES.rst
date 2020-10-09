@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.4.2 (2020-10-09)
+==================
+
+Bugfixes
+--------
+
+- Update Collection serializer to match Galaxy v2
+  `#7647 <https://pulp.plan.io/issues/7647>`_
+- Fix galaxy collection endpoint results for empty repos
+  `#7669 <https://pulp.plan.io/issues/7669>`_
+
+
+----
+
+
 0.4.1 (2020-09-30)
 ==================
 
