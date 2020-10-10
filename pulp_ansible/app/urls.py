@@ -39,6 +39,11 @@ v2_urls = [
 
 v3_urls = [
     path(
+        "metadata/",
+        views_v3.MutableCollectionMetadataViewset.as_view({"get": "list"}),
+        name="metadata-list",
+    ),
+    path(
         "collections/", views_v3.CollectionViewSet.as_view({"get": "list"}), name="collections-list"
     ),
     path(

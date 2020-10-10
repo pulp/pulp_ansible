@@ -208,3 +208,27 @@ class CollectionVersionDocsSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ("docs_blob",)
         model = models.CollectionVersion
+
+
+class DeprecatedCollectionSerializer(serializers.ModelSerializer):
+    """A serializer to display the mutable metadata of a Collection."""
+
+    name = serializers.CharField(source="collection.name")
+    namespace = serializers.CharField(source="collection.namespace")
+
+    class Meta:
+        fields = ("name", "namespace")
+        model = models.MutableCollectionMetadata
+
+
+class MutableCollectionMetadataSerializer(serializers.ModelSerializer):
+    """A serializer to display the mutable metadata of a Collection."""
+
+    deprecated_collections = DeprecatedCollectionSerializer(
+        source="collection_memberships", many=True
+    )
+    last_updated = serializers.DateTimeField(source="pulp_last_updated")
+
+    class Meta:
+        fields = ("deprecated_collections", "last_updated")
+        model = models.RepositoryVersion

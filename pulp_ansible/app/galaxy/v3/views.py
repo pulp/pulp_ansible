@@ -2,7 +2,7 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.db.models import Q
+from django.db.models import Q, Prefetch
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -23,11 +23,14 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSerializer,
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
+    MutableCollectionMetadataSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleDistribution,
     CollectionVersion,
     CollectionImport,
+    MutableCollectionMetadata,
+    RepositoryVersion,
 )
 from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
@@ -339,3 +342,32 @@ class CollectionImportViewSet(
         serializer = CollectionImportDetailSerializer(instance, context=context)
 
         return Response(serializer.data)
+
+
+class MutableCollectionMetadataViewset(
+    ExceptionHandlerMixin,
+    AnsibleDistributionMixin,
+    mixins.ListModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    ViewSet for MutableCollectionMetadata.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = MutableCollectionMetadataSerializer
+    pagination_class = LimitOffsetPagination
+
+    def get_queryset(self):
+        """
+        Returns a MutableCollectionMetadata queryset for specified distribution.
+        """
+        return RepositoryVersion.objects.filter(
+            pk=self.get_repository_version(self.kwargs["path"]).pk
+        ).prefetch_related(
+            Prefetch(
+                "collection_memberships",
+                queryset=MutableCollectionMetadata.objects.filter(deprecated=True),
+            )
+        )
