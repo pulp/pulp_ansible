@@ -10,6 +10,7 @@ from pulpcore.plugin.models import (
     Content,
     Remote,
     Repository,
+    RepositoryVersion,
     RepositoryVersionDistribution,
     Task,
 )
@@ -46,8 +47,6 @@ class Collection(BaseModel):
 
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
-
-    deprecated = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("namespace", "name")
@@ -234,6 +233,21 @@ class AnsibleRepository(Repository):
         default_related_name = "%(app_label)s_%(model_name)s"
 
         permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
+
+
+class MutableCollectionMetadata(BaseModel):
+    """
+    A model that represents Collection mutable metadata for a given RepositoryVersion.
+    """
+
+    repository_version = models.ForeignKey(
+        RepositoryVersion, on_delete=models.CASCADE, related_name="collection_memberships"
+    )
+    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
+    deprecated = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("collection", "repository_version")
 
 
 class AnsibleDistribution(RepositoryVersionDistribution):
