@@ -13,9 +13,9 @@ from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 
-from pulpcore.plugin.actions import ModifyRepositoryActionMixin
+from pulpcore.plugin.actions import RepositoryAddRemoveContentSerializer
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import PulpTemporaryFile
+from pulpcore.plugin.models import Content, PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -55,6 +55,7 @@ from .serializers import (
     TagSerializer,
 )
 from .tasks.collections import sync as collection_sync
+from .tasks.modify import add_and_remove
 from .tasks.roles import synchronize as role_sync
 
 
@@ -205,7 +206,7 @@ class RoleRemoteViewSet(RemoteViewSet):
     serializer_class = RoleRemoteSerializer
 
 
-class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
+class AnsibleRepositoryViewSet(RepositoryViewSet):
     """
     ViewSet for Ansible Repositories.
     """
@@ -242,6 +243,53 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             sync_func,
             [repository, remote],
             kwargs={"remote_pk": remote.pk, "repository_pk": repository.pk, "mirror": mirror},
+        )
+        return OperationPostponedResponse(result, request)
+
+    @extend_schema(
+        description="Trigger an asynchronous task to create a new repository version.",
+        summary="Modify Repository Content",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=RepositoryAddRemoveContentSerializer)
+    def modify(self, request, pk):
+        """
+        Queues a task that creates a new RepositoryVersion by adding and removing content units.
+        """
+        add_content_units = []
+        remove_content_units = []
+        repository = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        if "base_version" in request.data:
+            base_version_pk = self.get_resource(request.data["base_version"], RepositoryVersion).pk
+        else:
+            base_version_pk = None
+
+        if "add_content_units" in request.data:
+            for url in request.data["add_content_units"]:
+                content = self.get_resource(url, Content)
+                add_content_units.append(content.pk)
+
+        if "remove_content_units" in request.data:
+            for url in request.data["remove_content_units"]:
+                if url == "*":
+                    remove_content_units = [url]
+                    break
+                else:
+                    content = self.get_resource(url, Content)
+                    remove_content_units.append(content.pk)
+
+        result = enqueue_with_reservation(
+            add_and_remove,
+            [repository],
+            kwargs={
+                "repository_pk": pk,
+                "base_version_pk": base_version_pk,
+                "add_content_units": add_content_units,
+                "remove_content_units": remove_content_units,
+            },
         )
         return OperationPostponedResponse(result, request)
 
