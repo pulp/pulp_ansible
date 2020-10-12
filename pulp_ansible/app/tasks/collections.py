@@ -49,6 +49,7 @@ from pulp_ansible.app.models import (
 from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
     get_api_version,
+    get_metadata_url,
     get_page_url,
     parse_metadata,
     parse_collections_requirements_file,
@@ -361,11 +362,12 @@ class CollectionSyncFirstStage(Stage):
             else:
                 return path_or_url
 
-        def _add_collection_level_metadata(data, additional_metadata):
+        def _add_collection_level_metadata(data, additional_metadata, deprecation):
             """Additional metadata at collection level to be sent through stages."""
             name = data["collection"]["name"]
             namespace = data["namespace"]["name"]
-            metadata = additional_metadata.get(f"{namespace}_{name}", {})
+            source = deprecation or additional_metadata
+            metadata = source.get(f"{namespace}_{name}", {})
             data["deprecated"] = metadata.get("deprecated", False)
 
         def _add_collection_version_level_metadata(data, additional_metadata):
@@ -385,6 +387,19 @@ class CollectionSyncFirstStage(Stage):
             page_count = math.ceil(float(count) / float(PAGE_SIZE))
             progress_bar.total = count
             progress_bar.save()
+
+            metadata_downloader = remote.get_downloader(
+                url=get_metadata_url(url), silence_errors_for_response_status_codes={404}
+            )
+            try:
+                mutable_data = parse_metadata(await metadata_downloader.run())
+            except FileNotFoundError:
+                mutable_data = {}
+
+            deprecation = {}
+            for namespace, name in mutable_data.get("deprecated_collections", []):
+                deprecation[f"{namespace}_{name}"] = {"deprecated": True}
+                del mutable_data
 
             # Concurrent downloads are limited by aiohttp...
             not_done = set()
@@ -427,7 +442,7 @@ class CollectionSyncFirstStage(Stage):
                             }
 
                         if download_url:
-                            _add_collection_level_metadata(data, additional_metadata)
+                            _add_collection_level_metadata(data, additional_metadata, deprecation)
                             _add_collection_version_level_metadata(data, additional_metadata)
                             yield data
                             progress_bar.increment()

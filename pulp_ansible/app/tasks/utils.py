@@ -18,6 +18,13 @@ def get_api_version(url):
     return int(result[0])
 
 
+def get_metadata_url(url):
+    """Get metadata URL."""
+    api_version = get_api_version(url)
+    parsed_url = urlparse(url)
+    return urlunparse(parsed_url._replace(query="", path=f"/api/v{api_version}/metadata"))
+
+
 def get_page_url(url, api_version, page=1):
     """Get URL page."""
     parsed_url = urlparse(url)
