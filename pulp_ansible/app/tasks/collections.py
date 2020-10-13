@@ -215,15 +215,35 @@ def _update_highest_version(collection_version):
     equals False on the last highest version and True on this version.
     Otherwise does nothing.
     """
-    last_highest = collection_version.collection.versions.filter(is_highest=True).first()
-    if not last_highest:
+    versions = collection_version.collection.versions.values_list("version", flat=True)
+
+    if len(versions) == 1:
+        collection_version.version_index = 0
         collection_version.is_highest = True
-        return None
-    if semver.compare(collection_version.version, last_highest.version) > 0:
-        last_highest.is_highest = False
-        collection_version.is_highest = True
-        last_highest.save()
         collection_version.save()
+        return
+
+    versions = sorted(versions, key=lambda obj: semver.Version(obj))
+
+    to_update = []
+    for collection_version in collection_version.collection.versions.all():
+        changed = False
+
+        index = versions.index(collection_version.version)
+        if collection_version.version_index != index:
+            changed = True
+            collection_version.version_index = index
+
+        is_highest = len(versions) - 1 == index
+        if collection_version.is_highest != is_highest:
+            changed = True
+            collection_version.is_highest = is_highest
+
+        if changed:
+            to_update.append(collection_version)
+
+    if to_update:
+        CollectionVersion.objects.bulk_update(to_update, ["version_index", "is_highest"])
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
