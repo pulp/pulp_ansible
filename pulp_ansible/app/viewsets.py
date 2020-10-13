@@ -1,6 +1,4 @@
-from collections import defaultdict
 from gettext import gettext as _
-from packaging.version import parse
 
 from django.contrib.postgres.search import SearchQuery
 from django.db.models import fields as db_fields
@@ -110,7 +108,7 @@ class CollectionVersionFilter(ContentFilter):
 
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
-    is_highest = filters.BooleanFilter(field_name="is_highest", method="get_highest")
+    is_highest = filters.BooleanFilter(field_name="is_highest")
     deprecated = filters.BooleanFilter(field_name="collection__deprecated")
     q = filters.CharFilter(field_name="q", method="filter_by_q")
     tags = filters.CharFilter(
@@ -158,25 +156,6 @@ class CollectionVersionFilter(ContentFilter):
         for tag in value.split(","):
             qs = qs.filter(tags__name=tag)
         return qs
-
-    def get_highest(self, qs, name, value):
-        """
-        Filter queryset qs by is_highest filter.
-
-        """
-        latest_pks = []
-        namespace_name_dict = defaultdict(lambda: defaultdict(list))
-        for collection in qs.all():
-            version_entry = (parse(collection.version), collection.pk)
-            namespace_name_dict[collection.namespace][collection.name].append(version_entry)
-
-        for namespace, name_dict in namespace_name_dict.items():
-            for name, version_list in name_dict.items():
-                version_list.sort(reverse=True)
-                latest_pk = version_list[0][1]
-                latest_pks.append(latest_pk)
-
-        return qs.filter(pk__in=latest_pks)
 
     class Meta:
         model = CollectionVersion
