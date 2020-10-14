@@ -12,7 +12,7 @@ from pulp_ansible.app.constants import PAGE_SIZE
 
 def get_api_version(url):
     """Get API version."""
-    result = re.findall(r"/v(\d)/", url)
+    result = re.findall(r"/v(\d)", url)
     if len(result) == 0:
         raise RuntimeError(f"Could not determine API version for: {url}")
     return int(result[0])
