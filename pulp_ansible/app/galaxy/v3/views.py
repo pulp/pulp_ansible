@@ -4,9 +4,11 @@ import semantic_version
 
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from django.utils.datastructures import MultiValueDictKeyError
 from django.utils.dateparse import parse_datetime
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework import serializers
 from rest_framework import status as http_status
@@ -122,19 +124,23 @@ class CollectionViewSet(
         Filter Repository related fields.
         """
         queryset = super().filter_queryset(queryset)
-        repo_version = self.get_repository_version(self.kwargs["path"])
-        if not repo_version:
-            return queryset
 
-        deprecated = False
-        if self.request.query_params.get("deprecated", "").lower() in ["true", "yes", "1"]:
-            deprecated = True
+        try:
+            user_deprecated_value = self.request.query_params["deprecated"]
+        except MultiValueDictKeyError:
+            pass
+        else:
+            repo_version = self.get_repository_version(self.kwargs["path"])
+            deprecation = repo_version.collection_memberships
 
-        deprecation = repo_version.collection_memberships
-        if deprecated:
-            return queryset.filter(collection__ansiblecollectiondeprecated__in=deprecation.all())
+            if user_deprecated_value.lower() in ["true", "yes", "1"]:
+                queryset = queryset.filter(collection__ansiblecollectiondeprecated__in=deprecation.all())
+            elif user_deprecated_value.lower() in ["false", "no", "0"]:
+                queryset = queryset.exclude(collection__ansiblecollectiondeprecated__in=deprecation.all())
+            else:
+                raise ValidationError("Cannot parse value of `deprecated` GET parameter")
 
-        return queryset.exclude(collection__ansiblecollectiondeprecated__in=deprecation.all())
+        return queryset
 
     def get_queryset(self):
         """
