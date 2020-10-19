@@ -6,18 +6,32 @@ import django_lifecycle.mixins
 import uuid
 
 
+def migrate_deprecated(apps, schema_editor):
+    Collection = apps.get_model('ansible', 'Collection')
+    AnsibleCollectionDeprecated = apps.get_model('ansible', 'AnsibleCollectionDeprecated')
+    RepositoryVersion = apps.get_model('core', 'RepositoryVersion')
+    for collection in Collection.objects.filter(deprecated=True):
+        for cv in collection.versions.all():
+            for repository_content in cv.version_memberships.all():
+                version_removed_kwarg = {}
+                if repository_content.version_removed:
+                    version_removed_kwarg['number__lte'] = repository_content.version_removed.number
+                for repository_version in RepositoryVersion.objects.filter(
+                        repository=repository_content.repository,
+                        number__gte=repository_content.version_added.number,
+                        **version_removed_kwarg):
+                    AnsibleCollectionDeprecated.objects.get_or_create(
+                        collection=collection, repository_version=repository_version
+                    )
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0048_fips_checksums'),
         ('ansible', '0024_remove_collectionversion_certification'),
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='collection',
-            name='deprecated',
-        ),
         migrations.CreateModel(
             name='AnsibleCollectionDeprecated',
             fields=[
@@ -31,5 +45,10 @@ class Migration(migrations.Migration):
                 'unique_together': {('collection', 'repository_version')},
             },
             bases=(django_lifecycle.mixins.LifecycleModelMixin, models.Model),
+        ),
+        migrations.RunPython(migrate_deprecated),
+        migrations.RemoveField(
+            model_name='collection',
+            name='deprecated',
         ),
     ]
