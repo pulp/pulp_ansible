@@ -1,6 +1,6 @@
 from pulpcore.plugin.models import Content, RepositoryVersion
 
-from pulp_ansible.app.models import AnsibleRepository, MutableCollectionMetadata
+from pulp_ansible.app.models import AnsibleCollectionDeprecated, AnsibleRepository
 
 
 def add_and_remove(repository_pk, add_content_units, remove_content_units, base_version_pk=None):
@@ -36,6 +36,7 @@ def add_and_remove(repository_pk, add_content_units, remove_content_units, base_
         new_version.remove_content(Content.objects.filter(pk__in=remove_content_units))
         new_version.add_content(Content.objects.filter(pk__in=add_content_units))
 
+        raise NotImplementedError("oh no!")
         for collection_id, deprecated in MutableCollectionMetadata.objects.filter(
             repository_version__repository=repository, collection__versions__in=add_content_units
         ).values_list("collection_id", "deprecated"):

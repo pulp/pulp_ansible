@@ -11,9 +11,7 @@ from pulp_ansible.app import models
 class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
 
-    created_at = serializers.DateTimeField(source="collection.pulp_created")
-    updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
-    deprecated = serializers.SerializerMethodField()
+    deprecated = serializers.BooleanField()
     href = serializers.SerializerMethodField()
 
     versions_url = serializers.SerializerMethodField()
@@ -22,8 +20,6 @@ class CollectionSerializer(serializers.ModelSerializer):
     class Meta:
         fields = (
             "href",
-            "created_at",
-            "updated_at",
             "namespace",
             "name",
             "deprecated",
@@ -48,12 +44,6 @@ class CollectionSerializer(serializers.ModelSerializer):
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
 
-    def get_deprecated(self, obj):
-        """Get deprecated."""
-        distro = models.AnsibleDistribution.objects.get(base_path=self.context["path"])
-        repo_version = distro.repository_version or distro.repository.latest_version()
-        return repo_version.collection_memberships.filter(collection_id=obj.collection.pk).exists()
-
     def get_versions_url(self, obj):
         """Get a link to a collection versions list."""
         return reverse(
@@ -64,16 +54,17 @@ class CollectionSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
+        collection = self.context["highest_versions"][obj.pk]
         href = reverse(
             "collection-versions-detail",
             kwargs={
                 "path": self.context["path"],
-                "namespace": obj.namespace,
-                "name": obj.name,
-                "version": obj.version,
+                "namespace": collection.namespace,
+                "name": collection.name,
+                "version": collection.version,
             },
         )
-        return {"href": href, "version": obj.version}
+        return {"href": href, "version": str(collection.version)}
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
