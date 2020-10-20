@@ -1,8 +1,9 @@
+from collections import defaultdict, namedtuple
 from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.db.models import Q
+from django.db.models import Exists, OuterRef
 from django.shortcuts import get_object_or_404
 from django.utils.datastructures import MultiValueDictKeyError
 from django.utils.dateparse import parse_datetime
@@ -27,7 +28,9 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionListSerializer,
 )
 from pulp_ansible.app.models import (
+    AnsibleCollectionDeprecated,
     AnsibleDistribution,
+    Collection,
     CollectionVersion,
     CollectionImport,
 )
@@ -39,6 +42,9 @@ from pulp_ansible.app.serializers import (
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import CollectionVersionFilter
+
+
+CollectionTuple = namedtuple("CollectionTuple", ["namespace", "name", "version"])
 
 
 class AnsibleDistributionMixin:
@@ -130,13 +136,10 @@ class CollectionViewSet(
         except MultiValueDictKeyError:
             pass
         else:
-            repo_version = self.get_repository_version(self.kwargs["path"])
-            deprecation = repo_version.collection_memberships
-
             if user_deprecated_value.lower() in ["true", "yes", "1"]:
-                queryset = queryset.filter(collection__ansiblecollectiondeprecated__in=deprecation.all())
+                queryset = queryset.filter(deprecated=True)
             elif user_deprecated_value.lower() in ["false", "no", "0"]:
-                queryset = queryset.exclude(collection__ansiblecollectiondeprecated__in=deprecation.all())
+                queryset = queryset.filter(deprecated=False)
             else:
                 raise ValidationError("Cannot parse value of `deprecated` GET parameter")
 
@@ -144,29 +147,31 @@ class CollectionViewSet(
 
     def get_queryset(self):
         """
-        Returns a CollectionVersions queryset for specified distribution.
+        Returns a Collections queryset for specified distribution.
         """
-        distro_content = self.get_distro_content(self.kwargs["path"])
+        repo_version = self.get_repository_version(self.kwargs["path"])
+        deprecated_query = AnsibleCollectionDeprecated.objects.filter(
+            collection=OuterRef("pk"), repository_version=repo_version
+        )
+        collections = Collection.objects.filter(versions__in=repo_version.content).distinct()
+        collections = collections.annotate(deprecated=Exists(deprecated_query))
 
-        versions = CollectionVersion.objects.filter(pk__in=distro_content).values_list(
+        versions_qs = CollectionVersion.objects.filter(pk__in=repo_version.content).values_list(
             "collection_id",
+            "namespace",
+            "name",
             "version",
         )
 
-        collection_versions = {}
-        for collection_id, version in versions:
-            value = collection_versions.get(str(collection_id))
-            if not value or semantic_version.Version(version) > semantic_version.Version(value):
-                collection_versions[str(collection_id)] = version
+        highest_versions = defaultdict(
+            lambda: CollectionTuple(None, None, semantic_version.Version("0.0.0"))
+        )
+        for collection_id, namespace, name, version in versions_qs:
+            possible_highest = semantic_version.Version(version)
+            if possible_highest > highest_versions[collection_id].version:
+                highest_versions[collection_id] = CollectionTuple(namespace, name, possible_highest)
 
-        if not collection_versions.items():
-            return CollectionVersion.objects.none()
-
-        query_params = Q()
-        for collection_id, version in collection_versions.items():
-            query_params |= Q(collection_id=collection_id, version=version)
-
-        collections = CollectionVersion.objects.select_related("collection").filter(query_params)
+        self.highest_versions_context = highest_versions  # needed by get__serializer_context
         return collections
 
     def get_object(self):
@@ -174,10 +179,19 @@ class CollectionViewSet(
         Returns a Collection object.
         """
         queryset = self.filter_queryset(self.get_queryset())
-
         return get_object_or_404(
             queryset, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
         )
+
+    def get_serializer_context(self, *args, **kwargs):
+        """
+        Return the serializer context
+
+        This uses super() but also adds in the "highest_versions" data from get_queryset()
+        """
+        super_data = super().get_serializer_context()
+        super_data["highest_versions"] = self.highest_versions_context
+        return super_data
 
     def update(self, request, *args, **kwargs):
         """

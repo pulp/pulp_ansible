@@ -170,10 +170,6 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
         pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
     )
 
-    # Detail Endpoint
-    assert "created_at" in collection_detail
-    assert "updated_at" in collection_detail
-
     assert not collection_detail["deprecated"]
     assert collection_detail["href"] == url
     assert collection_detail["namespace"] == artifact.namespace
