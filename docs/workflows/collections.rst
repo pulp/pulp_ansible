@@ -114,7 +114,7 @@ content source. This is most commonly is ``https://galaxy.ansible.com/`` or anot
 instance.
 
 In this example we will be syncing the Collection with ``namespace=testing``  and ``name=ansible_testing_content``
-from ``https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing_content/``.
+from ``https://galaxy-dev.ansible.com/``.
 
 .. literalinclude:: ../_scripts/remote-collection.sh
    :language: bash
@@ -125,6 +125,7 @@ Remote GET Response::
         "pulp_created": "2019-04-29T13:51:10.860792Z",
         "pulp_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
         "pulp_last_updated": "2019-04-29T13:51:10.860805Z",
+        "requirements_file": "collections:\n  - testing.ansible_testing_content",
         "download_concurrency": 20,
         "name": "bar",
         "policy": "immediate",
@@ -133,7 +134,7 @@ Remote GET Response::
         "ssl_client_certificate": null,
         "ssl_client_key": null,
         "ssl_validation": true,
-        "url": "https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing_content/",
+        "url": "https://galaxy-dev.ansible.com",
     }
 
 For `remote sources that require authentication <https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#configuring-the-ansible-galaxy-client>`_, tokens can be used. You can provide the ``token``
@@ -151,6 +152,7 @@ Remote GET Response::
         "pulp_created": "2019-04-29T13:51:10.860792Z",
         "pulp_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
         "pulp_last_updated": "2019-04-29T13:51:10.860805Z",
+        "requirements_file": "collections:\n  - testing.ansible_testing_content",
         "download_concurrency": 20,
         "name": "bar",
         "policy": "immediate",
@@ -159,7 +161,7 @@ Remote GET Response::
         "ssl_client_certificate": null,
         "ssl_client_key": null,
         "ssl_validation": true,
-        "url": "https://galaxy-dev.ansible.com/api/v2/collections/testing/ansible_testing_content/",
+        "url": "https://galaxy-dev.ansible.com",
     }
 
 Sync Repository foo with CollectionRemote

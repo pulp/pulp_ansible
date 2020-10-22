@@ -57,9 +57,7 @@ ANSIBLE_COLLECTION_REMOTE_PATH = urljoin(BASE_REMOTE_PATH, "ansible/collection/"
 
 ANSIBLE_DEMO_COLLECTION = "testing.k8s_demo_collection"
 
-PULP_INSTALLER_COLLECTION = "pulp.pulp_installer"
-
-TOKEN_DEMO_COLLECTION = "ansible.posix"
+ANSIBLE_DEMO_COLLECTION_REQUIREMENTS = f"collections:\n  - {ANSIBLE_DEMO_COLLECTION}"
 
 ANSIBLE_COLLECTION_CONTENT_NAME = "ansible.collection_version"
 
@@ -84,36 +82,8 @@ ANSIBLE_COLLECTION_REQUIREMENT = """
 collections:
 - name: testing.ansible_testing_content
   version: ">=1.0.0,<=2.0.0"
-  source: https://galaxy-dev.ansible.com/api/v2/collections
+  source: https://galaxy-dev.ansible.com
 - testing.k8s_demo_collection
 """
 
-TOKEN_AUTH_COLLECTIONS_URL = "https://cloud.redhat.com/api/automation-hub/v3/collections/"
-
-TOKEN_AUTH_COLLECTION_TESTING_URL = urljoin(TOKEN_AUTH_COLLECTIONS_URL, "ansible/posix")
-
-# Ansible Galaxy V2 Endpoints
-
-ANSIBLE_GALAXY_COLLECTION_URL_V2 = urljoin(GALAXY_ANSIBLE_BASE_URL, "api/v2/collections/")
-
-ANSIBLE_COLLECTION_FIXTURE_URL_V2 = urljoin(ANSIBLE_GALAXY_COLLECTION_URL_V2, "geerlingguy/k8s")
-
-ANSIBLE_COLLECTION_TESTING_URL_V2 = urljoin(
-    ANSIBLE_GALAXY_COLLECTION_URL_V2, ANSIBLE_DEMO_COLLECTION.replace(".", "/")
-)
-
-ANSIBLE_COLLECTION_PULP_URL_V2 = urljoin(
-    ANSIBLE_GALAXY_COLLECTION_URL_V2, PULP_INSTALLER_COLLECTION.replace(".", "/")
-)
-
-# Ansible Galaxy V3 Endpoints
-
-GALAXY_ANSIBLE_BASE_URL_V3 = urljoin(GALAXY_ANSIBLE_BASE_URL, "api/v3/")
-
-ANSIBLE_GALAXY_COLLECTION_URL_V3 = urljoin(GALAXY_ANSIBLE_BASE_URL, "api/v3/collections/")
-
-ANSIBLE_COLLECTION_FIXTURE_URL_V3 = urljoin(ANSIBLE_GALAXY_COLLECTION_URL_V3, NAMESPACE_TESTING)
-
-ANSIBLE_COLLECTION_TESTING_URL_V3 = urljoin(
-    ANSIBLE_GALAXY_COLLECTION_URL_V3, ANSIBLE_DEMO_COLLECTION.replace(".", "/")
-)
+AUTOMATION_HUB_URL = "https://cloud.redhat.com/api/automation-hub/"

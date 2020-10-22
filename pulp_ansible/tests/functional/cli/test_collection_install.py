@@ -15,10 +15,10 @@ from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
     AH_AUTH_URL,
-    ANSIBLE_COLLECTION_TESTING_URL_V2,
     ANSIBLE_DEMO_COLLECTION,
-    TOKEN_DEMO_COLLECTION,
-    TOKEN_AUTH_COLLECTION_TESTING_URL,
+    ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
+    AUTOMATION_HUB_URL,
+    GALAXY_ANSIBLE_BASE_URL,
 )
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
@@ -87,19 +87,20 @@ class InstallCollectionTestCase(unittest.TestCase):
 
     def test_install_collection(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
         self.create_install_scenario(body, ANSIBLE_DEMO_COLLECTION)
 
     @skip_if(bool, "AH_token", False)
     def test_install_collection_with_token_from_automation_hub(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         body = gen_ansible_remote(
-            url=TOKEN_AUTH_COLLECTION_TESTING_URL,
+            url=AUTOMATION_HUB_URL,
+            requirements="collections:\n  - ansible.posix",
             auth_url=AH_AUTH_URL,
             token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
             tls_validation=False,
         )
-        self.create_install_scenario(body, TOKEN_DEMO_COLLECTION)
+        self.create_install_scenario(body, "ansible.posix")
 
     @skip_if(bool, "CI_AH_token", False)
     def test_install_collection_with_token_from_ci_automation_hub(self):
@@ -109,7 +110,8 @@ class InstallCollectionTestCase(unittest.TestCase):
         aurl = "https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
 
         body = gen_ansible_remote(
-            url=f"https://ci.cloud.redhat.com/api/automation-hub/v3/collections/{namespace}/{name}",
+            url="https://ci.cloud.redhat.com/api/automation-hub/",
+            requirements_file=f"collections:\n  - {namespace}.{name}",
             auth_url=aurl,
             token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
             tls_validation=False,
@@ -120,8 +122,10 @@ class InstallCollectionTestCase(unittest.TestCase):
     def test_install_collection_with_token_from_galaxy(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         token = os.environ["GITHUB_API_KEY"]
-        PULP_COLLECTION = ANSIBLE_COLLECTION_TESTING_URL_V2.replace("testing", "pulp")
-        PULP_COLLECTION = PULP_COLLECTION.replace("k8s_demo_collection", "pulp_installer")
 
-        body = gen_ansible_remote(url=PULP_COLLECTION, token=token)
+        body = gen_ansible_remote(
+            url=GALAXY_ANSIBLE_BASE_URL,
+            requirements="collections:\n  - pulp.pulp_installer",
+            token=token,
+        )
         self.create_install_scenario(body, "pulp.pulp_installer")

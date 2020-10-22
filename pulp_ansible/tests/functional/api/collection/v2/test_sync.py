@@ -5,6 +5,8 @@ from random import randint
 from functools import reduce
 from urllib.parse import urlsplit, urljoin
 
+import pytest
+
 from pulp_smash import api, config
 from pulp_smash.pulp3.utils import (
     gen_distribution,
@@ -20,16 +22,15 @@ from pulp_smash.pulp3.utils import (
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_CONTENT_NAME,
     ANSIBLE_DEMO_COLLECTION,
+    ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
     ANSIBLE_COLLECTION_FIXTURE_COUNT,
-    ANSIBLE_COLLECTION_FIXTURE_URL_V2,
     ANSIBLE_COLLECTION_REMOTE_PATH,
     ANSIBLE_COLLECTION_REQUIREMENT,
-    ANSIBLE_COLLECTION_TESTING_URL_V2,
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_FIXTURE_CONTENT_SUMMARY,
-    ANSIBLE_GALAXY_COLLECTION_URL_V2,
     ANSIBLE_REMOTE_PATH,
     ANSIBLE_REPO_PATH,
+    GALAXY_ANSIBLE_BASE_URL,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -61,7 +62,24 @@ class SyncTestCase(unittest.TestCase):
         repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
+        remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
+        self.addCleanup(self.client.delete, remote["pulp_href"])
+
+        # Sync the repository.
+        self.assertEqual(repo["latest_version_href"], f"{repo['pulp_href']}versions/0/")
+        sync(self.cfg, remote, repo)
+        repo = self.client.get(repo["pulp_href"])
+        self.assertEqual(repo["latest_version_href"], f"{repo['pulp_href']}versions/1/")
+
+    def test_sync_with_slash(self):
+        """Sync repository against a url with a slash at the end."""
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
+        self.addCleanup(self.client.delete, repo["pulp_href"])
+
+        body = gen_ansible_remote(
+            url=f"{GALAXY_ANSIBLE_BASE_URL}/", requirements_file=DEMO_REQUIREMENTS
+        )
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["pulp_href"])
 
@@ -81,7 +99,7 @@ class SyncTestCase(unittest.TestCase):
         3. Sync the remote.
         4. Assert that repository version is 1.
         """
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["pulp_href"])
 
@@ -110,7 +128,7 @@ class SyncTestCase(unittest.TestCase):
         repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["pulp_href"])
 
@@ -151,7 +169,7 @@ class SyncTestCase(unittest.TestCase):
 
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
-            gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL_V2),
+            gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS),
         )
         self.addCleanup(self.client.delete, collection_remote["pulp_href"])
 
@@ -176,50 +194,28 @@ class SyncTestCase(unittest.TestCase):
         )
         self.assertDictEqual(get_removed_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
-    def test_mirror_sync_with_requirements(self):
+    def test_sync_with_requirements(self):
         """
-        Sync multiple remotes into the same repo with mirror as `True` using requirements.
+        Sync using a complex requirements.yml file.
 
         This test targets the following issue: 5250
 
         * `<https://pulp.plan.io/issues/5250>`_
-
-        This test does the following:
-
-        1. Create a repo.
-        2. Create two remotes
-            a. Role remote
-            b. Collection remote
-        3. Sync the repo with Role remote.
-        4. Sync the repo with Collection remote with ``Mirror=True``.
-        5. Verify whether the content in the latest version of the repo
-           has only Collection content and Role content is deleted.
         """
         # Step 1
         repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
-        # Step 2
-        role_remote = self.client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote())
-        self.addCleanup(self.client.delete, role_remote["pulp_href"])
-
         collection_remote = self.client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
             gen_ansible_remote(
-                url=ANSIBLE_GALAXY_COLLECTION_URL_V2.rstrip("/"),
+                url=GALAXY_ANSIBLE_BASE_URL,
                 requirements_file=ANSIBLE_COLLECTION_REQUIREMENT,
             ),
         )
 
         self.addCleanup(self.client.delete, collection_remote["pulp_href"])
 
-        # Step 3
-        sync(self.cfg, role_remote, repo)
-        repo = self.client.get(repo["pulp_href"])
-        self.assertIsNotNone(repo["latest_version_href"], repo)
-        self.assertDictEqual(get_added_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
-
-        # Step 4
         sync(self.cfg, collection_remote, repo, mirror=True)
         repo = self.client.get(repo["pulp_href"])
         added_content_summary = get_added_content_summary(repo)
@@ -227,16 +223,15 @@ class SyncTestCase(unittest.TestCase):
             added_content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
         )
 
-        # Step 5
         content_summary = get_content_summary(repo)
         self.assertGreaterEqual(
             content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
         )
-        self.assertDictEqual(get_removed_content_summary(repo), ANSIBLE_FIXTURE_CONTENT_SUMMARY)
 
-    def test_mirror_sync_with_invalid_requirements(self):
+    @pytest.mark.skip("Blocked by open ticket: https://pulp.plan.io/issues/7734")
+    def test_sync_with_invalid_requirements(self):
         """
-        Sync multiple remotes into the same repo with mirror as `True` with invalid requirement.
+        Sync with invalid requirement.
 
         This test targets the following issue: 5250
 
@@ -248,7 +243,7 @@ class SyncTestCase(unittest.TestCase):
         """
         collection_remote = self.client.using_handler(api.echo_handler).post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
-            gen_ansible_remote(url=ANSIBLE_COLLECTION_FIXTURE_URL_V2, requirements_file="INVALID"),
+            gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file="INVALID"),
         )
 
         self.assertEqual(collection_remote.status_code, 400, collection_remote)
@@ -271,7 +266,10 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
 
         remote = client.post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
-            gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2),
+            gen_ansible_remote(
+                url=GALAXY_ANSIBLE_BASE_URL,
+                requirements_file=DEMO_REQUIREMENTS,
+            ),
         )
         self.addCleanup(client.delete, remote["pulp_href"])
 
@@ -291,12 +289,12 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
             (
                 cfg.get_base_url(),
                 "pulp_ansible/galaxy/",
-                distribution["base_path"] + "/",
-                "api/v2/collections",
+                distribution["base_path"],
             ),
         )
 
-        pulp_remote = client.post(ANSIBLE_COLLECTION_REMOTE_PATH, gen_ansible_remote(url=url))
+        body = gen_ansible_remote(url=url, requirements_file=DEMO_REQUIREMENTS)
+        pulp_remote = client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(client.delete, pulp_remote["pulp_href"])
 
         sync(cfg, pulp_remote, second_repo)
@@ -304,9 +302,14 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
 
         self.assertEqual(get_content(repo), get_content(second_repo))
 
-        galaxy_collection_data = client.get(ANSIBLE_COLLECTION_TESTING_URL_V2)
+        galaxy_collection_data = client.get(
+            urljoin(
+                f"{GALAXY_ANSIBLE_BASE_URL}/api/v2/collections/",
+                ANSIBLE_DEMO_COLLECTION.replace(".", "/"),
+            )
+        )
         pulp_collection_data = client.get(
-            urljoin(url + "/", ANSIBLE_DEMO_COLLECTION.replace(".", "/"))
+            urljoin(f"{url}/api/v2/collections/", ANSIBLE_DEMO_COLLECTION.replace(".", "/"))
         )
 
         galaxy_keys = [i for i in galaxy_collection_data.keys() if i != "deprecated"].sort()
