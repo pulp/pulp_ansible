@@ -417,7 +417,7 @@ class CollectionSyncFirstStage(Stage):
             name = data["collection"]["name"]
             namespace = data["namespace"]["name"]
             metadata = additional_metadata.get(f"{namespace}_{name}", {})
-            data["deprecated"] = metadata.get("deprecated", False)
+            data["deprecated"] = metadata.get("deprecated")
 
         def _add_collection_version_level_metadata(data, additional_metadata):
             """Additional metadata at collection version level to be sent through stages."""
@@ -451,7 +451,10 @@ class CollectionSyncFirstStage(Stage):
 
                         if result.get("deprecated"):
                             name = result["name"]
-                            namespace = result["namespace"]
+                            if api_version < 3:
+                                namespace = result["namespace"]["name"]
+                            else:
+                                namespace = result["namespace"]
                             additional_metadata[f"{namespace}_{name}"] = {
                                 "deprecated": result["deprecated"]
                             }
@@ -549,7 +552,7 @@ class CollectionContentSaver(ContentSaver):
 
             d_content.content.collection = collection
 
-            if d_content.extra_data.get("deprecated", False):
+            if d_content.extra_data.get("deprecated"):
                 to_deprecate.append(
                     AnsibleCollectionDeprecated(
                         repository_version=self.repository_version, collection=collection
