@@ -32,7 +32,10 @@ class GalaxyVersionView(views.APIView):
         """
         Return a response to the "GET" action.
         """
-        api_info = {"available_versions": {"v1": "v1/", "v2": "v2/"}, "current_version": "v1"}
+        api_info = {
+            "available_versions": {"v1": "v1/", "v2": "v2/", "v3": "v3/"},
+            "current_version": "v3",
+        }
 
         return response.Response(api_info)
 

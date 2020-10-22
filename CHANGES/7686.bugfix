@@ -1,0 +1,2 @@
+Supporting url formats that conform to ansible-galaxy cli (e.g. "https://galaxy.ansible.com" and
+"https://galaxy.ansible.com/api").

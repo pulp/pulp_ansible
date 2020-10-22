@@ -2,6 +2,8 @@
 """Tests related to sync ansible plugin collection content type."""
 import unittest
 
+import pytest
+
 from pulpcore.client.pulp_ansible import (
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
@@ -13,10 +15,8 @@ from pulpcore.client.pulp_ansible import (
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_COLLECTION_PULP_URL_V2,
-    ANSIBLE_COLLECTION_TESTING_URL_V2,
-    ANSIBLE_DEMO_COLLECTION,
-    PULP_INSTALLER_COLLECTION,
+    ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
+    GALAXY_ANSIBLE_BASE_URL,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote, monitor_task
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -39,7 +39,7 @@ class PulpToPulpSyncCase(unittest.TestCase):
         repo = self.repo_api.create(gen_repo())
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
@@ -64,12 +64,7 @@ class PulpToPulpSyncCase(unittest.TestCase):
         mirror_repo = self.repo_api.create(gen_repo())
         self.addCleanup(self.repo_api.delete, mirror_repo.pulp_href)
 
-        url = (
-            distribution.client_url
-            + "/api/v3/collections/"
-            + ANSIBLE_DEMO_COLLECTION.replace(".", "/")
-        )
-        body = gen_ansible_remote(url=url)
+        body = gen_ansible_remote(url=distribution.client_url, requirements_file=DEMO_REQUIREMENTS)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
@@ -100,12 +95,14 @@ class BasicSyncCase(unittest.TestCase):
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
         cls.collections_api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
 
+    @pytest.mark.skip("Skip until we can filter by version: https://pulp.plan.io/issues/7739")
     def test_v3_sync(self):
         """Test syncing Pulp to Pulp over v3 api."""
         repo = self.repo_api.create(gen_repo())
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
+        requirements = 'collections:\n  - source: pulp.pulp_installer\n    version: "<=3.6.2"'
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_PULP_URL_V2)
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=requirements)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
@@ -132,15 +129,7 @@ class BasicSyncCase(unittest.TestCase):
         self.addCleanup(self.repo_api.delete, mirror_repo.pulp_href)
 
         COLLECTION_VERSION = "3.6.2"
-
-        url = (
-            distribution.client_url
-            + "/api/v3/collections/"
-            + PULP_INSTALLER_COLLECTION.replace(".", "/")
-            + "/versions/"
-            + COLLECTION_VERSION
-        )
-        body = gen_ansible_remote(url=url)
+        body = gen_ansible_remote(url=distribution.client_url, requirements_file=requirements)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 

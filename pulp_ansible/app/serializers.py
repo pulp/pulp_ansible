@@ -116,7 +116,6 @@ class CollectionRemoteSerializer(RemoteSerializer):
         """
         Validate collection remote data.
 
-            - url: to ensure it does not end with slashes.
             - requirements_file: to ensure it is a valid yaml file.
 
         Args:
@@ -132,23 +131,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
         data = super().validate(data)
 
         if data.get("requirements_file"):
-            parsed_file = parse_collections_requirements_file(data["requirements_file"])
-            urls_to_validate = [data["url"]]
-            for name, version, source in parsed_file:
-                if source:
-                    urls_to_validate.append(source)
-
-            for url in urls_to_validate:
-                if not url.endswith("/v2/collections") and not url.endswith("/v3/collections"):
-                    raise serializers.ValidationError(
-                        _(
-                            "Invalid URL {url}. ".format(url=data["url"])
-                            + "Ensure the URL ends in either '/v2/collections' or '/v3/collections'"
-                        )
-                    )
-
-        if data["url"].endswith("/"):
-            raise serializers.ValidationError(_("url should not end with '/'"))
+            parse_collections_requirements_file(data["requirements_file"])
 
         return data
 

@@ -1,4 +1,5 @@
 import asyncio
+from aiohttp.client_exceptions import ClientResponseError
 from gettext import gettext as _
 import json
 import logging
@@ -47,7 +48,6 @@ from pulp_ansible.app.models import (
 )
 from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
-    get_api_version,
     get_page_url,
     parse_metadata,
     parse_collections_requirements_file,
@@ -335,15 +335,41 @@ class CollectionSyncFirstStage(Stage):
         remote = self.remote
         collection_info = self.collection_info
 
-        def _get_url(page, api_version):
+        async def _get_collection_api(root):
+            """Returns the collection api path and api version."""
+            root = root.rstrip("/")
+            downloader = remote.get_downloader(url=root)
+
+            try:
+                api_data = parse_metadata(await downloader.run())
+            except (json.decoder.JSONDecodeError, ClientResponseError):
+                # users can use "https://galaxy.ansible.com" as a url so also try {root}/api/
+                root = f"{root}/api/"
+                downloader = remote.get_downloader(url=root)
+                api_data = parse_metadata(await downloader.run())
+
+            if "v3" in api_data.get("available_versions", {}):
+                api_version = 3
+            elif "v2" in api_data.get("available_versions", {}):
+                api_version = 2
+            else:
+                raise RuntimeError(_("Unsupported API versions at {}").format(root))
+
+            endpoint = f"{root}v{api_version}/collections/"
+
+            return endpoint, api_version
+
+        async def _get_url(page):
             if collection_info:
                 name, version, source = collection_info[page - 1]
                 namespace, name = name.split(".")
                 root = source or remote.url
-                url = f"{root.rstrip('/')}/{namespace}/{name}"
+                api_endpoint = (await _get_collection_api(root))[0]
+                url = f"{api_endpoint}{namespace}/{name}/"
                 return url
-
-            return get_page_url(remote.url, api_version, page)
+            else:
+                api_endpoint, api_version = await _get_collection_api(remote.url)
+                return get_page_url(api_endpoint, api_version, page)
 
         def _build_url(path_or_url):
             """Check value and turn it into a url using remote.url if it's a relative path."""
@@ -356,8 +382,7 @@ class CollectionSyncFirstStage(Stage):
 
         progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
         with ProgressReport(**progress_data) as progress_bar:
-            api_version = get_api_version(remote.url)
-            url = _get_url(page_count, api_version)
+            url = await _get_url(page_count)
             downloader = remote.get_downloader(url=url)
             initial_data = parse_metadata(await downloader.run())
 
@@ -370,7 +395,7 @@ class CollectionSyncFirstStage(Stage):
             # Concurrent downloads are limited by aiohttp...
             not_done = set()
             for page in range(1, page_count + 1):
-                downloader = remote.get_downloader(url=_get_url(page, api_version))
+                downloader = remote.get_downloader(url=(await _get_url(page)))
                 not_done.add(downloader.run())
 
             additional_metadata = {}
@@ -381,10 +406,12 @@ class CollectionSyncFirstStage(Stage):
                 for item in done:
                     data = parse_metadata(item.result())
 
-                    if api_version < 3:
-                        results = data.get("results", [data])
+                    if "data" in data:  # api v3
+                        results = data["data"]
+                    elif "results" in data:  # api v2
+                        results = data["results"]
                     else:
-                        results = data.get("data", [data])
+                        results = [data]
 
                     for result in results:
                         download_url = result.get("download_url")

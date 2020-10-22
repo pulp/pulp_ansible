@@ -8,9 +8,10 @@ from pulp_smash.pulp3.utils import gen_repo, sync
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_REMOTE_PATH,
-    ANSIBLE_COLLECTION_TESTING_URL_V2,
     ANSIBLE_COLLECTION_VERSION_CONTENT_PATH,
+    ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
     ANSIBLE_REPO_PATH,
+    GALAXY_ANSIBLE_BASE_URL,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -43,7 +44,7 @@ class ListContentVersionsCase(unittest.TestCase):
         repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
 
-        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
         remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(self.client.delete, remote["pulp_href"])
 
