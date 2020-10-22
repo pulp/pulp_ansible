@@ -185,7 +185,7 @@ class CollectionViewSet(
 
     def get_serializer_context(self, *args, **kwargs):
         """
-        Return the serializer context
+        Return the serializer context.
 
         This uses super() but also adds in the "highest_versions" data from get_queryset()
         """

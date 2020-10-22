@@ -21,7 +21,6 @@ from pulpcore.plugin.models import (
     ProgressReport,
     PulpTemporaryFile,
     Remote,
-    Repository,
 )
 from pulpcore.plugin.stages import (
     ArtifactDownloader,
@@ -41,6 +40,7 @@ import semantic_version as semver
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
+    AnsibleRepository,
     Collection,
     CollectionImport,
     CollectionRemote,
@@ -72,7 +72,7 @@ def sync(remote_pk, repository_pk, mirror):
 
     """
     remote = CollectionRemote.objects.get(pk=remote_pk)
-    repository = Repository.objects.get(pk=repository_pk)
+    repository = AnsibleRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
@@ -151,7 +151,7 @@ def import_collection(
     CreatedResource.objects.create(content_object=collection_version)
 
     if repository_pk:
-        repository = Repository.objects.get(pk=repository_pk)
+        repository = AnsibleRepository.objects.get(pk=repository_pk)
         content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
         with repository.new_version() as new_version:
             new_version.add_content(content_q)
@@ -560,7 +560,7 @@ class CollectionContentSaver(ContentSaver):
                 )
 
         if to_deprecate:
-            AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate)
+            AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
 
     async def _post_save(self, batch):
         """

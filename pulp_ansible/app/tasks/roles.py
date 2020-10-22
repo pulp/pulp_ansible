@@ -5,7 +5,7 @@ import math
 from asyncio import FIRST_COMPLETED
 from gettext import gettext as _
 
-from pulpcore.plugin.models import Artifact, ProgressReport, Remote, Repository
+from pulpcore.plugin.models import Artifact, ProgressReport, Remote
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
@@ -13,7 +13,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 from pulp_ansible.app.constants import PAGE_SIZE
-from pulp_ansible.app.models import RoleRemote, Role
+from pulp_ansible.app.models import AnsibleRepository, RoleRemote, Role
 from pulp_ansible.app.tasks.utils import get_api_version, get_page_url, parse_metadata
 
 
@@ -40,7 +40,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
 
     """
     remote = RoleRemote.objects.get(pk=remote_pk)
-    repository = Repository.objects.get(pk=repository_pk)
+    repository = AnsibleRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
         raise ValueError(_("A remote must have a url specified to synchronize."))

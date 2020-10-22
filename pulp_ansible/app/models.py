@@ -234,6 +234,36 @@ class AnsibleRepository(Repository):
 
         permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
 
+    def finalize_new_version(self, new_version):
+        """
+        Finalize the incomplete RepositoryVersion with correct repository-level metadata.
+
+        `AnsibleCollectionDeprecated` objects may need to be created for the new
+        `RepositoryVersion`.
+
+        Args:
+            new_version (pulpcore.app.models.RepositoryVersion): The incomplete RepositoryVersion to
+                finalize.
+
+        """
+        deprecated_in_prev_version_qs = Collection.objects.filter(
+            ansiblecollectiondeprecated__repository_version=new_version.previous()
+        )
+        collection_versions_removed_pks = new_version.removed().values("pk")
+        deprecated_in_this_version = deprecated_in_prev_version_qs.exclude(
+            versions__in=collection_versions_removed_pks
+        )
+        to_deprecate = []
+        for collection_deprecated in deprecated_in_this_version:
+            to_deprecate.append(
+                AnsibleCollectionDeprecated(
+                    repository_version=new_version, collection=collection_deprecated
+                )
+            )
+
+        if to_deprecate:
+            AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
+
 
 class AnsibleCollectionDeprecated(BaseModel):
     """
