@@ -54,9 +54,9 @@ class SyncTestCase(unittest.TestCase):
         Do the following:
 
         1. Create a repository, and a remote.
-        2. Assert that repository version is None.
+        2. Assert that repository version is 0.
         3. Sync the remote.
-        4. Assert that repository version is not None.
+        4. Assert that repository version is 1.
         """
         repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(self.client.delete, repo["pulp_href"])
@@ -69,7 +69,29 @@ class SyncTestCase(unittest.TestCase):
         self.assertEqual(repo["latest_version_href"], f"{repo['pulp_href']}versions/0/")
         sync(self.cfg, remote, repo)
         repo = self.client.get(repo["pulp_href"])
-        self.assertIsNotNone(repo["latest_version_href"], repo)
+        self.assertEqual(repo["latest_version_href"], f"{repo['pulp_href']}versions/1/")
+
+    def test_sync_with_attached_remote(self):
+        """Sync repository with a collection remote on the repository.
+
+        Do the following:
+
+        1. Create a repository, and a remote.
+        2. Attach the remote to the repository.
+        3. Sync the remote.
+        4. Assert that repository version is 1.
+        """
+        body = gen_ansible_remote(url=ANSIBLE_COLLECTION_TESTING_URL_V2)
+        remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
+        self.addCleanup(self.client.delete, remote["pulp_href"])
+
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo(remote=remote["pulp_href"]))
+        self.addCleanup(self.client.delete, repo["pulp_href"])
+
+        # Sync the repository.
+        sync(self.cfg, remote, repo)
+        repo = self.client.get(repo["pulp_href"])
+        self.assertEqual(repo["latest_version_href"], f"{repo['pulp_href']}versions/1/")
 
     def test_successive_syncs_repo_version(self):
         """Test whether successive syncs update repository versions.
