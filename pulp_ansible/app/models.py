@@ -228,7 +228,7 @@ class AnsibleRepository(Repository):
 
     TYPE = "ansible"
     CONTENT_TYPES = [Role, CollectionVersion]
-    REMOTE_TYEPES = [RoleRemote, CollectionRemote]
+    REMOTE_TYPES = [RoleRemote, CollectionRemote]
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

@@ -230,8 +230,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         )
         serializer.is_valid(raise_exception=True)
 
-        remote = serializer.validated_data.get("remote")
-        remote.cast()
+        remote = serializer.validated_data.get("remote", repository.remote)
+        remote = remote.cast()
 
         if isinstance(remote, RoleRemote):
             sync_func = role_sync
