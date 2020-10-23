@@ -50,10 +50,12 @@ from .serializers import (
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
+    CopySerializer,
     RoleSerializer,
     TagSerializer,
 )
 from .tasks.collections import sync as collection_sync
+from .tasks.copy import copy_content
 from .tasks.roles import synchronize as role_sync
 
 
@@ -327,3 +329,72 @@ class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
     endpoint_name = "pulp_ansible/tags"
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+
+class CopyViewSet(viewsets.ViewSet):
+    """
+    ViewSet for Content Copy.
+    """
+
+    serializer_class = CopySerializer
+
+    @extend_schema(
+        description="Trigger an asynchronous task to copy ansible content from one repository "\
+                    "into another, creating a new repository version.",
+        summary="Copy content",
+        operation_id="copy_content",
+        request=CopySerializer,
+        responses={202: AsyncOperationResponseSerializer}
+    )
+    def create(self, request):
+        """Copy content."""
+        serializer = CopySerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+
+        dependency_solving = serializer.validated_data['dependency_solving']
+        config = serializer.validated_data['config']
+
+        config, repos = self._process_config(config)
+
+        async_result = enqueue_with_reservation(
+            tasks.copy_content, repos,
+            args=[config, dependency_solving],
+            kwargs={}
+        )
+        return OperationPostponedResponse(async_result, request)
+
+    def _process_config(self, config):
+        """
+        Change the hrefs into pks within config.
+        This method also implicitly validates that the hrefs map to objects and it returns a list of
+        repos so that the task can lock on them.
+        """
+        result = []
+        repos = []
+
+        for entry in config:
+            r = dict()
+            source_version = NamedModelViewSet().get_resource(entry["source_repo_version"],
+                                                              RepositoryVersion)
+            dest_repo = NamedModelViewSet().get_resource(entry["dest_repo"], RpmRepository)
+            r["source_repo_version"] = source_version.pk
+            r["dest_repo"] = dest_repo.pk
+            repos.extend((source_version.repository, dest_repo))
+
+            if "dest_base_version" in entry:
+                try:
+                    r["dest_base_version"] = dest_repo.versions.\
+                        get(number=entry["dest_base_version"]).pk
+                except RepositoryVersion.DoesNotExist:
+                    message = _("Version {version} does not exist for repository "
+                                "'{repo}'.").format(version=entry["dest_base_version"],
+                                                    repo=dest_repo.name)
+                    raise DRFValidationError(detail=message)
+
+            if entry.get("content") is not None:
+                r["content"] = []
+                for c in entry["content"]:
+                    r["content"].append(NamedModelViewSet().extract_pk(c))
+            result.append(r)
+
+        return result, repos
