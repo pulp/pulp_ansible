@@ -366,3 +366,44 @@ class CollectionImportDetailSerializer(CollectionImportListSerializer):
 
     class Meta(CollectionImportListSerializer.Meta):
         fields = CollectionImportListSerializer.Meta.fields + ("error", "messages")
+
+
+class CopySerializer(serializers.Serializer):
+    """
+    A serializer for Content Copy API.
+    """
+
+    config = serializers.JSONField(
+        help_text=_(
+            "A JSON document describing sources, destinations, and content to be copied"
+        ),
+    )
+
+    dependency_solving = serializers.BooleanField(
+        help_text=_("Also copy dependencies of the content being copied."), default=True
+    )
+
+    def validate(self, data):
+        """
+        Validate that the Serializer contains valid data.
+        Set the RpmRepository based on the RepositoryVersion if only the latter is provided.
+        Set the RepositoryVersion based on the RpmRepository if only the latter is provided.
+        Convert the human-friendly names of the content types into what Pulp needs to query on.
+        """
+        super().validate(data)
+
+        if hasattr(self, "initial_data"):
+            validate_unknown_fields(self.initial_data, self.fields)
+
+        if "config" in data:
+            validator = Draft7Validator(COPY_CONFIG_SCHEMA)
+
+            err = []
+            for error in sorted(validator.iter_errors(data["config"]), key=str):
+                err.append(error.message)
+            if err:
+                raise serializers.ValidationError(
+                    _("Provided copy criteria is invalid:'{}'".format(err))
+                )
+
+        return data
