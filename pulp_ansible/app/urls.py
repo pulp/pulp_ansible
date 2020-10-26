@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.conf.urls import url
 from django.urls import include, path
 
 from pulp_ansible.app.galaxy.views import (
@@ -12,7 +13,7 @@ from pulp_ansible.app.galaxy.views import (
 )
 from pulp_ansible.app.galaxy.v3 import views as views_v3
 
-from pulp_ansible.app.viewsets import CollectionUploadViewSet
+from pulp_ansible.app.viewsets import CopyViewSet, CollectionUploadViewSet
 
 
 GALAXY_API_ROOT = getattr(settings, "GALAXY_API_ROOT", "pulp_ansible/galaxy/<path:path>/api/")
@@ -79,4 +80,5 @@ urlpatterns = [
     path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
     path(GALAXY_API_ROOT + "v2/", include(v2_urls)),
     path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
+    url(r"^pulp/api/v3/ansible/copy/$", CopyViewSet.as_view({"post": "create"})),
 ]

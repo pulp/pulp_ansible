@@ -12,9 +12,10 @@ from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
+from rest_framework.serializers import ValidationError as DRFValidationError
 
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import PulpTemporaryFile
+from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import (
     AsyncOperationResponseSerializer,
     RepositorySyncURLSerializer,
@@ -339,33 +340,29 @@ class CopyViewSet(viewsets.ViewSet):
     serializer_class = CopySerializer
 
     @extend_schema(
-        description="Trigger an asynchronous task to copy ansible content from one repository "\
-                    "into another, creating a new repository version.",
+        description="Trigger an asynchronous task to copy ansible content from one repository "
+        "into another, creating a new repository version.",
         summary="Copy content",
         operation_id="copy_content",
         request=CopySerializer,
-        responses={202: AsyncOperationResponseSerializer}
+        responses={202: AsyncOperationResponseSerializer},
     )
     def create(self, request):
         """Copy content."""
-        serializer = CopySerializer(data=request.data, context={'request': request})
+        serializer = CopySerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
-        dependency_solving = serializer.validated_data['dependency_solving']
-        config = serializer.validated_data['config']
+        config = serializer.validated_data["config"]
 
         config, repos = self._process_config(config)
 
-        async_result = enqueue_with_reservation(
-            tasks.copy_content, repos,
-            args=[config, dependency_solving],
-            kwargs={}
-        )
+        async_result = enqueue_with_reservation(copy_content, repos, args=[config], kwargs={})
         return OperationPostponedResponse(async_result, request)
 
     def _process_config(self, config):
         """
         Change the hrefs into pks within config.
+
         This method also implicitly validates that the hrefs map to objects and it returns a list of
         repos so that the task can lock on them.
         """
@@ -374,21 +371,23 @@ class CopyViewSet(viewsets.ViewSet):
 
         for entry in config:
             r = dict()
-            source_version = NamedModelViewSet().get_resource(entry["source_repo_version"],
-                                                              RepositoryVersion)
-            dest_repo = NamedModelViewSet().get_resource(entry["dest_repo"], RpmRepository)
+            source_version = NamedModelViewSet().get_resource(
+                entry["source_repo_version"], RepositoryVersion
+            )
+            dest_repo = NamedModelViewSet().get_resource(entry["dest_repo"], AnsibleRepository)
             r["source_repo_version"] = source_version.pk
             r["dest_repo"] = dest_repo.pk
             repos.extend((source_version.repository, dest_repo))
 
             if "dest_base_version" in entry:
                 try:
-                    r["dest_base_version"] = dest_repo.versions.\
-                        get(number=entry["dest_base_version"]).pk
+                    r["dest_base_version"] = dest_repo.versions.get(
+                        number=entry["dest_base_version"]
+                    ).pk
                 except RepositoryVersion.DoesNotExist:
-                    message = _("Version {version} does not exist for repository "
-                                "'{repo}'.").format(version=entry["dest_base_version"],
-                                                    repo=dest_repo.name)
+                    message = _(
+                        "Version {version} does not exist for repository " "'{repo}'."
+                    ).format(version=entry["dest_base_version"], repo=dest_repo.name)
                     raise DRFValidationError(detail=message)
 
             if entry.get("content") is not None:
