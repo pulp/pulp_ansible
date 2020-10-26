@@ -1,6 +1,7 @@
 from gettext import gettext as _
 
 from django.conf import settings
+from jsonschema import Draft7Validator
 from rest_framework import serializers
 
 from pulpcore.plugin.serializers import (
@@ -10,6 +11,7 @@ from pulpcore.plugin.serializers import (
     RepositorySerializer,
     SingleArtifactContentSerializer,
     RepositoryVersionDistributionSerializer,
+    validate_unknown_fields,
 )
 
 from .models import (
@@ -23,6 +25,7 @@ from .models import (
     Role,
     Tag,
 )
+from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
 from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
 
 
@@ -374,20 +377,15 @@ class CopySerializer(serializers.Serializer):
     """
 
     config = serializers.JSONField(
-        help_text=_(
-            "A JSON document describing sources, destinations, and content to be copied"
-        ),
-    )
-
-    dependency_solving = serializers.BooleanField(
-        help_text=_("Also copy dependencies of the content being copied."), default=True
+        help_text=_("A JSON document describing sources, destinations, and content to be copied"),
     )
 
     def validate(self, data):
         """
         Validate that the Serializer contains valid data.
-        Set the RpmRepository based on the RepositoryVersion if only the latter is provided.
-        Set the RepositoryVersion based on the RpmRepository if only the latter is provided.
+
+        Set the AnsibleRepository based on the RepositoryVersion if only the latter is provided.
+        Set the RepositoryVersion based on the AnsibleRepository if only the latter is provided.
         Convert the human-friendly names of the content types into what Pulp needs to query on.
         """
         super().validate(data)

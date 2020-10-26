@@ -2,3 +2,4 @@ include LICENSE
 include pulp_ansible/app/webserver_snippets/*
 include requirements.txt
 include pyproject.toml
+include pulp_ansible/app/schema/*
