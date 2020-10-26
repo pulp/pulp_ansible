@@ -140,7 +140,7 @@ class CollectionVersion(Content):
     name = models.CharField(max_length=64, editable=False)
     namespace = models.CharField(max_length=32, editable=False)
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
-    version = models.CharField(max_length=32, editable=False)
+    version = models.CharField(max_length=128, editable=False)
 
     is_highest = models.BooleanField(editable=False, default=False)
 
