@@ -68,7 +68,8 @@ class InstallCollectionTestCase(unittest.TestCase):
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            cmd = "ansible-galaxy collection install {} -c -s {} -p {}".format(
+            # FIXME Use --no-deps while https://pulp.plan.io/issues/7751 is not addressed
+            cmd = "ansible-galaxy collection install {} -c -s {} -p {} --no-deps".format(
                 collection_name, distribution.client_url, temp_dir
             )
 
