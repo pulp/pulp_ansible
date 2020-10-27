@@ -28,7 +28,7 @@ def migrate_deprecated(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ansible', '0024_remove_collectionversion_certification'),
+        ('ansible', '0025_increase_collection_version_version_size'),
     ]
 
     operations = [
