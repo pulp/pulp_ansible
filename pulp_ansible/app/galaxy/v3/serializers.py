@@ -26,16 +26,7 @@ class CollectionSerializer(serializers.ModelSerializer):
             "versions_url",
             "highest_version",
         )
-        model = models.CollectionVersion
-
-    def update(self, obj, validated_data):
-        """Update Collection."""
-        collection_data = validated_data.pop("collection")
-        if "deprecated" not in collection_data or len(collection_data.keys()) > 1:
-            raise serializers.ValidationError(_("Only `deprecated` could be updated."))
-        collection = models.Collection.objects.filter(pk=obj.collection.pk)
-        collection.update(**collection_data)
-        return super().update(obj, validated_data)
+        model = models.Collection
 
     def get_href(self, obj):
         """Get href."""
