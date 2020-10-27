@@ -6,6 +6,7 @@ all: false
 black: true
 bootstrap: false
 check_commit_message: true
+check_manifest: true
 cherry_pick_automation: false
 coverage: false
 deploy_client_to_pypi: true
@@ -42,11 +43,6 @@ test_bindings: false
 test_performance: false
 test_s3: true
 travis_addtl_services: []
-travis_notifications:
-  irc:
-    channels:
-    - chat.freenode.net#pulp-ansible
-    on_failure: always
-    on_success: change
+travis_notifications: []
 update_redmine: true
 

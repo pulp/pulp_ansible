@@ -84,11 +84,4 @@ jobs:
       before_script: skip
       script: bash .travis/update_redmine.sh
       if: tag IS present
-notifications:
-  irc:
-    channels:
-    - chat.freenode.net#pulp-ansible
-    on_failure: always
-    on_success: change
-
 ...
