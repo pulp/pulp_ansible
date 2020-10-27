@@ -49,7 +49,7 @@ v3_urls = [
     ),
     path(
         "collections/<str:namespace>/<str:name>/",
-        views_v3.CollectionViewSet.as_view({"get": "retrieve", "put": "update"}),
+        views_v3.CollectionViewSet.as_view({"get": "retrieve", "patch": "update"}),
         name="collections-detail",
     ),
     path(

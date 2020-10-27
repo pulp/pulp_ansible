@@ -11,6 +11,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
+from rest_framework.reverse import reverse
 from rest_framework import serializers
 from rest_framework import status as http_status
 from rest_framework import viewsets
@@ -18,7 +19,6 @@ from rest_framework import viewsets
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, Content, ContentArtifact
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
-from rest_framework.reverse import reverse
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -193,15 +193,24 @@ class CollectionViewSet(
         super_data["highest_versions"] = self.highest_versions_context
         return super_data
 
-    def update(self, request, *args, **kwargs):
+    def update(self, request):
         """
         Update a Collection object.
         """
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data, partial=True)
+        repo_version = self.get_repository_version(self.kwargs["path"])
+        collection = self.get_object()
+        serializer = self.get_serializer(collection, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+        deprecated_value = serializer.validated_data["deprecated"]
+        if deprecated_value:
+            AnsibleCollectionDeprecated.objects.get_or_create(
+                repository_version=repo_version, collection=collection
+            )
+        else:
+            AnsibleCollectionDeprecated.objects.filter(
+                repository_version=repo_version, collection=collection
+            ).delete()
+        return Response()
 
 
 class CollectionUploadViewSet(
