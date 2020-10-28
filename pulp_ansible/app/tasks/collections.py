@@ -443,6 +443,7 @@ class CollectionSyncFirstStage(Stage):
             progress_bar.save()
 
             additional_metadata = {}
+            synced_collections = set()
 
             while not_done:
                 done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
@@ -481,6 +482,21 @@ class CollectionSyncFirstStage(Stage):
                             additional_metadata[version_url] = {
                                 "docs_blob_url": f"{version_url}docs-blob/"
                             }
+
+                        if result.get("metadata", {}).get("dependencies"):
+                            dependencies = result.get("metadata", {}).get("dependencies")
+                            current_namespace = result["namespace"]["name"]
+                            current_name = result["collection"]["name"]
+                            current_collection = f"{current_namespace}/{current_name}"
+                            current_url = _build_url(result["collection"]["href"]).strip("/")
+                            for dependency in dependencies.keys():
+                                if dependency in synced_collections:
+                                    continue
+                                new_url = current_url.replace(
+                                    current_collection, dependency.replace(".", "/")
+                                )
+                                not_done.update([remote.get_downloader(url=new_url).run()])
+                                synced_collections.add(dependency)
 
                         if download_url:
                             _add_collection_level_metadata(data, additional_metadata)
