@@ -344,7 +344,7 @@ class CollectionSyncFirstStage(Stage):
                 api_data = parse_metadata(await downloader.run())
             except (json.decoder.JSONDecodeError, ClientResponseError):
                 # users can use "https://galaxy.ansible.com" as a url so also try {root}/api/
-                root = f"{root}/api/"
+                root = f"{root}/api/" if "/api/" not in root else f"{root}/"
                 downloader = remote.get_downloader(url=root)
                 api_data = parse_metadata(await downloader.run())
 
@@ -355,7 +355,7 @@ class CollectionSyncFirstStage(Stage):
             else:
                 raise RuntimeError(_("Unsupported API versions at {}").format(root))
 
-            endpoint = f"{root}v{self.api_version}/collections/"
+            endpoint = f"{root.rstrip('/')}/v{self.api_version}/collections/"
 
             return endpoint, self.api_version
 
