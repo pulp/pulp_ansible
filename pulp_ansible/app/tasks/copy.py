@@ -8,12 +8,20 @@ from pulp_ansible.app.models import AnsibleCollectionDeprecated, AnsibleReposito
 @transaction.atomic
 def copy_content(config):
     """
-    Copy content from one repo to another.
+    Copy content from one repo to another in a single transaction.
 
-    Accepts a config containing:
-      * source_repo_version_pk: repository version primary key to copy units from
-      * dest_repo_pk: repository primary key to copy units into
-      * content_pks: a list of content pks to copy from source to destination
+    This should be an iterable of dictionaries, with each dictionary containing the following keys:
+
+        * source_repo_version: The RepositoryVersion pk
+        * dest_repo: The pk of the `AnsibleRepository` pk to copy content into. This repository will
+            receive the new RepositoryVersion with the copied content.
+        * `content`: An optional key that if specified should contain a list of pks to copy. These
+            specified keys must be members of the `source_repo_version`. If unspecified all content
+            from the `source_repo_version` will be copied to the `dest_repo`.
+
+    Args:
+        config (iterable): The config that identifies the `source_repo_version`, `dest_repo`, and
+            and `content`.
 
     """
 
