@@ -451,10 +451,10 @@ class CollectionSyncFirstStage(Stage):
 
                         if result.get("deprecated"):
                             name = result["name"]
-                            if api_version < 3:
-                                namespace = result["namespace"]["name"]
-                            else:
-                                namespace = result["namespace"]
+                            try:
+                                namespace = result["namespace"]["name"]  # api v3
+                            except TypeError:
+                                namespace = result["namespace"]  # api v2
                             additional_metadata[f"{namespace}_{name}"] = {
                                 "deprecated": result["deprecated"]
                             }

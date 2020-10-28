@@ -14,6 +14,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.serializers import ValidationError as DRFValidationError
 
+from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import (
@@ -207,7 +208,7 @@ class RoleRemoteViewSet(RemoteViewSet):
     serializer_class = RoleRemoteSerializer
 
 
-class AnsibleRepositoryViewSet(RepositoryViewSet):
+class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
     """
     ViewSet for Ansible Repositories.
     """
