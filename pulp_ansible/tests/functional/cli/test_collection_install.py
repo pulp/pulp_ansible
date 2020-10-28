@@ -95,7 +95,7 @@ class InstallCollectionTestCase(unittest.TestCase):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         body = gen_ansible_remote(
             url=AUTOMATION_HUB_URL,
-            requirements="collections:\n  - ansible.posix",
+            requirements_file="collections:\n  - ansible.posix",
             auth_url=AH_AUTH_URL,
             token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
             tls_validation=False,
@@ -125,7 +125,7 @@ class InstallCollectionTestCase(unittest.TestCase):
 
         body = gen_ansible_remote(
             url=GALAXY_ANSIBLE_BASE_URL,
-            requirements="collections:\n  - pulp.pulp_installer",
+            requirements_file="collections:\n  - pulp.pulp_installer",
             token=token,
         )
         self.create_install_scenario(body, "pulp.pulp_installer")
