@@ -284,7 +284,8 @@ class CollectionSyncFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        with ProgressReport(message="Parsing Collection Metadata", code="parsing.metadata") as pb:
+        msg = "Parsing CollectionVersion Metadata"
+        with ProgressReport(message=msg, code="parsing.metadata") as pb:
             async for metadata in self._fetch_collections():
 
                 url = metadata["download_url"]
@@ -384,13 +385,12 @@ class CollectionSyncFirstStage(Stage):
             downloader = remote.get_downloader(url=url)
             data = parse_metadata(await downloader.run())
 
-            _count = data.get("count") or data.get("meta", {}).get("count", 1)
+            count = data.get("count") or data.get("meta", {}).get("count", 1)
             if collection_info and not versions_url:
-                count = len(collection_info) * PAGE_SIZE
+                count = len(collection_info)
+                page_count = count
             else:
-                count = _count
-
-            page_count = math.ceil(float(count) / float(PAGE_SIZE))
+                page_count = math.ceil(float(count) / float(PAGE_SIZE))
 
             for page in range(1, page_count + 1):
                 url = await _get_url(page, versions_url)
@@ -436,6 +436,7 @@ class CollectionSyncFirstStage(Stage):
                         if result.get("versions_url"):
                             versions_url = _build_url(result.get("versions_url"))
                             await _loop_through_pages(not_done, versions_url)
+                            progress_bar.increment()
 
                         if result.get("version") and not download_url:
                             version_url = _build_url(result["href"])
@@ -448,7 +449,6 @@ class CollectionSyncFirstStage(Stage):
                             metadata = additional_metadata.get(_build_url(data["href"]), {})
                             data["docs_blob_url"] = metadata.get("docs_blob_url")
                             yield data
-                            progress_bar.increment()
 
 
 class DocsBlobDownloader(ArtifactDownloader):
