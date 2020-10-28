@@ -1,4 +1,3 @@
-from gettext import gettext as _
 from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
@@ -47,12 +46,12 @@ class CollectionSerializer(serializers.ModelSerializer):
         )
 
     def get_created_at(self, obj):
-        """Get the timestamp of the lowest version CollectionVersion's created timestamp"""
+        """Get the timestamp of the lowest version CollectionVersion's created timestamp."""
         collection = self.context["lowest_versions"][obj.pk]
         return collection.pulp_created
 
     def get_updated_at(self, obj):
-        """Get the timestamp of the highest version CollectionVersion's created timestamp"""
+        """Get the timestamp of the highest version CollectionVersion's created timestamp."""
         collection = self.context["highest_versions"][obj.pk]
         return collection.pulp_created
 

@@ -203,21 +203,62 @@
                 }
             }
         },
+        "/pulp/api/v3/ansible/copy/": {
+            "post": {
+                "operationId": "copy_content",
+                "description": "Trigger an asynchronous task to copy ansible content from one repository into another, creating a new repository version.",
+                "summary": "Copy content",
+                "tags": [
+                    "Ansible: Copy"
+                ],
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Copy"
+                            }
+                        },
+                        "application/x-www-form-urlencoded": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Copy"
+                            }
+                        },
+                        "multipart/form-data": {
+                            "schema": {
+                                "$ref": "#/components/schemas/Copy"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "security": [
+                    {
+                        "cookieAuth": []
+                    },
+                    {
+                        "basicAuth": []
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/AsyncOperationResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/pulp/api/v3/content/ansible/collection_versions/": {
             "get": {
                 "operationId": "content_ansible_collection_versions_list",
                 "description": "ViewSet for Ansible Collection.",
                 "summary": "List collection versions",
                 "parameters": [
-                    {
-                        "name": "deprecated",
-                        "required": false,
-                        "in": "query",
-                        "description": "deprecated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     {
                         "name": "is_highest",
                         "required": false,
@@ -3442,7 +3483,7 @@
                     }
                 }
             },
-            "put": {
+            "patch": {
                 "operationId": "pulp_ansible_galaxy_api_v3_collections_update",
                 "description": "Update a Collection object.",
                 "parameters": [
@@ -3478,17 +3519,17 @@
                     "content": {
                         "application/json": {
                             "schema": {
-                                "$ref": "#/components/schemas/Collection"
+                                "$ref": "#/components/schemas/PatchedCollection"
                             }
                         },
                         "application/x-www-form-urlencoded": {
                             "schema": {
-                                "$ref": "#/components/schemas/Collection"
+                                "$ref": "#/components/schemas/PatchedCollection"
                             }
                         },
                         "multipart/form-data": {
                             "schema": {
-                                "$ref": "#/components/schemas/Collection"
+                                "$ref": "#/components/schemas/PatchedCollection"
                             }
                         }
                     },
@@ -3513,15 +3554,6 @@
                 "operationId": "pulp_ansible_galaxy_api_v3_collections_versions_list",
                 "description": "Returns paginated CollectionVersions list.",
                 "parameters": [
-                    {
-                        "name": "deprecated",
-                        "required": false,
-                        "in": "query",
-                        "description": "deprecated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
                     {
                         "name": "is_highest",
                         "required": false,
@@ -3838,28 +3870,6 @@
                     "task"
                 ]
             },
-            "Collection": {
-                "type": "object",
-                "description": "A serializer for a Collection.",
-                "properties": {
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "deprecated": {
-                        "type": "boolean"
-                    }
-                },
-                "required": [
-                    "created_at",
-                    "deprecated",
-                    "updated_at"
-                ]
-            },
             "CollectionImportDetailResponse": {
                 "type": "object",
                 "description": "A serializer for a CollectionImport detail view.",
@@ -4032,14 +4042,6 @@
                         "type": "string",
                         "readOnly": true
                     },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
                     "namespace": {
                         "type": "string",
                         "readOnly": true
@@ -4058,12 +4060,18 @@
                     "highest_version": {
                         "type": "object",
                         "readOnly": true
+                    },
+                    "created_at": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "updated_at": {
+                        "type": "string",
+                        "readOnly": true
                     }
                 },
                 "required": [
-                    "created_at",
-                    "deprecated",
-                    "updated_at"
+                    "deprecated"
                 ]
             },
             "CollectionVersionDocsResponse": {
@@ -4178,6 +4186,19 @@
                     "added",
                     "present",
                     "removed"
+                ]
+            },
+            "Copy": {
+                "type": "object",
+                "description": "A serializer for Content Copy API.",
+                "properties": {
+                    "config": {
+                        "type": "object",
+                        "description": "A JSON document describing sources, destinations, and content to be copied"
+                    }
+                },
+                "required": [
+                    "config"
                 ]
             },
             "GalaxyCollection": {
@@ -4734,6 +4755,15 @@
                         "items": {
                             "$ref": "#/components/schemas/ansible.RoleResponse"
                         }
+                    }
+                }
+            },
+            "PatchedCollection": {
+                "type": "object",
+                "description": "A serializer for a Collection.",
+                "properties": {
+                    "deprecated": {
+                        "type": "boolean"
                     }
                 }
             },
@@ -5491,6 +5521,11 @@
                 "type": "object",
                 "description": "A serializer for CollectionVersion Content.",
                 "properties": {
+                    "pulp_href": {
+                        "type": "string",
+                        "format": "uri",
+                        "readOnly": true
+                    },
                     "artifact": {
                         "type": "string",
                         "format": "uri",
@@ -5501,11 +5536,6 @@
                         "format": "date-time",
                         "readOnly": true,
                         "description": "Timestamp of creation."
-                    },
-                    "pulp_href": {
-                        "type": "string",
-                        "format": "uri",
-                        "readOnly": true
                     },
                     "md5": {
                         "type": "string",
@@ -5616,11 +5646,6 @@
                         "type": "string",
                         "description": "The version of the collection.",
                         "maxLength": 32
-                    },
-                    "deprecated": {
-                        "type": "boolean",
-                        "readOnly": true,
-                        "description": "Whether or not the collection has been deprecated."
                     }
                 },
                 "required": [
@@ -5820,6 +5845,11 @@
                 "type": "object",
                 "description": "A serializer for Role versions.",
                 "properties": {
+                    "pulp_href": {
+                        "type": "string",
+                        "format": "uri",
+                        "readOnly": true
+                    },
                     "artifact": {
                         "type": "string",
                         "format": "uri",
@@ -5830,11 +5860,6 @@
                         "format": "date-time",
                         "readOnly": true,
                         "description": "Timestamp of creation."
-                    },
-                    "pulp_href": {
-                        "type": "string",
-                        "format": "uri",
-                        "readOnly": true
                     },
                     "version": {
                         "type": "string"

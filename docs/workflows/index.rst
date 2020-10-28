@@ -16,7 +16,7 @@
     To make these workflows copy/paste-able, we make use of environment variables. The first
     variable to set is the hostname and port::
 
-       export BASE_ADDR=http://<hostname>:24817
+       export BASE_ADDR=http://<hostname>
 
 
 .. toctree::
@@ -24,3 +24,4 @@
 
    roles
    collections
+   copy

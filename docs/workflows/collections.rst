@@ -268,16 +268,3 @@ Collection to pulp_ansible and display it::
 
 The client upload the Collection to the Repository associated with the Distribution. Each upload
 creates a new Repository Version for the Repository.
-
-
-Add/Remove Content to a Repository
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Whether your Role was fetched with a sync or uploaded, any content can also be added/removed to a
-repository manually::
-
-    http POST localhost/pulp/api/v3/repositories/ansible/ansible/05813fa6-cf0b-435b-b54b-5a30fc370848/modify/ \
-        add_content_units:="['/pulp/api/v3/content/ansible/collections/d2bab58c-50f2-4f1d-9cf0-8ceb1680f31b/']"
-
-
-This is entirely implemented by `pulpcore`, please see their reference docs for more information.
