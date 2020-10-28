@@ -12,6 +12,8 @@ class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
 
     deprecated = serializers.BooleanField()
+    created_at = serializers.SerializerMethodField()
+    updated_at = serializers.SerializerMethodField()
     href = serializers.SerializerMethodField()
 
     versions_url = serializers.SerializerMethodField()
@@ -25,6 +27,8 @@ class CollectionSerializer(serializers.ModelSerializer):
             "deprecated",
             "versions_url",
             "highest_version",
+            "created_at",
+            "updated_at",
         )
         model = models.Collection
 
@@ -41,6 +45,16 @@ class CollectionSerializer(serializers.ModelSerializer):
             "collection-versions-list",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
+
+    def get_created_at(self, obj):
+        """Get the timestamp of the lowest version CollectionVersion's created timestamp"""
+        collection = self.context["lowest_versions"][obj.pk]
+        return collection.pulp_created
+
+    def get_updated_at(self, obj):
+        """Get the timestamp of the highest version CollectionVersion's created timestamp"""
+        collection = self.context["highest_versions"][obj.pk]
+        return collection.pulp_created
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):

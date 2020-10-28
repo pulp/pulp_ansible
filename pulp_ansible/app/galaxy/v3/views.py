@@ -44,7 +44,7 @@ from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import CollectionVersionFilter
 
 
-CollectionTuple = namedtuple("CollectionTuple", ["namespace", "name", "version"])
+CollectionTuple = namedtuple("CollectionTuple", ["namespace", "name", "version", "pulp_created"])
 
 
 class AnsibleDistributionMixin:
@@ -161,17 +161,25 @@ class CollectionViewSet(
             "namespace",
             "name",
             "version",
+            "pulp_created",
         )
 
         highest_versions = defaultdict(
-            lambda: CollectionTuple(None, None, semantic_version.Version("0.0.0"))
+            lambda: CollectionTuple(None, None, semantic_version.Version("0.0.0"), None)
         )
-        for collection_id, namespace, name, version in versions_qs:
-            possible_highest = semantic_version.Version(version)
-            if possible_highest > highest_versions[collection_id].version:
-                highest_versions[collection_id] = CollectionTuple(namespace, name, possible_highest)
+        lowest_versions = defaultdict(
+            lambda: CollectionTuple(None, None, semantic_version.Version("100000000000.0.0"), None)
+        )
+        for collection_id, namespace, name, version, pulp_created in versions_qs:
+            version_to_consider = semantic_version.Version(version)
+            collection_tuple = CollectionTuple(namespace, name, version_to_consider, pulp_created)
+            if version_to_consider > highest_versions[collection_id].version:
+                highest_versions[collection_id] = collection_tuple
+            if version_to_consider < lowest_versions[collection_id].version:
+                lowest_versions[collection_id] = collection_tuple
 
         self.highest_versions_context = highest_versions  # needed by get__serializer_context
+        self.lowest_versions_context = lowest_versions  # needed by get__serializer_context
         return collections
 
     def get_object(self):
@@ -191,6 +199,7 @@ class CollectionViewSet(
         """
         super_data = super().get_serializer_context()
         super_data["highest_versions"] = self.highest_versions_context
+        super_data["lowest_versions"] = self.lowest_versions_context
         return super_data
 
     def update(self, request):
