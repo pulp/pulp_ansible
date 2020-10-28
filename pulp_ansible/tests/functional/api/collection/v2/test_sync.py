@@ -248,6 +248,31 @@ class SyncTestCase(unittest.TestCase):
 
         self.assertEqual(collection_remote.status_code, 400, collection_remote)
 
+    def test_sync_with_aws_requirements(self):
+        """Test to sync down amazon.aws versions."""
+        requirements_file = "collections:\n  - amazon.aws"
+
+        repo = self.client.post(ANSIBLE_REPO_PATH, gen_repo())
+        self.addCleanup(self.client.delete, repo["pulp_href"])
+
+        collection_remote = self.client.post(
+            ANSIBLE_COLLECTION_REMOTE_PATH,
+            gen_ansible_remote(
+                url=GALAXY_ANSIBLE_BASE_URL,
+                requirements_file=requirements_file,
+            ),
+        )
+
+        self.addCleanup(self.client.delete, collection_remote["pulp_href"])
+
+        sync(self.cfg, collection_remote, repo, mirror=True)
+        repo = self.client.get(repo["pulp_href"])
+        added_content_summary = get_added_content_summary(repo)
+        self.assertGreaterEqual(added_content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], 67)
+
+        content_summary = get_content_summary(repo)
+        self.assertGreaterEqual(content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], 67)
+
 
 class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
     """Test whether one can sync collections from a Pulp server.

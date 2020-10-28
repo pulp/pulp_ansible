@@ -147,27 +147,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ansible.CollectionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/Paginatedansible.CollectionResponseList"
                                 }
                             }
                         },
@@ -178,7 +158,7 @@
         },
         "{ansible_collection_href}": {
             "get": {
-                "operationId": "galaxy_collection_detail_read",
+                "operationId": "galaxy_collection_detail_get",
                 "description": "Get the detail view of a Collection.",
                 "parameters": [
                     {
@@ -229,20 +209,6 @@
                 "description": "ViewSet for Ansible Collection.",
                 "summary": "List collection versions",
                 "parameters": [
-                    {
-                        "name": "certification",
-                        "required": false,
-                        "in": "query",
-                        "description": "certification",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "certified",
-                                "not_certified",
-                                "needs_review"
-                            ]
-                        }
-                    },
                     {
                         "name": "deprecated",
                         "required": false,
@@ -393,27 +359,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ansible.CollectionVersionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/Paginatedansible.CollectionVersionResponseList"
                                 }
                             }
                         },
@@ -457,7 +403,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -646,27 +592,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ansible.RoleResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/Paginatedansible.RoleResponseList"
                                 }
                             }
                         },
@@ -710,7 +636,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -899,27 +825,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ansible.AnsibleDistributionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/Paginatedansible.AnsibleDistributionResponseList"
                                 }
                             }
                         },
@@ -1043,69 +949,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "base_path",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__contains",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__contains",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__icontains",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__icontains",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -1164,69 +1007,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "base_path",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__contains",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__contains",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__icontains",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__icontains",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -1285,69 +1065,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "base_path",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__contains",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__contains",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__icontains",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__icontains",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "base_path__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "base_path__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -1441,27 +1158,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/TagResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedTagResponseList"
                                 }
                             }
                         },
@@ -1608,27 +1305,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ansible.CollectionRemoteResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/Paginatedansible.CollectionRemoteResponseList"
                                 }
                             }
                         },
@@ -1672,7 +1349,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -1752,87 +1429,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__range",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -1891,87 +1487,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__range",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -2030,87 +1545,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__range",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -2276,27 +1710,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ansible.RoleRemoteResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/Paginatedansible.RoleRemoteResponseList"
                                 }
                             }
                         },
@@ -2340,7 +1754,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2420,87 +1834,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__range",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -2559,87 +1892,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__range",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -2698,87 +1950,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_last_updated__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_last_updated__range",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -2890,27 +2061,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/ansible.AnsibleRepositoryResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/Paginatedansible.AnsibleRepositoryResponseList"
                                 }
                             }
                         },
@@ -2954,7 +2105,7 @@
                     }
                 ],
                 "responses": {
-                    "200": {
+                    "201": {
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3034,33 +2185,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -3119,33 +2243,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -3204,33 +2301,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "name__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "name__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -3577,27 +2647,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/RepositoryVersionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedRepositoryVersionResponseList"
                                 }
                             }
                         },
@@ -3673,141 +2723,6 @@
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "content",
-                        "required": false,
-                        "in": "query",
-                        "description": "content",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "content__in",
-                        "required": false,
-                        "in": "query",
-                        "description": "content__in",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "number",
-                        "required": false,
-                        "in": "query",
-                        "description": "number",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "number__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "number__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "number__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "number__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "number__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "number__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "number__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "number__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "number__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "number__range",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "ordering",
-                        "required": false,
-                        "in": "query",
-                        "description": "Which field to use when ordering the results.",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_created",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_created",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_created__gt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_created__gt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_created__gte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_created__gte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_created__lt",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_created__lt",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_created__lte",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_created__lte",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "pulp_created__range",
-                        "required": false,
-                        "in": "query",
-                        "description": "pulp_created__range",
-                        "schema": {
-                            "type": "string"
-                        }
                     }
                 ],
                 "tags": [
@@ -3896,7 +2811,7 @@
         },
         "/pulp_ansible/galaxy/{path}/api/": {
             "get": {
-                "operationId": "pulp_ansible_galaxy_api_read",
+                "operationId": "pulp_ansible_galaxy_api_get",
                 "description": "Return a response to the \"GET\" action.",
                 "parameters": [
                     {
@@ -3936,7 +2851,7 @@
         },
         "{ansible_role_href}api/v1/roles/": {
             "get": {
-                "operationId": "v1_roles_list",
+                "operationId": "api_v1_roles_get",
                 "description": "APIView for Roles.",
                 "parameters": [
                     {
@@ -3983,34 +2898,14 @@
                     }
                 ],
                 "tags": [
-                    "V1: Roles"
+                    "Api: Roles"
                 ],
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/GalaxyRoleResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedGalaxyRoleResponseList"
                                 }
                             }
                         },
@@ -4021,7 +2916,7 @@
         },
         "{ansible_role_href}versions/": {
             "get": {
-                "operationId": "role_version_list_list",
+                "operationId": "versions_get",
                 "description": "APIView for Role Versions.",
                 "parameters": [
                     {
@@ -4068,34 +2963,14 @@
                     }
                 ],
                 "tags": [
-                    "Role: List"
+                    "Versions"
                 ],
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/GalaxyRoleVersionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedGalaxyRoleVersionResponseList"
                                 }
                             }
                         },
@@ -4170,7 +3045,7 @@
         },
         "{ansible_collection_href}api/v2/collections/": {
             "get": {
-                "operationId": "v2_collections_list",
+                "operationId": "api_v2_collections_get",
                 "description": "View for Collection models.",
                 "parameters": [
                     {
@@ -4208,34 +3083,14 @@
                     }
                 ],
                 "tags": [
-                    "V2: Collections"
+                    "Api: Collections"
                 ],
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/GalaxyCollectionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedGalaxyCollectionResponseList"
                                 }
                             }
                         },
@@ -4244,7 +3099,7 @@
                 }
             },
             "post": {
-                "operationId": "v2_collections_create",
+                "operationId": "api_v2_collections_post",
                 "description": "Queues a task that creates a new Collection from an uploaded artifact.",
                 "parameters": [
                     {
@@ -4257,7 +3112,7 @@
                     }
                 ],
                 "tags": [
-                    "V2: Collections"
+                    "Api: Collections"
                 ],
                 "requestBody": {
                     "content": {
@@ -4295,7 +3150,7 @@
         },
         "{ansible_collection_version_href}versions/": {
             "get": {
-                "operationId": "galaxy_collection_version_list_list",
+                "operationId": "versions_get",
                 "description": "APIView for Collections by namespace/name.",
                 "parameters": [
                     {
@@ -4307,19 +3162,10 @@
                         "required": true
                     },
                     {
-                        "name": "limit",
+                        "name": "page",
                         "required": false,
                         "in": "query",
-                        "description": "Number of results to return per page.",
-                        "schema": {
-                            "type": "integer"
-                        }
-                    },
-                    {
-                        "name": "offset",
-                        "required": false,
-                        "in": "query",
-                        "description": "The initial index from which to return the results.",
+                        "description": "A page number within the paginated result set.",
                         "schema": {
                             "type": "integer"
                         }
@@ -4342,34 +3188,14 @@
                     }
                 ],
                 "tags": [
-                    "Galaxy: Collection List"
+                    "Versions"
                 ],
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/GalaxyCollectionVersionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedGalaxyCollectionVersionResponseList"
                                 }
                             }
                         },
@@ -4380,7 +3206,7 @@
         },
         "/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/versions/{version}/": {
             "get": {
-                "operationId": "pulp_ansible_galaxy_api_v2_collections_versions_read",
+                "operationId": "pulp_ansible_galaxy_api_v2_collections_versions_get",
                 "description": "Return a response to the \"GET\" action.",
                 "parameters": [
                     {
@@ -4545,27 +3371,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/CollectionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedCollectionResponseList"
                                 }
                             }
                         },
@@ -4707,20 +3513,6 @@
                 "operationId": "pulp_ansible_galaxy_api_v3_collections_versions_list",
                 "description": "Returns paginated CollectionVersions list.",
                 "parameters": [
-                    {
-                        "name": "certification",
-                        "required": false,
-                        "in": "query",
-                        "description": "certification",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "certified",
-                                "not_certified",
-                                "needs_review"
-                            ]
-                        }
-                    },
                     {
                         "name": "deprecated",
                         "required": false,
@@ -4878,27 +3670,7 @@
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "type": "object",
-                                    "properties": {
-                                        "count": {
-                                            "type": "integer",
-                                            "example": 123
-                                        },
-                                        "next": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "previous": {
-                                            "type": "string",
-                                            "nullable": true
-                                        },
-                                        "results": {
-                                            "type": "array",
-                                            "items": {
-                                                "$ref": "#/components/schemas/CollectionVersionResponse"
-                                            }
-                                        }
-                                    }
+                                    "$ref": "#/components/schemas/PaginatedCollectionVersionResponseList"
                                 }
                             }
                         },
@@ -4913,38 +3685,6 @@
                 "description": "Returns a CollectionVersion object.",
                 "parameters": [
                     {
-                        "name": "certification",
-                        "required": false,
-                        "in": "query",
-                        "description": "certification",
-                        "schema": {
-                            "type": "string",
-                            "enum": [
-                                "certified",
-                                "not_certified",
-                                "needs_review"
-                            ]
-                        }
-                    },
-                    {
-                        "name": "deprecated",
-                        "required": false,
-                        "in": "query",
-                        "description": "deprecated",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "is_highest",
-                        "required": false,
-                        "in": "query",
-                        "description": "is_highest",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
                         "in": "path",
                         "name": "name",
                         "schema": {
@@ -4953,30 +3693,12 @@
                         "required": true
                     },
                     {
-                        "name": "name",
-                        "required": false,
-                        "in": "query",
-                        "description": "name",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
                         "in": "path",
                         "name": "namespace",
                         "schema": {
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "namespace",
-                        "required": false,
-                        "in": "query",
-                        "description": "namespace",
-                        "schema": {
-                            "type": "string"
-                        }
                     },
                     {
                         "in": "path",
@@ -4987,66 +3709,12 @@
                         "required": true
                     },
                     {
-                        "name": "q",
-                        "required": false,
-                        "in": "query",
-                        "description": "q",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "repository_version",
-                        "required": false,
-                        "in": "query",
-                        "description": "repository_version",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "repository_version_added",
-                        "required": false,
-                        "in": "query",
-                        "description": "repository_version_added",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "repository_version_removed",
-                        "required": false,
-                        "in": "query",
-                        "description": "repository_version_removed",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
-                        "name": "tags",
-                        "required": false,
-                        "in": "query",
-                        "description": "tags",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    {
                         "in": "path",
                         "name": "version",
                         "schema": {
                             "type": "string"
                         },
                         "required": true
-                    },
-                    {
-                        "name": "version",
-                        "required": false,
-                        "in": "query",
-                        "description": "version",
-                        "schema": {
-                            "type": "string"
-                        }
                     },
                     {
                         "in": "query",
@@ -5082,10 +3750,10 @@
                 }
             }
         },
-        "/pulp_ansible/galaxy/{path}/api/v3/collections/{namespace}/{name}/versions/{version}/certified/": {
-            "put": {
-                "operationId": "pulp_ansible_galaxy_api_v3_collections_versions_certified_set_certified",
-                "description": "Set collection version certified status.",
+        "/pulp_ansible/galaxy/{path}/api/v3/collections/{namespace}/{name}/versions/{version}/docs-blob/": {
+            "get": {
+                "operationId": "pulp_ansible_galaxy_api_v3_collections_versions_docs_blob_read",
+                "description": "Returns a CollectionVersion object.",
                 "parameters": [
                     {
                         "in": "path",
@@ -5118,37 +3786,33 @@
                             "type": "string"
                         },
                         "required": true
+                    },
+                    {
+                        "in": "query",
+                        "name": "fields",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "A list of fields to include in the response."
+                    },
+                    {
+                        "in": "query",
+                        "name": "exclude_fields",
+                        "schema": {
+                            "type": "string"
+                        },
+                        "description": "A list of fields to exclude from the response."
                     }
                 ],
                 "tags": [
-                    "Pulp_Ansible: Galaxy Api V3 Collections Certified"
+                    "Pulp_Ansible: Galaxy Api V3 Collections Docs-Blob"
                 ],
-                "requestBody": {
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CollectionVersion"
-                            }
-                        },
-                        "application/x-www-form-urlencoded": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CollectionVersion"
-                            }
-                        },
-                        "multipart/form-data": {
-                            "schema": {
-                                "$ref": "#/components/schemas/CollectionVersion"
-                            }
-                        }
-                    },
-                    "required": true
-                },
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/CollectionVersionResponse"
+                                    "$ref": "#/components/schemas/CollectionVersionDocsResponse"
                                 }
                             }
                         },
@@ -5173,14 +3837,6 @@
                 "required": [
                     "task"
                 ]
-            },
-            "CertificationEnum": {
-                "enum": [
-                    "certified",
-                    "not_certified",
-                    "needs_review"
-                ],
-                "type": "string"
             },
             "Collection": {
                 "type": "object",
@@ -5249,21 +3905,6 @@
                     "updated_at"
                 ]
             },
-            "CollectionMetadata": {
-                "type": "object",
-                "description": "A serializer for a CollectionVersion metadata.",
-                "properties": {
-                    "tags": {
-                        "type": "array",
-                        "items": {
-                            "type": "string"
-                        }
-                    }
-                },
-                "required": [
-                    "tags"
-                ]
-            },
             "CollectionMetadataResponse": {
                 "type": "object",
                 "description": "A serializer for a CollectionVersion metadata.",
@@ -5289,21 +3930,15 @@
                     },
                     "documentation": {
                         "type": "string",
-                        "format": "uri",
-                        "readOnly": true,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "readOnly": true
                     },
                     "homepage": {
                         "type": "string",
-                        "format": "uri",
-                        "readOnly": true,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "readOnly": true
                     },
                     "issues": {
                         "type": "string",
-                        "format": "uri",
-                        "readOnly": true,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "readOnly": true
                     },
                     "license": {
                         "type": "array",
@@ -5314,9 +3949,7 @@
                     },
                     "repository": {
                         "type": "string",
-                        "format": "uri",
-                        "readOnly": true,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "readOnly": true
                     },
                     "tags": {
                         "type": "array",
@@ -5327,18 +3960,6 @@
                 },
                 "required": [
                     "tags"
-                ]
-            },
-            "CollectionNamespace": {
-                "type": "object",
-                "description": "A serializer for a Collection Version namespace field.",
-                "properties": {
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "name"
                 ]
             },
             "CollectionNamespaceResponse": {
@@ -5383,22 +4004,6 @@
                     "file"
                 ]
             },
-            "CollectionRef": {
-                "type": "object",
-                "description": "A serializer for a Collection reference.",
-                "properties": {
-                    "id": {
-                        "type": "string"
-                    },
-                    "name": {
-                        "type": "string"
-                    }
-                },
-                "required": [
-                    "id",
-                    "name"
-                ]
-            },
             "CollectionRefResponse": {
                 "type": "object",
                 "description": "A serializer for a Collection reference.",
@@ -5410,6 +4015,7 @@
                         "type": "string"
                     },
                     "href": {
+                        "type": "string",
                         "readOnly": true
                     }
                 },
@@ -5423,6 +4029,7 @@
                 "description": "A serializer for a Collection.",
                 "properties": {
                     "href": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "created_at": {
@@ -5445,9 +4052,11 @@
                         "type": "boolean"
                     },
                     "versions_url": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "highest_version": {
+                        "type": "object",
                         "readOnly": true
                     }
                 },
@@ -5457,25 +4066,16 @@
                     "updated_at"
                 ]
             },
-            "CollectionVersion": {
+            "CollectionVersionDocsResponse": {
                 "type": "object",
-                "description": "A serializer for a CollectionVersion.",
+                "description": "A serializer to display the docs_blob of a CollectionVersion.",
                 "properties": {
-                    "certification": {
-                        "$ref": "#/components/schemas/CertificationEnum"
-                    },
-                    "created_at": {
-                        "type": "string",
-                        "format": "date-time"
-                    },
-                    "updated_at": {
-                        "type": "string",
-                        "format": "date-time"
+                    "docs_blob": {
+                        "type": "object"
                     }
                 },
                 "required": [
-                    "created_at",
-                    "updated_at"
+                    "docs_blob"
                 ]
             },
             "CollectionVersionResponse": {
@@ -5486,10 +4086,8 @@
                         "type": "string",
                         "readOnly": true
                     },
-                    "certification": {
-                        "$ref": "#/components/schemas/CertificationEnum"
-                    },
                     "href": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "created_at": {
@@ -5501,6 +4099,7 @@
                         "format": "date-time"
                     },
                     "artifact": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "collection": {
@@ -5512,6 +4111,7 @@
                         "readOnly": true
                     },
                     "download_url": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "name": {
@@ -5584,38 +4184,68 @@
                 "type": "object",
                 "description": "A serializer for a Collection.",
                 "properties": {
+                    "id": {
+                        "type": "string"
+                    },
                     "name": {
                         "type": "string"
                     },
-                    "namespace": {
-                        "type": "string"
+                    "created": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "modified": {
+                        "type": "string",
+                        "format": "date-time"
                     }
                 },
                 "required": [
-                    "name",
-                    "namespace"
+                    "created",
+                    "id",
+                    "modified",
+                    "name"
                 ]
             },
             "GalaxyCollectionResponse": {
                 "type": "object",
                 "description": "A serializer for a Collection.",
                 "properties": {
+                    "id": {
+                        "type": "string"
+                    },
                     "name": {
                         "type": "string"
                     },
                     "namespace": {
-                        "type": "string"
+                        "type": "object",
+                        "readOnly": true
                     },
                     "href": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "versions_url": {
+                        "type": "string",
+                        "readOnly": true
+                    },
+                    "created": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "modified": {
+                        "type": "string",
+                        "format": "date-time"
+                    },
+                    "latest_version": {
+                        "type": "object",
                         "readOnly": true
                     }
                 },
                 "required": [
-                    "name",
-                    "namespace"
+                    "created",
+                    "id",
+                    "modified",
+                    "name"
                 ]
             },
             "GalaxyCollectionVersionResponse": {
@@ -5626,15 +4256,19 @@
                         "type": "string"
                     },
                     "href": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "namespace": {
+                        "type": "object",
                         "readOnly": true
                     },
                     "collection": {
+                        "type": "object",
                         "readOnly": true
                     },
                     "artifact": {
+                        "type": "object",
                         "readOnly": true
                     },
                     "metadata": {
@@ -5651,6 +4285,7 @@
                 "description": "A serializer for Galaxy's representation of Roles.",
                 "properties": {
                     "id": {
+                        "type": "string",
                         "readOnly": true
                     },
                     "name": {
@@ -5673,12 +4308,434 @@
                         "type": "string"
                     },
                     "source": {
+                        "type": "string",
                         "readOnly": true
                     }
                 },
                 "required": [
                     "name"
                 ]
+            },
+            "PaginatedCollectionResponseList": {
+                "type": "object",
+                "properties": {
+                    "meta": {
+                        "count": {
+                            "type": "integer",
+                            "example": 123
+                        }
+                    },
+                    "links": {
+                        "first": {
+                            "type": "string",
+                            "nullable": true
+                        },
+                        "previous": {
+                            "type": "string",
+                            "nullable": true
+                        },
+                        "next": {
+                            "type": "string",
+                            "nullable": true
+                        },
+                        "last": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CollectionResponse"
+                        }
+                    }
+                }
+            },
+            "PaginatedCollectionVersionResponseList": {
+                "type": "object",
+                "properties": {
+                    "meta": {
+                        "count": {
+                            "type": "integer",
+                            "example": 123
+                        }
+                    },
+                    "links": {
+                        "first": {
+                            "type": "string",
+                            "nullable": true
+                        },
+                        "previous": {
+                            "type": "string",
+                            "nullable": true
+                        },
+                        "next": {
+                            "type": "string",
+                            "nullable": true
+                        },
+                        "last": {
+                            "type": "string",
+                            "nullable": true
+                        }
+                    },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/CollectionVersionResponse"
+                        }
+                    }
+                }
+            },
+            "PaginatedGalaxyCollectionResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GalaxyCollectionResponse"
+                        }
+                    }
+                }
+            },
+            "PaginatedGalaxyCollectionVersionResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=4"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?page=2"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GalaxyCollectionVersionResponse"
+                        }
+                    }
+                }
+            },
+            "PaginatedGalaxyRoleResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GalaxyRoleResponse"
+                        }
+                    }
+                }
+            },
+            "PaginatedGalaxyRoleVersionResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/GalaxyRoleVersionResponse"
+                        }
+                    }
+                }
+            },
+            "PaginatedRepositoryVersionResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/RepositoryVersionResponse"
+                        }
+                    }
+                }
+            },
+            "PaginatedTagResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/TagResponse"
+                        }
+                    }
+                }
+            },
+            "Paginatedansible.AnsibleDistributionResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ansible.AnsibleDistributionResponse"
+                        }
+                    }
+                }
+            },
+            "Paginatedansible.AnsibleRepositoryResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ansible.AnsibleRepositoryResponse"
+                        }
+                    }
+                }
+            },
+            "Paginatedansible.CollectionRemoteResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ansible.CollectionRemoteResponse"
+                        }
+                    }
+                }
+            },
+            "Paginatedansible.CollectionResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ansible.CollectionResponse"
+                        }
+                    }
+                }
+            },
+            "Paginatedansible.CollectionVersionResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ansible.CollectionVersionResponse"
+                        }
+                    }
+                }
+            },
+            "Paginatedansible.RoleRemoteResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ansible.RoleRemoteResponse"
+                        }
+                    }
+                }
+            },
+            "Paginatedansible.RoleResponseList": {
+                "type": "object",
+                "properties": {
+                    "count": {
+                        "type": "integer",
+                        "example": 123
+                    },
+                    "next": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=400&limit=100"
+                    },
+                    "previous": {
+                        "type": "string",
+                        "nullable": true,
+                        "format": "uri",
+                        "example": "http://api.example.org/accounts/?offset=200&limit=100"
+                    },
+                    "results": {
+                        "type": "array",
+                        "items": {
+                            "$ref": "#/components/schemas/ansible.RoleResponse"
+                        }
+                    }
+                }
             },
             "Patchedansible.AnsibleDistribution": {
                 "type": "object",
@@ -5903,6 +4960,7 @@
             },
             "RepositorySyncURL": {
                 "type": "object",
+                "description": "A mixin for validating unknown serializers' fields.",
                 "properties": {
                     "remote": {
                         "type": "string",
@@ -6050,6 +5108,7 @@
                         "description": "RepositoryVersion to be served"
                     },
                     "client_url": {
+                        "type": "string",
                         "readOnly": true,
                         "description": "The URL of a Collection content source."
                     }
@@ -6369,28 +5428,18 @@
                     },
                     "documentation": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL to any online docs.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "maxLength": 2000
                     },
                     "homepage": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL to the homepage of the collection/project.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "maxLength": 2000
                     },
                     "issues": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL to the collection issue tracker.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
-                    },
-                    "certification": {
-                        "type": "string",
-                        "description": "Indicates that the version is certified"
+                        "maxLength": 2000
                     },
                     "license": {
                         "type": "array",
@@ -6411,10 +5460,8 @@
                     },
                     "repository": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL of the originating SCM repository.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "maxLength": 2000
                     },
                     "version": {
                         "type": "string",
@@ -6425,7 +5472,6 @@
                 "required": [
                     "artifact",
                     "authors",
-                    "certification",
                     "contents",
                     "dependencies",
                     "description",
@@ -6524,28 +5570,18 @@
                     },
                     "documentation": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL to any online docs.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "maxLength": 2000
                     },
                     "homepage": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL to the homepage of the collection/project.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "maxLength": 2000
                     },
                     "issues": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL to the collection issue tracker.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
-                    },
-                    "certification": {
-                        "type": "string",
-                        "description": "Indicates that the version is certified"
+                        "maxLength": 2000
                     },
                     "license": {
                         "type": "array",
@@ -6566,10 +5602,8 @@
                     },
                     "repository": {
                         "type": "string",
-                        "format": "uri",
                         "description": "The URL of the originating SCM repository.",
-                        "maxLength": 2000,
-                        "pattern": "^(?:[a-z0-9\\.\\-\\+]*)://(?:[^\\s:@/]+(?::[^\\s:@/]*)?@)?(?:(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)(?:\\.(?:25[0-5]|2[0-4]\\d|[0-1]?\\d?\\d)){3}|\\[[0-9a-f:\\.]+\\]|([a-z¡-￿0-9](?:[a-z¡-￿0-9-]{0,61}[a-z¡-￿0-9])?(?:\\.(?!-)[a-z¡-￿0-9-]{1,63}(?<!-))*\\.(?!-)(?:[a-z¡-￿-]{2,63}|xn--[a-z0-9]{1,59})(?<!-)\\.?|localhost))(?::\\d{2,5})?(?:[/?#][^\\s]*)?\\Z"
+                        "maxLength": 2000
                     },
                     "tags": {
                         "type": "array",
@@ -6592,7 +5626,6 @@
                 "required": [
                     "artifact",
                     "authors",
-                    "certification",
                     "contents",
                     "dependencies",
                     "description",
@@ -6819,6 +5852,11 @@
                     "namespace",
                     "version"
                 ]
+            },
+            "ansible.Tag": {
+                "type": "object",
+                "description": "A serializer for nesting in the CollectionVersion model.",
+                "properties": {}
             },
             "ansible.TagResponse": {
                 "type": "object",

@@ -331,7 +331,6 @@ class CollectionSyncFirstStage(Stage):
             async generator: dicts that represent collections from galaxy api
 
         """
-        page_count = 1
         remote = self.remote
         collection_info = self.collection_info
 
@@ -349,27 +348,56 @@ class CollectionSyncFirstStage(Stage):
                 api_data = parse_metadata(await downloader.run())
 
             if "v3" in api_data.get("available_versions", {}):
-                api_version = 3
+                self.api_version = 3
             elif "v2" in api_data.get("available_versions", {}):
-                api_version = 2
+                self.api_version = 2
             else:
                 raise RuntimeError(_("Unsupported API versions at {}").format(root))
 
-            endpoint = f"{root}v{api_version}/collections/"
+            endpoint = f"{root}v{self.api_version}/collections/"
 
-            return endpoint, api_version
+            return endpoint, self.api_version
 
-        async def _get_url(page):
-            if collection_info:
+        async def _get_url(page, versions_url=None):
+            if collection_info and not versions_url:
                 name, version, source = collection_info[page - 1]
                 namespace, name = name.split(".")
                 root = source or remote.url
                 api_endpoint = (await _get_collection_api(root))[0]
                 url = f"{api_endpoint}{namespace}/{name}/"
                 return url
-            else:
+
+            if not versions_url:
                 api_endpoint, api_version = await _get_collection_api(remote.url)
                 return get_page_url(api_endpoint, api_version, page)
+
+            if not self.api_version:
+                await _get_collection_api(remote.url)
+
+            return get_page_url(versions_url, self.api_version, page)
+
+        async def _loop_through_pages(not_done, versions_url=None):
+            """
+            Loop through API pagination.
+            """
+            url = await _get_url(1, versions_url)
+            downloader = remote.get_downloader(url=url)
+            data = parse_metadata(await downloader.run())
+
+            _count = data.get("count") or data.get("meta", {}).get("count", 1)
+            if collection_info and not versions_url:
+                count = len(collection_info) * PAGE_SIZE
+            else:
+                count = _count
+
+            page_count = math.ceil(float(count) / float(PAGE_SIZE))
+
+            for page in range(1, page_count + 1):
+                url = await _get_url(page, versions_url)
+                downloader = remote.get_downloader(url=url)
+                not_done.add(downloader.run())
+
+            return count
 
         def _build_url(path_or_url):
             """Check value and turn it into a url using remote.url if it's a relative path."""
@@ -382,21 +410,10 @@ class CollectionSyncFirstStage(Stage):
 
         progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
         with ProgressReport(**progress_data) as progress_bar:
-            url = await _get_url(page_count)
-            downloader = remote.get_downloader(url=url)
-            initial_data = parse_metadata(await downloader.run())
-
-            _count = initial_data.get("count") or initial_data.get("meta", {}).get("count", 1)
-            count = len(self.collection_info) * PAGE_SIZE or _count
-            page_count = math.ceil(float(count) / float(PAGE_SIZE))
+            not_done = set()
+            count = await _loop_through_pages(not_done)
             progress_bar.total = count
             progress_bar.save()
-
-            # Concurrent downloads are limited by aiohttp...
-            not_done = set()
-            for page in range(1, page_count + 1):
-                downloader = remote.get_downloader(url=(await _get_url(page)))
-                not_done.add(downloader.run())
 
             additional_metadata = {}
 
@@ -418,7 +435,7 @@ class CollectionSyncFirstStage(Stage):
 
                         if result.get("versions_url"):
                             versions_url = _build_url(result.get("versions_url"))
-                            not_done.update([remote.get_downloader(url=versions_url).run()])
+                            await _loop_through_pages(not_done, versions_url)
 
                         if result.get("version") and not download_url:
                             version_url = _build_url(result["href"])
