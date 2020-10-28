@@ -202,7 +202,7 @@ class CollectionViewSet(
         super_data["lowest_versions"] = self.lowest_versions_context
         return super_data
 
-    def update(self, request):
+    def update(self, request, *args, **kwargs):
         """
         Update a Collection object.
         """
