@@ -1,4 +1,0 @@
-Url formats must conform to ansible-galaxy cli format (e.g. "https://galaxy.ansible.com" and
-"https://galaxy.ansible.com/api"). This means we no longer support urls such as
-"https://galaxy.ansible.com/api/v2/collections" or
-"https://galaxy.ansible.com/api/v2/collections/amazon/aws".

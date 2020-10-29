@@ -13,6 +13,57 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.0 (2020-10-29)
+==================
+
+Features
+--------
+
+- Adds a new ``/pulp/api/v3/ansible/copy/`` endpoint allowing content to be copied from one
+  ``AnsibleRepository`` version to a destination ``AnsibleRepository``.
+  `#7621 <https://pulp.plan.io/issues/7621>`_
+
+
+Bugfixes
+--------
+
+- Sync collection deprecation status
+  `#7504 <https://pulp.plan.io/issues/7504>`_
+- Supporting url formats that conform to ansible-galaxy cli (e.g. "https://galaxy.ansible.com" and
+  "https://galaxy.ansible.com/api").
+  `#7686 <https://pulp.plan.io/issues/7686>`_
+- Fixed bug where only 10 collections were being synced in some cases
+  `#7740 <https://pulp.plan.io/issues/7740>`_
+- Fixed syncing with a default remote.
+  `#7742 <https://pulp.plan.io/issues/7742>`_
+- Increase the version size for ``CollectionVersions``.
+  `#7745 <https://pulp.plan.io/issues/7745>`_
+- Fixed bug where we didn't properly handle trailing slashes.
+  `#7767 <https://pulp.plan.io/issues/7767>`_
+
+
+Deprecations and Removals
+-------------------------
+
+- Remove 'certification' flag from CollectionVersion
+  `#6715 <https://pulp.plan.io/issues/6715>`_
+- Derive ANSIBLE_CONTENT_HOSTNAME from CONTENT_ORIGIN
+  `#7368 <https://pulp.plan.io/issues/7368>`_
+- Removing `deprecated` field from Collection
+  `#7504 <https://pulp.plan.io/issues/7504>`_
+- Url formats must conform to ansible-galaxy cli format (e.g. "https://galaxy.ansible.com" and
+  "https://galaxy.ansible.com/api"). This means we no longer support urls such as
+  "https://galaxy.ansible.com/api/v2/collections" or
+  "https://galaxy.ansible.com/api/v2/collections/amazon/aws".
+  `#7686 <https://pulp.plan.io/issues/7686>`_
+- Galaxy URLs now require trailing slashes per the ansible-galaxy docs. Made an exception for
+  "https://galaxy.ansible.com" since the ansible-galaxy CLI code does as well.
+  `#7767 <https://pulp.plan.io/issues/7767>`_
+
+
+----
+
+
 0.4.2 (2020-10-09)
 ==================
 
