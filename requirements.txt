@@ -1,6 +1,6 @@
 galaxy_importer
 jsonschema>=3.0
 packaging
-pulpcore>=3.7,<3.10
+pulpcore>=3.7
 PyYAML
 semantic_version
