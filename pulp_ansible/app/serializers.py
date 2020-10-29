@@ -116,6 +116,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
         """
         Validate collection remote data.
 
+            - url: to ensure it ends with slashes.
             - requirements_file: to ensure it is a valid yaml file.
 
         Args:
@@ -128,10 +129,23 @@ class CollectionRemoteSerializer(RemoteSerializer):
             rest_framework.serializers.ValidationError: If the url or requirements_file is invalid
 
         """
+
+        def _validate_url(url):
+            """Based on https://git.io/JTMAA."""
+            if not url.endswith("/") and url != "https://galaxy.ansible.com":
+                raise serializers.ValidationError(
+                    _("Invalid URL {url}. Ensure the URL ends '/'.").format(url=data["url"])
+                )
+
         data = super().validate(data)
 
+        _validate_url(data["url"])
+
         if data.get("requirements_file"):
-            parse_collections_requirements_file(data["requirements_file"])
+            collections = parse_collections_requirements_file(data["requirements_file"])
+            for collection in collections:
+                if collection[2]:
+                    _validate_url(collection[2])
 
         return data
 
@@ -194,7 +208,7 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
         """
         Get client_url.
         """
-        return "{hostname}/pulp_ansible/galaxy/{base_path}".format(
+        return "{hostname}/pulp_ansible/galaxy/{base_path}/".format(
             hostname=settings.ANSIBLE_API_HOSTNAME, base_path=obj.base_path
         )
 

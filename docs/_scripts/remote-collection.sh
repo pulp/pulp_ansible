@@ -1,7 +1,7 @@
 # Create a remote that syncs some versions of django into your repository.
 http POST $BASE_ADDR/pulp/api/v3/remotes/ansible/collection/ \
     name='bar' \
-    url='https://galaxy-dev.ansible.com' \
+    url='https://galaxy-dev.ansible.com/' \
     requirements_file:='"collections:\n  - testing.ansible_testing_content"'
 
 # Export an environment variable for the new remote URI.

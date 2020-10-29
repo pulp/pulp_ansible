@@ -1,0 +1,2 @@
+Galaxy URLs now require trailing slashes per the ansible-galaxy docs. Made an exception for
+"https://galaxy.ansible.com" since the ansible-galaxy CLI code does as well.

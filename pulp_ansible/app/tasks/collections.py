@@ -5,7 +5,7 @@ import json
 import logging
 import math
 import tarfile
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from django.db import transaction
 from django.urls import reverse
@@ -336,17 +336,28 @@ class CollectionSyncFirstStage(Stage):
         collection_info = self.collection_info
 
         async def _get_collection_api(root):
-            """Returns the collection api path and api version."""
-            root = root.rstrip("/")
+            """
+            Returns the collection api path and api version.
+
+            Based on https://git.io/JTMxE.
+            """
+            if root == "https://galaxy.ansible.com" or root == "https://galaxy.ansible.com/":
+                root = "https://galaxy.ansible.com/api/"
+
             downloader = remote.get_downloader(url=root)
 
             try:
                 api_data = parse_metadata(await downloader.run())
             except (json.decoder.JSONDecodeError, ClientResponseError):
-                # users can use "https://galaxy.ansible.com" as a url so also try {root}/api/
-                root = f"{root}/api/"
+                if root.endswith("/api/"):
+                    raise
+
+                root = urljoin(root, "api/")
                 downloader = remote.get_downloader(url=root)
                 api_data = parse_metadata(await downloader.run())
+
+            if "available_versions" not in api_data:
+                raise RuntimeError(_("Could not find 'available_versions' at {}").format(root))
 
             if "v3" in api_data.get("available_versions", {}):
                 self.api_version = 3

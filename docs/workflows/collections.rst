@@ -134,7 +134,7 @@ Remote GET Response::
         "ssl_client_certificate": null,
         "ssl_client_key": null,
         "ssl_validation": true,
-        "url": "https://galaxy-dev.ansible.com",
+        "url": "https://galaxy-dev.ansible.com/",
     }
 
 For `remote sources that require authentication <https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#configuring-the-ansible-galaxy-client>`_, tokens can be used. You can provide the ``token``
@@ -161,7 +161,7 @@ Remote GET Response::
         "ssl_client_certificate": null,
         "ssl_client_key": null,
         "ssl_validation": true,
-        "url": "https://galaxy-dev.ansible.com",
+        "url": "https://galaxy-dev.ansible.com/",
     }
 
 Sync Repository foo with CollectionRemote

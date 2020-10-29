@@ -2,10 +2,9 @@
 """Tests related to sync ansible plugin collection content type."""
 import unittest
 from random import randint
-from functools import reduce
 from urllib.parse import urlsplit, urljoin
 
-import pytest
+from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
 from pulp_smash.pulp3.utils import (
@@ -44,6 +43,33 @@ class SyncTestCase(unittest.TestCase):
         """Create class-wide variables."""
         cls.cfg = config.get_config()
         cls.client = api.Client(cls.cfg)
+
+    def test_remote_urls(self):
+        """This tests that the remote url ends with a "/".
+
+        This test targets https://pulp.plan.io/issues/7767
+
+        ansible-galaxy requires a trailing slash: https://git.io/JTMAA
+
+        It does make an exception for "https://galaxy.ansible.com": https://git.io/JTMpk
+        """
+        body = gen_ansible_remote(url="http://galaxy.ansible.com/api")
+        with self.assertRaises(HTTPError) as exc:
+            self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
+        self.assertEqual(exc.exception.response.status_code, 400)
+
+        body = gen_ansible_remote(url="http://galaxy.example.com")
+        with self.assertRaises(HTTPError) as exc:
+            self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
+        self.assertEqual(exc.exception.response.status_code, 400)
+
+        body = gen_ansible_remote(url="https://galaxy.ansible.com")
+        remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
+        self.addCleanup(self.client.delete, remote["pulp_href"])
+
+        body = gen_ansible_remote(url="https://galaxy.ansible.com/")
+        remote = self.client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
+        self.addCleanup(self.client.delete, remote["pulp_href"])
 
     def test_sync(self):
         """Sync repository with the ansible plugin collections content type.
@@ -228,7 +254,6 @@ class SyncTestCase(unittest.TestCase):
             content_summary[ANSIBLE_COLLECTION_CONTENT_NAME], ANSIBLE_COLLECTION_FIXTURE_COUNT
         )
 
-    @pytest.mark.skip("Blocked by open ticket: https://pulp.plan.io/issues/7734")
     def test_sync_with_invalid_requirements(self):
         """
         Sync with invalid requirement.
@@ -244,6 +269,14 @@ class SyncTestCase(unittest.TestCase):
         collection_remote = self.client.using_handler(api.echo_handler).post(
             ANSIBLE_COLLECTION_REMOTE_PATH,
             gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file="INVALID"),
+        )
+
+        self.assertEqual(collection_remote.status_code, 400, collection_remote)
+
+        requirements = "collections:\n  - name: test.test\n    source: http://example.com"
+        collection_remote = self.client.using_handler(api.echo_handler).post(
+            ANSIBLE_COLLECTION_REMOTE_PATH,
+            gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=requirements),
         )
 
         self.assertEqual(collection_remote.status_code, 400, collection_remote)
@@ -309,15 +342,7 @@ class SyncCollectionsFromPulpServerTestCase(unittest.TestCase):
         second_repo = client.post(ANSIBLE_REPO_PATH, gen_repo())
         self.addCleanup(client.delete, second_repo["pulp_href"])
 
-        url = reduce(
-            urljoin,
-            (
-                cfg.get_base_url(),
-                "pulp_ansible/galaxy/",
-                distribution["base_path"],
-            ),
-        )
-
+        url = distribution["client_url"]
         body = gen_ansible_remote(url=url, requirements_file=DEMO_REQUIREMENTS)
         pulp_remote = client.post(ANSIBLE_COLLECTION_REMOTE_PATH, body)
         self.addCleanup(client.delete, pulp_remote["pulp_href"])
