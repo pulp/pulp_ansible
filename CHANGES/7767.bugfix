@@ -1,1 +1,0 @@
-Fixed bug where we didn't properly handle trailing slashes.
