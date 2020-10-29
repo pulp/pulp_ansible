@@ -28,3 +28,19 @@ exclude = '''
   | docs
 )/
 '''
+
+[tool.check-manifest]
+ignore = [
+    ".bumpversion.cfg",
+    "CHANGES/**",
+    "CONTRIBUTING.rst",
+    "HISTORY.rst",
+    "dev_requirements.txt",
+    "doc_requirements.txt",
+    "docs/**",
+    "flake8.cfg",
+    "template_config.yml",
+    ".travis/**",
+    ".travis.yml",
+    ".pep8speaks.yml",
+]
