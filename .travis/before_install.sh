@@ -54,6 +54,9 @@ black --check --diff .
 # Lint code.
 flake8 --config flake8.cfg
 
+# check for any files unintentionally left out of MANIFEST.in
+check-manifest
+
 # check for imports from pulpcore that aren't pulpcore.plugin
 ./.travis/check_pulpcore_imports.sh
 
@@ -72,7 +75,7 @@ sed -i -e 's/localhost:24817/pulp/g' generate.sh
 sed -i -e 's/:24817/pulp/g' generate.sh
 cd ..
 
-git clone --depth=1 https://github.com/pulp/pulpcore.git --branch master
+git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.8
 
 cd pulpcore
 if [ -n "$PULPCORE_PR_NUMBER" ]; then

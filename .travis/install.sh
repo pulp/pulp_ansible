@@ -53,7 +53,7 @@ image:
   tag: "${TAG}"
 plugins:
   - name: pulpcore
-    source: pulpcore
+    source: pulpcore<3.10
   - name: pulp_ansible
     source: ./pulp_ansible
 services:
