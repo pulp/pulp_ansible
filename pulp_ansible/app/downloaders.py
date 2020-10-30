@@ -37,6 +37,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
     """
 
     TOKEN_LOCK = asyncio.Lock()
+    registry_auth = {"bearer": None}
 
     def __init__(
         self, url, auth_url, token, silence_errors_for_response_status_codes=None, **kwargs
@@ -51,15 +52,21 @@ class TokenAuthHttpDownloader(HttpDownloader):
         self.silence_errors_for_response_status_codes = silence_errors_for_response_status_codes
         super().__init__(url, **kwargs)
 
-    def raise_for_status(self, response):
+    def raise_for_status(self, response, handle_401=False):
         """
         Raise error if aiohttp response status is >= 400 and not silenced.
+
+        Args:
+            handle_401(bool): Silence 401 error if true.
 
         Raises:
             FileNotFoundError: If aiohttp response status is 404 and silenced.
             aiohttp.ClientResponseError: If the response status is 400 or higher and not silenced.
 
         """
+        if handle_401:
+            self.silence_errors_for_response_status_codes.add(401)
+
         silenced = response.status in self.silence_errors_for_response_status_codes
 
         if not silenced:
@@ -69,7 +76,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
             raise FileNotFoundError()
 
     @backoff.on_exception(backoff.expo, ClientResponseError, max_tries=10, giveup=http_giveup)
-    async def _run(self, extra_data=None):
+    async def _run(self, handle_401=True, extra_data=None):
         """
         Download, validate, and compute digests on the `url`. This is a coroutine.
 
@@ -82,6 +89,9 @@ class TokenAuthHttpDownloader(HttpDownloader):
         Ansible token reference:
             https://github.com/ansible/ansible/blob/devel/lib/ansible/galaxy/token.py
 
+        Args:
+            handle_401(bool): If true, catch 401, request a new token and retry.
+
         """
         if not self.ansible_token:
             # No Token
@@ -91,12 +101,15 @@ class TokenAuthHttpDownloader(HttpDownloader):
             # Galaxy Token
             headers = {"Authorization": self.ansible_token}
         else:
-            token = await self.update_token_from_auth_url()
+            token = self.registry_auth["bearer"]
             # Keycloak Token
             headers = {"Authorization": "Bearer {token}".format(token=token)}
 
         async with self.session.get(self.url, headers=headers, proxy=self.proxy) as response:
-            self.raise_for_status(response)
+            self.raise_for_status(response, handle_401)
+            if response.status == 401:
+                await self.update_token_from_auth_url(renew=True)
+                return await self._run(handle_401=False)
             to_return = await self._handle_response(response)
             await response.release()
 
@@ -104,11 +117,13 @@ class TokenAuthHttpDownloader(HttpDownloader):
             self.session.close()
         return to_return
 
-    async def update_token_from_auth_url(self):
+    async def update_token_from_auth_url(self, renew=False):
         """
         Update the Bearer token to be used with all requests.
         """
         async with self.TOKEN_LOCK:
+            if self.registry_auth["bearer"] and not renew:
+                return
             log.info("Updating bearer token")
             form_payload = {
                 "grant_type": "refresh_token",
@@ -119,7 +134,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
             async with self.session.post(url, data=form_payload, raise_for_status=True) as response:
                 token_data = await response.text()
 
-            return json.loads(token_data)["access_token"]
+            self.registry_auth["bearer"] = json.loads(token_data)["access_token"]
 
 
 class AnsibleDownloaderFactory(DownloaderFactory):
