@@ -1,7 +1,9 @@
-from logging import getLogger
 import asyncio
 import backoff
 import json
+
+from gettext import gettext as _
+from logging import getLogger
 
 from aiohttp import BasicAuth
 from aiohttp.client_exceptions import ClientResponseError
@@ -31,12 +33,14 @@ class AnsibleFileDownloader(FileDownloader):
         super().__init__(*args, **kwargs)
 
 
+AUTH_TOKEN = None
+TOKEN_LOCK = asyncio.Lock()
+
+
 class TokenAuthHttpDownloader(HttpDownloader):
     """
     Custom Downloader that automatically handles Token Based and Basic Authentication.
     """
-
-    TOKEN_LOCK = asyncio.Lock()
 
     def __init__(
         self, url, auth_url, token, silence_errors_for_response_status_codes=None, **kwargs
@@ -90,11 +94,46 @@ class TokenAuthHttpDownloader(HttpDownloader):
         if not self.ansible_auth_url:
             # Galaxy Token
             headers = {"Authorization": self.ansible_token}
+            return await self._run_with_additional_headers(headers)
         else:
-            token = await self.update_token_from_auth_url()
+            return await self._run_with_token_refresh_and_401_retry()
+
+    async def _run_with_token_refresh_and_401_retry(self):
+        """
+        Fetch the response and refresh the Keycloak token if needed when doing so.
+
+        If the fetching of data returns a 401 exception, invalidate the token and try to refresh it
+        once again.
+
+        Returns:
+            DownloadResult: Contains information about the result. See the DownloadResult docs for
+                 more information.
+        """
+        while True:
+            token = await self.get_or_update_token()
             # Keycloak Token
             headers = {"Authorization": "Bearer {token}".format(token=token)}
+            try:
+                return await self._run_with_additional_headers(headers)
+            except ClientResponseError as exc:
+                if exc.status == 401:
+                    global AUTH_TOKEN
+                    AUTH_TOKEN = None  # The token expired so let's forget it so it will refresh
+                    continue
+                else:
+                    raise
 
+    async def _run_with_additional_headers(self, headers):
+        """
+        Fetch the response and submit additional headers.
+
+        Args:
+            headers: Additional headers to submit.
+
+        Returns:
+            DownloadResult: Contains information about the result. See the DownloadResult docs for
+                 more information.
+        """
         async with self.session.get(self.url, headers=headers, proxy=self.proxy) as response:
             self.raise_for_status(response)
             to_return = await self._handle_response(response)
@@ -104,12 +143,19 @@ class TokenAuthHttpDownloader(HttpDownloader):
             self.session.close()
         return to_return
 
-    async def update_token_from_auth_url(self):
+    async def get_or_update_token(self):
         """
-        Update the Bearer token to be used with all requests.
+        Use an existing, or refresh, the Bearer token to be used with all requests.
         """
-        async with self.TOKEN_LOCK:
-            log.info("Updating bearer token")
+        global AUTH_TOKEN
+        global TOKEN_LOCK
+
+        if AUTH_TOKEN:
+            return AUTH_TOKEN
+        async with TOKEN_LOCK:
+            if AUTH_TOKEN:
+                return AUTH_TOKEN
+            log.info(_("Updating bearer token"))
             form_payload = {
                 "grant_type": "refresh_token",
                 "client_id": "cloud-services",
@@ -119,7 +165,8 @@ class TokenAuthHttpDownloader(HttpDownloader):
             async with self.session.post(url, data=form_payload, raise_for_status=True) as response:
                 token_data = await response.text()
 
-            return json.loads(token_data)["access_token"]
+            AUTH_TOKEN = json.loads(token_data)["access_token"]
+            return AUTH_TOKEN
 
 
 class AnsibleDownloaderFactory(DownloaderFactory):
