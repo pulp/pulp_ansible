@@ -25,7 +25,6 @@ from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     monitor_task,
 )
-from pulp_ansible.tests.functional.utils import skip_if
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -35,9 +34,6 @@ class InstallCollectionTestCase(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.AH_token = "AUTOMATION_HUB_TOKEN_AUTH" in os.environ
-        cls.CI_AH_token = "CI_AUTOMATION_HUB_TOKEN_AUTH" in os.environ
-        cls.GH_token = "GITHUB_API_KEY" in os.environ
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
@@ -90,7 +86,10 @@ class InstallCollectionTestCase(unittest.TestCase):
         body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
         self.create_install_scenario(body, ANSIBLE_DEMO_COLLECTION)
 
-    @skip_if(bool, "AH_token", False)
+    @unittest.skipUnless(
+        "AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
+        "'AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
+    )
     def test_install_collection_with_token_from_automation_hub(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         body = gen_ansible_remote(
@@ -102,7 +101,10 @@ class InstallCollectionTestCase(unittest.TestCase):
         )
         self.create_install_scenario(body, "ansible.posix")
 
-    @skip_if(bool, "CI_AH_token", False)
+    @unittest.skipUnless(
+        "CI_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
+        "'CI_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
+    )
     def test_install_collection_with_token_from_ci_automation_hub(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         name = "collection_dep_a_fdqqyxou"
@@ -118,7 +120,27 @@ class InstallCollectionTestCase(unittest.TestCase):
         )
         self.create_install_scenario(body, f"{namespace}.{name}")
 
-    @skip_if(bool, "GH_token", False)
+    # @unittest.skipUnless(
+    #     "CI_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
+    #     "'CI_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
+    # )
+    # def test_install_collection_with_invalid_token_from_ci_automation_hub(self):
+    #     """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
+    #     name = "collection_dep_a_fdqqyxou"
+    #     namespace = "autohubtest2"
+    #     aurl = \
+    #         "https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+    #
+    #     body = gen_ansible_remote(
+    #         url="https://ci.cloud.redhat.com/api/automation-hub/",
+    #         requirements_file=f"collections:\n  - {namespace}.{name}",
+    #         auth_url=aurl,
+    #         token="This is not a real token",
+    #         tls_validation=False,
+    #     )
+    #     self.create_install_scenario(body, f"{namespace}.{name}")
+
+    @unittest.skipUnless("GITHUB_API_KEY" in os.environ, "'GITHUB_API_KEY' env var is not defined")
     def test_install_collection_with_token_from_galaxy(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         token = os.environ["GITHUB_API_KEY"]

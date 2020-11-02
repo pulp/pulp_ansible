@@ -135,11 +135,11 @@ def import_collection(
             collection_version = create_collection_from_importer(importer_result)
 
     except ImporterError as exc:
-        log.info(f"Collection processing was not successfull: {exc}")
+        log.info(f"Collection processing was not successful: {exc}")
         temp_file.delete()
         raise
     except Exception as exc:
-        user_facing_logger.error(f"Collection processing was not successfull: {exc}")
+        user_facing_logger.error(f"Collection processing was not successful: {exc}")
         temp_file.delete()
         raise
 
