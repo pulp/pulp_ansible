@@ -231,7 +231,7 @@ class CollectionUploadViewSet(
 
     authentication_classes = []
     permission_classes = []
-    serializer_class = CollectionSerializer
+    serializer_class = CollectionOneShotSerializer
 
     @extend_schema(
         description="Create an artifact and trigger an asynchronous task to create "
@@ -245,7 +245,7 @@ class CollectionUploadViewSet(
         Dispatch a Collection creation task.
         """
         distro = get_object_or_404(AnsibleDistribution, base_path=path)
-        serializer = CollectionOneShotSerializer(data=request.data, context={"request": request})
+        serializer = self.get_serializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
         expected_digests = {}
