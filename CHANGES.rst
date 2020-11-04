@@ -64,6 +64,19 @@ Deprecations and Removals
 ----
 
 
+0.4.3 (2020-11-04)
+==================
+
+Features
+--------
+
+- Allow CollectionUploadViewSet subclass to set own serializer
+  `#7788 <https://pulp.plan.io/issues/7788>`_
+
+
+----
+
+
 0.4.2 (2020-10-09)
 ==================
 
