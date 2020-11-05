@@ -8,7 +8,6 @@ from pulp_smash.pulp3.constants import (
     BASE_CONTENT_PATH,
 )
 
-AH_AUTH_URL = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
 
 GALAXY_ANSIBLE_BASE_URL = "https://galaxy.ansible.com"
 
@@ -85,5 +84,3 @@ collections:
   source: https://galaxy-dev.ansible.com/
 - testing.k8s_demo_collection
 """
-
-AUTOMATION_HUB_URL = "https://cloud.redhat.com/api/automation-hub/"
