@@ -1,0 +1,2 @@
+Ensure that when creating a ``CollectionRemote`` with either a ``token`` or ``auth_url`` that you
+use both together.
