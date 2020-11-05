@@ -27,7 +27,10 @@ from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
     TasksApi,
 )
-from pulpcore.client.pulp_ansible import ApiClient as AnsibleApiClient
+from pulpcore.client.pulp_ansible import (
+    ApiClient as AnsibleApiClient,
+    RepositorySyncURL,
+)
 
 
 cfg = config.get_config()
@@ -146,3 +149,29 @@ def wait_tasks():
     while running_tasks.count:
         sleep(1)
         running_tasks = tasks.list(state="running")
+
+
+class SyncHelpersMixin:
+    """A common place for sync helper functions."""
+
+    def _create_repo_and_sync_with_remote(self, remote):
+        """
+        Create a repository and then sync with the provided `remote`.
+
+        Args:
+            remote: The remote to be sync with
+
+        Returns:
+            repository: The created repository object to be asserted to.
+        """
+        # Create the repository.
+        repo = self.repo_api.create(gen_repo())
+        self.addCleanup(self.repo_api.delete, repo.pulp_href)
+
+        # Sync and return the repository.
+        self.assertEqual(repo.latest_version_href, f"{repo.pulp_href}versions/0/")
+        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
+        repo = self.repo_api.read(repo.pulp_href)
+        return repo
