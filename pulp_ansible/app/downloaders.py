@@ -49,7 +49,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
         Initialize the downloader.
         """
         self.ansible_auth_url = auth_url
-        self.ansible_token = token
+        self.token = token
         if silence_errors_for_response_status_codes is None:
             silence_errors_for_response_status_codes = set()
         self.silence_errors_for_response_status_codes = silence_errors_for_response_status_codes
@@ -83,18 +83,10 @@ class TokenAuthHttpDownloader(HttpDownloader):
         This method provides the same return object type and documented in
         :meth:`~pulpcore.plugin.download.BaseDownloader._run`.
 
-        Ansible token reference:
-            https://github.com/ansible/ansible/blob/devel/lib/ansible/galaxy/token.py
-
         """
-        if not self.ansible_token:
+        if not self.token:
             # No Token
             return await super()._run(extra_data=extra_data)
-
-        if not self.ansible_auth_url:
-            # Galaxy Token
-            headers = {"Authorization": self.ansible_token}
-            return await self._run_with_additional_headers(headers)
         else:
             return await self._run_with_token_refresh_and_401_retry()
 
@@ -159,7 +151,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
             form_payload = {
                 "grant_type": "refresh_token",
                 "client_id": "cloud-services",
-                "refresh_token": self.ansible_token,
+                "refresh_token": self.token,
             }
             url = self.ansible_auth_url
             async with self.session.post(url, data=form_payload, raise_for_status=True) as response:
