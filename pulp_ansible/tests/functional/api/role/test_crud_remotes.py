@@ -1,4 +1,3 @@
-# coding=utf-8
 """Tests that CRUD remotes."""
 from random import choice
 import unittest

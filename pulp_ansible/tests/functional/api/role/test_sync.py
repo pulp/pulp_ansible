@@ -1,4 +1,3 @@
-# coding=utf-8
 """Tests that sync ansible plugin repositories."""
 import unittest
 
