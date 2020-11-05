@@ -1,4 +1,3 @@
-# coding=utf-8
 """Tests that verify download of content served by Pulp."""
 import hashlib
 import unittest
