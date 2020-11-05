@@ -1,4 +1,3 @@
-# coding=utf-8
 """Tests related to sync ansible plugin collection content type."""
 import unittest
 from random import randint

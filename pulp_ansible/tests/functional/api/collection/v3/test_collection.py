@@ -1,4 +1,3 @@
-# coding=utf-8
 """Tests related to upload of collections."""
 import hashlib
 import logging
