@@ -3,7 +3,7 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Subquery, Max
 from django.shortcuts import get_object_or_404
 from django.utils.datastructures import MultiValueDictKeyError
 from django.utils.dateparse import parse_datetime
@@ -17,7 +17,7 @@ from rest_framework import status as http_status
 from rest_framework import viewsets
 
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import PulpTemporaryFile, Content, ContentArtifact
+from pulpcore.plugin.models import PulpTemporaryFile, Content, ContentArtifact, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
@@ -153,8 +153,23 @@ class CollectionViewSet(
         deprecated_query = AnsibleCollectionDeprecated.objects.filter(
             collection=OuterRef("pk"), repository_version=repo_version
         )
-        collections = Collection.objects.filter(versions__in=repo_version.content).distinct()
-        collections = collections.annotate(deprecated=Exists(deprecated_query))
+        added_repo_version_query = RepositoryVersion.objects.filter(
+            repository=repo_version.repository,
+            complete=True,
+            added_memberships__content__in=OuterRef("versions__pk"),
+        ).values("pulp_last_updated")
+        removed_repo_version_query = RepositoryVersion.objects.filter(
+            repository=repo_version.repository,
+            complete=True,
+            removed_memberships__content__in=OuterRef("versions__pk"),
+        ).values("pulp_last_updated")
+
+        collections_qs_annotated = Collection.objects.annotate(
+            repo_version_added_at=Max(Subquery(added_repo_version_query)),
+            repo_version_removed_at=Max(Subquery(removed_repo_version_query)),
+            deprecated=Exists(deprecated_query),
+        )
+        collections = collections_qs_annotated.filter(versions__in=repo_version.content).distinct()
 
         versions_qs = CollectionVersion.objects.filter(pk__in=repo_version.content).values_list(
             "collection_id",
