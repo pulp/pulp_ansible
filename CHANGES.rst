@@ -13,6 +13,26 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.1 (2020-11-09)
+==================
+
+Bugfixes
+--------
+
+- Token refresh happens when needed, not on every call.
+  `#7643 <https://pulp.plan.io/issues/7643>`_
+- Field ``updated_at`` from Galaxy v3 Collections endpoint using latest instead of highest version
+  `#7775 <https://pulp.plan.io/issues/7775>`_
+- Allow CollectionUploadViewSet subclass to set own serializer
+  `#7788 <https://pulp.plan.io/issues/7788>`_
+- Ensure that when creating a ``CollectionRemote`` with either a ``token`` or ``auth_url`` that you
+  use both together.
+  `#7802 <https://pulp.plan.io/issues/7802>`_
+
+
+----
+
+
 0.5.0 (2020-10-29)
 ==================
 
