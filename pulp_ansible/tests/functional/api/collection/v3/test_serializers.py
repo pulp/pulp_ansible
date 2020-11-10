@@ -13,9 +13,6 @@ from pulpcore.client.pulp_ansible import (
 )
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
-from pulp_ansible.tests.functional.constants import (
-    GALAXY_ANSIBLE_BASE_URL,
-)
 from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote, monitor_task
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
@@ -41,7 +38,7 @@ class CollectionsV3TestCase(unittest.TestCase):
         self.repo_href = repo.pulp_href
         requirements = "collections:\n  - name: pulp.pulp_installer"
 
-        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=requirements)
+        body = gen_ansible_remote(url="https://galaxy.ansible.com", requirements_file=requirements)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
