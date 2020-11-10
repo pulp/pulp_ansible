@@ -3,18 +3,20 @@ from aiohttp.client_exceptions import ClientResponseError
 from gettext import gettext as _
 import json
 import logging
-import math
 import tarfile
-from urllib.parse import urljoin, urlparse, urlunparse
+from urllib.parse import urljoin
 
+from async_lru import alru_cache
 from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
 from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
+from pkg_resources import Requirement
 from rq.job import get_current_job
 
+from pulpcore.plugin.constants import TASK_STATES
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -50,9 +52,9 @@ from pulp_ansible.app.models import (
 )
 from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
-    get_page_url,
     parse_metadata,
     parse_collections_requirements_file,
+    RequirementsFileEntry,
 )
 
 
@@ -293,6 +295,8 @@ class CollectionSyncFirstStage(Stage):
 
         """
         super().__init__()
+        msg = _("Parsing CollectionVersion Metadata")
+        self.parsing_metadata_progress_bar = ProgressReport(message=msg, code="parsing.metadata")
         self.remote = remote
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.deprecations = Q()
@@ -300,199 +304,210 @@ class CollectionSyncFirstStage(Stage):
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
 
+    @alru_cache(maxsize=128)
+    async def _get_collection_api(self, root):
+        """
+        Returns the collection api path and api version.
+
+        Based on https://git.io/JTMxE.
+        """
+        if root == "https://galaxy.ansible.com" or root == "https://galaxy.ansible.com/":
+            root = "https://galaxy.ansible.com/api/"
+
+        downloader = self.remote.get_downloader(url=root)
+
+        try:
+            api_data = parse_metadata(await downloader.run())
+        except (json.decoder.JSONDecodeError, ClientResponseError):
+            if root.endswith("/api/"):
+                raise
+
+            root = urljoin(root, "api/")
+            downloader = self.remote.get_downloader(url=root)
+            api_data = parse_metadata(await downloader.run())
+
+        if "available_versions" not in api_data:
+            raise RuntimeError(_("Could not find 'available_versions' at {}").format(root))
+
+        if "v3" in api_data.get("available_versions", {}):
+            api_version = 3
+        elif "v2" in api_data.get("available_versions", {}):
+            api_version = 2
+        else:
+            raise RuntimeError(_("Unsupported API versions at {}").format(root))
+
+        endpoint = f"{root}v{api_version}/collections/"
+
+        return endpoint, api_version
+
+    async def _fetch_collection_version_metadata(self, api_version, collection_version_url):
+        downloader = self.remote.get_downloader(url=collection_version_url)
+        metadata = parse_metadata(await downloader.run())
+
+        url = metadata["download_url"]
+
+        collection_version = CollectionVersion(
+            namespace=metadata["namespace"]["name"],
+            name=metadata["collection"]["name"],
+            version=metadata["version"],
+        )
+
+        info = metadata["metadata"]
+
+        info.pop("tags")
+        for attr_name, attr_value in info.items():
+            if attr_value is None or attr_name not in collection_version.__dict__:
+                continue
+            setattr(collection_version, attr_name, attr_value)
+
+        artifact = metadata["artifact"]
+
+        d_artifact = DeclarativeArtifact(
+            artifact=Artifact(sha256=artifact["sha256"], size=artifact["size"]),
+            url=url,
+            relative_path=collection_version.relative_path,
+            remote=self.remote,
+            deferred_download=self.deferred_download,
+        )
+
+        extra_data = {}
+        if api_version != 2:  # V2 never implemented the docs-blob requests
+            extra_data["docs_blob_url"] = f"{collection_version_url}docs-blob/"
+
+        d_content = DeclarativeContent(
+            content=collection_version,
+            d_artifacts=[d_artifact],
+            extra_data=extra_data,
+        )
+        self.parsing_metadata_progress_bar.increment()
+        await self.put(d_content)
+
+    def _collection_versions_list_downloader(
+        self, api_version, collection_endpoint, namespace, name, page_num, page_size
+    ):
+        url_without_get_params = f"{collection_endpoint}{namespace}/{name}/versions/"
+        if api_version == 2:
+            versions_list_url = f"{url_without_get_params}?page={page_num}&page_size={page_size}"
+        else:
+            offset = (page_num - 1) * page_size
+            versions_list_url = f"{url_without_get_params}?limit={page_size}&offset={offset}"
+        return self.remote.get_downloader(url=versions_list_url)
+
+    async def _fetch_collection_metadata(self, requirements_entry):
+        if requirements_entry.version == "*":
+            requirement_version = Requirement.parse("collection")
+        else:
+            requirement_version = Requirement.parse(f"collection{requirements_entry.version}")
+        if requirements_entry.source:
+            root = requirements_entry.source
+        else:
+            root = self.remote.url
+        collection_endpoint, api_version = await self._get_collection_api(root)
+        namespace, name = requirements_entry.name.split(".")
+        collection_url = f"{collection_endpoint}{namespace}/{name}"
+        collection_metadata_downloader = self.remote.get_downloader(url=collection_url)
+        collection_metadata = parse_metadata(await collection_metadata_downloader.run())
+
+        tasks = []
+        page_num = 1
+        while True:
+            versions_list_downloader = self._collection_versions_list_downloader(
+                api_version, collection_endpoint, namespace, name, page_num, PAGE_SIZE
+            )
+            collection_versions_list = parse_metadata(await versions_list_downloader.run())
+            if api_version == 2:
+                collection_versions = collection_versions_list["results"]
+            else:
+                collection_versions = collection_versions_list["data"]
+            for collection_version in collection_versions:
+                if collection_version["version"] in requirement_version:
+                    version_num = collection_version["version"]
+                    collection_version_detail_url = f"{collection_url}/versions/{version_num}/"
+                    if collection_metadata["deprecated"]:
+                        self.deprecations |= Q(namespace=namespace, name=name)
+                    tasks.append(
+                        asyncio.create_task(
+                            self._fetch_collection_version_metadata(
+                                api_version,
+                                collection_version_detail_url,
+                            )
+                        )
+                    )
+            next_value = self._get_response_next_value(api_version, collection_versions_list)
+            if not next_value:
+                break
+            page_num = page_num + 1
+
+        await asyncio.gather(*tasks)
+
+    @staticmethod
+    def _get_response_next_value(api_version, response):
+        if api_version == 2:
+            return response["next"]
+        else:
+            return response["links"]["next"]
+
+    def _collection_list_downloader(self, api_version, collection_endpoint, page_num, page_size):
+        if api_version == 2:
+            collection_list_url = f"{collection_endpoint}?page={page_num}&page_size={page_size}"
+        else:
+            offset = (page_num - 1) * page_size
+            collection_list_url = f"{collection_endpoint}?limit={page_size}&offset={offset}"
+        return self.remote.get_downloader(url=collection_list_url)
+
+    async def _find_all_collections(self):
+        collection_endpoint, api_version = await self._get_collection_api(self.remote.url)
+
+        tasks = []
+        page_num = 1
+        while True:
+            collection_list_downloader = self._collection_list_downloader(
+                api_version, collection_endpoint, page_num, PAGE_SIZE
+            )
+            collection_list = parse_metadata(await collection_list_downloader.run())
+
+            if api_version == 2:
+                collections = collection_list["results"]
+            else:
+                collections = collection_list["data"]
+
+            for collection in collections:
+                if api_version == 2:
+                    namespace = collection["namespace"]["name"]
+                else:
+                    namespace = collection["namespace"]
+                name = collection["name"]
+                requirements_file = RequirementsFileEntry(
+                    name=".".join([namespace, name]),
+                    version="*",
+                    source=None,
+                )
+                tasks.append(
+                    asyncio.create_task(self._fetch_collection_metadata(requirements_file))
+                )
+
+            next_value = self._get_response_next_value(api_version, collection_list)
+            if not next_value:
+                break
+            page_num = page_num + 1
+
+        await asyncio.gather(*tasks)
+
     async def run(self):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        msg = "Parsing CollectionVersion Metadata"
-        with ProgressReport(message=msg, code="parsing.metadata") as pb:
-            async for metadata in self._fetch_collections():
-
-                url = metadata["download_url"]
-
-                collection_version = CollectionVersion(
-                    namespace=metadata["namespace"]["name"],
-                    name=metadata["collection"]["name"],
-                    version=metadata["version"],
+        tasks = []
+        if self.collection_info:
+            for requirement_entry in self.collection_info:
+                tasks.append(
+                    asyncio.create_task(self._fetch_collection_metadata(requirement_entry))
                 )
-
-                info = metadata["metadata"]
-
-                info.pop("tags")
-                for attr_name, attr_value in info.items():
-                    if attr_value is None or attr_name not in collection_version.__dict__:
-                        continue
-                    setattr(collection_version, attr_name, attr_value)
-
-                artifact = metadata["artifact"]
-
-                d_artifact = DeclarativeArtifact(
-                    artifact=Artifact(sha256=artifact["sha256"], size=artifact["size"]),
-                    url=url,
-                    relative_path=collection_version.relative_path,
-                    remote=self.remote,
-                    deferred_download=self.deferred_download,
-                )
-
-                extradata = dict(docs_blob_url=metadata["docs_blob_url"])
-
-                d_content = DeclarativeContent(
-                    content=collection_version,
-                    d_artifacts=[d_artifact],
-                    extra_data=extradata,
-                )
-                pb.increment()
-                await self.put(d_content)
-
-    async def _fetch_collections(self):
-        """
-        Fetch the collections in a remote repository.
-
-        Returns:
-            async generator: dicts that represent collections from galaxy api
-
-        """
-        remote = self.remote
-        collection_info = self.collection_info
-
-        async def _get_collection_api(root):
-            """
-            Returns the collection api path and api version.
-
-            Based on https://git.io/JTMxE.
-            """
-            if root == "https://galaxy.ansible.com" or root == "https://galaxy.ansible.com/":
-                root = "https://galaxy.ansible.com/api/"
-
-            downloader = remote.get_downloader(url=root)
-
-            try:
-                api_data = parse_metadata(await downloader.run())
-            except (json.decoder.JSONDecodeError, ClientResponseError):
-                if root.endswith("/api/"):
-                    raise
-
-                root = urljoin(root, "api/")
-                downloader = remote.get_downloader(url=root)
-                api_data = parse_metadata(await downloader.run())
-
-            if "available_versions" not in api_data:
-                raise RuntimeError(_("Could not find 'available_versions' at {}").format(root))
-
-            if "v3" in api_data.get("available_versions", {}):
-                self.api_version = 3
-            elif "v2" in api_data.get("available_versions", {}):
-                self.api_version = 2
-            else:
-                raise RuntimeError(_("Unsupported API versions at {}").format(root))
-
-            endpoint = f"{root}v{self.api_version}/collections/"
-
-            return endpoint, self.api_version
-
-        async def _get_url(page, versions_url=None):
-            if collection_info and not versions_url:
-                name, version, source = collection_info[page - 1]
-                namespace, name = name.split(".")
-                root = source or remote.url
-                api_endpoint = (await _get_collection_api(root))[0]
-                url = f"{api_endpoint}{namespace}/{name}/"
-                return url
-
-            if not versions_url:
-                api_endpoint, api_version = await _get_collection_api(remote.url)
-                return get_page_url(api_endpoint, api_version, page)
-
-            if not self.api_version:
-                await _get_collection_api(remote.url)
-
-            return get_page_url(versions_url, self.api_version, page)
-
-        async def _loop_through_pages(not_done, versions_url=None):
-            """
-            Loop through API pagination.
-            """
-            url = await _get_url(1, versions_url)
-            downloader = remote.get_downloader(url=url)
-            data = parse_metadata(await downloader.run())
-
-            count = data.get("count") or data.get("meta", {}).get("count", 1)
-            if collection_info and not versions_url:
-                count = len(collection_info)
-                page_count = count
-            else:
-                page_count = math.ceil(float(count) / float(PAGE_SIZE))
-
-            for page in range(1, page_count + 1):
-                url = await _get_url(page, versions_url)
-                downloader = remote.get_downloader(url=url)
-                not_done.add(downloader.run())
-
-            return count
-
-        def _build_url(path_or_url):
-            """Check value and turn it into a url using remote.url if it's a relative path."""
-            url_parts = urlparse(path_or_url)
-            if not url_parts.netloc:
-                new_url_parts = urlparse(self.remote.url)._replace(path=url_parts.path)
-                return urlunparse(new_url_parts)
-            else:
-                return path_or_url
-
-        def _add_collection_version_level_metadata(data, additional_metadata):
-            """Additional metadata at collection version level to be sent through stages."""
-            metadata = additional_metadata.get(_build_url(data["href"]), {})
-            data["docs_blob_url"] = metadata.get("docs_blob_url")
-
-        progress_data = dict(message="Parsing Galaxy Collections API", code="parsing.collections")
-        with ProgressReport(**progress_data) as progress_bar:
-            not_done = set()
-            count = await _loop_through_pages(not_done)
-            progress_bar.total = count
-            progress_bar.save()
-
-            additional_metadata = {}
-
-            while not_done:
-                done, not_done = await asyncio.wait(not_done, return_when=asyncio.FIRST_COMPLETED)
-
-                for item in done:
-                    data = parse_metadata(item.result())
-
-                    if "data" in data:  # api v3
-                        results = data["data"]
-                    elif "results" in data:  # api v2
-                        results = data["results"]
-                    else:
-                        results = [data]
-
-                    for result in results:
-                        download_url = result.get("download_url")
-
-                        if result.get("deprecated"):
-                            name = result["name"]
-                            try:
-                                namespace = result["namespace"]["name"]  # api v3
-                            except TypeError:
-                                namespace = result["namespace"]  # api v2
-                            self.deprecations |= Q(namespace=namespace, name=name)
-
-                        if result.get("versions_url"):
-                            versions_url = _build_url(result.get("versions_url"))
-                            await _loop_through_pages(not_done, versions_url)
-                            progress_bar.increment()
-
-                        if result.get("version") and not download_url:
-                            version_url = _build_url(result["href"])
-                            not_done.update([remote.get_downloader(url=version_url).run()])
-                            if self.api_version > 2:
-                                additional_metadata[version_url] = {
-                                    "docs_blob_url": f"{version_url}docs-blob/"
-                                }
-
-                        if download_url:
-                            _add_collection_version_level_metadata(data, additional_metadata)
-                            yield data
+        else:
+            tasks.append(asyncio.create_task(self._find_all_collections()))
+        await asyncio.gather(*tasks)
+        self.parsing_metadata_progress_bar.state = TASK_STATES.COMPLETED
+        self.parsing_metadata_progress_bar.save()
 
 
 class DocsBlobDownloader(ArtifactDownloader):

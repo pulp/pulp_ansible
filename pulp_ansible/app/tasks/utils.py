@@ -1,4 +1,5 @@
 from gettext import gettext as _
+from collections import namedtuple
 import json
 import re
 import yaml
@@ -39,6 +40,9 @@ def parse_metadata(download_result):
         return json.load(fd)
 
 
+RequirementsFileEntry = namedtuple("RequirementsFileEntry", ["name", "version", "source"])
+
+
 def parse_collections_requirements_file(requirements_file_string):
     """
     Parses an Ansible requirement.yml file and returns all the collections defined in it.
@@ -56,7 +60,8 @@ def parse_collections_requirements_file(requirements_file_string):
         requirements_file_string (str): The string of the requirements file.
 
     Returns:
-        list: A list of tuples (name, version, source).
+        list: A list of RequirementsFileEntry objects, each containing `name`, `version`, and
+            `source`.
 
     Raises:
             rest_framework.serializers.ValidationError: if requirements is not a valid yaml.
@@ -96,8 +101,10 @@ def parse_collections_requirements_file(requirements_file_string):
                 req_version = collection_req.get("version", "*")
                 req_source = collection_req.get("source", None)
 
-                collection_info.append((req_name, req_version, req_source))
+                entry = RequirementsFileEntry(name=req_name, version=req_version, source=req_source)
+                collection_info.append(entry)
             else:
-                collection_info.append((collection_req, "*", None))
+                entry = RequirementsFileEntry(name=collection_req, version="*", source=None)
+                collection_info.append(entry)
 
     return collection_info
