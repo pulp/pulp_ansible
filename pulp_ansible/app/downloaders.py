@@ -86,7 +86,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
         """
         if not self.token and not self.ansible_auth_url:
             return await super()._run(extra_data=extra_data)
-        elif self.token:
+        elif self.token and not self.ansible_auth_url:
             headers = {"Authorization": "Bearer {token}".format(token=self.token)}
             return await self._run_with_additional_headers(headers)
         else:
