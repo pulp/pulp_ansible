@@ -83,4 +83,5 @@ collections:
   version: ">=1.0.0,<=2.0.0"
   source: https://galaxy-dev.ansible.com/
 - testing.k8s_demo_collection
+- rshad.collection_demo
 """

@@ -599,7 +599,15 @@ class CollectionContentSaver(ContentSaver):
                     fileobj=artifact_file, mode="r"
                 ) as tar:
                     log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.name))
-                    file_obj = tar.extractfile("MANIFEST.json")
+                    for manifest in ["MANIFEST.json", "./MANIFEST.json"]:
+                        try:
+                            file_obj = tar.extractfile(manifest)
+                        except KeyError:
+                            file_obj = None
+                        else:
+                            break
+                    if not file_obj:
+                        raise FileNotFoundError("MANIFEST.json not found")
                     manifest_data = json.load(file_obj)
                     info = manifest_data["collection_info"]
 
