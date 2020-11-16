@@ -507,7 +507,8 @@ class DocsBlobDownloader(ArtifactDownloader):
             The number of downloads
         """
         downloaded = 0
-        if d_content.d_artifacts:
+        content_already_saved = not d_content.content._state.adding
+        if not content_already_saved and d_content.d_artifacts:
             remote = d_content.d_artifacts[0].remote
             docs_blob = d_content.extra_data.get("docs_blob_url")
             if docs_blob:
