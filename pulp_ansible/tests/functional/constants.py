@@ -84,4 +84,5 @@ collections:
   source: https://galaxy-dev.ansible.com/
 - testing.k8s_demo_collection
 - rshad.collection_demo
+- brightcomputing.bcm
 """
