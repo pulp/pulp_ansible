@@ -35,7 +35,7 @@ from pulpcore.plugin.stages import (
     QueryExistingArtifacts,
     QueryExistingContents,
 )
-import semantic_version as semver
+from semantic_version import Version
 
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
@@ -220,7 +220,7 @@ def _update_highest_version(collection_version):
     if not last_highest:
         collection_version.is_highest = True
         return None
-    if semver.compare(collection_version.version, last_highest.version) > 0:
+    if Version(collection_version.version) > Version(last_highest.version):
         last_highest.is_highest = False
         collection_version.is_highest = True
         last_highest.save()
