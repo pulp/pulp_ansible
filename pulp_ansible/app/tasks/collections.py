@@ -478,9 +478,10 @@ class CollectionSyncFirstStage(Stage):
                         if result.get("version") and not download_url:
                             version_url = _build_url(result["href"])
                             not_done.update([remote.get_downloader(url=version_url).run()])
-                            additional_metadata[version_url] = {
-                                "docs_blob_url": f"{version_url}docs-blob/"
-                            }
+                            if self.api_version > 2:
+                                additional_metadata[version_url] = {
+                                    "docs_blob_url": f"{version_url}docs-blob/"
+                                }
 
                         if download_url:
                             _add_collection_level_metadata(data, additional_metadata)
