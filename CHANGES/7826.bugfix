@@ -1,2 +1,0 @@
-Fix version comparisons during sync and upload when comparing the same version with different build
-numbers.

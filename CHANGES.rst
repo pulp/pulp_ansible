@@ -13,6 +13,34 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.2 (2020-11-19)
+==================
+
+Bugfixes
+--------
+
+- Improve MANIFEST.json handling and provide better error message
+  `#5745 <https://pulp.plan.io/issues/5745>`_
+- Ensure that when creating a ``CollectionRemote`` you can use ``token`` without specifying ``auth_url``
+  `#7821 <https://pulp.plan.io/issues/7821>`_
+- Fix version comparisons during sync and upload when comparing the same version with different build
+  numbers.
+  `#7826 <https://pulp.plan.io/issues/7826>`_
+- Stop making requests to docs-blob endpoint on Galaxy v2
+  `#7830 <https://pulp.plan.io/issues/7830>`_
+- Avoid to download docs-blob when content is already saved
+  `#7831 <https://pulp.plan.io/issues/7831>`_
+- Ensure deprecation status is synced even when no content changes
+  `#7834 <https://pulp.plan.io/issues/7834>`_
+- Fix deprecation status update for pulp-ansible-client
+  `#7871 <https://pulp.plan.io/issues/7871>`_
+- Makes ``url`` optional when patching a collection remote
+  `#7872 <https://pulp.plan.io/issues/7872>`_
+
+
+----
+
+
 0.5.1 (2020-11-09)
 ==================
 
