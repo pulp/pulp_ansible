@@ -234,7 +234,7 @@ class CollectionViewSet(
             AnsibleCollectionDeprecated.objects.filter(
                 repository_version=repo_version, collection=collection
             ).delete()
-        return Response()
+        return Response(serializer.data)
 
 
 class CollectionUploadViewSet(
