@@ -8,6 +8,7 @@ import tarfile
 from urllib.parse import urljoin, urlparse, urlunparse
 
 from django.db import transaction
+from django.db.models import Q
 from django.urls import reverse
 from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
@@ -80,6 +81,23 @@ def sync(remote_pk, repository_pk, mirror):
     first_stage = CollectionSyncFirstStage(remote)
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     d_version.create()
+
+    repo_version = repository.latest_version()
+    to_deprecate = []
+    if first_stage.deprecations:
+        collections_deprecate_true_qs = Collection.objects.filter(first_stage.deprecations)
+        for collection in collections_deprecate_true_qs:
+            to_deprecate.append(
+                AnsibleCollectionDeprecated(repository_version=repo_version, collection=collection)
+            )
+
+        AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
+
+    non_deprecated_qs = Collection.objects.exclude(first_stage.deprecations)
+    AnsibleCollectionDeprecated.objects.filter(
+        repository_version=repo_version,
+        collection__pk__in=non_deprecated_qs,
+    ).delete()
 
 
 def import_collection(
@@ -277,6 +295,7 @@ class CollectionSyncFirstStage(Stage):
         super().__init__()
         self.remote = remote
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
+        self.deprecations = Q()
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -315,10 +334,7 @@ class CollectionSyncFirstStage(Stage):
                     deferred_download=self.deferred_download,
                 )
 
-                extradata = dict(
-                    docs_blob_url=metadata["docs_blob_url"],
-                    deprecated=metadata["deprecated"],
-                )
+                extradata = dict(docs_blob_url=metadata["docs_blob_url"])
 
                 d_content = DeclarativeContent(
                     content=collection_version,
@@ -423,13 +439,6 @@ class CollectionSyncFirstStage(Stage):
             else:
                 return path_or_url
 
-        def _add_collection_level_metadata(data, additional_metadata):
-            """Additional metadata at collection level to be sent through stages."""
-            name = data["collection"]["name"]
-            namespace = data["namespace"]["name"]
-            metadata = additional_metadata.get(f"{namespace}_{name}", {})
-            data["deprecated"] = metadata.get("deprecated")
-
         def _add_collection_version_level_metadata(data, additional_metadata):
             """Additional metadata at collection version level to be sent through stages."""
             metadata = additional_metadata.get(_build_url(data["href"]), {})
@@ -466,9 +475,7 @@ class CollectionSyncFirstStage(Stage):
                                 namespace = result["namespace"]["name"]  # api v3
                             except TypeError:
                                 namespace = result["namespace"]  # api v2
-                            additional_metadata[f"{namespace}_{name}"] = {
-                                "deprecated": result["deprecated"]
-                            }
+                            self.deprecations |= Q(namespace=namespace, name=name)
 
                         if result.get("versions_url"):
                             versions_url = _build_url(result.get("versions_url"))
@@ -484,7 +491,6 @@ class CollectionSyncFirstStage(Stage):
                                 }
 
                         if download_url:
-                            _add_collection_level_metadata(data, additional_metadata)
                             _add_collection_version_level_metadata(data, additional_metadata)
                             yield data
 
@@ -550,8 +556,6 @@ class CollectionContentSaver(ContentSaver):
                 :class:`~pulpcore.plugin.stages.DeclarativeContent` objects to be saved.
 
         """
-        to_deprecate = []
-
         for d_content in batch:
             if d_content is None:
                 continue
@@ -564,16 +568,6 @@ class CollectionContentSaver(ContentSaver):
             )
 
             d_content.content.collection = collection
-
-            if d_content.extra_data.get("deprecated"):
-                to_deprecate.append(
-                    AnsibleCollectionDeprecated(
-                        repository_version=self.repository_version, collection=collection
-                    )
-                )
-
-        if to_deprecate:
-            AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
 
     async def _post_save(self, batch):
         """
