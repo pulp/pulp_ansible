@@ -142,7 +142,8 @@ class CollectionRemoteSerializer(RemoteSerializer):
 
         data = super().validate(data)
 
-        _validate_url(data["url"])
+        if data.get("url"):
+            _validate_url(data["url"])
 
         if data.get("requirements_file"):
             collections = parse_collections_requirements_file(data["requirements_file"])
