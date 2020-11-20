@@ -1,0 +1,2 @@
+Increased collection tag field length from 32 to 64, which allows sync to work for longer tag names
+used on galaxy.ansible.com.
