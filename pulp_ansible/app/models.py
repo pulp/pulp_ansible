@@ -84,7 +84,7 @@ class Tag(BaseModel):
         name (models.CharField): The Tag's name.
     """
 
-    name = models.CharField(max_length=32, unique=True, editable=False)
+    name = models.CharField(max_length=64, unique=True, editable=False)
 
     def __str__(self):
         """Returns tag name."""
