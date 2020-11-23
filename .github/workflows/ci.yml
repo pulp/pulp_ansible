@@ -6,7 +6,7 @@
 # For more info visit https://github.com/pulp/plugin_template
 ---
 name: Pulp PR CI
-on: pull_request
+on: [push, pull_request]
 
 jobs:
 
@@ -26,7 +26,10 @@ jobs:
 
         # dev_requirements contains tools needed for flake8, etc.
       - name: Install requirements
-        run: pip3 install -r dev_requirements.txt
+        run: |
+          pip3 install --upgrade pip
+          pip3 install setuptools wheel
+          pip3 install -r dev_requirements.txt
 
       - name: Check commit message
         if: github.event_name == 'pull_request'
@@ -62,12 +65,6 @@ jobs:
           - TEST: pulp
           - TEST: docs
           - TEST: s3
-
-    services:
-      postgres:
-        image: postgres:9.6
-      redis:
-        image: redis
 
     steps:
       - uses: actions/checkout@v2
