@@ -1,8 +1,8 @@
 pulp_ansible
 ============
 
-.. image:: https://api.travis-ci.com/pulp/pulp_ansible.svg
-   :target: https://travis-ci.com/pulp/pulp_ansible
+.. figure:: https://github.com/pulp/pulp_ansible/workflows/Pulp%20CI/badge.svg
+   :alt: Pulp CI
 
 A Pulp plugin to support hosting ``Role`` and ``Collection`` Ansible content.
 
