@@ -5,8 +5,14 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 ---
-name: Pulp PR CI
-on: pull_request
+name: Pulp CI
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - '*'
 
 jobs:
 
@@ -62,12 +68,6 @@ jobs:
           - TEST: pulp
           - TEST: docs
           - TEST: s3
-
-    services:
-      postgres:
-        image: postgres:9.6
-      redis:
-        image: redis
 
     steps:
       - uses: actions/checkout@v2
