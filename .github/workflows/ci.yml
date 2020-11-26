@@ -57,7 +57,7 @@ jobs:
       - name: Check for pulpcore imports outside of pulpcore.plugin
         run: sh .ci/scripts/check_pulpcore_imports.sh
 
-  pulp:
+  test:
     runs-on: ubuntu-latest
     # run only after lint finishes
     needs: lint
@@ -86,6 +86,7 @@ jobs:
           sudo apt-get update -yq
           sudo -E apt-get -yq --no-install-suggests --no-install-recommends install httpie
           echo ::endgroup::
+          echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/.ci/assets/httpie/" >> $GITHUB_ENV
           echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Before Install
@@ -102,7 +103,10 @@ jobs:
       - name: Before Script
         run: |
           .github/workflows/scripts/before_script.sh
-          echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/.github" >> $GITHUB_ENV
+
+      - name: Setting env vars
+        if: github.event_name != 'pull_request'
+        run: echo 'AUTOMATION_HUB_TOKEN_AUTH='${{ secrets.AUTOMATION_HUB_TOKEN_AUTH }} >> $GITHUB_ENV
 
       - name: Script
         run: .github/workflows/scripts/script.sh
