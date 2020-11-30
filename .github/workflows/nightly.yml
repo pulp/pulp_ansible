@@ -135,10 +135,10 @@ jobs:
 
 
       - name: Publish nightly docs
-        env:
-          BRANCH: ${GITHUB_REF##*/}
-        run: .ci/scripts/publish_docs.sh nightly $BRANCH
         shell: bash
+        env:
+          PULP_DOCS_KEY: ${{ secrets.PULP_DOCS_KEY }}
+        run: bash .ci/scripts/publish_docs.sh nightly ${GITHUB_REF##*/}
 
 
       - name: After failure
