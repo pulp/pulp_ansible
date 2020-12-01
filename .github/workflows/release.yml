@@ -136,6 +136,8 @@ jobs:
         run: .ci/scripts/publish_docs.sh tag $BRANCH
       - name: Update Redmine
         run: bash .ci/scripts/update_redmine.sh
+        env:
+          REDMINE_API_KEY: ${{ secrets.REDMINE_API_KEY }}
 
       - name: After failure
         if: failure()
