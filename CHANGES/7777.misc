@@ -1,1 +1,0 @@
-Refactors sync workflow to by asyncio based. Also add many tests.
