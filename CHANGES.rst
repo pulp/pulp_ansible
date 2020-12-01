@@ -13,6 +13,37 @@ Changelog
 
 .. towncrier release notes start
 
+0.6.0 (2020-12-01)
+==================
+
+Features
+--------
+
+- Enable filter by name/namespace on Collections V3 endpoint
+  `#7873 <https://pulp.plan.io/issues/7873>`_
+
+
+Bugfixes
+--------
+
+- Allows a requirements.yml collection version specification to be respected during sync.
+  `#7739 <https://pulp.plan.io/issues/7739>`_
+- Allow requirements.yml with different sources to sync correctly.
+  `#7741 <https://pulp.plan.io/issues/7741>`_
+- Increased collection tag field length from 32 to 64, which allows sync to work for longer tag names
+  used on galaxy.ansible.com.
+  `#7827 <https://pulp.plan.io/issues/7827>`_
+
+
+Misc
+----
+
+- `#7777 <https://pulp.plan.io/issues/7777>`_
+
+
+----
+
+
 0.5.2 (2020-11-19)
 ==================
 
