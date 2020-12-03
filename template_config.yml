@@ -7,6 +7,7 @@ black: true
 bootstrap: false
 check_commit_message: true
 check_manifest: true
+check_stray_pulpcore_imports: true
 cherry_pick_automation: false
 coverage: false
 deploy_client_to_pypi: true
@@ -41,6 +42,7 @@ stable_branch: null
 test: false
 test_bindings: false
 test_performance: false
+test_released_plugin_with_next_pulpcore_release: false
 test_s3: true
 travis_addtl_services: []
 travis_notifications: []
