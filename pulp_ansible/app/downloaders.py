@@ -128,6 +128,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
             DownloadResult: Contains information about the result. See the DownloadResult docs for
                  more information.
         """
+        await asyncio.sleep(0.2)
         async with self.session.get(self.url, headers=headers, proxy=self.proxy) as response:
             self.raise_for_status(response)
             to_return = await self._handle_response(response)
