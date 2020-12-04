@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.4 (2020-12-04)
+==================
+
+Bugfixes
+--------
+
+- Increase interval between requests when token is required
+  `#7929 <https://pulp.plan.io/issues/7929>`_
+
+
+----
+
+
 0.5.3 (2020-12-04)
 ==================
 
