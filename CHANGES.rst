@@ -44,6 +44,19 @@ Misc
 ----
 
 
+0.5.3 (2020-12-04)
+==================
+
+Bugfixes
+--------
+
+- Avoid rate limiting by slowing down sync when token is required
+  `#7917 <https://pulp.plan.io/issues/7917>`_
+
+
+----
+
+
 0.5.2 (2020-11-19)
 ==================
 
