@@ -1,14 +1,23 @@
 import asyncio
 import backoff
 import json
+import ssl
+from tempfile import NamedTemporaryFile
 
 from gettext import gettext as _
 from logging import getLogger
 
+import aiohttp
 from aiohttp import BasicAuth
 from aiohttp.client_exceptions import ClientResponseError
 
-from pulpcore.plugin.download import http_giveup, DownloaderFactory, FileDownloader, HttpDownloader
+from pulpcore.download.factory import user_agent
+from pulpcore.plugin.download import (
+    http_giveup,
+    DownloaderFactory,
+    FileDownloader,
+    HttpDownloader,
+)
 
 
 log = getLogger(__name__)
@@ -35,6 +44,7 @@ class AnsibleFileDownloader(FileDownloader):
 
 AUTH_TOKEN = None
 TOKEN_LOCK = asyncio.Lock()
+AUTOHUB_LIMIT_PER_HOST = 2
 
 
 class TokenAuthHttpDownloader(HttpDownloader):
@@ -185,6 +195,49 @@ class AnsibleDownloaderFactory(DownloaderFactory):
                 "file": AnsibleFileDownloader,
             }
         super().__init__(remote, downloader_overrides)
+
+    # cut and paste from DownloadFactory and tweaked.
+    def _make_aiohttp_session_from_remote(self):
+        """
+        Build a :class:`aiohttp.ClientSession` from the remote's settings and timing settings.
+
+        This method does not force_close of the TCP connection with each request.
+        This method also sets a TCPConnect() limit_per_host.
+
+        Returns:
+            :class:`aiohttp.ClientSession`
+        """
+        tcp_conn_opts = {"force_close": False}
+
+        sslcontext = None
+        if self._remote.ca_cert:
+            sslcontext = ssl.create_default_context(cadata=self._remote.ca_cert)
+        if self._remote.client_key and self._remote.client_cert:
+            if not sslcontext:
+                sslcontext = ssl.create_default_context()
+            with NamedTemporaryFile() as key_file:
+                key_file.write(bytes(self._remote.client_key, "utf-8"))
+                key_file.flush()
+                with NamedTemporaryFile() as cert_file:
+                    cert_file.write(bytes(self._remote.client_cert, "utf-8"))
+                    cert_file.flush()
+                    sslcontext.load_cert_chain(cert_file.name, key_file.name)
+        if not self._remote.tls_validation:
+            if not sslcontext:
+                sslcontext = ssl.create_default_context()
+            sslcontext.check_hostname = False
+            sslcontext.verify_mode = ssl.CERT_NONE
+        if sslcontext:
+            tcp_conn_opts["ssl_context"] = sslcontext
+
+        headers = {"User-Agent": user_agent()}
+
+        tcp_conn_opts["limit_per_host"] = AUTOHUB_LIMIT_PER_HOST
+
+        conn = aiohttp.TCPConnector(**tcp_conn_opts)
+
+        timeout = aiohttp.ClientTimeout(total=None, sock_connect=600, sock_read=600)
+        return aiohttp.ClientSession(connector=conn, timeout=timeout, headers=headers)
 
     def _http_or_https(self, download_class, url, **kwargs):
         """
