@@ -104,9 +104,11 @@ jobs:
         run: |
           .github/workflows/scripts/before_script.sh
 
-      - name: Setting env vars
+      - name: Setting secrets
         if: github.event_name != 'pull_request'
-        run: echo 'AUTOMATION_HUB_TOKEN_AUTH='${{ secrets.AUTOMATION_HUB_TOKEN_AUTH }} >> $GITHUB_ENV
+        run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
+        env:
+          SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Script
         run: .github/workflows/scripts/script.sh
