@@ -4,6 +4,7 @@ from time import sleep
 import unittest
 
 from pulp_smash import api, config, selectors
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_remote,
@@ -125,30 +126,6 @@ core_client = CoreApiClient(configuration)
 tasks = TasksApi(core_client)
 
 
-def monitor_task(task_href):
-    """Polls the Task API until the task is in a completed state.
-
-    Prints the task details and a success or failure message. Exits on failure.
-
-    Args:
-        task_href(str): The href of the task to monitor
-
-    Returns:
-        list[str]: List of hrefs that identify resource created by the task
-
-    """
-    completed = ["completed", "failed", "canceled"]
-    task = tasks.read(task_href)
-    while task.state not in completed:
-        sleep(1)
-        task = tasks.read(task_href)
-
-    if task.state == "completed":
-        return task.created_resources
-
-    return task.to_dict()
-
-
 def wait_tasks():
     """Polls the Task API until all tasks are in a completed state."""
     running_tasks = tasks.list(state="running")
@@ -235,7 +212,7 @@ class SyncHelpersMixin:
         body = gen_distribution()
         body["repository"] = repo.pulp_href
         distribution_create = self.distributions_api.create(body)
-        distribution_url = monitor_task(distribution_create.task)
-        distribution = self.distributions_api.read(distribution_url[0])
+        created_resources = monitor_task(distribution_create.task).created_resources
+        distribution = self.distributions_api.read(created_resources[0])
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
         return distribution

@@ -12,13 +12,10 @@ from pulpcore.client.pulp_ansible import (
     RepositoriesAnsibleApi,
     RepositoriesAnsibleVersionsApi,
 )
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_client,
-    monitor_task,
-    wait_tasks,
-)
+from pulp_ansible.tests.functional.utils import gen_ansible_client, wait_tasks
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -43,8 +40,8 @@ class InstallCollectionTestCase(unittest.TestCase):
         body = gen_distribution()
         body["repository"] = repo.pulp_href
         distribution_create = self.distributions_api.create(body)
-        distribution_url = monitor_task(distribution_create.task)
-        distribution = self.distributions_api.read(distribution_url[0])
+        created_resources = monitor_task(distribution_create.task).created_resources
+        distribution = self.distributions_api.read(created_resources[0])
 
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 

@@ -11,6 +11,7 @@ from pulpcore.client.pulp_ansible import (
     RepositorySyncURL,
     RemotesRoleApi,
 )
+from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
@@ -18,11 +19,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME,
     ANSIBLE_ELASTIC_ROLE,
 )
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_client,
-    gen_ansible_remote,
-    monitor_task,
-)
+from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -57,8 +54,8 @@ class InstallRoleTestCase(unittest.TestCase):
         body = gen_distribution()
         body["repository"] = repo.pulp_href
         distribution_create = self.distributions_api.create(body)
-        distribution_url = monitor_task(distribution_create.task)
-        distribution = self.distributions_api.read(distribution_url[0])
+        created_resources = monitor_task(distribution_create.task).created_resources
+        distribution = self.distributions_api.read(created_resources[0])
 
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
