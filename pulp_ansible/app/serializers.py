@@ -151,7 +151,8 @@ class CollectionRemoteSerializer(RemoteSerializer):
                 if collection[2]:
                     _validate_url(collection[2])
 
-        if "auth_url" in data and "token" not in data:
+        has_token = "token" in data or getattr(self.instance, "token", False)
+        if data.get("auth_url") and not has_token:
             raise serializers.ValidationError(
                 _("When specifying 'auth_url' you must also specify 'token'.")
             )
