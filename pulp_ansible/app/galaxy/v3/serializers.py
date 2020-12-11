@@ -52,10 +52,8 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     def get_updated_at(self, obj):
         """Get the timestamp of the highest version CollectionVersion's created timestamp."""
-        if obj.repo_version_added_at and obj.repo_version_removed_at:
-            return max(obj.repo_version_added_at, obj.repo_version_removed_at)
-
-        return obj.repo_version_added_at or obj.repo_version_removed_at
+        collection = self.context["highest_versions"][obj.pk]
+        return collection.pulp_created
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
