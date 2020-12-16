@@ -44,6 +44,19 @@ Misc
 ----
 
 
+0.5.5 (2020-12-11)
+==================
+
+Bugfixes
+--------
+
+- Field ``updated_at`` from Galaxy v3 Collections endpoint using highest version
+  `#7990 <https://pulp.plan.io/issues/7990>`_
+
+
+----
+
+
 0.5.4 (2020-12-04)
 ==================
 
