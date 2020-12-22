@@ -1,6 +1,5 @@
 """Tests related to Galaxy V3 serializers."""
 import unittest
-from datetime import datetime
 
 from pulpcore.client.pulp_ansible import (
     ContentCollectionVersionsApi,
@@ -58,7 +57,6 @@ class CollectionsV3TestCase(unittest.TestCase):
         self.base_path = distribution.base_path
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
-    @unittest.skip("FIXME: Re-enable later")
     def test_v3_updated_at(self):
         """Test Collections V3 endpoint field: ``updated_at``."""
         repo = self.repo_api.read(self.repo_href)
@@ -66,14 +64,12 @@ class CollectionsV3TestCase(unittest.TestCase):
         collections = self.collections_api.list(self.base_path)
 
         original_highest_version = collections.data[0].highest_version["version"]
-        original_updated_at = datetime.strptime(
-            collections.data[0].updated_at, "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        original_updated_at = collections.data[0].updated_at
 
         versions = self.collections_versions_api.list(version="3.6.4")
         original_total_versions = self.collections_versions_v3api.list(
             "pulp_installer", "pulp", self.base_path
-        ).meta["count"]
+        ).meta.count
 
         data = {"remove_content_units": [versions.results[0].pulp_href]}
         response = self.repo_api.modify(repo.pulp_href, data)
@@ -81,11 +77,11 @@ class CollectionsV3TestCase(unittest.TestCase):
 
         collections = self.collections_api.list(self.base_path)
         highest_version = collections.data[0].highest_version["version"]
-        updated_at = datetime.strptime(collections.data[0].updated_at, "%Y-%m-%dT%H:%M:%S.%fZ")
+        updated_at = collections.data[0].updated_at
 
         total_versions = self.collections_versions_v3api.list(
             "pulp_installer", "pulp", self.base_path
-        ).meta["count"]
+        ).meta.count
 
         self.assertEqual(highest_version, original_highest_version)
         self.assertEqual(original_total_versions, total_versions + 1)
