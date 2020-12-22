@@ -58,7 +58,6 @@ class CollectionsV3TestCase(unittest.TestCase):
         self.base_path = distribution.base_path
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
-    @unittest.skip("FIXME: Re-enable later")
     def test_v3_updated_at(self):
         """Test Collections V3 endpoint field: ``updated_at``."""
         repo = self.repo_api.read(self.repo_href)
