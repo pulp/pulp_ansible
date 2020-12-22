@@ -47,28 +47,30 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     def get_created_at(self, obj):
         """Get the timestamp of the lowest version CollectionVersion's created timestamp."""
-        collection = self.context["lowest_versions"][obj.pk]
-        return collection.pulp_created
+        return obj.pulp_created
 
     def get_updated_at(self, obj):
         """Get the timestamp of the highest version CollectionVersion's created timestamp."""
-        collection = self.context["highest_versions"][obj.pk]
-        return collection.pulp_created
+        return obj.pulp_last_updated
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
-        collection = self.context["highest_versions"][obj.pk]
+        import semantic_version
+
+        version = sorted(
+            obj.available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
+        )[0]
         href = reverse(
             "collection-versions-detail",
             kwargs={
                 "path": self.context["path"],
-                "namespace": collection.namespace,
-                "name": collection.name,
-                "version": collection.version,
+                "namespace": obj.namespace,
+                "name": obj.name,
+                "version": version,
             },
         )
-        return {"href": href, "version": str(collection.version)}
+        return {"href": href, "version": str(version)}
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
