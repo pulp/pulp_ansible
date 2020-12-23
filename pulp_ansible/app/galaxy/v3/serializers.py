@@ -1,3 +1,4 @@
+import semantic_version
 from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
@@ -48,8 +49,7 @@ class CollectionSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_created_at(self, obj):
         """Get the timestamp of the lowest version CollectionVersion's created timestamp."""
-        collection = self.context["lowest_versions"][obj.pk]
-        return collection.pulp_created
+        return obj.pulp_created
 
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_updated_at(self, obj):
@@ -62,17 +62,20 @@ class CollectionSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
-        collection = self.context["highest_versions"][obj.pk]
+        available_versions = self.context["available_versions"][obj.pk]
+        version = sorted(
+            available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
+        )[0]
         href = reverse(
             "collection-versions-detail",
             kwargs={
                 "path": self.context["path"],
-                "namespace": collection.namespace,
-                "name": collection.name,
-                "version": collection.version,
+                "namespace": obj.namespace,
+                "name": obj.name,
+                "version": version,
             },
         )
-        return {"href": href, "version": str(collection.version)}
+        return {"href": href, "version": version}
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):

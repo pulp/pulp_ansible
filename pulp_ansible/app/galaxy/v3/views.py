@@ -1,8 +1,8 @@
-from collections import defaultdict, namedtuple
 from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
+from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import Exists, F, OuterRef
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
@@ -45,9 +45,6 @@ from pulp_ansible.app.utils import join_to_queryset
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import CollectionFilter, CollectionVersionFilter
-
-
-CollectionTuple = namedtuple("CollectionTuple", ["namespace", "name", "version", "pulp_created"])
 
 
 class AnsibleDistributionMixin:
@@ -155,33 +152,6 @@ class CollectionViewSet(
         Returns a Collections queryset for specified distribution.
         """
         repo_version = self.get_repository_version(self.kwargs["path"])
-        versions_qs = CollectionVersion.objects.filter(pk__in=repo_version.content).values_list(
-            "collection_id",
-            "namespace",
-            "name",
-            "version",
-            "pulp_created",
-        )
-
-        collection_pks = set()
-
-        highest_versions = defaultdict(
-            lambda: CollectionTuple(None, None, semantic_version.Version("0.0.0"), None)
-        )
-        lowest_versions = defaultdict(
-            lambda: CollectionTuple(None, None, semantic_version.Version("100000000000.0.0"), None)
-        )
-        for collection_id, namespace, name, version, pulp_created in versions_qs:
-            collection_pks.add(collection_id)
-            version_to_consider = semantic_version.Version(version)
-            collection_tuple = CollectionTuple(namespace, name, version_to_consider, pulp_created)
-            if version_to_consider > highest_versions[collection_id].version:
-                highest_versions[collection_id] = collection_tuple
-            if version_to_consider < lowest_versions[collection_id].version:
-                lowest_versions[collection_id] = collection_tuple
-
-        self.highest_versions_context = highest_versions  # needed by get__serializer_context
-        self.lowest_versions_context = lowest_versions  # needed by get__serializer_context
 
         versions = CollectionVersion.objects.filter(
             version_memberships__repository=repo_version.repository
@@ -204,8 +174,20 @@ class CollectionViewSet(
             repository_version=repo_version,
         ).only("collection_id")
 
+        collections_qs = Collection.objects.filter(
+            versions__in=repo_version.content,
+        ).annotate(available_versions=ArrayAgg("versions__version"))
+
+        versions_context = {}
+        for collection_id, available_versions in collections_qs.values_list(
+            "pk", "available_versions"
+        ):
+            versions_context[collection_id] = available_versions
+
+        self.available_versions_context = versions_context  # needed by get__serializer_context
+
         collections = Collection.objects.filter(
-            pk__in=collection_pks,
+            pk__in=versions_context.keys(),
         ).annotate(deprecated=Exists(deprecated_query))
         collections = collections.extra(
             {
@@ -239,8 +221,7 @@ class CollectionViewSet(
         This uses super() but also adds in the "highest_versions" data from get_queryset()
         """
         super_data = super().get_serializer_context()
-        super_data["highest_versions"] = self.highest_versions_context
-        super_data["lowest_versions"] = self.lowest_versions_context
+        super_data["available_versions"] = self.available_versions_context
         return super_data
 
     def update(self, request, *args, **kwargs):
