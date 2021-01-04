@@ -213,7 +213,7 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
         read_only=True, help_text=_("The URL of a Collection content source.")
     )
 
-    def get_client_url(self, obj):
+    def get_client_url(self, obj) -> str:
         """
         Get client_url.
         """
