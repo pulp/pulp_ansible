@@ -19,7 +19,7 @@ class GalaxyRoleSerializer(serializers.ModelSerializer):
     name = serializers.CharField()
     namespace = serializers.CharField()
 
-    def get_id(self, obj):
+    def get_id(self, obj) -> str:
         """
         Get id.
         """
@@ -39,7 +39,7 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
 
     source = serializers.SerializerMethodField(read_only=True)
 
-    def get_source(self, obj):
+    def get_source(self, obj) -> str:
         """
         Get source.
         """
@@ -72,7 +72,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         """Create a namespace dict."""
         return {"name": obj.namespace}
 
-    def get_versions_url(self, obj):
+    def get_versions_url(self, obj) -> str:
         """
         Get versions_url.
         """
@@ -86,7 +86,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
             )
         )
 
-    def get_href(self, obj):
+    def get_href(self, obj) -> str:
         """
         Get href.
         """
@@ -143,7 +143,7 @@ class GalaxyCollectionVersionSerializer(serializers.Serializer):
     artifact = serializers.SerializerMethodField(read_only=True)
     metadata = CollectionMetadataSerializer(source="*")
 
-    def get_href(self, obj):
+    def get_href(self, obj) -> str:
         """
         Get href.
         """
