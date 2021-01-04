@@ -73,27 +73,33 @@ class LimitOffsetPagination(pagination.LimitOffsetPagination):
             "type": "object",
             "properties": {
                 "meta": {
-                    "count": {
-                        "type": "integer",
-                        "example": 123,
+                    "type": "object",
+                    "properties": {
+                        "count": {
+                            "type": "integer",
+                            "example": 123,
+                        },
                     },
                 },
                 "links": {
-                    "first": {
-                        "type": "string",
-                        "nullable": True,
-                    },
-                    "previous": {
-                        "type": "string",
-                        "nullable": True,
-                    },
-                    "next": {
-                        "type": "string",
-                        "nullable": True,
-                    },
-                    "last": {
-                        "type": "string",
-                        "nullable": True,
+                    "type": "object",
+                    "properties": {
+                        "first": {
+                            "type": "string",
+                            "nullable": True,
+                        },
+                        "previous": {
+                            "type": "string",
+                            "nullable": True,
+                        },
+                        "next": {
+                            "type": "string",
+                            "nullable": True,
+                        },
+                        "last": {
+                            "type": "string",
+                            "nullable": True,
+                        },
                     },
                 },
                 "data": schema,
