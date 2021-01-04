@@ -31,25 +31,27 @@ class CollectionSerializer(serializers.ModelSerializer):
         )
         model = models.Collection
 
-    def get_href(self, obj):
+    def get_href(self, obj) -> str:
         """Get href."""
         return reverse(
             "collections-detail",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
 
-    def get_versions_url(self, obj):
+    def get_versions_url(self, obj) -> str:
         """Get a link to a collection versions list."""
         return reverse(
             "collection-versions-list",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
 
+    @extend_schema_field(OpenApiTypes.DATETIME)
     def get_created_at(self, obj):
         """Get the timestamp of the lowest version CollectionVersion's created timestamp."""
         collection = self.context["lowest_versions"][obj.pk]
         return collection.pulp_created
 
+    @extend_schema_field(OpenApiTypes.DATETIME)
     def get_updated_at(self, obj):
         """Get the timestamp of the highest version CollectionVersion's created timestamp."""
         collection = self.context["highest_versions"][obj.pk]
@@ -82,7 +84,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
         fields = ("version", "href", "created_at", "updated_at")
         model = models.CollectionVersion
 
-    def get_href(self, obj):
+    def get_href(self, obj) -> str:
         """
         Get href.
         """
@@ -114,7 +116,7 @@ class CollectionRefSerializer(serializers.Serializer):
     name = serializers.CharField()
     href = serializers.SerializerMethodField()
 
-    def get_href(self, obj):
+    def get_href(self, obj) -> str:
         """Returns link to a collection."""
         return reverse(
             "collections-detail",
@@ -175,13 +177,14 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
             "metadata",
         )
 
+    @extend_schema_field(ArtifactRefSerializer)
     def get_artifact(self, obj):
         """
         Get atrifact summary.
         """
         return ArtifactRefSerializer(self.context["content_artifact"]).data
 
-    def get_download_url(self, obj):
+    def get_download_url(self, obj) -> str:
         """
         Get artifact download URL.
         """
