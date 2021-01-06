@@ -246,6 +246,10 @@ def _update_highest_version(collection_version):
         last_highest.save()
         collection_version.save()
 
+    elif collection_version.is_highest and collection_version.version != last_highest.version:
+        collection_version.is_highest = False
+        collection_version.save()
+
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
     """
@@ -599,7 +603,8 @@ class CollectionContentSaver(ContentSaver):
                 continue
             collection_version = d_content.content
             docs_blob = d_content.extra_data.get("docs_blob", {})
-            collection_version.docs_blob = docs_blob
+            if docs_blob:
+                collection_version.docs_blob = docs_blob
 
             for d_artifact in d_content.d_artifacts:
                 artifact = d_artifact.artifact
