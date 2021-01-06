@@ -82,5 +82,5 @@ descriptions of all the fields and how they are used.
      - Please select your operating system.
 
    * - Tags
-     - For searching. Select 0 or many, best judgement.
+     - For searching. Select 0 or many, best judgement. Ok
        If an issue requires a functional test. Add the tag `Functional test`.
