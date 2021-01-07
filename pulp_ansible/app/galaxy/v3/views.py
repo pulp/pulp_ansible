@@ -87,6 +87,9 @@ class CollectionVersionRetrieveMixin:
         """
         Returns a CollectionVersions queryset for specified distribution.
         """
+        if self.request is None:
+            # https://github.com/carltongibson/django-filter/issues/966#issuecomment-639739206
+            return CollectionVersion.objects.none()
         distro_content = self.get_distro_content(self.kwargs["path"])
 
         collections = CollectionVersion.objects.select_related("collection").filter(
@@ -150,6 +153,9 @@ class CollectionViewSet(
         """
         Returns a Collections queryset for specified distribution.
         """
+        if self.request is None:
+            # https://github.com/carltongibson/django-filter/issues/966#issuecomment-639739206
+            return Collection.objects.none()
         repo_version = self.get_repository_version(self.kwargs["path"])
         deprecated_query = AnsibleCollectionDeprecated.objects.filter(
             collection=OuterRef("pk"), repository_version=repo_version

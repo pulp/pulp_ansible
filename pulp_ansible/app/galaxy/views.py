@@ -17,6 +17,7 @@ from .serializers import (
     GalaxyCollectionVersionSerializer,
     GalaxyRoleSerializer,
     GalaxyRoleVersionSerializer,
+    GalaxyVersionSerializer,
 )
 
 
@@ -27,6 +28,10 @@ class GalaxyVersionView(views.APIView):
 
     authentication_classes = []
     permission_classes = []
+
+    def get_serializer_class(self):
+        """Get serializer class."""
+        return GalaxyVersionSerializer
 
     def get(self, request, path):
         """
@@ -54,6 +59,10 @@ class RoleList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
+        if self.request is None:
+            # https://github.com/carltongibson/django-filter/issues/966#issuecomment-639739206
+            return self.model.objects.none()
+
         distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
 
         if distro.repository_version:
@@ -86,6 +95,10 @@ class RoleVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
+        if self.request is None:
+            # https://github.com/carltongibson/django-filter/issues/966#issuecomment-639739206
+            return self.model.objects.none()
+
         distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
 
         if distro.repository_version:
@@ -133,6 +146,10 @@ class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
         """
         Get the list of Collections for this view.
         """
+        if self.request is None:
+            # https://github.com/carltongibson/django-filter/issues/966#issuecomment-639739206
+            return self.model.objects.none()
+
         distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
         if distro.repository_version:
             distro_content = distro.repository_version.content
@@ -178,6 +195,9 @@ class GalaxyCollectionVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
+        if self.request is None:
+            # https://github.com/carltongibson/django-filter/issues/966#issuecomment-639739206
+            return self.model.objects.none()
         distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
         if distro.repository_version:
             distro_content = distro.repository_version.content
@@ -202,6 +222,10 @@ class GalaxyCollectionVersionDetail(views.APIView):
 
     authentication_classes = []
     permission_classes = []
+
+    def get_serializer_class(self):
+        """Get serializer class."""
+        return GalaxyCollectionVersionSerializer
 
     def get(self, request, path, namespace, name, version):
         """

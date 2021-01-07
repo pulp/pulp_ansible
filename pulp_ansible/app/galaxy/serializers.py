@@ -131,6 +131,15 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         model = Collection
 
 
+class GalaxyVersionSerializer(serializers.Serializer):
+    """
+    A serializer for Galaxy Versions.
+    """
+
+    available_versions = serializers.DictField(read_only=True)
+    current_version = serializers.CharField(read_only=True)
+
+
 class GalaxyCollectionVersionSerializer(serializers.Serializer):
     """
     A serializer for a CollectionVersion.
