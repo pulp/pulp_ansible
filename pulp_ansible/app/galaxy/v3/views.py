@@ -224,6 +224,12 @@ class CollectionViewSet(
         return Response(serializer.data)
 
 
+class UnpaginatedCollectionViewSet(CollectionViewSet):
+    """Unpaginated ViewSet for Collections."""
+
+    pagination_class = None
+
+
 class CollectionUploadViewSet(
     ExceptionHandlerMixin, viewsets.GenericViewSet, UploadGalaxyCollectionMixin
 ):
