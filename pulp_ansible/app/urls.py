@@ -73,6 +73,11 @@ v3_urls = [
         views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
         name="collection-imports-detail",
     ),
+    path(
+        "metadata/collections/",
+        views_v3.UnpaginatedCollectionViewSet.as_view({"get": "list"}),
+        name="metadata-collection-list",
+    ),
 ]
 
 urlpatterns = [
