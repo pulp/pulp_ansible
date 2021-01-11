@@ -40,7 +40,6 @@ from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
     CollectionImportDetailSerializer,
 )
-from pulp_ansible.app.utils import join_to_queryset
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
@@ -153,22 +152,32 @@ class CollectionViewSet(
         """
         repo_version = self.get_repository_version(self.kwargs["path"])
 
-        versions = CollectionVersion.objects.filter(
-            version_memberships__repository=repo_version.repository
-        ).annotate(
-            repo_version_added_at=Window(
-                expression=FirstValue("version_memberships__pulp_last_updated"),
-                partition_by=[F("collection_id")],
-                order_by=F("version_memberships__pulp_last_updated").desc(),
-            ),
-            repo_version_removed_at=Window(
-                expression=FirstValue("version_memberships__version_removed__pulp_last_updated"),
-                partition_by=[F("collection_id")],
-                order_by=F("version_memberships__version_removed__pulp_last_updated").desc(
-                    nulls_last=True
+        versions = (
+            CollectionVersion.objects.filter(
+                version_memberships__repository=repo_version.repository
+            )
+            .annotate(
+                repo_version_added_at=Window(
+                    expression=FirstValue("version_memberships__pulp_last_updated"),
+                    partition_by=[F("collection_id")],
+                    order_by=F("version_memberships__pulp_last_updated").desc(),
                 ),
-            ),
+                repo_version_removed_at=Window(
+                    expression=FirstValue(
+                        "version_memberships__version_removed__pulp_last_updated"
+                    ),
+                    partition_by=[F("collection_id")],
+                    order_by=F("version_memberships__version_removed__pulp_last_updated").desc(
+                        nulls_last=True
+                    ),
+                ),
+            )
+            .values_list("collection_id", "repo_version_added_at", "repo_version_removed_at")
         )
+        temp = {}
+        for collection_id, repo_version_added_at, repo_version_removed_at in versions:
+            temp[collection_id] = (repo_version_added_at, repo_version_removed_at)
+
         deprecated_query = AnsibleCollectionDeprecated.objects.filter(
             collection=OuterRef("pk"),
             repository_version=repo_version,
@@ -179,31 +188,25 @@ class CollectionViewSet(
         ).annotate(available_versions=ArrayAgg("versions__version"))
 
         versions_context = {}
+        from collections import namedtuple
+
+        CollectionTuple = namedtuple(
+            "CollectionTuple",
+            ["available_versions", "repo_version_added_at", "repo_version_removed_at"],
+        )
         for collection_id, available_versions in collections_qs.values_list(
             "pk", "available_versions"
         ):
-            versions_context[collection_id] = available_versions
+            versions_context[collection_id] = CollectionTuple(
+                available_versions, *temp[collection_id]
+            )
 
+        del temp
         self.available_versions_context = versions_context  # needed by get__serializer_context
 
-        collections = Collection.objects.filter(
+        return Collection.objects.filter(
             pk__in=versions_context.keys(),
         ).annotate(deprecated=Exists(deprecated_query))
-        collections = collections.extra(
-            {
-                "repo_version_added_at": "subversions.repo_version_added_at",
-                "repo_version_removed_at": "subversions.repo_version_removed_at",
-            }
-        )
-
-        return join_to_queryset(
-            Collection,
-            versions.only("collection_id").distinct("collection_id"),
-            "pulp_id",
-            "collection_id",
-            collections,
-            "subversions",
-        )
 
     def get_object(self):
         """

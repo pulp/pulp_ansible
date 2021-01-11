@@ -54,15 +54,16 @@ class CollectionSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_updated_at(self, obj):
         """Get the timestamp of the highest version CollectionVersion's created timestamp."""
-        if obj.repo_version_added_at and obj.repo_version_removed_at:
-            return max(obj.repo_version_added_at, obj.repo_version_removed_at)
+        collection = self.context["available_versions"][obj.pk]
+        if collection.repo_version_added_at and collection.repo_version_removed_at:
+            return max(collection.repo_version_added_at, collection.repo_version_removed_at)
 
-        return obj.repo_version_added_at or obj.repo_version_removed_at
+        return collection.repo_version_added_at or collection.repo_version_removed_at
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
-        available_versions = self.context["available_versions"][obj.pk]
+        available_versions = self.context["available_versions"][obj.pk].available_versions
         version = sorted(
             available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
         )[0]
