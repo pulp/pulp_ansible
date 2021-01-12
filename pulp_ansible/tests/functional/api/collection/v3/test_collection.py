@@ -2,6 +2,7 @@
 import hashlib
 import logging
 import re
+from datetime import datetime
 from urllib.parse import urljoin
 
 import pytest
@@ -62,15 +63,25 @@ def artifact():
     return artifact
 
 
+def get_metadata_published(pulp_client, pulp_dist):
+    """Return published datetime."""
+    metadata = pulp_client.using_handler(api.json_handler).get(
+        get_galaxy_url(pulp_dist["base_path"], "/v3/")
+    )
+    return datetime.strptime(metadata["published"], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+
 @pytest.fixture(scope="session")
 def collection_upload(pulp_client, artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
     UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
-
+    published_before_upload = get_metadata_published(pulp_client, pulp_dist)
     logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
 
     response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
+    published_after_upload = get_metadata_published(pulp_client, pulp_dist)
+    assert published_after_upload > published_before_upload
     return response
 
 

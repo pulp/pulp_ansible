@@ -26,6 +26,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSerializer,
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
+    RepoMetadataSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -382,3 +383,24 @@ class CollectionImportViewSet(
         serializer = CollectionImportDetailSerializer(instance, context=context)
 
         return Response(serializer.data)
+
+
+class RepoMetadataViewSet(
+    ExceptionHandlerMixin,
+    AnsibleDistributionMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    ViewSet for Repository Metadata.
+    """
+
+    authentication_classes = []
+    permission_classes = []
+    serializer_class = RepoMetadataSerializer
+
+    def get_object(self):
+        """
+        Returns a RepositoryVersion object.
+        """
+        return self.get_repository_version(self.kwargs["path"])
