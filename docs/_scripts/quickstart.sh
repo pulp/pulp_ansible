@@ -9,7 +9,12 @@
 # variables)
 source setup.sh
 
+echo "Role - Workflows"
 source repo.sh
 source remote.sh
 source sync.sh
 
+echo "Collection - Workflows"
+source repo.sh cfoo
+source remote-collection.sh
+source sync.sh
