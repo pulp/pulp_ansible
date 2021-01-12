@@ -39,6 +39,7 @@ v2_urls = [
 ]
 
 v3_urls = [
+    path("", views_v3.RepoMetadataViewSet.as_view({"get": "retrieve"}), name="repo-metadata"),
     path(
         "collections/", views_v3.CollectionViewSet.as_view({"get": "list"}), name="collections-list"
     ),

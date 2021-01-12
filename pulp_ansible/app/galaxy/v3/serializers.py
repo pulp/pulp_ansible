@@ -203,3 +203,13 @@ class CollectionVersionDocsSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ("docs_blob",)
         model = models.CollectionVersion
+
+
+class RepoMetadataSerializer(serializers.ModelSerializer):
+    """A serializer to display RepositoryVersion metadata."""
+
+    published = serializers.DateTimeField(source="pulp_created")
+
+    class Meta:
+        fields = ("published",)
+        model = models.RepositoryVersion
