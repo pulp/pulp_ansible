@@ -13,6 +13,23 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.6 (2021-01-12)
+==================
+
+Bugfixes
+--------
+
+- Fixed v3 schema pagination to match OpenAPI standard
+  `#8037 <https://pulp.plan.io/issues/8037>`_
+- Fix collection version comparison on re-syncs
+  `#8039 <https://pulp.plan.io/issues/8039>`_
+- Enable proxy on token refresh requests
+  `#8051 <https://pulp.plan.io/issues/8051>`_
+
+
+----
+
+
 0.5.5 (2020-12-11)
 ==================
 
