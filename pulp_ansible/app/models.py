@@ -137,7 +137,7 @@ class CollectionVersion(Content):
     issues = models.CharField(default="", blank=True, max_length=2000, editable=False)
     license = psql_fields.ArrayField(models.CharField(max_length=32), default=list, editable=False)
     name = models.CharField(max_length=64, editable=False)
-    namespace = models.CharField(max_length=32, editable=False)
+    namespace = models.CharField(max_length=64, editable=False)
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     version = models.CharField(max_length=128, editable=False)
 
