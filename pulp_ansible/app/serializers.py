@@ -114,6 +114,11 @@ class CollectionRemoteSerializer(RemoteSerializer):
         required=False,
         max_length=2000,
     )
+    rate_limit = serializers.IntegerField(
+        help_text=_("Limits total download rate in requests per second"),
+        allow_null=True,
+        required=False,
+    )
 
     def validate(self, data):
         """
@@ -160,7 +165,12 @@ class CollectionRemoteSerializer(RemoteSerializer):
         return data
 
     class Meta:
-        fields = RemoteSerializer.Meta.fields + ("requirements_file", "auth_url", "token")
+        fields = RemoteSerializer.Meta.fields + (
+            "requirements_file",
+            "auth_url",
+            "token",
+            "rate_limit",
+        )
         model = CollectionRemote
 
 

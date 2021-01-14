@@ -76,6 +76,7 @@ class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
             requirements_file="collections:\n  - ansible.posix",
             auth_url=aurl,
             token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
+            rate_limit=10,
             tls_validation=False,
         )
         remote = self.remote_collection_api.create(body)
@@ -114,6 +115,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
             url="https://ci.cloud.redhat.com/api/automation-hub/content/synctest/",
             auth_url=self.aurl,
             token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            rate_limit=10,
             tls_validation=False,
         )
         remote = self.remote_collection_api.create(body)
@@ -134,6 +136,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
             requirements_file=f"collections:\n  - {namespace}.{name}",
             auth_url=self.aurl,
             token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            rate_limit=10,
             tls_validation=False,
         )
         remote = self.remote_collection_api.create(body)
