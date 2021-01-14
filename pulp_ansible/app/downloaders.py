@@ -43,13 +43,20 @@ class TokenAuthHttpDownloader(HttpDownloader):
     """
 
     def __init__(
-        self, url, auth_url, token, silence_errors_for_response_status_codes=None, **kwargs
+        self,
+        url,
+        auth_url,
+        token,
+        throttler,
+        silence_errors_for_response_status_codes=None,
+        **kwargs,
     ):
         """
         Initialize the downloader.
         """
         self.ansible_auth_url = auth_url
         self.token = token
+        self.download_throttler = throttler
         if silence_errors_for_response_status_codes is None:
             silence_errors_for_response_status_codes = set()
         self.silence_errors_for_response_status_codes = silence_errors_for_response_status_codes
@@ -84,6 +91,8 @@ class TokenAuthHttpDownloader(HttpDownloader):
         :meth:`~pulpcore.plugin.download.BaseDownloader._run`.
 
         """
+        if self.download_throttler:
+            await self.download_throttler.acquire()
         if not self.token and not self.ansible_auth_url:
             return await super()._run(extra_data=extra_data)
         elif self.token and not self.ansible_auth_url:
@@ -128,7 +137,6 @@ class TokenAuthHttpDownloader(HttpDownloader):
             DownloadResult: Contains information about the result. See the DownloadResult docs for
                  more information.
         """
-        await asyncio.sleep(0.75)
         async with self.session.get(self.url, headers=headers, proxy=self.proxy) as response:
             self.raise_for_status(response)
             to_return = await self._handle_response(response)
@@ -211,4 +219,8 @@ class AnsibleDownloaderFactory(DownloaderFactory):
         if not self._remote.token and self._remote.username and self._remote.password:
             options["auth"] = BasicAuth(login=self._remote.username, password=self._remote.password)
 
-        return download_class(url, self._remote.auth_url, self._remote.token, **options, **kwargs)
+        throttler = self._remote.download_throttler if self._remote.rate_limit else None
+
+        return download_class(
+            url, self._remote.auth_url, self._remote.token, throttler, **options, **kwargs
+        )
