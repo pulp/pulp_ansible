@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.6.1 (2021-01-15)
+==================
+
+Bugfixes
+--------
+
+- Allow updating ``auth_url`` on CollectionRemote when ``token`` is already set
+  `#7957 <https://pulp.plan.io/issues/7957>`_
+- Fixed create_task calls for Python 3.6 in collections tasks
+  `#8098 <https://pulp.plan.io/issues/8098>`_
+
+
+----
+
+
 0.6.0 (2020-12-01)
 ==================
 
@@ -39,6 +54,62 @@ Misc
 ----
 
 - `#7777 <https://pulp.plan.io/issues/7777>`_
+
+
+----
+
+
+0.5.6 (2021-01-12)
+==================
+
+Bugfixes
+--------
+
+- Fixed v3 schema pagination to match OpenAPI standard
+  `#8037 <https://pulp.plan.io/issues/8037>`_
+- Fix collection version comparison on re-syncs
+  `#8039 <https://pulp.plan.io/issues/8039>`_
+- Enable proxy on token refresh requests
+  `#8051 <https://pulp.plan.io/issues/8051>`_
+
+
+----
+
+
+0.5.5 (2020-12-11)
+==================
+
+Bugfixes
+--------
+
+- Field ``updated_at`` from Galaxy v3 Collections endpoint using highest version
+  `#7990 <https://pulp.plan.io/issues/7990>`_
+
+
+----
+
+
+0.5.4 (2020-12-04)
+==================
+
+Bugfixes
+--------
+
+- Increase interval between requests when token is required
+  `#7929 <https://pulp.plan.io/issues/7929>`_
+
+
+----
+
+
+0.5.3 (2020-12-04)
+==================
+
+Bugfixes
+--------
+
+- Avoid rate limiting by slowing down sync when token is required
+  `#7917 <https://pulp.plan.io/issues/7917>`_
 
 
 ----
