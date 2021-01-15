@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.6.1 (2021-01-15)
+==================
+
+Bugfixes
+--------
+
+- Allow updating ``auth_url`` on CollectionRemote when ``token`` is already set
+  `#7957 <https://pulp.plan.io/issues/7957>`_
+- Fixed create_task calls for Python 3.6 in collections tasks
+  `#8098 <https://pulp.plan.io/issues/8098>`_
+
+
+----
+
+
 0.6.0 (2020-12-01)
 ==================
 
