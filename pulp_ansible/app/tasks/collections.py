@@ -407,6 +407,7 @@ class CollectionSyncFirstStage(Stage):
         collection_url = f"{collection_endpoint}{namespace}/{name}"
         collection_metadata_downloader = self.remote.get_downloader(url=collection_url)
         collection_metadata = parse_metadata(await collection_metadata_downloader.run())
+        loop = asyncio.get_event_loop()
 
         tasks = []
         page_num = 1
@@ -426,7 +427,7 @@ class CollectionSyncFirstStage(Stage):
                     if collection_metadata["deprecated"]:
                         self.deprecations |= Q(namespace=namespace, name=name)
                     tasks.append(
-                        asyncio.create_task(
+                        loop.create_task(
                             self._fetch_collection_version_metadata(
                                 api_version,
                                 collection_version_detail_url,
@@ -457,6 +458,7 @@ class CollectionSyncFirstStage(Stage):
 
     async def _find_all_collections(self):
         collection_endpoint, api_version = await self._get_collection_api(self.remote.url)
+        loop = asyncio.get_event_loop()
 
         tasks = []
         page_num = 1
@@ -482,9 +484,7 @@ class CollectionSyncFirstStage(Stage):
                     version="*",
                     source=None,
                 )
-                tasks.append(
-                    asyncio.create_task(self._fetch_collection_metadata(requirements_file))
-                )
+                tasks.append(loop.create_task(self._fetch_collection_metadata(requirements_file)))
 
             next_value = self._get_response_next_value(api_version, collection_list)
             if not next_value:
@@ -498,13 +498,12 @@ class CollectionSyncFirstStage(Stage):
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
         tasks = []
+        loop = asyncio.get_event_loop()
         if self.collection_info:
             for requirement_entry in self.collection_info:
-                tasks.append(
-                    asyncio.create_task(self._fetch_collection_metadata(requirement_entry))
-                )
+                tasks.append(loop.create_task(self._fetch_collection_metadata(requirement_entry)))
         else:
-            tasks.append(asyncio.create_task(self._find_all_collections()))
+            tasks.append(loop.create_task(self._find_all_collections()))
         await asyncio.gather(*tasks)
         self.parsing_metadata_progress_bar.state = TASK_STATES.COMPLETED
         self.parsing_metadata_progress_bar.save()
