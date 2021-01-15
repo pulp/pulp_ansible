@@ -31,6 +31,11 @@ if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
   make PULP_URL="http://pulp" html
   cd ..
 
+  echo "Validating OpenAPI schema..."
+  cat $PWD/.ci/scripts/schema.py | cmd_stdin_prefix bash -c "cat > /tmp/schema.py"
+  cmd_prefix bash -c "python /tmp/schema.py"
+  # cmd_prefix bash -c "pulpcore-manager spectacular --file pulp_schema.yml --validate"
+
   if [ -f $POST_DOCS_TEST ]; then
     source $POST_DOCS_TEST
   fi
@@ -51,9 +56,9 @@ pip install ./pulp_ansible-client
 cd $REPO_ROOT
 
 if [[ "$TEST" = 'bindings' || "$TEST" = 'publish' ]]; then
-  python $REPO_ROOT/.github/workflows/scripts/test_bindings.py
+  python $REPO_ROOT/.ci/assets/bindings/test_bindings.py
   cd ../pulp-openapi-generator
-  if [ ! -f $REPO_ROOT/.github/workflows/scripts/test_bindings.rb ]
+  if [ ! -f $REPO_ROOT/.ci/assets/bindings/test_bindings.rb ]
   then
     exit
   fi
@@ -73,7 +78,7 @@ if [[ "$TEST" = 'bindings' || "$TEST" = 'publish' ]]; then
   gem build pulp_ansible_client
   gem install --both ./pulp_ansible_client-0.gem
   cd ..
-  ruby $REPO_ROOT/.github/workflows/test_bindings.rb
+  ruby $REPO_ROOT/.ci/assets/bindings/test_bindings.rb
   exit
 fi
 
@@ -89,6 +94,15 @@ cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --n
 
 # Run functional tests
 export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
+
+if [[ "$TEST" == "performance" ]]; then
+  if [[ -z ${PERFORMANCE_TEST+x} ]]; then
+    pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance
+  else
+    pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_$PERFORMANCE_TEST
+  fi
+  exit
+fi
 
 if [ -f $FUNC_TEST_SCRIPT ]; then
   source $FUNC_TEST_SCRIPT
