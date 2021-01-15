@@ -1,0 +1,1 @@
+Fixed create_task calls for Python 3.6 in collections tasks
