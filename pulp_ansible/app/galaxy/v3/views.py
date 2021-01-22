@@ -3,7 +3,9 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, F
+from django.db.models.expressions import Window
+from django.db.models.functions.window import FirstValue
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django_filters import filters
@@ -166,12 +168,6 @@ class CollectionViewSet(
         Returns a Collections queryset for specified distribution.
         """
         repo_version = self.get_repository_version(self.kwargs["path"])
-        deprecated_query = AnsibleCollectionDeprecated.objects.filter(
-            collection=OuterRef("pk"), repository_version=repo_version
-        )
-        collections = Collection.objects.filter(versions__in=repo_version.content).distinct()
-        collections = collections.annotate(deprecated=Exists(deprecated_query))
-
         versions_qs = CollectionVersion.objects.filter(pk__in=repo_version.content).values_list(
             "collection_id",
             "namespace",
@@ -180,6 +176,8 @@ class CollectionViewSet(
             "pulp_created",
         )
 
+        collection_pks = set()
+
         highest_versions = defaultdict(
             lambda: CollectionTuple(None, None, semantic_version.Version("0.0.0"), None)
         )
@@ -187,6 +185,7 @@ class CollectionViewSet(
             lambda: CollectionTuple(None, None, semantic_version.Version("100000000000.0.0"), None)
         )
         for collection_id, namespace, name, version, pulp_created in versions_qs:
+            collection_pks.add(collection_id)
             version_to_consider = semantic_version.Version(version)
             collection_tuple = CollectionTuple(namespace, name, version_to_consider, pulp_created)
             if version_to_consider > highest_versions[collection_id].version:
@@ -196,7 +195,36 @@ class CollectionViewSet(
 
         self.highest_versions_context = highest_versions  # needed by get__serializer_context
         self.lowest_versions_context = lowest_versions  # needed by get__serializer_context
-        return collections
+
+        deprecated_query = AnsibleCollectionDeprecated.objects.filter(
+            collection=OuterRef("pk"), repository_version=repo_version
+        ).only("collection_id")
+
+        collections = Collection.objects.filter(
+            pk__in=collection_pks, versions__version_memberships__repository=repo_version.repository
+        ).annotate(
+            repo_version_added_at=Window(
+                expression=FirstValue(
+                    "versions__version_memberships__version_added__pulp_last_updated"
+                ),
+                partition_by=[F("versions__collection_id")],
+                order_by=F("versions__version_memberships__version_added__pulp_last_updated").desc(
+                    nulls_last=True
+                ),
+            ),
+            repo_version_removed_at=Window(
+                expression=FirstValue(
+                    "versions__version_memberships__version_removed__pulp_last_updated"
+                ),
+                partition_by=[F("versions__collection_id")],
+                order_by=F(
+                    "versions__version_memberships__version_removed__pulp_last_updated"
+                ).desc(nulls_last=True),
+            ),
+            deprecated=Exists(deprecated_query),
+        )
+
+        return collections.distinct("versions__collection_id").only("name", "namespace")
 
     def get_object(self):
         """
