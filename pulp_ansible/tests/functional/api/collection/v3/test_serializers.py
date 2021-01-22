@@ -1,6 +1,4 @@
 """Tests related to Galaxy V3 serializers."""
-import unittest
-
 from pulpcore.client.pulp_ansible import (
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
@@ -30,12 +28,11 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         cls.collections_versions_api = ContentCollectionVersionsApi(cls.client)
         cls.collections_versions_v3api = PulpAnsibleGalaxyApiV3VersionsApi(cls.client)
 
-    @unittest.skip("FIXME: Re-enable later")
     def test_v3_updated_at(self):
         """Test Collections V3 endpoint field: ``updated_at``."""
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
-            requirements_file="collections:\n  - testing.k8s_demo_collection",
+            requirements_file="collections:\n  - pulp.pulp_installer",
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
