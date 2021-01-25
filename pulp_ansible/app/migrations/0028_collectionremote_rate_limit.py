@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ansible', '0027_auto_20201120_1435'),
+        ('ansible', '0027_tag_length'),
     ]
 
     operations = [
