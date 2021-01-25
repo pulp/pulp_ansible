@@ -1,4 +1,5 @@
 """Utilities for tests for the ansible plugin."""
+from dynaconf import Dynaconf
 from functools import partial
 from time import sleep
 import unittest
@@ -36,6 +37,7 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleGalaxyApiV3VersionsApi,
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
+    RemotesRoleApi,
     RepositorySyncURL,
 )
 
@@ -143,6 +145,7 @@ class TestCaseUsingBindings(unittest.TestCase):
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
+        cls.remote_role_api = RemotesRoleApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
         cls.collections_v3api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
@@ -216,3 +219,25 @@ class SyncHelpersMixin:
         distribution = self.distributions_api.read(created_resources[0])
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
         return distribution
+
+
+settings = Dynaconf(
+    settings_files=["pulp_ansible/tests/assets/func_test_settings.py", "/etc/pulp/settings.py"]
+)
+
+
+def get_psql_smash_cmd(sql_statement):
+    """
+    Generate a command in a format for pulp smash cli client to execute the specified SQL statement.
+
+    The implication is that PostgreSQL is always running on localhost.
+    Args:
+        sql_statement(str): An SQL statement to execute.
+    Returns:
+        tuple: a command in the format for  pulp smash cli client
+    """
+    host = "localhost"
+    user = settings.DATABASES["default"]["USER"]
+    password = settings.DATABASES["default"]["PASSWORD"]
+    dbname = settings.DATABASES["default"]["NAME"]
+    return ("psql", "-c", sql_statement, f"postgresql://{user}:{password}@{host}/{dbname}")
