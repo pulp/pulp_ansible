@@ -72,7 +72,7 @@ VARSYAML
 fi
 
 cat >> vars/main.yaml << VARSYAML
-pulp_settings: {"ansible_api_hostname": "http://pulp:80", "ansible_content_hostname": "http://pulp:80/pulp/content"}
+pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "http://pulp:80", "ansible_content_hostname": "http://pulp:80/pulp/content"}
 VARSYAML
 
 if [ "$TEST" = "s3" ]; then
