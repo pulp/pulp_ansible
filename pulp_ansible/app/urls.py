@@ -68,6 +68,11 @@ v3_urls = [
         name="collection-versions-detail-docs",
     ),
     path(
+        "collections/<str:namespace>/<str:name>/versions/<str:version>/dependencies/",
+        views_v3.CollectionVersionDependencyViewSet.as_view({"get": "retrieve"}),
+        name="collection-versions-detail-dependency",
+    ),
+    path(
         "imports/collections/<uuid:pk>/",
         views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
         name="collection-imports-detail",

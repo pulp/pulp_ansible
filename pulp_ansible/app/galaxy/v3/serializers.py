@@ -99,6 +99,29 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
         )
 
 
+class CollectionVersionDependencySerializer(CollectionSerializer):
+    """A serializer for returning a CollectionVersion's dependencies."""
+
+    dependencies = serializers.JSONField()
+
+    class Meta:
+        fields = ("version", "dependencies")
+        model = models.CollectionVersion
+
+    def get_href(self, obj):
+        """
+        Get href.
+        """
+        kwargs = {
+            "path": self.context["path"],
+            "namespace": obj.namespace,
+            "name": obj.name,
+            "version": obj.version,
+        }
+
+        return self._get_href("collection-version-dependency", **kwargs)
+
+
 class ArtifactRefSerializer(serializers.Serializer):
     """A serializer for an Artifact reference."""
 

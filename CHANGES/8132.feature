@@ -1,0 +1,1 @@
+Create a new ``collections/ns/name/versions/version/dependencies/``endpoint that returns collection level dependencies.

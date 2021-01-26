@@ -1,9 +1,11 @@
 from collections import defaultdict, namedtuple
 from datetime import datetime
+from functools import reduce
 from gettext import gettext as _
+from operator import and_
 import semantic_version
 
-from django.db.models import Exists, OuterRef
+from django.db.models import Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404
 from django.utils.datastructures import MultiValueDictKeyError
 from django.utils.dateparse import parse_datetime
@@ -24,6 +26,7 @@ from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
+    CollectionVersionDependencySerializer,
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
 )
@@ -342,6 +345,107 @@ class CollectionVersionDocsViewSet(
     serializer_class = CollectionVersionDocsSerializer
 
     lookup_field = "version"
+
+
+class CollectionVersionDependencyViewSet(CollectionVersionViewSet, ExceptionHandlerMixin):
+    """
+    ViewSet for CollectionVersionDependency.
+    """
+
+    lookup_field = "version"
+    model = CollectionVersion
+    serializer_class = CollectionVersionDependencySerializer
+    permission_classes = []
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Returns the resolved Collection dependencies of the specified CollectionVersion.
+        """
+        serializer = self.get_serializer_class()(
+            self.get_object(), context=self.get_serializer_context()
+        )
+
+        dependency_map = {}
+        resolved_deps = {}
+        errors = {}
+
+        # Initial dependencies
+        deps = serializer.data["dependencies"]
+
+        while len(deps) > 0:
+            current_dep = ""
+            new_dependencies = {}
+            resolved_version_number = ""
+
+            for key in deps:
+                current_dep = key
+
+                # Add dependencies to dependency map
+                if key in resolved_deps and key in dependency_map:
+                    resolved_deps.pop(key)
+                    dependency_map[key].append(deps[key])
+                    deps[key] += "," + ",".join(dependency_map[key])
+                else:
+                    if key in dependency_map:
+                        dependency_map[key].append(deps[key])
+                        deps[key] = ",".join(dependency_map[key])
+                    else:
+                        dependency_map[key] = [deps[key]]
+
+                # Build then run sql query based on deps to get the latest compatible version
+                namespace, name = key.split(".")
+                split_deps = deps[key].split(",")
+                filters = []
+                for d in split_deps:
+                    offset = 0
+                    if ">=" in d or "<=" in d or "==" in d:
+                        offset = 2
+                    if "=" in d or ">" in d or "<" in d or "*" in d:
+                        offset = 1
+                    operand = d[:offset]
+                    version = d[offset:]
+                    queries = {
+                        ">=": Q(version__gte=version),
+                        "<=": Q(version__lte=version),
+                        "==": Q(version__exact=version),
+                        "=": Q(version__exact=version),
+                        ">": Q(version__gt=version),
+                        "<": Q(version__lt=version),
+                        "*": Q(version__gt="0.0.0"),
+                    }
+
+                    filters.append(queries[operand])
+
+                qs = CollectionVersion.objects.filter(
+                    reduce(and_, filters), namespace__in=[namespace], name__in=[name]
+                ).order_by("-version")[:1]
+
+                if qs:
+                    results = self.get_serializer_class()(qs[0])
+                    resolved_version_number = results.data["version"]
+                    new_dependencies = results.data["dependencies"]
+                else:
+                    resolved_version_number = False
+                    new_dependencies = []
+
+            if resolved_version_number:
+                resolved_deps[key] = resolved_version_number
+            else:
+                errors[key] = {
+                    "reason": "Conflict",
+                    "constraints": deps[key],
+                }
+
+            if len(new_dependencies) > 0:
+                deps.update(new_dependencies)
+            deps.pop(current_dep)
+
+        data = {"dependencies": resolved_deps}
+
+        if len(errors) > 0:
+            data["errors"] = errors
+
+        return Response(data)
 
 
 class CollectionImportViewSet(
