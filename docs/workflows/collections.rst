@@ -13,10 +13,10 @@ one or more repositories. From a high level you can:
 4. :ref:`Install content from the repo with ansible-galaxy <ansible-galaxy-collections-cli>`
 
 
-API Client Setup
+Pulp-CLI Setup
 ----------------
 
-To use the bash examples on this page. Run these basic bash utilities below:
+To use the example commands on this page, install the Pulp-CLI as shown below.
 
 .. literalinclude:: ../_scripts/setup.sh
    :language: bash
@@ -32,15 +32,16 @@ Create a repository and name it the ``foo`` repository.
 .. literalinclude:: ../_scripts/repo.sh
    :language: bash
 
-Repository GET Response::
+Repository create output::
 
     {
-        "pulp_created": "2019-04-29T15:57:59.763712Z",
-        "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
-        "latest_version_href": null,
-        "versions_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
-        "description": "",
-        "name": "foo"
+      "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/",
+      "pulp_created": "2021-01-26T22:48:11.479496Z",
+      "versions_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/",
+      "latest_version_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/0/",
+      "name": "foo",
+      "description": null,
+      "remote": null
     }
 
 Reference (pulpcore): `Repository API Usage <https://docs.pulpproject.org/restapi.html#tag/
@@ -66,19 +67,20 @@ For example a distribution with ``base_path`` set to ``my_content`` could have a
 .. literalinclude:: ../_scripts/distribution_repo.sh
    :language: bash
 
-.. code:: json
+Distribution create output::
 
+    Started background task /pulp/api/v3/tasks/48d187f6-d1d0-4d83-b803-dae9fe976da9/
+    .Done.
     {
-        "pulp_created": "2019-07-26T16:46:23.666410Z",
-        "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/4262ed83-e86c-4a13-baff-fc543c46a391/",
-        "base_path": "my_content",
-        "base_url": "/pulp/content/foo",
-        "content_guard": null,
-        "name": "baz",
-        "repository": "/pulp/api/v3/repositories/ansible/ansible/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/",
-        "repository_version": null
+      "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/148ce745-3dd5-4dda-a0ba-f9c5ec7119e1/",
+      "pulp_created": "2021-01-26T22:51:34.380612Z",
+      "base_path": "my_content",
+      "content_guard": null,
+      "name": "baz",
+      "repository": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/",
+      "repository_version": null,
+      "client_url": "http://pulp3-source-fedora31.localhost.example.com/pulp_ansible/galaxy/my_content/"
     }
-
 
 Create a Distribution for a RepositoryVersion (optional)
 --------------------------------------------------------
@@ -90,19 +92,20 @@ addition to it.
 .. literalinclude:: ../_scripts/distribution_repo_version.sh
    :language: bash
 
-.. code:: json
+Distribution create output::
 
+    Started background task /pulp/api/v3/tasks/48d187f6-d1d0-4d83-b803-dae9fe976da9/
+    .Done.
     {
-        "pulp_created": "2019-07-26T16:51:04.803014Z",
-        "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/c9879338-8656-46aa-a2b2-46fa5d7b0329/",
-        "base_path": "my_content",
-        "base_url": "/pulp/content/foo",
-        "content_guard": null,
-        "name": "baz",
-        "repository": null,
-        "repository_version": "/pulp/api/v3/repositories/ansible/ansible/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/versions/1/"
+      "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/148ce745-3dd5-4dda-a0ba-f9c5ec7119e1/",
+      "pulp_created": "2021-01-26T22:51:34.380612Z",
+      "base_path": "my_content",
+      "content_guard": null,
+      "name": "baz",
+      "repository": null,
+      "repository_version": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/",
+      "client_url": "http://pulp3-source-fedora31.localhost.example.com/pulp_ansible/galaxy/my_content/"
     }
-
 
 .. _create-collection-remote:
 
@@ -119,22 +122,31 @@ from ``https://galaxy-dev.ansible.com/``.
 .. literalinclude:: ../_scripts/remote-collection.sh
    :language: bash
 
-Remote GET Response::
+Remote create output::
 
     {
-        "pulp_created": "2019-04-29T13:51:10.860792Z",
-        "pulp_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
-        "pulp_last_updated": "2019-04-29T13:51:10.860805Z",
-        "requirements_file": "collections:\n  - testing.ansible_testing_content",
-        "download_concurrency": 20,
-        "name": "bar",
-        "policy": "immediate",
-        "proxy_url": null,
-        "ssl_ca_certificate": null,
-        "ssl_client_certificate": null,
-        "ssl_client_key": null,
-        "ssl_validation": true,
-        "url": "https://galaxy-dev.ansible.com/",
+      "pulp_href": "/pulp/api/v3/remotes/ansible/collection/80ba27e3-b4d6-4ddb-9677-9e40c04352ef/",
+      "pulp_created": "2021-01-26T23:16:06.790367Z",
+      "name": "cbar",
+      "url": "https://galaxy-dev.ansible.com/",
+      "ca_cert": null,
+      "client_cert": null,
+      "client_key": null,
+      "tls_validation": true,
+      "proxy_url": null,
+      "username": null,
+      "password": null,
+      "pulp_last_updated": "2021-01-26T23:16:06.790390Z",
+      "download_concurrency": 10,
+      "policy": "immediate",
+      "total_timeout": null,
+      "connect_timeout": null,
+      "sock_connect_timeout": null,
+      "sock_read_timeout": null,
+      "requirements_file": "collections:\n  - testing.ansible_testing_content",
+      "auth_url": null,
+      "token": null,
+      "rate_limit": null
     }
 
 For `remote sources that require authentication <https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#configuring-the-ansible-galaxy-client>`_, tokens can be used. You can provide the ``token``
@@ -146,22 +158,31 @@ from ``https://cloud.redhat.com/api/automation-hub/v3/collections/testing/ansibl
 .. literalinclude:: ../_scripts/remote-collection-token.sh
    :language: bash
 
-Remote GET Response::
+Remote create output::
 
     {
-        "pulp_created": "2019-04-29T13:51:10.860792Z",
-        "pulp_href": "/pulp/api/v3/remotes/ansible/collection/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
-        "pulp_last_updated": "2019-04-29T13:51:10.860805Z",
-        "requirements_file": "collections:\n  - testing.ansible_testing_content",
-        "download_concurrency": 20,
-        "name": "bar",
-        "policy": "immediate",
-        "proxy_url": null,
-        "ssl_ca_certificate": null,
-        "ssl_client_certificate": null,
-        "ssl_client_key": null,
-        "ssl_validation": true,
-        "url": "https://galaxy-dev.ansible.com/",
+      "pulp_href": "/pulp/api/v3/remotes/ansible/collection/80ba27e3-b4d6-4ddb-9677-9e40c04352ef/",
+      "pulp_created": "2021-01-26T23:16:06.790367Z",
+      "name": "abar",
+      "url": "https://cloud.redhat.com/api/automation-hub/",
+      "ca_cert": null,
+      "client_cert": null,
+      "client_key": null,
+      "tls_validation": false,
+      "proxy_url": null,
+      "username": null,
+      "password": null,
+      "pulp_last_updated": "2021-01-26T23:16:06.790390Z",
+      "download_concurrency": 10,
+      "policy": "immediate",
+      "total_timeout": null,
+      "connect_timeout": null,
+      "sock_connect_timeout": null,
+      "sock_read_timeout": null,
+      "requirements_file": "collections:\n  - testing.ansible_testing_content",
+      "auth_url": "https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token",
+      "token": "$ANSIBLE_TOKEN_AUTH",
+      "rate_limit": null
     }
 
 Sync Repository foo with CollectionRemote
@@ -170,33 +191,34 @@ Sync Repository foo with CollectionRemote
 Use the CollectionRemote object to kick off a synchronize task by specifying the Repository to
 sync with. You are telling Pulp to fetch Collection content from the external source.
 
-.. literalinclude:: ../_scripts/sync.sh
+.. literalinclude:: ../_scripts/sync-collection.sh
    :language: bash
 
 Repository Version GET Response (when complete)::
 
 
     {
-        "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/",
-        "pulp_created": "2019-05-28T21:51:08.172095Z",
-        "number": 1,
-        "base_version": null,
-        "content_summary": {
-            "added": {
-                "ansible.collection": {
-                    "count": 1,
-                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version_added=/pulp/api/v3/repositories/ansible/ansible/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
-                }
-            },
-            "removed": {},
-            "present": {
-                "ansible.collection": {
-                    "count": 1,
-                    "href": "/pulp/api/v3/content/ansible/collections/?repository_version=/pulp/api/v3/repositories/ansible/ansible/05813fa6-cf0b-435b-b54b-5a30fc370848/versions/1/"
-                }
-            }
+      "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/",
+      "pulp_created": "2021-01-26T23:25:06.473972Z",
+      "number": 1,
+      "base_version": null,
+      "content_summary": {
+        "added": {
+          "ansible.collection_version": {
+            "count": 2,
+            "href": "/pulp/api/v3/content/ansible/collection_versions/?repository_version_added=/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/"
+          }
+        },
+        "removed": {},
+        "present": {
+          "ansible.collection_version": {
+            "count": 2,
+            "href": "/pulp/api/v3/content/ansible/collection_versions/?repository_version=/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/"
+          }
         }
+      }
     }
+
 
 
 .. _ansible-galaxy-collections-cli:
@@ -217,7 +239,7 @@ configured to use.
 Using a specific version
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-Install your role by name by specifying the distribution serving your Repository's content using the
+Install your collection by name by specifying the distribution serving your Repository's content using the
 ``-s`` option.
 
 ``ansible-galaxy collection install testing.ansible_testing_content:4.0.6 -c -s http://localhost/pulp_ansible/galaxy/my_content/``
