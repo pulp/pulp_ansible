@@ -13,10 +13,10 @@ one or more repositories. From a high level you can:
 4. :ref:`Install content from the repo with ansible-galaxy <ansible-galaxy-roles-cli>`
 
 
-API Client Setup
+Pulp-CLI Setup
 ----------------
 
-To use the bash examples on this page. Run these basic bash utilities below:
+To use the example commands on this page, install the Pulp-CLI as shown below.
 
 .. literalinclude:: ../_scripts/setup.sh
    :language: bash
@@ -32,15 +32,16 @@ Create a repository and name it the ``foo`` repository.
 .. literalinclude:: ../_scripts/repo.sh
    :language: bash
 
-Repository GET Response::
+Repository create output::
 
     {
-        "pulp_created": "2019-04-29T15:57:59.763712Z",
-        "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/",
-        "latest_version_href": null,
-        "versions_href": "/pulp/api/v3/repositories/ansible/ansible/1b2b0af1-5588-4b4b-b2f6-cdd3a3e1cd36/versions/",
-        "description": "",
-        "name": "foo"
+      "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/",
+      "pulp_created": "2021-01-26T22:48:11.479496Z",
+      "versions_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/",
+      "latest_version_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/0/",
+      "name": "foo",
+      "description": null,
+      "remote": null
     }
 
 Reference (pulpcore): `Repository API Usage <https://docs.pulpproject.org/restapi.html#tag/
@@ -65,19 +66,20 @@ For example a distribution with ``base_path`` set to ``my_content`` could have a
 .. literalinclude:: ../_scripts/distribution_repo.sh
    :language: bash
 
-.. code:: json
+Distribution create output::
 
+    Started background task /pulp/api/v3/tasks/48d187f6-d1d0-4d83-b803-dae9fe976da9/
+    .Done.
     {
-        "pulp_created": "2019-07-26T16:46:23.666410Z",
-        "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/4262ed83-e86c-4a13-baff-fc543c46a391/",
-        "base_path": "my_content",
-        "base_url": "/pulp/content/foo",
-        "content_guard": null,
-        "name": "baz",
-        "repository": "/pulp/api/v3/repositories/ansible/ansible/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/",
-        "repository_version": null
+      "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/148ce745-3dd5-4dda-a0ba-f9c5ec7119e1/",
+      "pulp_created": "2021-01-26T22:51:34.380612Z",
+      "base_path": "my_content",
+      "content_guard": null,
+      "name": "baz",
+      "repository": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/",
+      "repository_version": null,
+      "client_url": "http://pulp3-source-fedora31.localhost.example.com/pulp_ansible/galaxy/my_content/"
     }
-
 
 Create a Distribution for a RepositoryVersion (optional)
 --------------------------------------------------------
@@ -89,19 +91,20 @@ addition to it.
 .. literalinclude:: ../_scripts/distribution_repo_version.sh
    :language: bash
 
-.. code:: json
+Distribution create output::
 
+    Started background task /pulp/api/v3/tasks/48d187f6-d1d0-4d83-b803-dae9fe976da9/
+    .Done.
     {
-        "pulp_created": "2019-07-26T16:51:04.803014Z",
-        "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/c9879338-8656-46aa-a2b2-46fa5d7b0329/",
-        "base_path": "my_content",
-        "base_url": "/pulp/content/foo",
-        "content_guard": null,
-        "name": "baz",
-        "repository": null,
-        "repository_version": "/pulp/api/v3/repositories/ansible/ansible/301bec4f-c5e7-4a20-a124-f8a1ec1f9229/versions/1/"
+      "pulp_href": "/pulp/api/v3/distributions/ansible/ansible/148ce745-3dd5-4dda-a0ba-f9c5ec7119e1/",
+      "pulp_created": "2021-01-26T22:51:34.380612Z",
+      "base_path": "my_content",
+      "content_guard": null,
+      "name": "baz",
+      "repository": null,
+      "repository_version": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/",
+      "client_url": "http://pulp3-source-fedora31.localhost.example.com/pulp_ansible/galaxy/my_content/"
     }
-
 
 .. _create-role-remote:
 
@@ -116,12 +119,28 @@ syncing all Roles where ``namespace=elastic`` on Galaxy. You can browse those Ro
 .. literalinclude:: ../_scripts/remote.sh
    :language: bash
 
-Remote GET Response::
+Remote create output::
 
     {
-        "pulp_href": "/pulp/api/v3/remotes/ansible/role/e1c65074-3a4f-4f06-837e-75a9a90f2c31/",
+      "pulp_href": "/pulp/api/v3/remotes/ansible/role/38f37de9-842c-4690-a73c-9e813853b28b/",
+      "pulp_created": "2021-01-26T22:55:17.126745Z",
+      "name": "bar",
+      "url": "https://galaxy.ansible.com/api/v1/roles/?namespace__name=elastic",
+      "ca_cert": null,
+      "client_cert": null,
+      "client_key": null,
+      "tls_validation": true,
+      "proxy_url": null,
+      "username": null,
+      "password": null,
+      "pulp_last_updated": "2021-01-26T22:55:17.126755Z",
+      "download_concurrency": 10,
+      "policy": "immediate",
+      "total_timeout": null,
+      "connect_timeout": null,
+      "sock_connect_timeout": null,
+      "sock_read_timeout": null
     }
-
 
 .. _role-sync-with-remote:
 
@@ -134,29 +153,29 @@ sync with. You are telling Pulp to fetch content from the Remote and add to the 
 .. literalinclude:: ../_scripts/sync.sh
    :language: bash
 
-Repository Version GET Response (when complete)::
+Repository Version show output::
 
   {
-      "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/",
+      "pulp_href": "/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/",
+      "pulp_created": "2021-01-26T22:57:55.451200Z",
+      "number": 1,
       "base_version": null,
       "content_summary": {
-          "added": {
-              "ansible.role": {
-                  "count": 16,
-                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version_added=/pulp/api/v3/repositories/ansible/ansible/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
-              }
-          },
-          "present": {
-              "ansible.role": {
-                  "count": 16,
-                  "href": "/pulp/api/v3/content/ansible/roles/?repository_version=/pulp/api/v3/repositories/ansible/ansible/78286e2c-829a-4a8c-a3ca-3a2e490e01a7/versions/1/"
-              }
-          },
-          "removed": {}
-      },
-      "number": 1
+        "added": {
+          "ansible.role": {
+            "count": 56,
+            "href": "/pulp/api/v3/content/ansible/roles/?repository_version_added=/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/"
+          }
+        },
+        "removed": {},
+        "present": {
+          "ansible.role": {
+            "count": 56,
+            "href": "/pulp/api/v3/content/ansible/roles/?repository_version=/pulp/api/v3/repositories/ansible/ansible/b17950e8-cee8-493a-b735-0d04905cf067/versions/1/"
+          }
+        }
+      }
   }
-
 
 Reference (pulpcore): `Repository Version List API Usage <https://docs.pulpproject.org/
 restapi.html#operation/repositories_versions_list>`_
@@ -198,21 +217,3 @@ Then you can install without the ``-s`` url
    - downloading role from http://localhost:24816/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz
    - extracting elastic.elasticsearch to /home/vagrant/.ansible/roles/elastic.elasticsearch
    - elastic.elasticsearch (6.2.4) was installed successfully
-
-
-.. _roles-add-remove:
-
-Add/Remove Content to a Repository
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Whether your Role was fetched with a sync or uploaded, any content can also be added/removed to a
-repository manually::
-
-    http POST pulp.example.com/pulp/api/v3/repositories/ansible/ansible/modify/ \
-        add_content_units:="['/pulp/api/v3/content/ansible/roles/d2bab58c-50f2-4f1d-9cf0-8ceb1680f31b/']"
-
-
-This is entirely implemented by `pulpcore`, please see their reference docs for more information.
-
-Reference (pulpcore): `Repository Version Creation API Usage
-<https://docs.pulpproject.org/restapi.html#operation/repositories_versions_create>`_
