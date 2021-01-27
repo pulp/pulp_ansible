@@ -1,5 +1,4 @@
 async_lru
-asyncio-throttle
 galaxy_importer
 jsonschema>=3.0
 packaging
