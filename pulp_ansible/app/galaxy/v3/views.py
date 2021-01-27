@@ -17,7 +17,7 @@ from rest_framework import status as http_status
 from rest_framework import viewsets
 
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import PulpTemporaryFile, Content, ContentArtifact
+from pulpcore.plugin.models import PulpTemporaryFile, Content
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
@@ -90,7 +90,9 @@ class CollectionVersionRetrieveMixin:
         """
         distro_content = self.get_distro_content(self.kwargs["path"])
 
-        collections = CollectionVersion.objects.select_related("collection").filter(
+        collections = CollectionVersion.objects.select_related(
+            "content_ptr__contentartifact"
+        ).filter(
             pk__in=distro_content, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
         )
         return collections
@@ -100,10 +102,8 @@ class CollectionVersionRetrieveMixin:
         Returns a CollectionVersion object.
         """
         instance = self.get_object()
-        artifact = ContentArtifact.objects.get(content=instance)
 
         context = self.get_serializer_context()
-        context["content_artifact"] = artifact
 
         serializer = self.get_serializer_class()(instance, context=context)
 
@@ -325,6 +325,40 @@ class CollectionVersionViewSet(
             return self.get_paginated_response(serializer.data)
 
         serializer = CollectionVersionListSerializer(queryset, many=True, context=context)
+        return Response(serializer.data)
+
+
+class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
+    """Unpaginated ViewSet for CollectionVersions."""
+
+    pagination_class = None
+
+    def get_queryset(self):
+        """
+        Returns a CollectionVersions queryset for specified distribution.
+        """
+        distro_content = self.get_distro_content(self.kwargs["path"])
+
+        return CollectionVersion.objects.select_related("content_ptr__contentartifact").filter(
+            pk__in=distro_content
+        )
+
+    def list(self, request, *args, **kwargs):
+        """
+        Returns paginated CollectionVersions list.
+        """
+        queryset = self.filter_queryset(self.get_queryset())
+        queryset = sorted(
+            queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
+        )
+
+        context = self.get_serializer_context()
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = CollectionVersionSerializer(page, many=True, context=context)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = CollectionVersionSerializer(queryset, many=True, context=context)
         return Response(serializer.data)
 
 
