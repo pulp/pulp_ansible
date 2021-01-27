@@ -1,6 +1,5 @@
 from logging import getLogger
 
-from asyncio_throttle import Throttler
 from django.db import models
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
@@ -195,7 +194,6 @@ class CollectionRemote(Remote):
     requirements_file = models.TextField(null=True)
     auth_url = models.CharField(null=True, max_length=255)
     token = models.TextField(null=True, max_length=2000)
-    rate_limit = models.IntegerField(null=True)
 
     @property
     def download_factory(self):
@@ -217,27 +215,6 @@ class CollectionRemote(Remote):
         except AttributeError:
             self._download_factory = AnsibleDownloaderFactory(self)
             return self._download_factory
-
-    @property
-    def download_throttler(self):
-        """
-        Return the Throttler which can be used to rate limit downloaders.
-
-        Upon first access, the Throttler is instantiated and saved internally.
-
-        Plugin writers are expected to override when additional configuration of the
-        DownloaderFactory is needed.
-
-        Returns:
-            Throttler: The instantiated Throttler to be used by
-                get_downloader()
-
-        """
-        try:
-            return self._download_throttler
-        except AttributeError:
-            self._download_throttler = Throttler(rate_limit=self.rate_limit)
-            return self._download_throttler
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ansible', '0028_collectionremote_rate_limit'),
+        ('ansible', '0027_tag_length'),
     ]
 
     operations = [
