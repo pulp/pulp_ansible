@@ -11,7 +11,7 @@ from pulp_ansible.app import models
 class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
 
-    deprecated = serializers.BooleanField()
+    deprecated = serializers.SerializerMethodField()
     created_at = serializers.SerializerMethodField()
     updated_at = serializers.SerializerMethodField()
     href = serializers.SerializerMethodField()
@@ -31,6 +31,10 @@ class CollectionSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         model = models.Collection
+
+    def get_deprecated(self, obj) -> bool:
+        """Get deprecated."""
+        return obj.pk in self.context["deprecated_collections"]
 
     def get_href(self, obj) -> str:
         """Get href."""
