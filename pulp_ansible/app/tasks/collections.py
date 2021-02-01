@@ -52,6 +52,7 @@ from pulp_ansible.app.models import (
 )
 from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
+    get_file_obj_from_tarball,
     parse_metadata,
     parse_collections_requirements_file,
     RequirementsFileEntry,
@@ -611,17 +612,14 @@ class CollectionContentSaver(ContentSaver):
                 with artifact.file.open() as artifact_file, tarfile.open(
                     fileobj=artifact_file, mode="r"
                 ) as tar:
-                    log.info(_("Reading MANIFEST.json from {path}").format(path=artifact.file.name))
-                    for manifest in ["MANIFEST.json", "./MANIFEST.json"]:
-                        try:
-                            file_obj = tar.extractfile(manifest)
-                        except KeyError:
-                            file_obj = None
-                        else:
-                            break
-                    if not file_obj:
-                        raise FileNotFoundError("MANIFEST.json not found")
-                    manifest_data = json.load(file_obj)
+                    manifest_data = json.load(
+                        get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
+                    )
+                    files_data = json.load(
+                        get_file_obj_from_tarball(tar, "FILES.json", artifact.file.name)
+                    )
+                    collection_version.manifest = manifest_data
+                    collection_version.files = files_data
                     info = manifest_data["collection_info"]
 
                 # Create the tags
