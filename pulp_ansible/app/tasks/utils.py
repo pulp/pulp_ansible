@@ -1,5 +1,6 @@
 from gettext import gettext as _
 from collections import namedtuple
+import logging
 import json
 import re
 import yaml
@@ -9,6 +10,8 @@ from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
 from pulp_ansible.app.constants import PAGE_SIZE
+
+log = logging.getLogger(__name__)
 
 
 def get_api_version(url):
@@ -108,3 +111,36 @@ def parse_collections_requirements_file(requirements_file_string):
                 collection_info.append(entry)
 
     return collection_info
+
+
+def get_file_obj_from_tarball(tar, file_path, artifact_path, raise_exc=True):
+    """
+    Get file obj from tarball.
+
+    Args:
+        tar(tarfile): The tarball.
+        file_path(str): The desired file.
+        artifact_path(str): The artifact path.
+
+    Keyword Args:
+        raise_exc(bool): Whether or not raise exception.
+
+    """
+    log.info(
+        _("Reading {file_path} from {artifact_path}").format(
+            file_path=file_path, artifact_path=artifact_path
+        )
+    )
+
+    for path in [file_path, f"./{file_path}"]:
+        try:
+            file_obj = tar.extractfile(path)
+        except KeyError:
+            file_obj = None
+        else:
+            break
+
+    if not file_obj and raise_exc:
+        raise FileNotFoundError(f"{file_path} not found")
+
+    return file_obj

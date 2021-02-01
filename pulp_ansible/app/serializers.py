@@ -309,6 +309,10 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         help_text=_("A JSON field holding the various documentation blobs in the collection.")
     )
 
+    manifest = serializers.DictField(help_text=_("A JSON field holding MANIFEST.json data."))
+
+    files = serializers.DictField(help_text=_("A JSON field holding FILES.json data."))
+
     documentation = serializers.CharField(
         help_text=_("The URL to any online docs."), allow_blank=True, max_length=2000
     )
@@ -353,6 +357,8 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
                 "dependencies",
                 "description",
                 "docs_blob",
+                "manifest",
+                "files",
                 "documentation",
                 "homepage",
                 "issues",

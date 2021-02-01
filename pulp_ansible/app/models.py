@@ -107,6 +107,8 @@ class CollectionVersion(Content):
         description (models.TextField): A short summary description of the collection.
         docs_blob (psql_fields.JSONField): A JSON field holding the various documentation blobs in
             the collection.
+        manifest (psql_fields.JSONField): A JSON field holding MANIFEST.json data.
+        files (psql_fields.JSONField): A JSON field holding FILES.json data.
         documentation (models.CharField): The URL to any online docs.
         homepage (models.CharField): The URL to the homepage of the collection/project.
         issues (models.CharField): The URL to the collection issue tracker.
@@ -132,6 +134,8 @@ class CollectionVersion(Content):
     dependencies = psql_fields.JSONField(default=dict, editable=False)
     description = models.TextField(default="", blank=True, editable=False)
     docs_blob = psql_fields.JSONField(default=dict, editable=False)
+    manifest = psql_fields.JSONField(default=dict, editable=False)
+    files = psql_fields.JSONField(default=dict, editable=False)
     documentation = models.CharField(default="", blank=True, max_length=2000, editable=False)
     homepage = models.CharField(default="", blank=True, max_length=2000, editable=False)
     issues = models.CharField(default="", blank=True, max_length=2000, editable=False)

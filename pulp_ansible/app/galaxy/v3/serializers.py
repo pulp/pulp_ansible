@@ -79,9 +79,11 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
     href = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(source="collection.pulp_created")
     updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
+    manifest = serializers.DictField(help_text="A JSON field holding MANIFEST.json data.")
+    files = serializers.DictField(help_text="A JSON field holding FILES.json data.")
 
     class Meta:
-        fields = ("version", "href", "created_at", "updated_at")
+        fields = ("version", "href", "created_at", "updated_at", "manifest", "files")
         model = models.CollectionVersion
 
     def get_href(self, obj) -> str:
