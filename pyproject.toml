@@ -39,6 +39,7 @@ ignore = [
     "dev_requirements.txt",
     "doc_requirements.txt",
     "docs/**",
+    "pulp_ansible/tests/assets/**",
     "flake8.cfg",
     "template_config.yml",
     ".travis/**",

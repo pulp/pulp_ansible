@@ -4,6 +4,7 @@ from gettext import gettext as _
 import json
 import logging
 import tarfile
+import yaml
 from urllib.parse import urljoin
 
 from async_lru import alru_cache
@@ -204,6 +205,7 @@ def create_collection_from_importer(importer_result):
         collection_version = CollectionVersion(
             collection=collection,
             **collection_info,
+            requires_ansible=importer_result.get("requires_ansible"),
             contents=importer_result["contents"],
             docs_blob=importer_result["docs_blob"],
         )
@@ -612,6 +614,12 @@ class CollectionContentSaver(ContentSaver):
                 with artifact.file.open() as artifact_file, tarfile.open(
                     fileobj=artifact_file, mode="r"
                 ) as tar:
+                    runtime_metadata = get_file_obj_from_tarball(
+                        tar, "meta/runtime.yml", artifact.file.name, raise_exc=False
+                    )
+                    if runtime_metadata:
+                        runtime_yaml = yaml.safe_load(runtime_metadata)
+                        collection_version.requires_ansible = runtime_yaml.get("requires_ansible")
                     manifest_data = json.load(
                         get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
                     )

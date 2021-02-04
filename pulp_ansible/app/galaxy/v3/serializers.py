@@ -83,7 +83,15 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
     files = serializers.DictField(help_text="A JSON field holding FILES.json data.")
 
     class Meta:
-        fields = ("version", "href", "created_at", "updated_at", "manifest", "files")
+        fields = (
+            "version",
+            "href",
+            "created_at",
+            "updated_at",
+            "manifest",
+            "files",
+            "requires_ansible",
+        )
         model = models.CollectionVersion
 
     def get_href(self, obj) -> str:

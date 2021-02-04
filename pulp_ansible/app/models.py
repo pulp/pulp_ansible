@@ -117,6 +117,7 @@ class CollectionVersion(Content):
         namespace (models.CharField): The namespace of the collection.
         repository (models.CharField): The URL of the originating SCM repository.
         version (models.CharField): The version of the collection.
+        requires_ansible (models.CharField): The version of Ansible required to use the collection.
         is_highest (models.BooleanField): Indicates that the version is the highest one
             in the collection.
 
@@ -144,6 +145,7 @@ class CollectionVersion(Content):
     namespace = models.CharField(max_length=64, editable=False)
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     version = models.CharField(max_length=128, editable=False)
+    requires_ansible = models.CharField(null=True, max_length=255)
 
     is_highest = models.BooleanField(editable=False, default=False)
 
