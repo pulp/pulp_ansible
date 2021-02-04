@@ -346,6 +346,16 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
 
     version = serializers.CharField(help_text=_("The version of the collection."), max_length=32)
 
+    requires_ansible = serializers.CharField(
+        help_text=_(
+            "The version of Ansible required to use the collection. "
+            "Multiple versions can be separated with a comma."
+        ),
+        allow_null=True,
+        required=False,
+        max_length=255,
+    )
+
     class Meta:
         fields = (
             tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"})
@@ -368,6 +378,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
                 "repository",
                 "tags",
                 "version",
+                "requires_ansible",
             )
         )
         model = CollectionVersion

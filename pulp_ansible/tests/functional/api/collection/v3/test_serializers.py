@@ -1,6 +1,5 @@
 """Tests related to Galaxy V3 serializers."""
 import unittest
-from datetime import datetime
 
 from pulpcore.client.pulp_ansible import (
     ContentCollectionVersionsApi,
@@ -8,17 +7,16 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleGalaxyApiCollectionsApi,
     PulpAnsibleGalaxyApiV3VersionsApi,
     RepositoriesAnsibleApi,
-    RepositorySyncURL,
     RemotesCollectionApi,
 )
 from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
+from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
 from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class CollectionsV3TestCase(unittest.TestCase):
+class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Test Collections V3 endpoint."""
 
     @classmethod
@@ -32,61 +30,62 @@ class CollectionsV3TestCase(unittest.TestCase):
         cls.collections_versions_api = ContentCollectionVersionsApi(cls.client)
         cls.collections_versions_v3api = PulpAnsibleGalaxyApiV3VersionsApi(cls.client)
 
-    def setUp(self):
-        """Create distribution for V3."""
-        repo = self.repo_api.create(gen_repo())
-        self.addCleanup(self.repo_api.delete, repo.pulp_href)
-        self.repo_href = repo.pulp_href
-        requirements = "collections:\n  - name: pulp.pulp_installer"
-
-        body = gen_ansible_remote(url="https://galaxy.ansible.com", requirements_file=requirements)
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
-
-        # Sync the repository.
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
-        sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
-        repo = self.repo_api.read(repo.pulp_href)
-
-        # Create a distribution.
-        body = gen_distribution()
-        body["repository"] = repo.pulp_href
-        distribution_create = self.distributions_api.create(body)
-        created_resources = monitor_task(distribution_create.task).created_resources
-        distribution = self.distributions_api.read(created_resources[0])
-        self.base_path = distribution.base_path
-        self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
-
     @unittest.skip("FIXME: Re-enable later")
     def test_v3_updated_at(self):
         """Test Collections V3 endpoint field: ``updated_at``."""
-        repo = self.repo_api.read(self.repo_href)
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - testing.k8s_demo_collection",
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
-        collections = self.collections_api.list(self.base_path)
+        repo = self._create_repo_and_sync_with_remote(remote)
+        distribution = self._create_distribution_from_repo(repo)
+
+        collections = self.collections_api.list(distribution.base_path)
 
         original_highest_version = collections.data[0].highest_version["version"]
-        original_updated_at = datetime.strptime(
-            collections.data[0].updated_at, "%Y-%m-%dT%H:%M:%S.%fZ"
-        )
+        original_updated_at = collections.data[0].updated_at
 
         versions = self.collections_versions_api.list(version="3.6.4")
         original_total_versions = self.collections_versions_v3api.list(
-            "pulp_installer", "pulp", self.base_path
-        ).meta["count"]
+            "pulp_installer", "pulp", distribution.base_path
+        ).meta.count
 
         data = {"remove_content_units": [versions.results[0].pulp_href]}
         response = self.repo_api.modify(repo.pulp_href, data)
         monitor_task(response.task)
 
-        collections = self.collections_api.list(self.base_path)
+        collections = self.collections_api.list(distribution.base_path)
         highest_version = collections.data[0].highest_version["version"]
-        updated_at = datetime.strptime(collections.data[0].updated_at, "%Y-%m-%dT%H:%M:%S.%fZ")
+        updated_at = collections.data[0].updated_at
 
         total_versions = self.collections_versions_v3api.list(
-            "pulp_installer", "pulp", self.base_path
-        ).meta["count"]
+            "pulp_installer", "pulp", distribution.base_path
+        ).meta.count
 
         self.assertEqual(highest_version, original_highest_version)
         self.assertEqual(original_total_versions, total_versions + 1)
         self.assertGreater(updated_at, original_updated_at)
+
+    def test_v3_collection_version_from_synced_data(self):
+        """Test Collection Versions V3 endpoint fields."""
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: cisco.nxos\n    version: ==1.4.0",
+        )
+
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+        distribution = self._create_distribution_from_repo(repo)
+
+        version = self.collections_versions_v3api.read(
+            "nxos", "cisco", distribution.base_path, "1.4.0"
+        )
+
+        self.assertEqual(version.requires_ansible, ">=2.9.10,<2.11")
+        self.assertTrue("'name': 'README.md'" in str(version.files))
+        self.assertEqual(version.manifest["collection_info"]["name"], "nxos")
