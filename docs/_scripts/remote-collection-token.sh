@@ -1,3 +1,6 @@
+#!/bin/bash -e
+#!/usr/bin/env bash
+
 # Create a remote that syncs some versions of django into your repository.
 pulp ansible remote -t "collection" create \
     --name "abar" \

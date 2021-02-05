@@ -1,3 +1,6 @@
+#!/bin/bash -e
+#!/usr/bin/env bash
+
 # Install from PyPI
 pip install pulp-cli[pygments]  # colorized output
 pip install pulp-cli  # no color output

@@ -1,3 +1,6 @@
+#!/bin/bash -e
+#!/usr/bin/env bash
+
 # Sync repository foo using remote cbar
 pulp ansible repository sync --name "foo" --remote "cbar"
 
