@@ -1,18 +1,21 @@
-# Install from PyPI
-pip install pulp-cli[pygments]  # colorized output
-pip install pulp-cli  # no color output
+#!/usr/bin/env bash
+set -e
 
-# Install from source
-git clone https://github.com/pulp/pulp-cli.git # or your fork url
-cd pulp-cli
-pip install -e .
-cd ..
+export BASE_ADDR=${BASE_ADDR:-http://pulp:80}
+
+if [ -z "$(pip freeze | grep pulp-cli)" ]; then
+  echo "Installing pulp-cli"
+  pip install pulp-cli[pygments]
+fi
 
 # Set up CLI config file
-mkdir ~/.config/pulp
-cat > ~/.config/pulp/settings.toml << EOF
+if [ ! -f ~/.config/pulp/settings.toml ]; then
+  echo "Configuring pulp-cli"
+  mkdir ~/.config/pulp
+  cat > ~/.config/pulp/settings.toml << EOF
 [cli]
-base_url = "http://pulp:80" # common to be localhost
+base_url = "$BASE_ADDR"
 verify_ssl = false
 format = "json"
 EOF
+fi
