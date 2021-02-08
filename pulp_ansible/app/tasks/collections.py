@@ -1,5 +1,5 @@
 import asyncio
-from aiohttp.client_exceptions import ClientResponseError
+from collections import defaultdict
 from gettext import gettext as _
 import json
 import logging
@@ -7,6 +7,7 @@ import tarfile
 import yaml
 from urllib.parse import urljoin
 
+from aiohttp.client_exceptions import ClientResponseError
 from async_lru import alru_cache
 from django.db import transaction
 from django.db.models import Q
@@ -307,6 +308,7 @@ class CollectionSyncFirstStage(Stage):
         self.remote = remote
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.deprecations = Q()
+
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
 
@@ -459,14 +461,12 @@ class CollectionSyncFirstStage(Stage):
         tasks = []
         loop = asyncio.get_event_loop()
 
-        collection_metadata = self._unpaginated_collection_metadata[namespace][name]
-        for collection_data in collection_metadata:
-            if collection_data["deprecated"]:
-                self.deprecations |= Q(namespace=namespace, name=name)
+        if self._unpaginated_collection_metadata[namespace][name]["deprecated"]:
+            self.deprecations |= Q(namespace=namespace, name=name)
 
-        collection_version_metadata = self._unpaginated_collection_version_metadata[namespace][name]
+        all_versions_of_collection = self._unpaginated_collection_version_metadata[namespace][name]
 
-        for col_version_metadata in collection_version_metadata:
+        for col_version_metadata in all_versions_of_collection:
             if col_version_metadata["version"] in requirement:
                 collection_version_url = urljoin(self.remote.url, f"{col_version_metadata['href']}")
                 tasks.append(
@@ -516,58 +516,54 @@ class CollectionSyncFirstStage(Stage):
                 url=collection_endpoint, silence_errors_for_response_status_codes={404}
             )
             try:
-                metadata = parse_metadata(await downloader.run())
+                collection_metadata_list = parse_metadata(await downloader.run())
             except FileNotFoundError:
                 pass
             else:
-                self._unpaginated_collection_metadata = {"deprecated": []}
-                for data in metadata:
-                    namespace = data["namespace"]
-                    name = data["name"]
-                    if data["deprecated"]:
-                        self._unpaginated_collection_metadata["deprecated"].append(
-                            {"namespace": namespace, "name": name}
-                        )
-                    self._unpaginated_collection_metadata[namespace] = {name: [data]}
+                self._unpaginated_collection_metadata = defaultdict(dict)
+                for collection in collection_metadata_list:
+                    namespace = collection["namespace"]
+                    name = collection["name"]
+                    self._unpaginated_collection_metadata[namespace][name] = collection
+
                 collection_version_endpoint = f"{root_endpoint}/metadata/collection_versions/"
                 downloader = self.remote.get_downloader(url=collection_version_endpoint)
-                self._unpaginated_collection_version_metadata = {
-                    "raw": parse_metadata(await downloader.run())
-                }
-                for data in self._unpaginated_collection_version_metadata["raw"]:
-                    namespace = data["namespace"]["name"]
-                    name = data["name"]
-                    namespace_exists = namespace in self._unpaginated_collection_version_metadata
-                    name_exists = name in self._unpaginated_collection_version_metadata.get(
-                        namespace, []
+                collection_version_metadata_list = parse_metadata(await downloader.run())
+
+                self._unpaginated_collection_version_metadata = defaultdict(
+                    lambda: defaultdict(list)
+                )
+                for collection_version_metadata in collection_version_metadata_list:
+                    namespace = collection_version_metadata["namespace"]["name"]
+                    name = collection_version_metadata["name"]
+                    self._unpaginated_collection_version_metadata[namespace][name].append(
+                        collection_version_metadata
                     )
-                    if namespace_exists and name_exists:
-                        self._unpaginated_collection_version_metadata[namespace][name].append(data)
-                    elif not namespace_exists:
-                        self._unpaginated_collection_version_metadata[namespace] = {name: [data]}
-                    else:
-                        self._unpaginated_collection_version_metadata[namespace][name] = [data]
 
     async def _find_all_collections_from_unpaginated_data(self):
         tasks = []
         loop = asyncio.get_event_loop()
 
-        for collection_data in self._unpaginated_collection_metadata["deprecated"]:
-            self.deprecations |= Q(
-                namespace=collection_data["namespace"], name=collection_data["name"]
-            )
-
-        for collection_version_metadata in self._unpaginated_collection_version_metadata["raw"]:
-            collection_version_url = urljoin(
-                self.remote.url, f"{collection_version_metadata['href']}"
-            )
-            tasks.append(
-                loop.create_task(
-                    self._add_collection_version(
-                        self._api_version, collection_version_url, collection_version_metadata
+        for collection_namespace_dict in self._unpaginated_collection_metadata.values():
+            for collection in collection_namespace_dict.values():
+                if collection["deprecated"]:
+                    self.deprecations |= Q(
+                        namespace=collection["namespace"], name=collection["name"]
                     )
-                )
-            )
+
+        for collections_in_namespace in self._unpaginated_collection_version_metadata.values():
+            for collection_versions in collections_in_namespace.values():
+                for collection_version in collection_versions:
+                    collection_version_url = urljoin(
+                        self.remote.url, f"{collection_version['href']}"
+                    )
+                    tasks.append(
+                        loop.create_task(
+                            self._add_collection_version(
+                                self._api_version, collection_version_url, collection_version
+                            )
+                        )
+                    )
 
         await asyncio.gather(*tasks)
 

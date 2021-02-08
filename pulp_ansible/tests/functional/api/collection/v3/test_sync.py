@@ -50,6 +50,31 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(second_content.results), 1)
 
+    def test_sync_collections_from_pulp_using_mirror_second_time(self):
+        """Test sync collections from pulp server using a mirror option the second time."""
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - testing.k8s_demo_collection",
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        first_repo = self._create_repo_and_sync_with_remote(remote)
+        distribution = self._create_distribution_from_repo(first_repo)
+
+        second_body = gen_ansible_remote(
+            url=distribution.client_url,
+        )
+        second_remote = self.remote_collection_api.create(second_body)
+        self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
+
+        second_repo = self._create_repo_and_sync_with_remote(second_remote)
+
+        first_content = self.cv_api.list(repository_version=f"{first_repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(first_content.results), 1)
+        second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(second_content.results), 1)
+
 
 @unittest.skipUnless(
     "AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
