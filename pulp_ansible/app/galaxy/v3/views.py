@@ -5,11 +5,10 @@ import semantic_version
 
 from django.db.models import Exists, OuterRef
 from django.shortcuts import get_object_or_404
-from django.utils.datastructures import MultiValueDictKeyError
 from django.utils.dateparse import parse_datetime
+from django_filters import filters
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import mixins
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework import serializers
@@ -19,6 +18,7 @@ from rest_framework import viewsets
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, Content
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
+from pulpcore.plugin.viewsets import BaseFilterSet
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -42,7 +42,7 @@ from pulp_ansible.app.serializers import (
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
-from pulp_ansible.app.viewsets import CollectionFilter, CollectionVersionFilter
+from pulp_ansible.app.viewsets import CollectionVersionFilter
 
 
 CollectionTuple = namedtuple("CollectionTuple", ["namespace", "name", "version", "pulp_created"])
@@ -110,6 +110,30 @@ class CollectionVersionRetrieveMixin:
         return Response(serializer.data)
 
 
+class CollectionFilter(BaseFilterSet):
+    """
+    FilterSet for Ansible Collections.
+    """
+
+    namespace = filters.CharFilter(field_name="namespace")
+    name = filters.CharFilter(field_name="name")
+    deprecated = filters.BooleanFilter(field_name="deprecated", method="get_deprecated")
+
+    def get_deprecated(self, qs, name, value):
+        """Deprecated filter."""
+        deprecation = self.request.parser_context["view"]._deprecation
+        if value:
+            return qs.filter(pk__in=deprecation)
+
+        if value is False:
+            return qs.exclude(pk__in=deprecation)
+        return qs
+
+    class Meta:
+        model = Collection
+        fields = ["namespace", "name", "deprecated"]
+
+
 class CollectionViewSet(
     ExceptionHandlerMixin,
     AnsibleDistributionMixin,
@@ -127,25 +151,15 @@ class CollectionViewSet(
     filterset_class = CollectionFilter
     pagination_class = LimitOffsetPagination
 
-    def filter_queryset(self, queryset):
-        """
-        Filter Repository related fields.
-        """
-        queryset = super().filter_queryset(queryset)
-
-        try:
-            user_deprecated_value = self.request.query_params["deprecated"]
-        except MultiValueDictKeyError:
-            pass
-        else:
-            if user_deprecated_value.lower() in ["true", "yes", "1"]:
-                queryset = queryset.filter(deprecated=True)
-            elif user_deprecated_value.lower() in ["false", "no", "0"]:
-                queryset = queryset.filter(deprecated=False)
-            else:
-                raise ValidationError("Cannot parse value of `deprecated` GET parameter")
-
-        return queryset
+    @property
+    def _deprecation(self):
+        """Return deprecated collecion ids."""
+        repo_version = self.get_repository_version(self.kwargs["path"])
+        deprecated = AnsibleCollectionDeprecated.objects.filter(
+            repository_version=repo_version
+        ).values_list("collection_id", flat=True)
+        self.deprecated_collections_context = deprecated  # needed by get__serializer_context
+        return deprecated
 
     def get_queryset(self):
         """
