@@ -6,4 +6,4 @@ pulp ansible repository sync --name "foo" --remote "bar"
 
 # After the task is complete, it gives us a new repository version
 # Inspecting new repository version
-pulp ansible repository version --repository "foo" show --version 1
+pulp ansible repository version show --repository "foo"
