@@ -21,4 +21,4 @@ LOGGING = {
 }
 
 ANSIBLE_API_HOSTNAME = "http://" + socket.getfqdn()
-ANSIBLE_CONTENT_HOSTNAME = settings.CONTENT_ORIGIN + "/pulp/content"
+ANSIBLE_CONTENT_HOSTNAME = getattr(settings, "CONTENT_ORIGIN", "") + "/pulp/content"
