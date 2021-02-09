@@ -375,6 +375,10 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         max_length=255,
     )
 
+    execution_environment = serializers.DictField(
+        help_text=_("A JSON field holding the python/system dependencies of the collection.")
+    )
+
     class Meta:
         fields = (
             tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"})
@@ -398,6 +402,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
                 "tags",
                 "version",
                 "requires_ansible",
+                "execution_environment",
             )
         )
         model = CollectionVersion

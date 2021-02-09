@@ -100,6 +100,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
             "manifest",
             "files",
             "requires_ansible",
+            "execution_environment",
         )
         model = models.CollectionVersion
 

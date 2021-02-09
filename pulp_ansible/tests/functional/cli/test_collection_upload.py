@@ -89,7 +89,7 @@ class InstallCollectionTestCase(unittest.TestCase):
 
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
         colletion_path = os.path.join(
-            os.getcwd(), "pulp_ansible/tests/assets/collections/pulp-testing_asset-1.0.0.tar.gz"
+            os.getcwd(), "pulp_ansible/tests/assets/collections/pulp-testing_asset-1.0.1.tar.gz"
         )
 
         cmd = "ansible-galaxy collection publish -c -s {} {}".format(
@@ -103,7 +103,49 @@ class InstallCollectionTestCase(unittest.TestCase):
         self.assertEqual(repo_version.number, 1)  # We uploaded 1 collection
 
         version = self.collections_versions_v3api.read(
-            "testing_asset", "pulp", distribution.base_path, "1.0.0"
+            "testing_asset", "pulp", distribution.base_path, "1.0.1"
         )
 
         self.assertEqual(version.requires_ansible, ">=2.9.10,<2.11")
+
+    def test_upload_collection_with_execution_environment(self):
+        """Test whether ansible-galaxy can upload a Collection to Pulp."""
+        delete_orphans()
+        repo = self.repo_api.create(gen_repo())
+        self.addCleanup(self.repo_api.delete, repo.pulp_href)
+
+        # Create a distribution.
+        body = gen_distribution()
+        body["repository"] = repo.pulp_href
+        distribution_create = self.distributions_api.create(body)
+        created_resources = monitor_task(distribution_create.task).created_resources
+        distribution = self.distributions_api.read(created_resources[0])
+
+        self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
+        colletion_path = os.path.join(
+            os.getcwd(), "pulp_ansible/tests/assets/collections/pulp-testing_asset-1.0.1.tar.gz"
+        )
+
+        cmd = "ansible-galaxy collection publish -c -s {} {}".format(
+            distribution.client_url, colletion_path
+        )
+        subprocess.run(cmd.split())
+        wait_tasks()
+
+        repo = self.repo_api.read(repo.pulp_href)
+        repo_version = self.repo_versions_api.read(repo.latest_version_href)
+        self.assertEqual(repo_version.number, 1)  # We uploaded 1 collection
+
+        version = self.collections_versions_v3api.read(
+            "testing_asset", "pulp", distribution.base_path, "1.0.1"
+        )
+
+        self.assertEqual(
+            version.execution_environment,
+            {
+                "dependencies": {
+                    "python": ["paramiko", "scp"],
+                    "system": ["python3 [test platform:rpm]"],
+                }
+            },
+        )

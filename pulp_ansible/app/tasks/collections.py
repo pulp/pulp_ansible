@@ -257,6 +257,7 @@ def create_collection_from_importer(importer_result):
             requires_ansible=importer_result.get("requires_ansible"),
             contents=importer_result["contents"],
             docs_blob=importer_result["docs_blob"],
+            execution_environment=importer_result["execution_environment"],
         )
 
         serializer_fields = CollectionVersionSerializer.Meta.fields

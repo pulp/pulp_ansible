@@ -1,5 +1,6 @@
 """Tests related to sync ansible plugin collection content type."""
 import os
+import subprocess
 import unittest
 
 from pulpcore.client.pulp_ansible import (
@@ -16,9 +17,11 @@ from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     monitor_task,
     tasks,
+    wait_tasks,
 )
 from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulp_smash.pulp3.utils import delete_orphans, gen_distribution, gen_repo
 
 
 class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMixin):
@@ -82,6 +85,44 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_repo = self._create_repo_and_sync_with_remote(second_remote)
 
         first_content = self.cv_api.list(repository_version=f"{first_repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(first_content.results), 1)
+        second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(second_content.results), 1)
+
+    def test_sync_collections_from_pulp_with_execution_environment(self):
+        """Test sync collections with execution environment from pulp server."""
+        delete_orphans()
+        repo = self.repo_api.create(gen_repo())
+        self.addCleanup(self.repo_api.delete, repo.pulp_href)
+
+        # Create a distribution.
+        body = gen_distribution()
+        body["repository"] = repo.pulp_href
+        distribution_create = self.distributions_api.create(body)
+        created_resources = monitor_task(distribution_create.task).created_resources
+        distribution = self.distributions_api.read(created_resources[0])
+
+        self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
+        colletion_path = os.path.join(
+            os.getcwd(), "pulp_ansible/tests/assets/collections/pulp-testing_asset-1.0.1.tar.gz"
+        )
+
+        cmd = "ansible-galaxy collection publish -c -s {} {}".format(
+            distribution.client_url, colletion_path
+        )
+        subprocess.run(cmd.split())
+        wait_tasks()
+
+        second_body = gen_ansible_remote(
+            url=distribution.client_url,
+            requirements_file="collections:\n  - pulp.testing_asset",
+        )
+        second_remote = self.remote_collection_api.create(second_body)
+        self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
+
+        second_repo = self._create_repo_and_sync_with_remote(second_remote)
+
+        first_content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(first_content.results), 1)
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(second_content.results), 1)

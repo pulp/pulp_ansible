@@ -224,6 +224,7 @@ def test_collection_version(artifact, pulp_client, collection_detail):
     assert "files" in version
     assert "manifest" in version
     assert "requires_ansible" in version
+    assert "execution_environment" in version
 
     #     # TODO: Test meta data
     #     # 'metadata': {'authors': ['Orion User 1'],
