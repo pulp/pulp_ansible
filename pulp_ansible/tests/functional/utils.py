@@ -60,6 +60,9 @@ def gen_ansible_remote(url=ANSIBLE_FIXTURE_URL, **kwargs):
 
     :param url: The URL of an external content source.
     """
+    if "rate_limit" not in kwargs:
+        kwargs["rate_limit"] = 10
+
     return gen_remote(url, **kwargs)
 
 
