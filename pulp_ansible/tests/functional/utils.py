@@ -38,7 +38,7 @@ from pulpcore.client.pulp_ansible import (
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
     RemotesRoleApi,
-    RepositorySyncURL,
+    AnsibleRepositorySyncURL,
 )
 
 
@@ -169,7 +169,7 @@ class SyncHelpersMixin:
             repository: The created repository object to be asserted to.
         """
         # Create the repository.
-        repo = self.repo_api.create(gen_repo())
+        repo = self.repo_api.create(gen_repo(remote=remote.pulp_href))
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
         return self._sync_repo(repo, remote=remote.pulp_href)
 
@@ -198,7 +198,7 @@ class SyncHelpersMixin:
         Returns:
             repository: The updated repository after the sync is complete
         """
-        repository_sync_data = RepositorySyncURL(**kwargs)
+        repository_sync_data = AnsibleRepositorySyncURL(**kwargs)
         sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
         monitor_task(sync_response.task)
         repo = self.repo_api.read(repo.pulp_href)

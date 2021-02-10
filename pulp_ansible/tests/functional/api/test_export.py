@@ -16,7 +16,7 @@ from pulp_smash.pulp3.utils import (
 
 from pulp_ansible.tests.functional.utils import gen_ansible_remote, TestCaseUsingBindings
 
-from pulpcore.client.pulp_ansible import RepositorySyncURL, RepositoriesAnsibleVersionsApi
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL, RepositoriesAnsibleVersionsApi
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
     ExportersPulpApi,
@@ -59,8 +59,8 @@ class BaseExport(TestCaseUsingBindings):
     def _setup_content(cls):
         cls._setup_repositories(cls.export_repos)
         cls._setup_remotes()
-        repository_sync_data_a = RepositorySyncURL(remote=cls.remotes[0].pulp_href)
-        repository_sync_data_b = RepositorySyncURL(remote=cls.remotes[1].pulp_href)
+        repository_sync_data_a = AnsibleRepositorySyncURL(remote=cls.remotes[0].pulp_href)
+        repository_sync_data_b = AnsibleRepositorySyncURL(remote=cls.remotes[1].pulp_href)
         sync_response_a = cls.repo_api.sync(cls.export_repos[0].pulp_href, repository_sync_data_a)
         sync_response_b = cls.repo_api.sync(cls.export_repos[1].pulp_href, repository_sync_data_b)
         monitor_task(sync_response_a.task)

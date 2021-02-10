@@ -9,6 +9,7 @@ from pulpcore.plugin.serializers import (
     ModelSerializer,
     RemoteSerializer,
     RepositorySerializer,
+    RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
     RepositoryVersionDistributionSerializer,
     validate_unknown_fields,
@@ -83,8 +84,26 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     Serializer for Ansible Repositories.
     """
 
+    last_synced_metadata_time = serializers.DateTimeField(
+        help_text=_("Last synced metadata time."), allow_null=True, required=False
+    )
+
     class Meta:
-        fields = RepositorySerializer.Meta.fields
+        fields = RepositorySerializer.Meta.fields + ("last_synced_metadata_time",)
+        model = AnsibleRepository
+
+
+class AnsibleRepositorySyncURLSerializer(RepositorySyncURLSerializer):
+    """
+    Serializer for Ansible Repository Sync URL.
+    """
+
+    optimize = serializers.BooleanField(
+        help_text=_("Whether to optimize sync or not."), default=True
+    )
+
+    class Meta:
+        fields = RepositorySerializer.Meta.fields + ("optimize",)
         model = AnsibleRepository
 
 

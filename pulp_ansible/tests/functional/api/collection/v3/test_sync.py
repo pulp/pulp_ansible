@@ -3,6 +3,7 @@ import os
 import unittest
 
 from pulpcore.client.pulp_ansible import (
+    AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
     PulpAnsibleGalaxyApiCollectionsApi,
@@ -10,8 +11,13 @@ from pulpcore.client.pulp_ansible import (
     RemotesCollectionApi,
 )
 
+from pulp_ansible.tests.functional.utils import (
+    gen_ansible_client,
+    gen_ansible_remote,
+    monitor_task,
+    tasks,
+)
 from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
-from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -24,28 +30,33 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
 
     """
 
-    def test_sync_collections_from_pulp(self):
-        """Test sync collections from pulp server."""
+    def setUp(self):
+        """Set up the Sync tests."""
+        self.requirements_file = "collections:\n  - testing.k8s_demo_collection"
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
-            requirements_file="collections:\n  - testing.k8s_demo_collection",
+            requirements_file=self.requirements_file,
         )
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+        self.remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, self.remote.pulp_href)
 
-        first_repo = self._create_repo_and_sync_with_remote(remote)
-        distribution = self._create_distribution_from_repo(first_repo)
+        self.first_repo = self._create_repo_and_sync_with_remote(self.remote)
+        self.distribution = self._create_distribution_from_repo(self.first_repo)
 
+    def test_sync_collections_from_pulp(self):
+        """Test sync collections from pulp server."""
         second_body = gen_ansible_remote(
-            url=distribution.client_url,
-            requirements_file="collections:\n  - testing.k8s_demo_collection",
+            url=self.distribution.client_url,
+            requirements_file=self.requirements_file,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
 
         second_repo = self._create_repo_and_sync_with_remote(second_remote)
 
-        first_content = self.cv_api.list(repository_version=f"{first_repo.pulp_href}versions/1/")
+        first_content = self.cv_api.list(
+            repository_version=f"{self.first_repo.pulp_href}versions/1/"
+        )
         self.assertGreaterEqual(len(first_content.results), 1)
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(second_content.results), 1)
@@ -74,6 +85,53 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         self.assertGreaterEqual(len(first_content.results), 1)
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(second_content.results), 1)
+
+    def test_noop_resync_collections_from_pulp(self):
+        """Test whether sync yields no-op when repo hasn't changed since last sync."""
+        second_body = gen_ansible_remote(
+            url=self.distribution.client_url,
+            requirements_file=self.requirements_file,
+        )
+        second_remote = self.remote_collection_api.create(second_body)
+        self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
+
+        second_repo = self._create_repo_and_sync_with_remote(second_remote)
+
+        second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(second_content.results), 1)
+
+        # Resync
+        repository_sync_data = AnsibleRepositorySyncURL(
+            remote=second_remote.pulp_href, optimize=True
+        )
+        sync_response = self.repo_api.sync(second_repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
+        second_repo = self.repo_api.read(second_repo.pulp_href)
+        task = tasks.read(sync_response.task)
+
+        msg = "no-op: {url} did not change since last sync".format(url=second_remote.url)
+        messages = [r.message for r in task.progress_reports]
+        self.assertIn(msg, str(messages))
+
+    def test_update_requirements_file(self):
+        """Test requirements_file update."""
+        body = gen_ansible_remote(
+            url=self.distribution.client_url,
+            requirements_file=self.requirements_file,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+        self.assertIsNotNone(repo.last_synced_metadata_time)
+
+        response = self.remote_collection_api.partial_update(
+            remote.pulp_href, {"requirements_file": "collections:\n  - ansible.posix"}
+        )
+        monitor_task(response.task)
+
+        repo = self.repo_api.read(repo.pulp_href)
+        self.assertIsNone(repo.last_synced_metadata_time)
 
 
 @unittest.skipUnless(
