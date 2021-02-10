@@ -511,7 +511,7 @@ class CollectionSyncFirstStage(Stage):
         root_endpoint, api_version = await self._get_root_api(self.remote.url)
         self._api_version = api_version
         if api_version > 2:
-            collection_endpoint = f"{root_endpoint}/metadata/collections/"
+            collection_endpoint = f"{root_endpoint}/collections/all/"
             downloader = self.remote.get_downloader(
                 url=collection_endpoint, silence_errors_for_response_status_codes={404}
             )
@@ -526,7 +526,7 @@ class CollectionSyncFirstStage(Stage):
                     name = collection["name"]
                     self._unpaginated_collection_metadata[namespace][name] = collection
 
-                collection_version_endpoint = f"{root_endpoint}/metadata/collection_versions/"
+                collection_version_endpoint = f"{root_endpoint}/collection_versions/all/"
                 downloader = self.remote.get_downloader(url=collection_version_endpoint)
                 collection_version_metadata_list = parse_metadata(await downloader.run())
 
