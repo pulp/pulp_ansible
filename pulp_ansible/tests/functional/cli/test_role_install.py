@@ -8,7 +8,7 @@ import unittest
 from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
     RepositoriesAnsibleApi,
-    RepositorySyncURL,
+    AnsibleRepositorySyncURL,
     RemotesRoleApi,
 )
 from pulp_smash.pulp3.bindings import monitor_task
@@ -45,7 +45,7 @@ class InstallRoleTestCase(unittest.TestCase):
 
         # Sync the repository.
         self.assertEqual(repo.latest_version_href, f"{repo.pulp_href}versions/0/")
-        repository_sync_data = RepositorySyncURL(remote=remote.pulp_href)
+        repository_sync_data = AnsibleRepositorySyncURL(remote=remote.pulp_href)
         sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
         monitor_task(sync_response.task)
         repo = self.repo_api.read(repo.pulp_href)

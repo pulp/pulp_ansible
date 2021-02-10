@@ -12,6 +12,7 @@ from async_lru import alru_cache
 from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
+from django.utils.dateparse import parse_datetime
 from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
@@ -52,7 +53,7 @@ from pulp_ansible.app.models import (
     CollectionVersion,
     Tag,
 )
-from pulp_ansible.app.serializers import CollectionVersionSerializer
+from pulp_ansible.app.serializers import CollectionVersionSerializer, CollectionRemoteSerializer
 from pulp_ansible.app.tasks.utils import (
     get_file_obj_from_tarball,
     parse_metadata,
@@ -64,7 +65,45 @@ from pulp_ansible.app.tasks.utils import (
 log = logging.getLogger(__name__)
 
 
-def sync(remote_pk, repository_pk, mirror):
+def update_collection_remote(remote_pk, *args, **kwargs):
+    """
+    Update a CollectionRemote.
+
+    Update `AnsibleRepository.last_synced_metadata_time` when URL or requirements file are updated.
+
+    Args:
+        remote_pk (str): the id of the CollectionRemote
+        data (dict): dictionary whose keys represent the fields of the model and their corresponding
+            values.
+        partial (bool): When true, only the fields specified in the data dictionary are updated.
+            When false, any fields missing from the data dictionary are assumed to be None and
+            their values are updated as such.
+
+    Raises:
+        :class:`rest_framework.exceptions.ValidationError`: When serializer instance can't be saved
+            due to validation error. This theoretically should never occur since validation is
+            performed before the task is dispatched.
+    """
+    data = kwargs.pop("data", None)
+    partial = kwargs.pop("partial", False)
+    with transaction.atomic():
+        if "url" in data or "requirements_file" in data:
+            repos = list(
+                AnsibleRepository.objects.filter(
+                    remote_id=remote_pk, last_synced_metadata_time__isnull=False
+                ).all()
+            )
+            for repo in repos:
+                repo.last_synced_metadata_time = None
+            AnsibleRepository.objects.bulk_update(repos, ["last_synced_metadata_time"])
+
+        instance = CollectionRemote.objects.get(pk=remote_pk)
+        serializer = CollectionRemoteSerializer(instance, data=data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+
+def sync(remote_pk, repository_pk, mirror, optimize):
     """
     Sync Collections with ``remote_pk``, and save a new RepositoryVersion for ``repository_pk``.
 
@@ -72,6 +111,7 @@ def sync(remote_pk, repository_pk, mirror):
         remote_pk (str): The remote PK.
         repository_pk (str): The repository PK.
         mirror (bool): True for mirror mode, False for additive.
+        optimize (boolean): Whether to optimize sync or not.
 
     Raises:
         ValueError: If the remote does not specify a URL to sync.
@@ -79,15 +119,23 @@ def sync(remote_pk, repository_pk, mirror):
     """
     remote = CollectionRemote.objects.get(pk=remote_pk)
     repository = AnsibleRepository.objects.get(pk=repository_pk)
+    latest_version_before_sync = repository.latest_version()
 
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
-    first_stage = CollectionSyncFirstStage(remote)
+    first_stage = CollectionSyncFirstStage(remote, repository, optimize)
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     d_version.create()
 
     repo_version = repository.latest_version()
+    if repo_version.number == latest_version_before_sync.number:
+        return
+
+    if first_stage.last_synced_metadata_time:
+        repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
+        repository.save()
+
     to_deprecate = []
     if first_stage.deprecations:
         collections_deprecate_true_qs = Collection.objects.filter(first_stage.deprecations)
@@ -294,23 +342,30 @@ class CollectionSyncFirstStage(Stage):
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote):
+    def __init__(self, remote, repository, optimize=False):
         """
         The first stage of a pulp_ansible sync pipeline.
 
         Args:
             remote (CollectionRemote): The remote data to be used when syncing
+            repository (AnsibleRepository): The repository being synced
+
+        Keyword Args:
+            optimize (boolean): Whether to optimize sync or not.
 
         """
         super().__init__()
         msg = _("Parsing CollectionVersion Metadata")
         self.parsing_metadata_progress_bar = ProgressReport(message=msg, code="parsing.metadata")
         self.remote = remote
+        self.repository = repository
+        self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.deprecations = Q()
 
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
+        self.last_synced_metadata_time = None
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -608,13 +663,60 @@ class CollectionSyncFirstStage(Stage):
 
         await asyncio.gather(*tasks)
 
+    async def _should_we_sync(self):
+        """Check last synced metadata time."""
+        root, api_version = await self._get_root_api(self.remote.url)
+        if api_version == 3:
+            downloader = self.remote.get_downloader(
+                url=root, silence_errors_for_response_status_codes={404}
+            )
+            try:
+                metadata = parse_metadata(await downloader.run())
+            except FileNotFoundError:
+                return True
+
+            try:
+                self.last_synced_metadata_time = parse_datetime(metadata["published"])
+            except KeyError:
+                return True
+
+            sources = set()
+            if self.collection_info:
+                sources = {r.source for r in self.collection_info if r.source}
+            sources.add(self.remote.url)
+            if len(sources) > 1:
+                return True
+
+            if self.last_synced_metadata_time == self.repository.last_synced_metadata_time:
+                return False
+
+        return True
+
     async def run(self):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
+        if self.repository.remote and self.remote.pk == self.repository.remote.pk:
+            should_we_sync = await self._should_we_sync()
+            msg = _("no-op: Checking if remote changed since last sync.")
+            noop = ProgressReport(message=msg, code="noop")
+            noop.state = TASK_STATES.COMPLETED
+            if self.optimize and not should_we_sync:
+                noop.message = _(
+                    "no-op: {remote} did not change since last sync - {published}".format(
+                        remote=self.remote.url, published=self.last_synced_metadata_time
+                    )
+                )
+                noop.save()
+                log.debug(_("no-op: remote wasn't updated since last sync."))
+                return
+            noop.save()
+
         tasks = []
         loop = asyncio.get_event_loop()
+
         await self._download_unpaginated_metadata()
+
         if self.collection_info:
             for requirement_entry in self.collection_info:
                 tasks.append(loop.create_task(self._fetch_collection_metadata(requirement_entry)))
