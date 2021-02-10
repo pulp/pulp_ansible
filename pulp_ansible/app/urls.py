@@ -74,12 +74,12 @@ v3_urls = [
         name="collection-imports-detail",
     ),
     path(
-        "metadata/collections/",
+        "collections/all/",
         views_v3.UnpaginatedCollectionViewSet.as_view({"get": "list"}),
         name="metadata-collection-list",
     ),
     path(
-        "metadata/collection_versions/",
+        "collection_versions/all/",
         views_v3.UnpaginatedCollectionVersionViewSet.as_view({"get": "list"}),
         name="metadata-collection-versions-list",
     ),
