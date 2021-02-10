@@ -229,11 +229,17 @@ class CollectionRemote(Remote):
 class AnsibleRepository(Repository):
     """
     Repository for "ansible" content.
+
+    Fields:
+
+        last_synced_metadata_time (models.DateTimeField): Last synced metadata time.
     """
 
     TYPE = "ansible"
     CONTENT_TYPES = [Role, CollectionVersion]
     REMOTE_TYPES = [RoleRemote, CollectionRemote]
+
+    last_synced_metadata_time = models.DateTimeField(null=True)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

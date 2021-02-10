@@ -15,10 +15,7 @@ from rest_framework.serializers import ValidationError as DRFValidationError
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
-from pulpcore.plugin.serializers import (
-    AsyncOperationResponseSerializer,
-    RepositorySyncURLSerializer,
-)
+from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
     BaseDistributionViewSet,
@@ -46,6 +43,7 @@ from .serializers import (
     AnsibleDistributionSerializer,
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
+    AnsibleRepositorySyncURLSerializer,
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionRemoteSerializer,
@@ -54,7 +52,7 @@ from .serializers import (
     RoleSerializer,
     TagSerializer,
 )
-from .tasks.collections import sync as collection_sync
+from .tasks.collections import update_collection_remote, sync as collection_sync
 from .tasks.copy import copy_content
 from .tasks.roles import synchronize as role_sync
 
@@ -200,13 +198,13 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         description="Trigger an asynchronous task to sync Ansible content.",
         responses={202: AsyncOperationResponseSerializer},
     )
-    @action(detail=True, methods=["post"], serializer_class=RepositorySyncURLSerializer)
+    @action(detail=True, methods=["post"], serializer_class=AnsibleRepositorySyncURLSerializer)
     def sync(self, request, pk):
         """
         Dispatches a sync task.
         """
         repository = self.get_object()
-        serializer = RepositorySyncURLSerializer(
+        serializer = AnsibleRepositorySyncURLSerializer(
             data=request.data, context={"request": request, "repository_pk": repository.pk}
         )
         serializer.is_valid(raise_exception=True)
@@ -214,16 +212,19 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         remote = serializer.validated_data.get("remote", repository.remote)
         remote = remote.cast()
 
+        mirror = serializer.validated_data["mirror"]
+        sync_kwargs = {"remote_pk": remote.pk, "repository_pk": repository.pk, "mirror": mirror}
+
         if isinstance(remote, RoleRemote):
             sync_func = role_sync
         elif isinstance(remote, CollectionRemote):
             sync_func = collection_sync
+            sync_kwargs["optimize"] = serializer.validated_data["optimize"]
 
-        mirror = serializer.validated_data.get("mirror", False)
         result = enqueue_with_reservation(
             sync_func,
             [repository, remote],
-            kwargs={"remote_pk": remote.pk, "repository_pk": repository.pk, "mirror": mirror},
+            kwargs=sync_kwargs,
         )
         return OperationPostponedResponse(result, request)
 
@@ -244,6 +245,26 @@ class CollectionRemoteViewSet(RemoteViewSet):
     endpoint_name = "collection"
     queryset = CollectionRemote.objects.all()
     serializer_class = CollectionRemoteSerializer
+
+    @extend_schema(
+        description="Trigger an asynchronous update task",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    def update(self, request, pk, **kwargs):
+        """Update remote."""
+        partial = kwargs.pop("partial", False)
+        lock = [self.get_object()]
+        repos = AnsibleRepository.objects.filter(
+            remote_id=pk, last_synced_metadata_time__isnull=False
+        ).all()
+        lock.extend(repos)
+        async_result = enqueue_with_reservation(
+            update_collection_remote,
+            lock,
+            args=(pk,),
+            kwargs={"data": request.data, "partial": partial},
+        )
+        return OperationPostponedResponse(async_result, request)
 
 
 class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
