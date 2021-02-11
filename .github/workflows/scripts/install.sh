@@ -44,7 +44,7 @@ image:
   tag: "${TAG}"
 plugins:
   - name: pulpcore
-    source: pulpcore
+    source: pulpcore<3.12
   - name: pulp_ansible
     source:  "${PLUGIN_NAME}"
 services:
