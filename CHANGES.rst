@@ -13,6 +13,60 @@ Changelog
 
 .. towncrier release notes start
 
+0.7.0 (2021-02-11)
+==================
+
+Features
+--------
+
+- Ansible export/import is now available as a tech preview feature
+  `#6738 <https://pulp.plan.io/issues/6738>`_
+- Expose MANIFEST.json and FILES.json at CollectionVersion endpoint
+  `#7572 <https://pulp.plan.io/issues/7572>`_
+- Introduce a new ``v3/`` endpoint returning publication time
+  `#7939 <https://pulp.plan.io/issues/7939>`_
+- Introduces a new ``v3/collections/all/`` endpoint returning all collections unpaginated.
+  `#7940 <https://pulp.plan.io/issues/7940>`_
+- Introduces a new ``v3/collection_versions/all/`` endpoint returning all collections versions
+  unpaginated.
+  `#7941 <https://pulp.plan.io/issues/7941>`_
+- Improve sync performance with no-op when possible. To disable the no-op optimization use the
+  ``optimize=False`` option on the ``sync`` call.
+  `#7942 <https://pulp.plan.io/issues/7942>`_
+- Adds the ``requires_ansible`` attribute to the Galaxy V3 CollectionVersion APIs.
+  This documents the version of Ansible required to use the collection.
+  `#7949 <https://pulp.plan.io/issues/7949>`_
+- Field ``updated_at`` from Galaxy v3 Collections endpoint using latest instead of highest version
+  `#8012 <https://pulp.plan.io/issues/8012>`_
+- Efficient sync with unpaginated metadata endpoints if they are available.
+  `#8177 <https://pulp.plan.io/issues/8177>`_
+
+
+Bugfixes
+--------
+
+- Make collection namespace max_length consistent in models
+  `#8078 <https://pulp.plan.io/issues/8078>`_
+
+
+Improved Documentation
+----------------------
+
+- Move official docs site to https://docs.pulpproject.org/pulp_ansible/.
+  `#7926 <https://pulp.plan.io/issues/7926>`_
+- Updated Roles and Collections workflows to use Pulp-CLI commands
+  `#8076 <https://pulp.plan.io/issues/8076>`_
+
+
+Misc
+----
+
+- `#8216 <https://pulp.plan.io/issues/8216>`_
+
+
+----
+
+
 0.6.1 (2021-01-15)
 ==================
 
