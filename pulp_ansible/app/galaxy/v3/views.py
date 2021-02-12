@@ -389,10 +389,18 @@ class CollectionVersionViewSet(
     authentication_classes = []
     permission_classes = []
     serializer_class = CollectionVersionSerializer
+    list_serializer_class = CollectionVersionListSerializer
     filterset_class = CollectionVersionFilter
     pagination_class = LimitOffsetPagination
 
     lookup_field = "version"
+
+    def get_list_serializer(self, *args, **kwargs):
+        """
+        Return the list serializer instance.
+        """
+        kwargs.setdefault("context", self.get_serializer_context)
+        return self.list_serializer_class(*args, **kwargs)
 
     def list(self, request, *args, **kwargs):
         """
@@ -406,10 +414,10 @@ class CollectionVersionViewSet(
         context = self.get_serializer_context()
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = CollectionVersionListSerializer(page, many=True, context=context)
+            serializer = self.get_list_serializer(page, many=True, context=context)
             return self.get_paginated_response(serializer.data)
 
-        serializer = CollectionVersionListSerializer(queryset, many=True, context=context)
+        serializer = self.get_list_serializer(queryset, many=True, context=context)
         return Response(serializer.data)
 
 
@@ -440,10 +448,10 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         context = self.get_serializer_context()
         page = self.paginate_queryset(queryset)
         if page is not None:
-            serializer = CollectionVersionSerializer(page, many=True, context=context)
+            serializer = self.get_serializer(page, many=True, context=context)
             return self.get_paginated_response(serializer.data)
 
-        serializer = CollectionVersionSerializer(queryset, many=True, context=context)
+        serializer = self.get_serializer(queryset, many=True, context=context)
         return Response(serializer.data)
 
 
