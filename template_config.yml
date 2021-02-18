@@ -27,10 +27,10 @@ plugin_snake: pulp_ansible
 plugin_snake_short: ansible
 publish_docs_to_pulpprojectdotorg: true
 pulp_settings:
-  ansible_api_hostname: http://pulp:80
-  ansible_content_hostname: http://pulp:80/pulp/content
   allowed_export_paths: /tmp
   allowed_import_paths: /tmp
+  ansible_api_hostname: http://pulp:80
+  ansible_content_hostname: http://pulp:80/pulp/content
 pulpcore_branch: master
 pulpcore_pip_version_specifier: null
 pulpprojectdotorg_key_id: aa499d7938ed
@@ -39,6 +39,7 @@ pypi_username: pulp
 redmine_project: ansible_plugin
 stable_branch: null
 test_bindings: false
+test_cli: false
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: true
 test_s3: true
