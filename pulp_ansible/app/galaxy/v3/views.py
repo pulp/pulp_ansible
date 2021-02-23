@@ -95,6 +95,10 @@ class CollectionVersionRetrieveMixin:
         """
         Returns a CollectionVersions queryset for specified distribution.
         """
+        if not self.request and not self.args and not self.kwargs:
+            # drf_spectacular get filter from get_queryset().model
+            # and it fails when "path" is not on self.kwargs
+            return CollectionVersion.objects.none()
         distro_content = self._distro_content
 
         collections = CollectionVersion.objects.select_related(
@@ -172,6 +176,10 @@ class CollectionViewSet(
         """
         Returns a Collections queryset for specified distribution.
         """
+        if not self.request and not self.args and not self.kwargs:
+            # drf_spectacular get filter from get_queryset().model
+            # and it fails when "path" is not on self.kwargs
+            return Collection.objects.none()
         repo_version = self._repository_version
         return Collection.objects.filter(
             versions__in=repo_version.content,
