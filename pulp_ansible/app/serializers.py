@@ -11,7 +11,8 @@ from pulpcore.plugin.serializers import (
     RepositorySerializer,
     RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
-    RepositoryVersionDistributionSerializer,
+    DistributionSerializer,
+    RepositoryVersionRelatedField,
     validate_unknown_fields,
 )
 
@@ -235,13 +236,16 @@ class CollectionOneShotSerializer(serializers.Serializer):
     )
 
 
-class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
+class AnsibleDistributionSerializer(DistributionSerializer):
     """
     Serializer for Ansible Distributions.
     """
 
     client_url = serializers.SerializerMethodField(
         read_only=True, help_text=_("The URL of a Collection content source.")
+    )
+    repository_version = RepositoryVersionRelatedField(
+        required=False, help_text=_("RepositoryVersion to be served"), allow_null=True
     )
 
     def get_client_url(self, obj) -> str:

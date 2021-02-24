@@ -50,7 +50,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     )
     first_stage = RoleFirstStage(remote)
     d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
-    d_version.create()
+    return d_version.create()
 
 
 class RoleFirstStage(Stage):
@@ -76,7 +76,7 @@ class RoleFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        with ProgressReport(message="Parsing Role Metadata", code="parsing.metadata") as pb:
+        with ProgressReport(message="Parsing Role Metadata", code="sync.parsing.metadata") as pb:
             async for metadata in self._fetch_roles():
                 for version in metadata["summary_fields"]["versions"]:
                     url = GITHUB_URL % (
@@ -128,7 +128,9 @@ class RoleFirstStage(Stage):
         page_count = 0
         remote = self.remote
 
-        progress_data = dict(message="Parsing Pages from Galaxy Roles API", code="parsing.roles")
+        progress_data = dict(
+            message="Parsing Pages from Galaxy Roles API", code="sync.parsing.roles"
+        )
         with ProgressReport(**progress_data) as progress_bar:
             api_version = get_api_version(remote.url)
             downloader = remote.get_downloader(url=get_page_url(remote.url, api_version))

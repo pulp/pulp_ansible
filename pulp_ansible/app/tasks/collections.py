@@ -121,17 +121,15 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     """
     remote = CollectionRemote.objects.get(pk=remote_pk)
     repository = AnsibleRepository.objects.get(pk=repository_pk)
-    latest_version_before_sync = repository.latest_version()
 
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
     first_stage = CollectionSyncFirstStage(remote, repository, optimize)
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
-    d_version.create()
+    repo_version = d_version.create()
 
-    repo_version = repository.latest_version()
-    if repo_version.number == latest_version_before_sync.number:
+    if not repo_version:
         return
 
     if first_stage.last_synced_metadata_time:
@@ -374,7 +372,9 @@ class CollectionSyncFirstStage(Stage):
         """
         super().__init__()
         msg = _("Parsing CollectionVersion Metadata")
-        self.parsing_metadata_progress_bar = ProgressReport(message=msg, code="parsing.metadata")
+        self.parsing_metadata_progress_bar = ProgressReport(
+            message=msg, code="sync.parsing.metadata"
+        )
         self.remote = remote
         self.repository = repository
         self.optimize = optimize
@@ -711,8 +711,8 @@ class CollectionSyncFirstStage(Stage):
 
     async def _should_we_sync(self):
         """Check last synced metadata time."""
-        msg = _("no-op: Checking if remote changed since last sync.")
-        noop = ProgressReport(message=msg, code="noop")
+        msg = _("no_change: Checking if remote changed since last sync.")
+        noop = ProgressReport(message=msg, code="sync.no_change")
         noop.state = TASK_STATES.COMPLETED
         noop.save()
 

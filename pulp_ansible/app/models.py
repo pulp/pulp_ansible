@@ -11,7 +11,7 @@ from pulpcore.plugin.models import (
     Remote,
     Repository,
     RepositoryVersion,
-    RepositoryVersionDistribution,
+    Distribution,
     Task,
 )
 from .downloaders import AnsibleDownloaderFactory
@@ -292,7 +292,7 @@ class AnsibleCollectionDeprecated(BaseModel):
         unique_together = ("collection", "repository_version")
 
 
-class AnsibleDistribution(RepositoryVersionDistribution):
+class AnsibleDistribution(Distribution):
     """
     A Distribution for Ansible content.
     """
