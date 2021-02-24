@@ -18,7 +18,7 @@ from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.viewsets import (
-    BaseDistributionViewSet,
+    DistributionViewSet,
     BaseFilterSet,
     ContentFilter,
     ContentViewSet,
@@ -213,7 +213,11 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         remote = remote.cast()
 
         mirror = serializer.validated_data["mirror"]
-        sync_kwargs = {"remote_pk": remote.pk, "repository_pk": repository.pk, "mirror": mirror}
+        sync_kwargs = {
+            "remote_pk": remote.pk,
+            "repository_pk": repository.pk,
+            "mirror": mirror,
+        }
 
         if isinstance(remote, RoleRemote):
             sync_func = role_sync
@@ -313,7 +317,7 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
         return OperationPostponedResponse(async_result, request)
 
 
-class AnsibleDistributionViewSet(BaseDistributionViewSet):
+class AnsibleDistributionViewSet(DistributionViewSet):
     """
     ViewSet for Ansible Distributions.
     """
