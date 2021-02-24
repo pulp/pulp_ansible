@@ -212,4 +212,6 @@ class AnsibleDownloaderFactory(DownloaderFactory):
         if not self._remote.token and self._remote.username and self._remote.password:
             options["auth"] = BasicAuth(login=self._remote.username, password=self._remote.password)
 
+        kwargs["throttler"] = self._remote.download_throttler if self._remote.rate_limit else None
+
         return download_class(url, self._remote.auth_url, self._remote.token, **options, **kwargs)
