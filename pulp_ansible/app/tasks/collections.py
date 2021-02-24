@@ -119,17 +119,15 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     """
     remote = CollectionRemote.objects.get(pk=remote_pk)
     repository = AnsibleRepository.objects.get(pk=repository_pk)
-    latest_version_before_sync = repository.latest_version()
 
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
     first_stage = CollectionSyncFirstStage(remote, repository, optimize)
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
-    d_version.create()
+    repo_version = d_version.create()
 
-    repo_version = repository.latest_version()
-    if repo_version.number == latest_version_before_sync.number:
+    if not repo_version:
         return
 
     if first_stage.last_synced_metadata_time:

@@ -50,7 +50,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     )
     first_stage = RoleFirstStage(remote)
     d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
-    d_version.create()
+    return d_version.create()
 
 
 class RoleFirstStage(Stage):
