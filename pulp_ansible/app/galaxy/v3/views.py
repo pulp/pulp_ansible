@@ -280,7 +280,7 @@ class CollectionViewSet(
         super_data = super().get_serializer_context()
         if getattr(self, "available_versions_context", None):
             super_data["available_versions"] = self.available_versions_context
-        super_data["deprecated_collections"] = self.deprecated_collections_context
+        super_data["deprecated_collections"] = getattr(self, "deprecated_collections_context", [])
         return super_data
 
     def update(self, request, *args, **kwargs):

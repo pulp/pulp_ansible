@@ -9,6 +9,7 @@ import os
 
 from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
+    PulpAnsibleGalaxyApiCollectionsApi,
     PulpAnsibleGalaxyApiV3VersionsApi,
     RemotesCollectionApi,
     RepositoriesAnsibleApi,
@@ -33,6 +34,7 @@ class InstallCollectionTestCase(unittest.TestCase):
         cls.repo_versions_api = RepositoriesAnsibleVersionsApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
+        cls.collections_v3api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
         cls.collections_versions_v3api = PulpAnsibleGalaxyApiV3VersionsApi(cls.client)
 
     def test_upload_collection(self):
@@ -88,6 +90,10 @@ class InstallCollectionTestCase(unittest.TestCase):
         distribution = self.distributions_api.read(created_resources[0])
 
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
+
+        collections = self.collections_v3api.list(distribution.base_path)
+        self.assertEqual(collections.meta.count, 0)
+
         colletion_path = os.path.join(
             os.getcwd(), "pulp_ansible/tests/assets/collections/pulp-testing_asset-1.0.0.tar.gz"
         )
@@ -97,6 +103,9 @@ class InstallCollectionTestCase(unittest.TestCase):
         )
         subprocess.run(cmd.split())
         wait_tasks()
+
+        collections = self.collections_v3api.list(distribution.base_path)
+        self.assertEqual(collections.meta.count, 1)
 
         repo = self.repo_api.read(repo.pulp_href)
         repo_version = self.repo_versions_api.read(repo.latest_version_href)
