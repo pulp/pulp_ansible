@@ -109,6 +109,9 @@ if [ -f $FUNC_TEST_SCRIPT ]; then
 else
     pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional
 fi
+pushd ../pulp-cli
+pytest -v -m pulp_ansible
+popd
 
 if [ -f $POST_SCRIPT ]; then
   source $POST_SCRIPT
