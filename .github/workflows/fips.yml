@@ -5,12 +5,9 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 ---
-name: Pulp FIPS Nightly CI
+name: Pulp FIPS CI
 on:
-  schedule:
-    # * is a special character in YAML so you have to quote this string
-    # runs at 4:00 UTC daily
-    - cron: '00 4 * * *'
+  workflow_dispatch:
 
 jobs:
   vagrant:
@@ -44,13 +41,12 @@ jobs:
           cd ../pulp_installer/
           git submodule update --init
           .github/workflows/scripts/install.sh ${{ matrix.test_type }}
+          git clone https://github.com/pulp/pulpcore
       - name: Run Vagrant
         shell: bash
         run: |
           cd ../pulp_installer
-          sed -i "s/pulp-file/pulp-ansible/g" example.dev-config.yml
-          sed -i "s/pulp_file/pulp_ansible/g" example.dev-config.yml
-          sed -i "/pulp_source_dir/a pulp_webserver_disable_https: true" example.dev-config.yml
+          sed -e "s/pulp-file/pulp-ansible/g" -e "s/pulp_file/pulp_ansible/g" -e "/pulp_source_dir/a pulp_webserver_disable_https: true" example.dev-config.yml > local.dev-config.yml
           echo "vagrant ssh \$1 -c \"workon pulp && cd devel/pulp_ansible && pip install -r functest_requirements.txt\"" >> .github/workflows/scripts/script.sh
           echo "vagrant ssh \$1 -c \"workon pulp && cd devel/pulp_ansible/ && pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional\"" >> .github/workflows/scripts/script.sh
           .github/workflows/scripts/script.sh ${{ matrix.test_type }}
