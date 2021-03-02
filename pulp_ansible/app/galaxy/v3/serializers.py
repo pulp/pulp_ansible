@@ -88,8 +88,6 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
     href = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(source="collection.pulp_created")
     updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
-    manifest = serializers.DictField(help_text="A JSON field holding MANIFEST.json data.")
-    files = serializers.DictField(help_text="A JSON field holding FILES.json data.")
 
     class Meta:
         fields = (
@@ -97,8 +95,6 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
             "href",
             "created_at",
             "updated_at",
-            "manifest",
-            "files",
             "requires_ansible",
         )
         model = models.CollectionVersion
@@ -174,9 +170,9 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     name = serializers.CharField(source="namespace")
 
 
-class CollectionVersionSerializer(CollectionVersionListSerializer):
+class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
     """
-    A serializer for a CollectionVersion.
+    A serializer for unpaginated CollectionVersion.
     """
 
     collection = CollectionRefSerializer(read_only=True)
@@ -186,7 +182,8 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
     metadata = CollectionMetadataSerializer(source="*", read_only=True)
     namespace = CollectionNamespaceSerializer(source="*", read_only=True)
 
-    class Meta(CollectionVersionListSerializer.Meta):
+    class Meta:
+        model = models.CollectionVersion
         fields = CollectionVersionListSerializer.Meta.fields + (
             "artifact",
             "collection",
@@ -212,6 +209,24 @@ class CollectionVersionSerializer(CollectionVersionListSerializer):
         filename_path = obj.contentartifact_set.get().relative_path.lstrip("/")
         download_url = f"{host}/{distro_base_path}/{filename_path}"
         return download_url
+
+
+class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
+    """
+    A serializer for a CollectionVersion.
+    """
+
+    manifest = serializers.DictField(
+        help_text="A JSON field holding MANIFEST.json data.", read_only=True
+    )
+    files = serializers.DictField(help_text="A JSON field holding FILES.json data.", read_only=True)
+
+    class Meta:
+        model = models.CollectionVersion
+        fields = UnpaginatedCollectionVersionSerializer.Meta.fields + (
+            "manifest",
+            "files",
+        )
 
 
 class CollectionVersionDocsSerializer(serializers.ModelSerializer):
