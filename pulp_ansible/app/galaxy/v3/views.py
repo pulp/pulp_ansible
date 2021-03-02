@@ -29,6 +29,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
     RepoMetadataSerializer,
+    UnpaginatedCollectionVersionSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -424,6 +425,7 @@ class CollectionVersionViewSet(
 class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
     """Unpaginated ViewSet for CollectionVersions."""
 
+    serializer_class = UnpaginatedCollectionVersionSerializer
     pagination_class = None
 
     def get_queryset(self):
