@@ -41,6 +41,7 @@ jobs:
           cd ../pulp_installer/
           git submodule update --init
           .github/workflows/scripts/install.sh ${{ matrix.test_type }}
+          cd ..
           git clone https://github.com/pulp/pulpcore
       - name: Run Vagrant
         shell: bash
