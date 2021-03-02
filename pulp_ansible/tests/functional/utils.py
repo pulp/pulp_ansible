@@ -49,7 +49,7 @@ configuration = cfg.get_bindings_config()
 def set_up_module():
     """Skip tests Pulp 3 isn't under test or if pulp_ansible isn't installed."""
     require_pulp_3(unittest.SkipTest)
-    require_pulp_plugins({"pulp_ansible"}, unittest.SkipTest)
+    require_pulp_plugins({"ansible"}, unittest.SkipTest)
 
 
 def gen_ansible_client():
