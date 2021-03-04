@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.7 (2021-03-03)
+==================
+
+Bugfixes
+--------
+
+- Use DRF token when no ``auth_url`` is provided
+  `#8290 <https://pulp.plan.io/issues/8290>`_
+
+
+----
+
+
 0.7.0 (2021-02-11)
 ==================
 
