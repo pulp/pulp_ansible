@@ -1,1 +1,0 @@
-Use DRF token when no ``auth_url`` is provided
