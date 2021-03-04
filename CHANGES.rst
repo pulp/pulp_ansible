@@ -13,6 +13,25 @@ Changelog
 
 .. towncrier release notes start
 
+0.7.1 (2021-03-04)
+==================
+
+Bugfixes
+--------
+
+- Removing ``manifest`` and ``files`` from metadata endpoints.
+  `#8264 <https://pulp.plan.io/issues/8264>`_
+- Fix V3 collection list endpoint when repository is empty
+  `#8276 <https://pulp.plan.io/issues/8276>`_
+- Use DRF token when no ``auth_url`` is provided
+  `#8290 <https://pulp.plan.io/issues/8290>`_
+- Fixed bug where rate limit wasn't being honored.
+  `#8300 <https://pulp.plan.io/issues/8300>`_
+
+
+----
+
+
 0.6.2 (2021-03-03)
 ==================
 
