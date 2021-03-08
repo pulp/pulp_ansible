@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.8 (2021-03-08)
+==================
+
+Bugfixes
+--------
+
+- Allow updating ``auth_url`` on CollectionRemote when ``token`` is already set
+  `#8362 <https://pulp.plan.io/issues/8362>`_
+
+
+----
+
+
 0.5.7 (2021-03-03)
 ==================
 
