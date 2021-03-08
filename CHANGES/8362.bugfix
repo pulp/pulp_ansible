@@ -1,1 +1,0 @@
-Allow updating ``auth_url`` on CollectionRemote when ``token``is already set
