@@ -58,7 +58,7 @@ Generating a client on dev environment
 
 Pulp dev environment provided by `pulp_installer <https://github.com/pulp/pulp_installer>`_
 introduces a set of useful
-`aliases <https://github.com/pulp/pulp_installer/tree/master/roles/pulp-devel#aliases>`_,
+`aliases <https://github.com/pulp/pulp_installer/tree/master/roles/pulp_devel#aliases>`_,
 like `pbindings`.
 
 Examples:
