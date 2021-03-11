@@ -17,7 +17,11 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.pulp_installer"
         )
 
-        body = gen_ansible_remote(url="https://galaxy.ansible.com", requirements_file=requirements)
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file=requirements,
+            sync_dependencies=False,
+        )
         first_remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, first_remote.pulp_href)
 
@@ -32,7 +36,9 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         # Sync a second repo from the first, just the testing namespace
         requirements = "collections:\n  - name: testing.k8s_demo_collection"
-        body = gen_ansible_remote(url=first_distro.client_url, requirements_file=requirements)
+        body = gen_ansible_remote(
+            url=first_distro.client_url, requirements_file=requirements, sync_dependencies=False
+        )
         second_remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
 

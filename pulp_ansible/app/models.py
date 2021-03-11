@@ -200,6 +200,7 @@ class CollectionRemote(Remote):
     requirements_file = models.TextField(null=True)
     auth_url = models.CharField(null=True, max_length=255)
     token = models.TextField(null=True, max_length=2000)
+    sync_dependencies = models.BooleanField(default=True)
 
     @property
     def download_factory(self):

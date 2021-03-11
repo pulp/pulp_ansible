@@ -36,6 +36,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         self.remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, self.remote.pulp_href)
@@ -48,6 +49,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_body = gen_ansible_remote(
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
@@ -66,6 +68,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -91,6 +94,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_body = gen_ansible_remote(
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
@@ -118,6 +122,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         body = gen_ansible_remote(
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -161,6 +166,7 @@ class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
             token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -200,6 +206,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
             token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -221,6 +228,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
             token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -238,6 +246,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
             auth_url=self.aurl,
             token="invalid token string",
             tls_validation=False,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)

@@ -134,6 +134,12 @@ class CollectionRemoteSerializer(RemoteSerializer):
         max_length=2000,
     )
 
+    sync_dependencies = serializers.BooleanField(
+        help_text=_("Sync dependencies for collections specified via requirements file"),
+        allow_null=True,
+        default=True,
+    )
+
     def validate(self, data):
         """
         Validate collection remote data.
@@ -183,6 +189,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
             "requirements_file",
             "auth_url",
             "token",
+            "sync_dependencies",
         )
         model = CollectionRemote
 
