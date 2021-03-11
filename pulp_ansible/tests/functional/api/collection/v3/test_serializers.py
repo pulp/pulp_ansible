@@ -33,6 +33,7 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - pulp.pulp_installer",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -71,6 +72,7 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - name: cisco.nxos\n    version: ==1.4.0",
+            sync_dependencies=False,
         )
 
         remote = self.remote_collection_api.create(body)

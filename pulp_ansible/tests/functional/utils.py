@@ -204,12 +204,13 @@ class SyncHelpersMixin:
         repo = self.repo_api.read(repo.pulp_href)
         return repo
 
-    def _create_distribution_from_repo(self, repo):
+    def _create_distribution_from_repo(self, repo, cleanup=True):
         """
         Create an `AnsibleDistribution` serving the `repo` with the `base_path`.
 
         Args:
             repo: The repository to serve with the `AnsibleDistribution`
+            cleanup: Whether the distribution should be cleaned up
 
         Returns:
             The created `AnsibleDistribution`.
@@ -220,8 +221,24 @@ class SyncHelpersMixin:
         distribution_create = self.distributions_api.create(body)
         created_resources = monitor_task(distribution_create.task).created_resources
         distribution = self.distributions_api.read(created_resources[0])
-        self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
+        if cleanup:
+            self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
         return distribution
+
+    def _create_empty_repo_and_distribution(self, cleanup=True):
+        """
+        Creates an empty `AnsibleRepository` and an `AnsibleDistribution` serving that repository.
+
+        Args:
+            cleanup: Whether the repository and distribution should be cleaned up
+
+        Returns:
+            Tuple of the created `AnsibleRepository`, `AnsibleDistribution`
+        """
+        repo = self.repo_api.create(gen_repo())
+        if cleanup:
+            self.addCleanup(self.repo_api.delete, repo.pulp_href)
+        return repo, self._create_distribution_from_repo(repo, cleanup=cleanup)
 
 
 settings = Dynaconf(

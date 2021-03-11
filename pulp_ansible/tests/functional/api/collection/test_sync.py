@@ -4,6 +4,9 @@ from pulp_ansible.tests.functional.utils import (
     SyncHelpersMixin,
     TestCaseUsingBindings,
 )
+from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
+from orionutils.generator import build_collection
+from pulpcore.client.pulp_ansible import PulpAnsibleGalaxyApiV3CollectionsApi
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -15,6 +18,7 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+            sync_dependencies=False,
         )
         remote_a = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote_a.pulp_href)
@@ -22,6 +26,7 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote_b = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote_b.pulp_href)
@@ -42,6 +47,7 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+            sync_dependencies=False,
         )
         remote_a = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote_a.pulp_href)
@@ -49,6 +55,7 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote_b = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote_b.pulp_href)
@@ -69,6 +76,7 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+            sync_dependencies=False,
         )
         remote_a = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote_a.pulp_href)
@@ -76,6 +84,7 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote_b = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote_b.pulp_href)
@@ -100,6 +109,7 @@ class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - ibm.ibm_zos_core",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -114,6 +124,7 @@ class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - rshad.collection_demo",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -128,6 +139,7 @@ class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - brightcomputing.bcm",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -136,3 +148,110 @@ class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(content.results), 5)
+
+
+class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
+    """
+    Collection sync tests for syncing collections and their dependencies.
+
+    Dependency Trees:
+    A               E
+    |             /   \
+    B            F     G
+    |            |     |
+    C         H(1-3)   D
+    |
+    D
+
+    H has 5 versions, no dependencies
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        """Set up class variables."""
+        super().setUpClass()
+        cls._build_and_publish_collections()
+
+    @classmethod
+    def tearDownClass(cls):
+        """Tear down class variables."""
+        cls.repo_api.delete(cls.repo.pulp_href)
+        cls.distributions_api.delete(cls.distro.pulp_href)
+
+    @classmethod
+    def _build_and_publish_collections(cls):
+        """Builds and publishes the collections to be used in this test."""
+        cls.collections = []
+        cls.repo, cls.distro = cls._create_empty_repo_and_distribution(cls(), cleanup=False)
+
+        upload_api = PulpAnsibleGalaxyApiV3CollectionsApi(cls.client)
+        for config in TEST_COLLECTION_CONFIGS:
+            collection = build_collection("collection_dep_a", config=config)
+            upload_api.create(cls.distro.base_path, collection.filename)
+            cls.collections.append(collection)
+        cls.distro.client_url += "api/"
+
+    def test_simple_one_level_dependency(self):
+        """Sync test.c which requires test.d."""
+        body = gen_ansible_remote(
+            url=self.distro.client_url, requirements_file="collections:\n  - test.c"
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
+        self.assertEqual(content.count, 2)
+
+    def test_simple_multi_level_dependency(self):
+        """Sync test.a which should get the dependency chain: test.b -> test.c -> test.d."""
+        body = gen_ansible_remote(
+            url=self.distro.client_url, requirements_file="collections:\n  - test.a"
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
+        self.assertEqual(content.count, 4)
+
+    def test_complex_one_level_dependency(self):
+        """Sync test.f which should get 3 versions of test.h."""
+        body = gen_ansible_remote(
+            url=self.distro.client_url, requirements_file="collections:\n  - test.f"
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
+        self.assertEqual(content.count, 4)
+
+    def test_complex_multi_level_dependency(self):
+        """Sync test.e which should get test.f, test.d, test.g and 3 versions of test.h."""
+        body = gen_ansible_remote(
+            url=self.distro.client_url, requirements_file="collections:\n  - test.e"
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
+        self.assertEqual(content.count, 7)
+
+    def test_v2_simple_dependency(self):
+        """Checks that the dependency resolution works on v2 api codepath."""
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - pulp.pulp_installer",
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/", name="posix")
+        self.assertNotEqual(content.count, 0)

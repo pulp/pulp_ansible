@@ -20,6 +20,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -34,6 +35,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com/",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -48,6 +50,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -62,6 +65,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -77,6 +81,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file=requirements_file_string,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -91,6 +96,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="INAVLID",
+            sync_dependencies=False,
         )
         self.assertRaises(ApiException, self.remote_collection_api.create, body)
 
@@ -125,6 +131,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file=requirements_file_string,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -148,6 +155,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file=requirements_file_string,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -169,6 +177,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file=requirements_file_string,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -190,6 +199,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file=requirements_file_string,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)

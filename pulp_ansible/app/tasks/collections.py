@@ -5,6 +5,7 @@ import json
 import logging
 import tarfile
 import yaml
+from operator import attrgetter
 from urllib.parse import urljoin
 
 from aiohttp.client_exceptions import ClientResponseError
@@ -360,7 +361,8 @@ class CollectionSyncFirstStage(Stage):
         self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.deprecations = Q()
-
+        self.add_dependents = self.collection_info and self.remote.sync_dependencies
+        self.already_synced = set()
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
         self.last_synced_metadata_time = None
@@ -422,14 +424,32 @@ class CollectionSyncFirstStage(Stage):
     async def _add_collection_version(self, api_version, collection_version_url, metadata):
         """Add CollectionVersion to the sync pipeline."""
         url = metadata["download_url"]
-
         collection_version = CollectionVersion(
             namespace=metadata["namespace"]["name"],
             name=metadata["collection"]["name"],
             version=metadata["version"],
         )
+        cv_unique = attrgetter("namespace", "name", "version")(collection_version)
+        if cv_unique in self.already_synced:
+            return
+        self.already_synced.add(cv_unique)
 
         info = metadata["metadata"]
+
+        if self.add_dependents:
+            dependencies = info["dependencies"]
+            tasks = []
+            loop = asyncio.get_event_loop()
+            for full_name, version in dependencies.items():
+                namespace, name = full_name.split(".")
+                if not (namespace, name, version) in self.already_synced:
+                    new_req = RequirementsFileEntry(
+                        name=full_name,
+                        version=version,
+                        source=None,
+                    )
+                    tasks.append(loop.create_task(self._fetch_collection_metadata(new_req)))
+            await asyncio.gather(*tasks)
 
         info.pop("tags")
         for attr_name, attr_value in info.items():
