@@ -1,0 +1,1 @@
+V3 sync now properly waits for async task completion
