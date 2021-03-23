@@ -255,6 +255,7 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
             "repository",
             "repository_version",
             "client_url",
+            "pulp_labels",
         )
         model = AnsibleDistribution
 
