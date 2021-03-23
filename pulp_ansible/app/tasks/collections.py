@@ -529,6 +529,7 @@ class CollectionSyncFirstStage(Stage):
                         )
                     )
                 )
+        await asyncio.gather(*tasks)
 
     async def _fetch_collection_metadata(self, requirements_entry):
         if requirements_entry.version == "*":
