@@ -8,6 +8,8 @@ from django.db.models import UniqueConstraint, Q
 from pulpcore.plugin.models import (
     BaseModel,
     Content,
+    Publication,
+    PublicationDistribution,
     Remote,
     Repository,
     RepositoryVersion,
@@ -295,6 +297,28 @@ class AnsibleCollectionDeprecated(BaseModel):
 class AnsibleDistribution(RepositoryVersionDistribution):
     """
     A Distribution for Ansible content.
+    """
+
+    TYPE = "ansible"
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class AnsiblePublishedDistribution(PublicationDistribution):
+    """
+    A Distribution with pre-computed published metadata.
+    """
+
+    type = "ansible"
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class AnsiblePublication(Publication):
+    """
+    A Publication for Ansible Collection Version Content.
     """
 
     TYPE = "ansible"

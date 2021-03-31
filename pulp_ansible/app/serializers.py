@@ -6,16 +6,21 @@ from rest_framework import serializers
 
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
+    DetailRelatedField,
     ModelSerializer,
     RemoteSerializer,
     RepositorySerializer,
     RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
     RepositoryVersionDistributionSerializer,
+    PublicationSerializer,
+    PublicationDistributionSerializer,
     validate_unknown_fields,
 )
 
 from .models import (
+    AnsiblePublication,
+    AnsiblePublishedDistribution,
     AnsibleDistribution,
     RoleRemote,
     AnsibleRepository,
@@ -474,3 +479,50 @@ class CopySerializer(serializers.Serializer):
                 )
 
         return data
+
+class AnsiblePublicationSerializer(PublicationSerializer):
+    """
+    Serializer for Ansible Publications.
+    """
+    distributions = DetailRelatedField(
+        help_text=_('This publication is currently being hosted as configured by these '
+                    'distributions.'),
+        source="python_pythondistribution",
+        view_name="filedistributions-detail",
+        many=True,
+        read_only=True,
+    )
+
+    class Meta:
+        fields = PublicationSerializer.Meta.fields + ('distributions',)
+        model = AnsiblePublication
+
+class AnsiblePublishedDistributionSerializer(PublicationDistributionSerializer):
+    """
+    Serializer for Ansible PublishedDistributions.
+    """
+
+    client_url = serializers.SerializerMethodField(
+        read_only=True, help_text=_("The URL of a Collection content source.")
+    )
+
+    def get_client_url(self, obj) -> str:
+        """
+        Get client_url.
+        """
+        return "{hostname}/pulp_ansible/galaxy/{base_path}/".format(
+            hostname=settings.ANSIBLE_API_HOSTNAME, base_path=obj.base_path
+        )
+
+    class Meta:
+        fields = (
+            "pulp_href",
+            "pulp_created",
+            "base_path",
+            "content_guard",
+            "name",
+            "publication",
+            "client_url",
+            "pulp_labels",
+        )
+        model = AnsiblePublishedDistribution

@@ -6,7 +6,8 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, redirect
+from django.template import Context, Template
 from django.utils.dateparse import parse_datetime
 from django_filters import filters
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -34,6 +35,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
+    AnsiblePublishedDistribution,
     Collection,
     CollectionVersion,
     CollectionImport,
@@ -54,6 +56,24 @@ class AnsibleDistributionMixin:
     """
 
     @property
+    def _publication(self):
+        """Returns the publication if there is one."""
+        path = self.kwargs["path"]
+        context = getattr(self, "pulp_context", None)
+        if context and context.get("publication", None):
+            return self.pulp_context["publication"]
+
+        publication = None
+        try:
+            publication = get_object_or_404(AnsiblePublishedDistribution, base_path=path)
+        finally:
+            if context:
+                self.pulp_context["publication"] = publication
+            else:
+                self.pulp_context = {"publication": publication}
+            return publication
+
+    @property
     def _repository_version(self):
         """Returns repository version."""
         path = self.kwargs["path"]
@@ -61,13 +81,23 @@ class AnsibleDistributionMixin:
         if context and context.get(path, None):
             return self.pulp_context[path]
 
-        distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        if self._publication:
+            distro = self._publication
+        else:
+            distro = get_object_or_404(AnsibleDistribution, base_path=path)
+
         if distro.repository_version:
-            self.pulp_context = {path: distro.repository_version}
+            if context:
+                self.pulp_context[path] = distro.repository_version
+            else:
+                self.pulp_context = {path: distro.repository_version}
             return distro.repository_version
 
         repo_version = distro.repository.latest_version()
-        self.pulp_context = {path: repo_version}
+        if context:
+            self.pulp_context[path] = repo_version
+        else:
+            self.pulp_context = {path: repo_version}
         return repo_version
 
     @property
@@ -407,6 +437,9 @@ class CollectionVersionViewSet(
         """
         Returns paginated CollectionVersions list.
         """
+        if self._publication:
+            redirect("http://localhost:24816/pulp/content/{base_path}/collection_versions.json")
+
         queryset = self.filter_queryset(self.get_queryset())
         queryset = sorted(
             queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
@@ -448,6 +481,7 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         )
 
         context = self.get_serializer_context()
+        # This seems wrong, copy paste?
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, context=context)

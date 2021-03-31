@@ -24,6 +24,7 @@ from pulpcore.plugin.viewsets import (
     ContentViewSet,
     NamedModelViewSet,
     OperationPostponedResponse,
+    PublicationViewSet,
     RemoteViewSet,
     RepositoryViewSet,
     RepositoryVersionViewSet,
@@ -31,6 +32,8 @@ from pulpcore.plugin.viewsets import (
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleDistribution,
+    AnsiblePublishedDistribution,
+    AnsiblePublication,
     RoleRemote,
     AnsibleRepository,
     Collection,
@@ -41,6 +44,8 @@ from .models import (
 )
 from .serializers import (
     AnsibleDistributionSerializer,
+    AnsiblePublishedDistributionSerializer,
+    AnsiblePublicationSerializer,
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
     AnsibleRepositorySyncURLSerializer,
@@ -55,6 +60,7 @@ from .serializers import (
 from .tasks.collections import update_collection_remote, sync as collection_sync
 from .tasks.copy import copy_content
 from .tasks.roles import synchronize as role_sync
+from .tasks.publish import publish
 
 
 class RoleFilter(ContentFilter):
@@ -321,6 +327,50 @@ class AnsibleDistributionViewSet(BaseDistributionViewSet):
     endpoint_name = "ansible"
     queryset = AnsibleDistribution.objects.all()
     serializer_class = AnsibleDistributionSerializer
+
+class AnsiblePublishedDistributionViewSet(BaseDistributionViewSet):
+    """
+    ViewSet for Ansible Published Distributions.
+    """
+
+    endpoint_name = "ansible/published"
+    queryset = AnsiblePublishedDistribution.objects.all()
+    serializer_class = AnsiblePublishedDistributionSerializer
+
+class AnsiblePublicationViewset(PublicationViewSet):
+    """
+    ViewSet for Ansible Publications.
+    """
+    endpoint_name = 'ansible'
+    queryset = AnsiblePublication.objects.exclude(complete=False)
+    serializer_class = AnsiblePublicationSerializer
+
+    @extend_schema(
+        description="Trigger an asynchronous task to publish python content.",
+        responses={202: AsyncOperationResponseSerializer}
+    )
+    def create(self, request):
+        """
+        <!-- User-facing documentation, rendered as html-->
+        Dispatches a publish task, which generates metadata that will be used by pip.
+        """
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        repository_version = serializer.validated_data.get('repository_version')
+
+        # Safe because version OR repository is enforced by serializer.
+        if not repository_version:
+            repository = serializer.validated_data.get('repository')
+            repository_version = RepositoryVersion.latest(repository)
+
+        result = enqueue_with_reservation(
+            publish,
+            [repository_version.repository],
+            kwargs={
+                'repository_version_pk': repository_version.pk
+            }
+        )
+        return OperationPostponedResponse(result, request)
 
 
 class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
