@@ -1,5 +1,5 @@
 async_lru
-galaxy_importer
+galaxy_importer>=0.3.1
 jsonschema>=3.0
 packaging
 pulpcore>=3.10

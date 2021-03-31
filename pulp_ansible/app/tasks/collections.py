@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 from aiohttp.client_exceptions import ClientResponseError
 from async_lru import alru_cache
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -199,8 +200,9 @@ def import_collection(
 
     try:
         with temp_file.file.open() as artifact_file:
+            url = _get_backend_storage_url(artifact_file)
             importer_result = process_collection(
-                artifact_file, filename=filename, logger=user_facing_logger
+                artifact_file, filename=filename, file_url=url, logger=user_facing_logger
             )
             artifact = Artifact.from_pulp_temporary_file(temp_file)
             importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
@@ -278,6 +280,23 @@ def create_collection_from_importer(importer_result):
 
         collection_version.save()  # Save the FK updates
     return collection_version
+
+
+def _get_backend_storage_url(artifact_file):
+    """Get artifact url from pulp backend storage."""
+    if settings.DEFAULT_FILE_STORAGE == "pulpcore.app.models.storage.FileSystem":
+        url = None
+    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+        parameters = {"ResponseContentDisposition": "attachment;filename=archive.tar.gz"}
+        url = artifact_file.storage.url(artifact_file.name, parameters=parameters)
+    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
+        url = artifact_file.storage.url(artifact_file.name)
+    else:
+        raise NotImplementedError(
+            f"The value settings.DEFAULT_FILE_STORAGE={settings.DEFAULT_FILE_STORAGE} "
+            "was not expected"
+        )
+    return url
 
 
 def _update_highest_version(collection_version):
