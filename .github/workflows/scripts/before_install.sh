@@ -59,12 +59,14 @@ then
   export PULP_SMASH_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-smash\/pull\/(\d+)' | awk -F'/' '{print $7}')
   export PULP_OPENAPI_GENERATOR_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-openapi-generator\/pull\/(\d+)' | awk -F'/' '{print $7}')
   export PULP_CLI_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-cli\/pull\/(\d+)' | awk -F'/' '{print $7}')
+  export GALAXY_IMPORTER_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/ansible\/galaxy-importer\/pull\/(\d+)' | awk -F'/' '{print $7}')
   echo $COMMIT_MSG | sed -n -e 's/.*CI Base Image:\s*\([-_/[:alnum:]]*:[-_[:alnum:]]*\).*/ci_base: "\1"/p' >> .ci/ansible/vars/main.yaml
 else
   export PULPCORE_PR_NUMBER=
   export PULP_SMASH_PR_NUMBER=
   export PULP_OPENAPI_GENERATOR_PR_NUMBER=
   export PULP_CLI_PR_NUMBER=
+  export GALAXY_IMPORTER_PR_NUMBER=
   export CI_BASE_IMAGE=
 fi
 
@@ -120,6 +122,14 @@ fi
 
 pip install --upgrade --force-reinstall ./pulp-smash
 
+
+git clone --depth=1 https://github.com/ansible/galaxy-importer.git --branch master
+if [ -n "$GALAXY_IMPORTER_PR_NUMBER" ]; then
+  cd galaxy-importer
+  git fetch --depth=1 origin pull/$GALAXY_IMPORTER_PR_NUMBER/head:$GALAXY_IMPORTER_PR_NUMBER
+  git checkout $GALAXY_IMPORTER_PR_NUMBER
+  cd ..
+fi
 
 # Intall requirements for ansible playbooks
 pip install docker netaddr boto3 ansible

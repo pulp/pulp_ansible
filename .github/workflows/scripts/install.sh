@@ -32,6 +32,12 @@ pip install -r functest_requirements.txt
 cd .ci/ansible/
 
 TAG=ci_build
+
+if [ -e $REPO_ROOT/../galaxy-importer ]; then
+  GALAXY_IMPORTER=./galaxy-importer
+else
+  GALAXY_IMPORTER=git+https://github.com/ansible/galaxy-importer.git@master
+fi
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   PLUGIN_NAME=pulp_ansible
 else
@@ -49,6 +55,8 @@ plugins:
     source: pulpcore
   - name: pulp_ansible
     source:  "${PLUGIN_NAME}"
+  - name: galaxy-importer
+    source: galaxy-importer
 services:
   - name: pulp
     image: "pulp:${TAG}"
@@ -63,6 +71,8 @@ image:
 plugins:
   - name: pulp_ansible
     source: "${PLUGIN_NAME}"
+  - name: galaxy-importer
+    source: $GALAXY_IMPORTER
   - name: pulpcore
     source: ./pulpcore
 services:
