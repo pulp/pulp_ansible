@@ -7,20 +7,19 @@ from rest_framework import serializers
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     DetailRelatedField,
+    DistributionSerializer,
     ModelSerializer,
     RemoteSerializer,
     RepositorySerializer,
     RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
-    RepositoryVersionDistributionSerializer,
     PublicationSerializer,
-    PublicationDistributionSerializer,
     validate_unknown_fields,
 )
+from pulpcore.app.serializers import RepositoryVersionRelatedField
 
 from .models import (
     AnsiblePublication,
-    AnsiblePublishedDistribution,
     AnsibleDistribution,
     RoleRemote,
     AnsibleRepository,
@@ -92,9 +91,10 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     last_synced_metadata_time = serializers.DateTimeField(
         help_text=_("Last synced metadata time."), allow_null=True, required=False
     )
+    autopublish = serializers.BooleanField(allow_null=True, default=True)
 
     class Meta:
-        fields = RepositorySerializer.Meta.fields + ("last_synced_metadata_time",)
+        fields = RepositorySerializer.Meta.fields + ("last_synced_metadata_time", "autopublish",)
         model = AnsibleRepository
 
 
@@ -240,13 +240,23 @@ class CollectionOneShotSerializer(serializers.Serializer):
     )
 
 
-class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
+class AnsibleDistributionSerializer(DistributionSerializer):
     """
     Serializer for Ansible Distributions.
     """
 
     client_url = serializers.SerializerMethodField(
         read_only=True, help_text=_("The URL of a Collection content source.")
+    )
+
+    publication = DetailRelatedField(
+        read_only=True,
+        help_text=_("Publication to be served"),
+        view_name_pattern=r"publications(-.*/.*)?-detail",
+    )
+
+    repository_version = RepositoryVersionRelatedField(
+        required=False, help_text=_("RepositoryVersion to be served"), allow_null=True
     )
 
     def get_client_url(self, obj) -> str:
@@ -264,6 +274,7 @@ class AnsibleDistributionSerializer(RepositoryVersionDistributionSerializer):
             "base_path",
             "content_guard",
             "name",
+            "publication",
             "repository",
             "repository_version",
             "client_url",
@@ -487,8 +498,8 @@ class AnsiblePublicationSerializer(PublicationSerializer):
     distributions = DetailRelatedField(
         help_text=_('This publication is currently being hosted as configured by these '
                     'distributions.'),
-        source="python_pythondistribution",
-        view_name="filedistributions-detail",
+        source="distribution_set",
+        view_name="ansibledistributions-detail",
         many=True,
         read_only=True,
     )
@@ -497,32 +508,3 @@ class AnsiblePublicationSerializer(PublicationSerializer):
         fields = PublicationSerializer.Meta.fields + ('distributions',)
         model = AnsiblePublication
 
-class AnsiblePublishedDistributionSerializer(PublicationDistributionSerializer):
-    """
-    Serializer for Ansible PublishedDistributions.
-    """
-
-    client_url = serializers.SerializerMethodField(
-        read_only=True, help_text=_("The URL of a Collection content source.")
-    )
-
-    def get_client_url(self, obj) -> str:
-        """
-        Get client_url.
-        """
-        return "{hostname}/pulp_ansible/galaxy/{base_path}/".format(
-            hostname=settings.ANSIBLE_API_HOSTNAME, base_path=obj.base_path
-        )
-
-    class Meta:
-        fields = (
-            "pulp_href",
-            "pulp_created",
-            "base_path",
-            "content_guard",
-            "name",
-            "publication",
-            "client_url",
-            "pulp_labels",
-        )
-        model = AnsiblePublishedDistribution

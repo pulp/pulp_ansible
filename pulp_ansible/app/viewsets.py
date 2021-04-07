@@ -12,13 +12,14 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.serializers import ValidationError as DRFValidationError
 
+from pulpcore.app.tasks.base import general_create
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import enqueue_with_reservation
 from pulpcore.plugin.viewsets import (
-    BaseDistributionViewSet,
+    DistributionViewSet,
     BaseFilterSet,
     ContentFilter,
     ContentViewSet,
@@ -32,7 +33,6 @@ from pulpcore.plugin.viewsets import (
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleDistribution,
-    AnsiblePublishedDistribution,
     AnsiblePublication,
     RoleRemote,
     AnsibleRepository,
@@ -44,7 +44,6 @@ from .models import (
 )
 from .serializers import (
     AnsibleDistributionSerializer,
-    AnsiblePublishedDistributionSerializer,
     AnsiblePublicationSerializer,
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
@@ -318,8 +317,16 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
 
         return OperationPostponedResponse(async_result, request)
 
+class AnsiblePublicationViewSet(PublicationViewSet):
+    """
+    ViewSet for Ansible Publications.
+    """
 
-class AnsibleDistributionViewSet(BaseDistributionViewSet):
+    endpoint_name = "ansible"
+    queryset = AnsiblePublication.objects.all()
+    serializer_class = AnsiblePublicationSerializer
+
+class AnsibleDistributionViewSet(DistributionViewSet):
     """
     ViewSet for Ansible Distributions.
     """
@@ -328,25 +335,9 @@ class AnsibleDistributionViewSet(BaseDistributionViewSet):
     queryset = AnsibleDistribution.objects.all()
     serializer_class = AnsibleDistributionSerializer
 
-class AnsiblePublishedDistributionViewSet(BaseDistributionViewSet):
-    """
-    ViewSet for Ansible Published Distributions.
-    """
-
-    endpoint_name = "ansible/published"
-    queryset = AnsiblePublishedDistribution.objects.all()
-    serializer_class = AnsiblePublishedDistributionSerializer
-
-class AnsiblePublicationViewset(PublicationViewSet):
-    """
-    ViewSet for Ansible Publications.
-    """
-    endpoint_name = 'ansible'
-    queryset = AnsiblePublication.objects.exclude(complete=False)
-    serializer_class = AnsiblePublicationSerializer
 
     @extend_schema(
-        description="Trigger an asynchronous task to publish python content.",
+        description="Trigger an asynchronous task to publish ansible content.",
         responses={202: AsyncOperationResponseSerializer}
     )
     def create(self, request):
@@ -356,21 +347,33 @@ class AnsiblePublicationViewset(PublicationViewSet):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        repository_version = serializer.validated_data.get('repository_version')
+        if serializer.validated_data.get('repository_version'):
+            data = {"repository_version": request.data['repository_version']}
+        else:
+            data = {"repository": request.data["repository"]}
+        publish_serializer = AnsiblePublicationSerializer(data=data)
+        publish_serializer.is_valid(raise_exception=True)
+        repository_version = publish_serializer.validated_data.get('repository_version')
 
-        # Safe because version OR repository is enforced by serializer.
-        if not repository_version:
-            repository = serializer.validated_data.get('repository')
-            repository_version = RepositoryVersion.latest(repository)
-
-        result = enqueue_with_reservation(
+        publish_task = enqueue_with_reservation(
             publish,
             [repository_version.repository],
             kwargs={
-                'repository_version_pk': repository_version.pk
+                'base_path': str(serializer.validated_data.get('base_path')),
+                'repository_version_pk': str(repository_version.pk)
             }
         )
-        return OperationPostponedResponse(result, request)
+        while not publish_task.is_finished:
+            pass
+
+        app_label = self.queryset.model._meta.app_label
+        async_result = enqueue_with_reservation(
+            general_create,
+            self.async_reserved_resources(None),
+            args=(app_label, serializer.__class__.__name__),
+            kwargs={"data": request.data},
+        )
+        return OperationPostponedResponse(async_result, request)
 
 
 class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):

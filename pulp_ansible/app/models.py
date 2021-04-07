@@ -8,12 +8,11 @@ from django.db.models import UniqueConstraint, Q
 from pulpcore.plugin.models import (
     BaseModel,
     Content,
+    Distribution,
     Publication,
-    PublicationDistribution,
     Remote,
     Repository,
     RepositoryVersion,
-    RepositoryVersionDistribution,
     Task,
 )
 from .downloaders import AnsibleDownloaderFactory
@@ -243,6 +242,7 @@ class AnsibleRepository(Repository):
     REMOTE_TYPES = [RoleRemote, CollectionRemote]
 
     last_synced_metadata_time = models.DateTimeField(null=True)
+    autopublish = models.BooleanField(default=False)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -279,6 +279,15 @@ class AnsibleRepository(Repository):
         if to_deprecate:
             AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
 
+        if self.autopublish:
+            distros = AnsibleDistribution.objects.filter(repository=self)
+            if distros:
+                from pulp_ansible.app import tasks
+                for distro in distros:
+                    publication = tasks.publish(base_path=distro.base_path, repository_version_pk=new_version.pk)
+                    distro.publication = publication
+                    distro.save()
+
 
 class AnsibleCollectionDeprecated(BaseModel):
     """
@@ -294,23 +303,24 @@ class AnsibleCollectionDeprecated(BaseModel):
         unique_together = ("collection", "repository_version")
 
 
-class AnsibleDistribution(RepositoryVersionDistribution):
+class AnsibleDistribution(Distribution):
     """
     A Distribution for Ansible content.
     """
 
     TYPE = "ansible"
 
-    class Meta:
-        default_related_name = "%(app_label)s_%(model_name)s"
+    def get_publication(self):
+        if self.repository or self.repository_version:
+            repo_rv = self.repository_version or self.repository.latest_version()
+            if repo_rv.content.count():
+                publication = AnsiblePublication.objects.get(base_path=self.base_path, repository_version=repo_rv)
+                if publication != self.publication:
+                    self.publication = publication
+                    self.save()
+                return publication
+        return None
 
-
-class AnsiblePublishedDistribution(PublicationDistribution):
-    """
-    A Distribution with pre-computed published metadata.
-    """
-
-    type = "ansible"
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -322,6 +332,8 @@ class AnsiblePublication(Publication):
     """
 
     TYPE = "ansible"
+
+    base_path = models.TextField()
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

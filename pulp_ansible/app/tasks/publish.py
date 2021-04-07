@@ -9,12 +9,12 @@ from django.core.files import File
 from pulpcore.plugin.models import RepositoryVersion, PublishedMetadata
 
 from pulp_ansible.app.models import Collection, CollectionVersion, AnsiblePublication
-from pulp_ansible.app.galaxy.v3.serializers import CollectionSerializer, CollectionVersionListSerializer
+from pulp_ansible.app.galaxy.v3.serializers import CollectionSerializer, UnpaginatedCollectionVersionSerializer
 
 
 log = logging.getLogger(__name__)
 
-def publish(repository_version_pk):
+def publish(base_path, repository_version_pk):
     """
     Create a Publication based on a RepositoryVersion.
 
@@ -31,12 +31,13 @@ def publish(repository_version_pk):
 
     with tempfile.TemporaryDirectory("."):
         with AnsiblePublication.create(repo_version, pass_through=True) as publication:
-            write_collections_metadata(publication)
-            write_collection_versions_metadata(publication)
+            publication.base_path = base_path
+            write_collections_metadata(publication, base_path)
+            write_collection_versions_metadata(publication, base_path)
 
     log.info(_('Publication: {pk} created').format(pk=publication.pk))
 
-def write_collections_metadata(publication):
+def write_collections_metadata(publication, base_path):
     """
     Writes metadata for the /collections/all/ endpoint.
 
@@ -50,7 +51,7 @@ def write_collections_metadata(publication):
     # query_set = Collection.objects.filter(versions__in=distro_content)
 
 
-def write_collection_versions_metadata(publication):
+def write_collection_versions_metadata(publication, base_path):
     """
     Writes metadata for the /collection_versions/all/ endpoint.
 
@@ -64,10 +65,10 @@ def write_collection_versions_metadata(publication):
     queryset = sorted(
         queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
     )
-    serialized_cvs = CollectionVersionListSerializer(queryset, many=True, context={"path": "{{ base_path }}"})
-    cv_path = "collection_versions.json"
-    with open(cv_path, 'w') as cv_json:
-        json.dump(serialized_cvs.data, cv_json)
+    serialized_cvs = UnpaginatedCollectionVersionSerializer(queryset, many=True, context={"path": base_path})
+    cv_path = "collection_versions"
+    with open(cv_path, 'w') as cv:
+        json.dump(serialized_cvs.data, cv)
 
     cv_metadata = PublishedMetadata.create_from_file(
         relative_path=cv_path,

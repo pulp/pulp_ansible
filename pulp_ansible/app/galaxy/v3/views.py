@@ -7,7 +7,6 @@ from django.db.models import F
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
 from django.shortcuts import get_object_or_404, redirect
-from django.template import Context, Template
 from django.utils.dateparse import parse_datetime
 from django_filters import filters
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -35,7 +34,6 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
-    AnsiblePublishedDistribution,
     Collection,
     CollectionVersion,
     CollectionImport,
@@ -49,6 +47,9 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import CollectionVersionFilter
 
+import logging
+from pulp_ansible.app.settings import ANSIBLE_CONTENT_HOSTNAME
+logger = logging.getLogger(__name__)
 
 class AnsibleDistributionMixin:
     """
@@ -63,15 +64,14 @@ class AnsibleDistributionMixin:
         if context and context.get("publication", None):
             return self.pulp_context["publication"]
 
-        publication = None
-        try:
-            publication = get_object_or_404(AnsiblePublishedDistribution, base_path=path)
-        finally:
+        distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        pub = distro.get_publication()
+        if pub:
             if context:
-                self.pulp_context["publication"] = publication
+                self.pulp_context["publication"] = pub
             else:
-                self.pulp_context = {"publication": publication}
-            return publication
+                self.pulp_context = {"publication": pub}
+        return pub
 
     @property
     def _repository_version(self):
@@ -437,8 +437,6 @@ class CollectionVersionViewSet(
         """
         Returns paginated CollectionVersions list.
         """
-        if self._publication:
-            redirect("http://localhost:24816/pulp/content/{base_path}/collection_versions.json")
 
         queryset = self.filter_queryset(self.get_queryset())
         queryset = sorted(
@@ -475,6 +473,12 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         """
         Returns paginated CollectionVersions list.
         """
+        logger.info("listing un cvs")
+        if self._publication:
+            base_path = self.kwargs["path"]
+            logger.info("using pub")
+            return redirect(f"{ANSIBLE_CONTENT_HOSTNAME}/{base_path}/collection_versions")
+
         queryset = self.filter_queryset(self.get_queryset())
         queryset = sorted(
             queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
