@@ -2,8 +2,10 @@
 # were not present before running plugin-template have been added with their default values.
 
 additional_plugins: []
+additional_repos: []
 black: true
 check_commit_message: true
+check_gettext: true
 check_manifest: true
 check_stray_pulpcore_imports: true
 cherry_pick_automation: false
@@ -15,6 +17,7 @@ deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
 docker_fixtures: false
 docs_test: true
+issue_tracker: redmine
 plugin_app_label: ansible
 plugin_camel: PulpAnsible
 plugin_camel_short: Ansible
@@ -22,23 +25,25 @@ plugin_caps: PULP_ANSIBLE
 plugin_caps_short: ANSIBLE
 plugin_dash: pulp-ansible
 plugin_dash_short: ansible
+plugin_default_branch: master
 plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
 publish_docs_to_pulpprojectdotorg: true
 pulp_settings:
-  ansible_api_hostname: http://pulp:80
-  ansible_content_hostname: http://pulp:80/pulp/content
   allowed_export_paths: /tmp
   allowed_import_paths: /tmp
-pulpcore_branch: "3.10"
-pulpcore_pip_version_specifier: "<3.12"
+  ansible_api_hostname: http://pulp:80
+  ansible_content_hostname: http://pulp:80/pulp/content
+pulpcore_branch: '3.12'
+pulpcore_pip_version_specifier: <3.13
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
 pypi_username: pulp
 redmine_project: ansible_plugin
 stable_branch: null
 test_bindings: false
+test_cli: false
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: true
 test_s3: true
