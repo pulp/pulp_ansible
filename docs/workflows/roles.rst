@@ -53,7 +53,7 @@ repositories>`_
 Create a Distribution for Repository 'foo'
 ------------------------------------------
 
-This will make the latest Repository Version content available for ``ansible-galaxy` clients. Each
+This will make the latest Repository Version content available for ``ansible-galaxy`` clients. Each
 distribution names the url it can be accessed from on an attribute called ``client_url``. The
 ``client_url`` can be used with the ``ansible-galaxy`` client with the ``-s`` option. See the
 :ref:`ansible-galaxy-roles-cli` docs for more details.
