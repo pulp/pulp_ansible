@@ -96,7 +96,7 @@ class CollectionVersionRetrieveMixin:
         """
         Returns a CollectionVersions queryset for specified distribution.
         """
-        if not self.request and not self.args and not self.kwargs:
+        if getattr(self, "swagger_fake_view", False):
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs
             return CollectionVersion.objects.none()
@@ -177,7 +177,7 @@ class CollectionViewSet(
         """
         Returns a Collections queryset for specified distribution.
         """
-        if not self.request and not self.args and not self.kwargs:
+        if getattr(self, "swagger_fake_view", False):
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs
             return Collection.objects.none()
