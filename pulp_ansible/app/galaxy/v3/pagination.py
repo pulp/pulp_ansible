@@ -121,3 +121,14 @@ class LimitOffsetPagination(pagination.LimitOffsetPagination):
             self.display_page_controls = True
 
         return self.get_paginated_response(data)
+
+
+
+class OptimizedLimitOffsetPagination(LimitOffsetPagination):
+    """
+    Pagination for V3 optimized sync.
+
+    """
+
+    default_limit = 1000
+    max_limit = 10000

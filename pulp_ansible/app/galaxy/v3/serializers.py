@@ -82,6 +82,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         return {"href": href, "version": version}
 
 
+
 class CollectionVersionListSerializer(serializers.ModelSerializer):
     """A serializer for a CollectionVersion list item."""
 
@@ -170,12 +171,11 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     name = serializers.CharField(source="namespace")
 
 
-class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
+class MetadataCollectionVersionSerializer(CollectionVersionListSerializer):
     """
-    A serializer for unpaginated CollectionVersion.
+    A serializer for Sync Metadata CollectionVersion.
     """
 
-    collection = CollectionRefSerializer(read_only=True)
     artifact = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
@@ -186,7 +186,6 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         model = models.CollectionVersion
         fields = CollectionVersionListSerializer.Meta.fields + (
             "artifact",
-            "collection",
             "download_url",
             "name",
             "namespace",
@@ -211,7 +210,32 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         return download_url
 
 
-class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
+class MetadataCollectionSerializer(CollectionSerializer):
+    _version_serializer_class = MetadataCollectionVersionSerializer
+
+    id = serializers.CharField(source="pk")
+    versions = serializers.SerializerMethodField()
+
+    class Meta:
+        model = CollectionSerializer.Meta.model
+        fields = CollectionSerializer.Meta.fields + ('id', 'versions',)
+
+    def get_versions(self, obj):
+        return [
+            self._version_serializer_class(
+                version,
+                context=self.context
+            ).data
+            for version
+            in obj.versions.select_related(
+                "content_ptr__contentartifact"
+            ).order_by(
+                'pulp_last_updated'
+            )
+        ]
+
+
+class CollectionVersionSerializer(MetadataCollectionVersionSerializer):
     """
     A serializer for a CollectionVersion.
     """
@@ -223,7 +247,7 @@ class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
 
     class Meta:
         model = models.CollectionVersion
-        fields = UnpaginatedCollectionVersionSerializer.Meta.fields + (
+        fields = MetadataCollectionVersionSerializer.Meta.fields + (
             "manifest",
             "files",
         )

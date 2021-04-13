@@ -74,14 +74,9 @@ v3_urls = [
         name="collection-imports-detail",
     ),
     path(
-        "collections/all/",
-        views_v3.UnpaginatedCollectionViewSet.as_view({"get": "list"}),
+        "collections/metadata/",
+        views_v3.MetadataCollectionViewSet.as_view({"get": "list"}),
         name="metadata-collection-list",
-    ),
-    path(
-        "collection_versions/all/",
-        views_v3.UnpaginatedCollectionVersionViewSet.as_view({"get": "list"}),
-        name="metadata-collection-versions-list",
     ),
 ]
 

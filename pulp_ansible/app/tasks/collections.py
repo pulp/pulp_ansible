@@ -581,11 +581,11 @@ class CollectionSyncFirstStage(Stage):
             collection_list_url = f"{collection_endpoint}?limit={page_size}&offset={offset}"
         return self.remote.get_downloader(url=collection_list_url)
 
-    async def _download_unpaginated_metadata(self):
+    async def _download_optimized_metadata(self):
         root_endpoint, api_version = await self._get_root_api(self.remote.url)
         self._api_version = api_version
         if api_version > 2:
-            collection_endpoint = f"{root_endpoint}/collections/all/"
+            collection_endpoint = f"{root_endpoint}/collections/metadata/"
             downloader = self.remote.get_downloader(
                 url=collection_endpoint, silence_errors_for_response_status_codes={404}
             )
@@ -741,7 +741,7 @@ class CollectionSyncFirstStage(Stage):
         tasks = []
         loop = asyncio.get_event_loop()
 
-        await self._download_unpaginated_metadata()
+        await self._download_optimized_metadata()
 
         if self.collection_info:
             for requirement_entry in self.collection_info:
