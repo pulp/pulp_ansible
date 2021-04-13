@@ -91,7 +91,7 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     last_synced_metadata_time = serializers.DateTimeField(
         help_text=_("Last synced metadata time."), allow_null=True, required=False
     )
-    autopublish = serializers.BooleanField(allow_null=True, default=True)
+    autopublish = serializers.BooleanField(allow_null=True, default=False)
 
     class Meta:
         fields = RepositorySerializer.Meta.fields + ("last_synced_metadata_time", "autopublish",)
@@ -250,9 +250,11 @@ class AnsibleDistributionSerializer(DistributionSerializer):
     )
 
     publication = DetailRelatedField(
-        read_only=True,
+        required=False,
         help_text=_("Publication to be served"),
         view_name_pattern=r"publications(-.*/.*)?-detail",
+        queryset=AnsiblePublication.objects.exclude(complete=False),
+        allow_null=True,
     )
 
     repository_version = RepositoryVersionRelatedField(

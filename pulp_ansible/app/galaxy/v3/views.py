@@ -1,6 +1,8 @@
 from datetime import datetime
 from gettext import gettext as _
 import semantic_version
+from jinja2 import Template
+import json
 
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F
@@ -65,7 +67,7 @@ class AnsibleDistributionMixin:
             return self.pulp_context["publication"]
 
         distro = get_object_or_404(AnsibleDistribution, base_path=path)
-        pub = distro.get_publication()
+        pub = distro.publication
         if pub:
             if context:
                 self.pulp_context["publication"] = pub
@@ -477,7 +479,15 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         if self._publication:
             base_path = self.kwargs["path"]
             logger.info("using pub")
-            return redirect(f"{ANSIBLE_CONTENT_HOSTNAME}/{base_path}/collection_versions")
+            pa = self._publication.published_artifact.get(relative_path="collection_versions")
+            filename = pa.content_artifact.artifact.storage_path("NA")
+            file_storage = pa.content_artifact.artifact.file.storage
+            logger.info(filename)
+            with file_storage.open(filename) as f:
+                a = f.read()
+                logger.info(type(a))
+                cvs_template = Template(a.decode('utf-8'))
+            return Response(json.loads(cvs_template.render(base_path=base_path)))
 
         queryset = self.filter_queryset(self.get_queryset())
         queryset = sorted(

@@ -249,6 +249,29 @@ class AnsibleRepository(Repository):
 
         permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
 
+    def on_new_version(self, version):
+        """
+        Called when new repository versions are created.
+        Args:
+            version: The new repository version.
+        """
+        super().on_new_version(version)
+
+        # avoid circular import issues
+        from pulp_ansible.app import tasks
+
+        if self.autopublish:
+            publication = tasks.publish(
+                repository_version_pk=version.pk,
+            )
+
+            distributions = self.distributions.all()
+
+            if publication and distributions:
+                for distribution in distributions:
+                    distribution.publication = publication
+                    distribution.save()
+
     def finalize_new_version(self, new_version):
         """
         Finalize the incomplete RepositoryVersion with correct repository-level metadata.
@@ -279,15 +302,6 @@ class AnsibleRepository(Repository):
         if to_deprecate:
             AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
 
-        if self.autopublish:
-            distros = AnsibleDistribution.objects.filter(repository=self)
-            if distros:
-                from pulp_ansible.app import tasks
-                for distro in distros:
-                    publication = tasks.publish(base_path=distro.base_path, repository_version_pk=new_version.pk)
-                    distro.publication = publication
-                    distro.save()
-
 
 class AnsibleCollectionDeprecated(BaseModel):
     """
@@ -310,18 +324,6 @@ class AnsibleDistribution(Distribution):
 
     TYPE = "ansible"
 
-    def get_publication(self):
-        if self.repository or self.repository_version:
-            repo_rv = self.repository_version or self.repository.latest_version()
-            if repo_rv.content.count():
-                publication = AnsiblePublication.objects.get(base_path=self.base_path, repository_version=repo_rv)
-                if publication != self.publication:
-                    self.publication = publication
-                    self.save()
-                return publication
-        return None
-
-
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
@@ -332,8 +334,6 @@ class AnsiblePublication(Publication):
     """
 
     TYPE = "ansible"
-
-    base_path = models.TextField()
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

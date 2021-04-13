@@ -326,16 +326,6 @@ class AnsiblePublicationViewSet(PublicationViewSet):
     queryset = AnsiblePublication.objects.all()
     serializer_class = AnsiblePublicationSerializer
 
-class AnsibleDistributionViewSet(DistributionViewSet):
-    """
-    ViewSet for Ansible Distributions.
-    """
-
-    endpoint_name = "ansible"
-    queryset = AnsibleDistribution.objects.all()
-    serializer_class = AnsibleDistributionSerializer
-
-
     @extend_schema(
         description="Trigger an asynchronous task to publish ansible content.",
         responses={202: AsyncOperationResponseSerializer}
@@ -347,33 +337,31 @@ class AnsibleDistributionViewSet(DistributionViewSet):
         """
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if serializer.validated_data.get('repository_version'):
-            data = {"repository_version": request.data['repository_version']}
-        else:
-            data = {"repository": request.data["repository"]}
-        publish_serializer = AnsiblePublicationSerializer(data=data)
-        publish_serializer.is_valid(raise_exception=True)
-        repository_version = publish_serializer.validated_data.get('repository_version')
+        repository_version = serializer.validated_data.get('repository_version')
 
-        publish_task = enqueue_with_reservation(
+        # Safe because version OR repository is enforced by serializer.
+        if not repository_version:
+            repository = serializer.validated_data.get('repository')
+            repository_version = RepositoryVersion.latest(repository)
+
+        result = enqueue_with_reservation(
             publish,
             [repository_version.repository],
             kwargs={
-                'base_path': str(serializer.validated_data.get('base_path')),
-                'repository_version_pk': str(repository_version.pk)
+                'repository_version_pk': repository_version.pk
             }
         )
-        while not publish_task.is_finished:
-            pass
+        return OperationPostponedResponse(result, request)
 
-        app_label = self.queryset.model._meta.app_label
-        async_result = enqueue_with_reservation(
-            general_create,
-            self.async_reserved_resources(None),
-            args=(app_label, serializer.__class__.__name__),
-            kwargs={"data": request.data},
-        )
-        return OperationPostponedResponse(async_result, request)
+
+class AnsibleDistributionViewSet(DistributionViewSet):
+    """
+    ViewSet for Ansible Distributions.
+    """
+
+    endpoint_name = "ansible"
+    queryset = AnsibleDistribution.objects.all()
+    serializer_class = AnsibleDistributionSerializer
 
 
 class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):

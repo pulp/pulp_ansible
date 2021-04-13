@@ -16,7 +16,6 @@ class Migration(migrations.Migration):
             name='AnsiblePublication',
             fields=[
                 ('publication_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, related_name='ansible_ansiblepublication', serialize=False, to='core.Publication')),
-                ('base_path', models.TextField()),
             ],
             options={
                 'default_related_name': '%(app_label)s_%(model_name)s',

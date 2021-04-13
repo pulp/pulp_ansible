@@ -7,6 +7,10 @@ from rest_framework import serializers, relations
 
 from pulp_ansible.app import models
 
+def reverse_jinja(viewname, *args, **kwargs):
+    """Reverse, but allows Jinja templated names"""
+    url = reverse(viewname, *args, **kwargs)
+    return url.replace("%7B", "{").replace("%20", " ").replace("%7D", "}")
 
 class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
@@ -38,14 +42,14 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     def get_href(self, obj) -> str:
         """Get href."""
-        return reverse(
+        return reverse_jinja(
             "collections-detail",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
 
     def get_versions_url(self, obj) -> str:
         """Get a link to a collection versions list."""
-        return reverse(
+        return reverse_jinja(
             "collection-versions-list",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
@@ -70,7 +74,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         version = sorted(
             available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
         )[0]
-        href = reverse(
+        href = reverse_jinja(
             "collection-versions-detail",
             kwargs={
                 "path": self.context["path"],
@@ -103,7 +107,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
         """
         Get href.
         """
-        return reverse(
+        return reverse_jinja(
             "collection-versions-detail",
             kwargs={
                 "path": self.context["path"],
@@ -133,7 +137,7 @@ class CollectionRefSerializer(serializers.Serializer):
 
     def get_href(self, obj) -> str:
         """Returns link to a collection."""
-        return reverse(
+        return reverse_jinja(
             "collections-detail",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
