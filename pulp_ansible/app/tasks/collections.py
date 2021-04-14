@@ -1,5 +1,4 @@
 import asyncio
-from collections import defaultdict
 from gettext import gettext as _
 import json
 import logging
@@ -363,8 +362,6 @@ class CollectionSyncFirstStage(Stage):
         self.deprecations = Q()
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
         self.already_synced = set()
-        self._unpaginated_collection_metadata = None
-        self._unpaginated_collection_version_metadata = None
         self.last_synced_metadata_time = None
 
         # Interpret download policy
@@ -530,16 +527,12 @@ class CollectionSyncFirstStage(Stage):
 
         await asyncio.gather(*tasks)
 
-    async def _read_from_downloaded_metadata(self, name, namespace, requirement):
+    async def _add_downloaded_versions(self, versions, requirement):
         tasks = []
         loop = asyncio.get_event_loop()
 
-        if self._unpaginated_collection_metadata[namespace][name]["deprecated"]:
-            self.deprecations |= Q(namespace=namespace, name=name)
-
-        all_versions_of_collection = self._unpaginated_collection_version_metadata[namespace][name]
-
-        for col_version_metadata in all_versions_of_collection:
+        for col_version_metadata in versions:
+            __import__('sdb').set_trace()
             if col_version_metadata["version"] in requirement:
                 collection_version_url = urljoin(self.remote.url, f"{col_version_metadata['href']}")
                 tasks.append(
@@ -559,12 +552,9 @@ class CollectionSyncFirstStage(Stage):
 
         namespace, name = requirements_entry.name.split(".")
 
-        if self._unpaginated_collection_version_metadata and requirements_entry.source is None:
-            await self._read_from_downloaded_metadata(name, namespace, requirement_version)
-        else:
-            await self._fetch_paginated_collection_metadata(
-                name, namespace, requirement_version, requirements_entry.source
-            )
+        await self._fetch_paginated_collection_metadata(
+            name, namespace, requirement_version, requirements_entry.source
+        )
 
     @staticmethod
     def _get_response_next_value(api_version, response):
@@ -581,72 +571,19 @@ class CollectionSyncFirstStage(Stage):
             collection_list_url = f"{collection_endpoint}?limit={page_size}&offset={offset}"
         return self.remote.get_downloader(url=collection_list_url)
 
-    async def _download_optimized_metadata(self):
-        root_endpoint, api_version = await self._get_root_api(self.remote.url)
-        self._api_version = api_version
-        if api_version > 2:
-            collection_endpoint = f"{root_endpoint}/collections/metadata/"
-            downloader = self.remote.get_downloader(
-                url=collection_endpoint, silence_errors_for_response_status_codes={404}
-            )
-            try:
-                collection_metadata_list = parse_metadata(await downloader.run())
-            except FileNotFoundError:
-                pass
-            else:
-                self._unpaginated_collection_metadata = defaultdict(dict)
-                for collection in collection_metadata_list:
-                    namespace = collection["namespace"]
-                    name = collection["name"]
-                    self._unpaginated_collection_metadata[namespace][name] = collection
-
-                collection_version_endpoint = f"{root_endpoint}/collection_versions/all/"
-                downloader = self.remote.get_downloader(url=collection_version_endpoint)
-                collection_version_metadata_list = parse_metadata(await downloader.run())
-
-                self._unpaginated_collection_version_metadata = defaultdict(
-                    lambda: defaultdict(list)
-                )
-                for collection_version_metadata in collection_version_metadata_list:
-                    namespace = collection_version_metadata["namespace"]["name"]
-                    name = collection_version_metadata["name"]
-                    self._unpaginated_collection_version_metadata[namespace][name].append(
-                        collection_version_metadata
-                    )
-
-    async def _find_all_collections_from_unpaginated_data(self):
-        tasks = []
-        loop = asyncio.get_event_loop()
-
-        for collection_namespace_dict in self._unpaginated_collection_metadata.values():
-            for collection in collection_namespace_dict.values():
-                if collection["deprecated"]:
-                    self.deprecations |= Q(
-                        namespace=collection["namespace"], name=collection["name"]
-                    )
-
-        for collections_in_namespace in self._unpaginated_collection_version_metadata.values():
-            for collection_versions in collections_in_namespace.values():
-                for collection_version in collection_versions:
-                    collection_version_url = urljoin(
-                        self.remote.url, f"{collection_version['href']}"
-                    )
-                    tasks.append(
-                        loop.create_task(
-                            self._add_collection_version(
-                                self._api_version, collection_version_url, collection_version
-                            )
-                        )
-                    )
-
-        await asyncio.gather(*tasks)
-
     async def _find_all_collections(self):
-        if self._unpaginated_collection_version_metadata:
-            await self._find_all_collections_from_unpaginated_data()
-            return
 
-        collection_endpoint, api_version = await self._get_paginated_collection_api(self.remote.url)
+        endpoint, api_version = await self._get_root_api(self.remote.url)
+        collection_endpoint = f"{endpoint}/collections/metadata/"
+        optimized_downloader = self.remote.get_downloader(
+            url=collection_endpoint, silence_errors_for_response_status_codes={404}
+        )
+        try:
+            parse_metadata(await optimized_downloader.run())
+        except FileNotFoundError:
+            # if doesn't exist, return regular collections endpoint
+            collection_endpoint, api_version = await self._get_paginated_collection_api(self.remote.url)
+
         loop = asyncio.get_event_loop()
 
         tasks = []
@@ -663,17 +600,33 @@ class CollectionSyncFirstStage(Stage):
                 collections = collection_list["data"]
 
             for collection in collections:
+                name = collection["name"]
+
                 if api_version == 2:
                     namespace = collection["namespace"]["name"]
                 else:
                     namespace = collection["namespace"]
-                name = collection["name"]
+
                 requirements_file = RequirementsFileEntry(
                     name=".".join([namespace, name]),
                     version="*",
                     source=None,
                 )
-                tasks.append(loop.create_task(self._fetch_collection_metadata(requirements_file)))
+
+                if collection['deprecated']:
+                    self.deprecations |= Q(namespace=namespace, name=name)
+
+                if 'versions' not in collection:
+                    tasks.append(loop.create_task(self._fetch_collection_metadata(requirements_file)))
+                else:
+                    tasks.append(
+                        loop.create_task(
+                            self._add_downloaded_versions(
+                                collection['versions'],
+                                Requirement.parse("collection"),
+                            )
+                        )
+                    )
 
             next_value = self._get_response_next_value(api_version, collection_list)
             if not next_value:
@@ -740,8 +693,6 @@ class CollectionSyncFirstStage(Stage):
 
         tasks = []
         loop = asyncio.get_event_loop()
-
-        await self._download_optimized_metadata()
 
         if self.collection_info:
             for requirement_entry in self.collection_info:

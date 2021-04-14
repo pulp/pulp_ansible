@@ -176,6 +176,7 @@ class MetadataCollectionVersionSerializer(CollectionVersionListSerializer):
     A serializer for Sync Metadata CollectionVersion.
     """
 
+    collection = CollectionRefSerializer(read_only=True)
     artifact = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
 
@@ -186,6 +187,7 @@ class MetadataCollectionVersionSerializer(CollectionVersionListSerializer):
         model = models.CollectionVersion
         fields = CollectionVersionListSerializer.Meta.fields + (
             "artifact",
+            "collection",
             "download_url",
             "name",
             "namespace",
