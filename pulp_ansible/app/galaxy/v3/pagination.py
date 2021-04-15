@@ -123,7 +123,6 @@ class LimitOffsetPagination(pagination.LimitOffsetPagination):
         return self.get_paginated_response(data)
 
 
-
 class OptimizedLimitOffsetPagination(LimitOffsetPagination):
     """
     Pagination for V3 optimized sync.

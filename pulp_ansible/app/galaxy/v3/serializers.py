@@ -82,7 +82,6 @@ class CollectionSerializer(serializers.ModelSerializer):
         return {"href": href, "version": version}
 
 
-
 class CollectionVersionListSerializer(serializers.ModelSerializer):
     """A serializer for a CollectionVersion list item."""
 
@@ -213,6 +212,8 @@ class MetadataCollectionVersionSerializer(CollectionVersionListSerializer):
 
 
 class MetadataCollectionSerializer(CollectionSerializer):
+    """A Serializer for optimized sync with higher pagination."""
+
     _version_serializer_class = MetadataCollectionVersionSerializer
 
     id = serializers.CharField(source="pk")
@@ -220,19 +221,17 @@ class MetadataCollectionSerializer(CollectionSerializer):
 
     class Meta:
         model = CollectionSerializer.Meta.model
-        fields = CollectionSerializer.Meta.fields + ('id', 'versions',)
+        fields = CollectionSerializer.Meta.fields + (
+            "id",
+            "versions",
+        )
 
     def get_versions(self, obj):
+        """Fetches and serialize related versions for each collection."""
         return [
-            self._version_serializer_class(
-                version,
-                context=self.context
-            ).data
-            for version
-            in obj.versions.select_related(
-                "content_ptr__contentartifact"
-            ).order_by(
-                'pulp_last_updated'
+            self._version_serializer_class(version, context=self.context).data
+            for version in obj.versions.select_related("content_ptr__contentartifact").order_by(
+                "pulp_last_updated"
             )
         ]
 

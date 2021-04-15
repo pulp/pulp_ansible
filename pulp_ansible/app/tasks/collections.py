@@ -9,6 +9,7 @@ from urllib.parse import urljoin
 
 from aiohttp.client_exceptions import ClientResponseError
 from async_lru import alru_cache
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -532,7 +533,6 @@ class CollectionSyncFirstStage(Stage):
         loop = asyncio.get_event_loop()
 
         for col_version_metadata in versions:
-            __import__('sdb').set_trace()
             if col_version_metadata["version"] in requirement:
                 collection_version_url = urljoin(self.remote.url, f"{col_version_metadata['href']}")
                 tasks.append(
@@ -575,22 +575,28 @@ class CollectionSyncFirstStage(Stage):
 
         endpoint, api_version = await self._get_root_api(self.remote.url)
         collection_endpoint = f"{endpoint}/collections/metadata/"
-        optimized_downloader = self.remote.get_downloader(
+        metadata_downloader = self.remote.get_downloader(
             url=collection_endpoint, silence_errors_for_response_status_codes={404}
         )
         try:
-            parse_metadata(await optimized_downloader.run())
+            parse_metadata(await metadata_downloader.run())
         except FileNotFoundError:
-            # if doesn't exist, return regular collections endpoint
-            collection_endpoint, api_version = await self._get_paginated_collection_api(self.remote.url)
+            # if doesn't collections/metadata exist, use regular collections endpoint
+            collection_endpoint, api_version = await self._get_paginated_collection_api(
+                self.remote.url
+            )
+            page_size = PAGE_SIZE
+        else:
+            page_size = settings.get("SYNC_PAGE_SIZE", 1000)
 
+        self._api_version = api_version
         loop = asyncio.get_event_loop()
 
         tasks = []
         page_num = 1
         while True:
             collection_list_downloader = self._collection_list_downloader(
-                api_version, collection_endpoint, page_num, PAGE_SIZE
+                api_version, collection_endpoint, page_num, page_size
             )
             collection_list = parse_metadata(await collection_list_downloader.run())
 
@@ -613,16 +619,18 @@ class CollectionSyncFirstStage(Stage):
                     source=None,
                 )
 
-                if collection['deprecated']:
+                if collection["deprecated"]:
                     self.deprecations |= Q(namespace=namespace, name=name)
 
-                if 'versions' not in collection:
-                    tasks.append(loop.create_task(self._fetch_collection_metadata(requirements_file)))
+                if "versions" not in collection:
+                    tasks.append(
+                        loop.create_task(self._fetch_collection_metadata(requirements_file))
+                    )
                 else:
                     tasks.append(
                         loop.create_task(
                             self._add_downloaded_versions(
-                                collection['versions'],
+                                collection["versions"],
                                 Requirement.parse("collection"),
                             )
                         )

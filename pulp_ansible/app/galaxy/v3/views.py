@@ -27,9 +27,9 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionDocsSerializer,
-    CollectionVersionListSerializer, MetadataCollectionSerializer,
+    CollectionVersionListSerializer,
+    MetadataCollectionSerializer,
     RepoMetadataSerializer,
-    MetadataCollectionVersionSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -46,7 +46,7 @@ from pulp_ansible.app.serializers import (
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import (
     LimitOffsetPagination,
-    OptimizedLimitOffsetPagination
+    OptimizedLimitOffsetPagination,
 )
 from pulp_ansible.app.viewsets import CollectionVersionFilter
 
