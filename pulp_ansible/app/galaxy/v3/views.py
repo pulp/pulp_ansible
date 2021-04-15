@@ -313,6 +313,14 @@ class MetadataCollectionViewSet(CollectionViewSet):
     pagination_class = OptimizedLimitOffsetPagination
     serializer_class = MetadataCollectionSerializer
 
+    def get_queryset(self):
+        """
+        Returns a Collections queryset for specified distribution.
+
+        and prefetches related versions.
+        """
+        return super().get_queryset().prefetch_related("versions")
+
 
 class CollectionUploadViewSet(
     ExceptionHandlerMixin, viewsets.GenericViewSet, UploadGalaxyCollectionMixin
