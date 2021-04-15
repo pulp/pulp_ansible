@@ -10,7 +10,7 @@ class LimitOffsetPagination(pagination.LimitOffsetPagination):
     """
 
     default_limit = 10
-    max_limit = 100
+    max_limit = 1000
 
     def get_first_link(self):
         """First link."""

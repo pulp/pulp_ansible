@@ -45,7 +45,6 @@ from pulpcore.plugin.stages import (
 )
 from semantic_version import Version
 
-from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleRepository,
@@ -385,6 +384,7 @@ class CollectionSyncFirstStage(Stage):
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
         self.last_synced_metadata_time = None
+        self.page_size = settings.get("SYNC_PAGE_SIZE", 1000)
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -521,7 +521,7 @@ class CollectionSyncFirstStage(Stage):
         page_num = 1
         while True:
             versions_list_downloader = self._collection_versions_list_downloader(
-                api_version, collection_endpoint, namespace, name, page_num, PAGE_SIZE
+                api_version, collection_endpoint, namespace, name, page_num, self.page_size
             )
             collection_versions_list = parse_metadata(await versions_list_downloader.run())
             if api_version == 2:
@@ -672,7 +672,7 @@ class CollectionSyncFirstStage(Stage):
         page_num = 1
         while True:
             collection_list_downloader = self._collection_list_downloader(
-                api_version, collection_endpoint, page_num, PAGE_SIZE
+                api_version, collection_endpoint, page_num, self.page_size
             )
             collection_list = parse_metadata(await collection_list_downloader.run())
 
