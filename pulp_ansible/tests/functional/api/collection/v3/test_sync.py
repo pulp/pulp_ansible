@@ -10,6 +10,7 @@ from pulpcore.client.pulp_ansible import (
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
 )
+from pulp_smash.pulp3.bindings import PulpTaskError
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
@@ -179,8 +180,8 @@ class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
 
 
 @unittest.skipUnless(
-    "CI_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
-    "'CI_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
+    "QA_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
+    "'QA_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
 )
 class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
     """Test syncing from Pulp to Pulp."""
@@ -194,6 +195,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
         cls.collections_api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
+        cls.url = "https://qa.cloud.redhat.com/api/automation-hub/"
         cls.aurl = (
             "https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
         )
@@ -201,9 +203,9 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
     def test_mirror_from_automation_hub_ci_with_auth_token(self):
         """Test whether we can mirror from Automation Hub CI with an auth token."""
         body = gen_ansible_remote(
-            url="https://ci.cloud.redhat.com/api/automation-hub/content/synctest/",
+            url=self.url,
             auth_url=self.aurl,
-            token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            token=os.environ["QA_AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
             sync_dependencies=False,
@@ -219,13 +221,14 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
 
     def test_sync_from_automation_hub_ci_with_auth_token_and_requirements_file(self):
         """Test sync from Automation Hub CI with an auth token and requirements file."""
-        name = "collection_dep_a_fdqqyxou"
         namespace = "autohubtest2"
+        # Collections are randomly generated, in case of failure, please change the name below:
+        name = "collection_dep_a_zzduuntr"
         body = gen_ansible_remote(
-            url="https://ci.cloud.redhat.com/api/automation-hub/",
+            url=self.url,
             requirements_file=f"collections:\n  - {namespace}.{name}",
             auth_url=self.aurl,
-            token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            token=os.environ["QA_AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
             sync_dependencies=False,
@@ -242,7 +245,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
     def test_install_collection_with_invalid_token_from_automation_hub_ci(self):
         """Test whether we can mirror from Automation Hub CI with an invalid auth token."""
         body = gen_ansible_remote(
-            url="https://ci.cloud.redhat.com/api/automation-hub/content/synctest/",
+            url=self.url,
             auth_url=self.aurl,
             token="invalid token string",
             tls_validation=False,
@@ -251,7 +254,14 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
-        repo = self._create_repo_and_sync_with_remote(remote)
+        with self.assertRaises(PulpTaskError) as cm:
+            self._create_repo_and_sync_with_remote(remote)
 
-        # Assert that the sync did not produce a new repository version
-        self.assertEqual(repo.latest_version_href, f"{repo.pulp_href}versions/0/")
+        task_result = cm.exception.task.to_dict()
+        msg = (
+            "400, message='Bad Request', url=URL("
+            "'https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token')"
+        )
+        self.assertEqual(
+            msg, task_result["error"]["description"], task_result["error"]["description"]
+        )
