@@ -6,10 +6,12 @@ from django.contrib.postgres.aggregates import ArrayAgg
 from django.db.models import F
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
+from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_datetime
 from django_filters import filters
 from drf_spectacular.utils import OpenApiParameter, extend_schema
+from jinja2 import Template
 from rest_framework import mixins
 from rest_framework.response import Response
 from rest_framework.reverse import reverse
@@ -443,9 +445,15 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         queryset = self.get_queryset().iterator()
 
         context = self.get_serializer_context()
-
-        serializer = self.get_serializer(queryset, many=True, context=context)
-        return Response(serializer.data)
+        cvs_template_string = (
+            "[{% for cv in versions %}"
+            "{{ cv|tojson }}{% if not loop.last %},{% endif %}"
+            "{% endfor %}]"
+        )
+        cvs_template = Template(cvs_template_string)
+        serialized_map = (self.get_serializer(x, context=context).data for x in queryset)
+        streamed = (x.encode("utf-8") for x in cvs_template.stream(versions=serialized_map))
+        return StreamingHttpResponse(streamed)
 
 
 class CollectionVersionDocsViewSet(
