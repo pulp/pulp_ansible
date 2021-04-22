@@ -86,6 +86,24 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(second_content.results), 1)
 
+    def test_sync_collection_named_api(self):
+        """Test sync collections from pulp server."""
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - rswaf.api",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+        distribution = self._create_distribution_from_repo(repo)
+
+        collection = self.collections_v3api.read("api", "rswaf", distribution.base_path)
+
+        self.assertEqual("api", collection.name)
+        self.assertEqual("rswaf", collection.namespace)
+
     def test_noop_resync_collections_from_pulp(self):
         """Test whether sync yields no-op when repo hasn't changed since last sync."""
         second_body = gen_ansible_remote(
