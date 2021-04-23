@@ -1,16 +1,16 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-additional_plugins: []
 additional_repos:
-- branch: master
-  bindings: false
+- bindings: false
+  branch: master
   name: galaxy-importer
   org: ansible
 black: true
 check_commit_message: true
 check_gettext: true
 check_manifest: true
+check_openapi_schema: true
 check_stray_pulpcore_imports: true
 cherry_pick_automation: false
 coverage: false
@@ -48,9 +48,8 @@ redmine_project: ansible_plugin
 stable_branch: null
 test_bindings: false
 test_cli: true
-test_fips_nightly: false
 test_performance: false
-test_released_plugin_with_next_pulpcore_release: true
+test_released_plugin_with_next_pulpcore_release: false
 test_s3: true
 update_redmine: true
 
