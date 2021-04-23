@@ -134,7 +134,15 @@ fi
 # Intall requirements for ansible playbooks
 pip install docker netaddr boto3 ansible
 
-ansible-galaxy collection install amazon.aws
+for i in {1..3}
+do
+  ansible-galaxy collection install amazon.aws && s=0 && break || s=$? && sleep 3
+done
+if [[ $s -gt 0 ]]
+then
+  echo "Failed to install amazon.aws"
+  exit $s
+fi
 
 cd pulp_ansible
 
