@@ -45,6 +45,40 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertEqual(len(content.results), 1)
 
+    def test_sync_with_specific_version(self):
+        """Sync with simple requirements file, expected to download one CollectionVersion."""
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: arista.avd\n    version: 2.0.0",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+        distribution = self._create_distribution_from_repo(repo)
+
+        versions = self.collections_versions_v3api.list("avd", "arista", distribution.base_path)
+
+        self.assertEqual(versions.meta.count, 1)
+
+    def test_sync_all_versions(self):
+        """Sync with simple requirements file, expected to download CollectionVersion."""
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: arista.avd",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+        distribution = self._create_distribution_from_repo(repo)
+
+        versions = self.collections_versions_v3api.list("avd", "arista", distribution.base_path)
+
+        self.assertGreater(versions.meta.count, 1)
+
     def test_sync_with_attached_remote(self):
         """Sync with a CollectionRemote attached to the repository."""
         body = gen_ansible_remote(
@@ -148,9 +182,9 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             "---\n"
             "collections:\n"
             "- name: robertdebock.ansible_development_environment\n"
-            '  version: "==1.0.1"\n'
+            '  version: "1.0.1"\n'
             "- name: robertdebock.ansible_development_environment\n"
-            '  version: "==1.0.0"\n'
+            '  version: "1.0.0"\n'
         )
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
