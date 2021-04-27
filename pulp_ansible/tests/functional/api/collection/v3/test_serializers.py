@@ -70,7 +70,8 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         """Test Collection Versions V3 endpoint fields."""
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
-            requirements_file="collections:\n  - name: cisco.nxos\n    version: ==1.4.0",
+            requirements_file="collections:\n  - name: cisco.nxos\n    version: 1.4.0",
+            sync_dependencies=False,
         )
 
         remote = self.remote_collection_api.create(body)
