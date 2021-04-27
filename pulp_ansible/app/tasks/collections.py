@@ -535,7 +535,17 @@ class CollectionSyncFirstStage(Stage):
         if requirements_entry.version == "*":
             requirement_version = Requirement.parse("collection")
         else:
-            requirement_version = Requirement.parse(f"collection{requirements_entry.version}")
+            # We need specifiers to enforce Requirement object criteria
+            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
+            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
+            # If requirements_entry.version is a valid version, adds == specifier to the requirement
+            try:
+                Version(requirements_entry.version)
+                req_to_parse = f"collection=={requirements_entry.version}"
+            except ValueError:
+                req_to_parse = f"collection{requirements_entry.version}"
+
+            requirement_version = Requirement.parse(req_to_parse)
 
         namespace, name = requirements_entry.name.split(".")
 
