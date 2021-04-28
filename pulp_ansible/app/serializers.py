@@ -324,10 +324,10 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         child=serializers.CharField(max_length=32),
     )
 
-    name = serializers.CharField(help_text=_("The name of the collection."), max_length=32)
+    name = serializers.CharField(help_text=_("The name of the collection."), max_length=64)
 
     namespace = serializers.CharField(
-        help_text=_("The namespace of the collection."), max_length=32
+        help_text=_("The namespace of the collection."), max_length=64
     )
 
     repository = serializers.CharField(
@@ -336,7 +336,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
 
     tags = TagNestedSerializer(many=True, read_only=True)
 
-    version = serializers.CharField(help_text=_("The version of the collection."), max_length=32)
+    version = serializers.CharField(help_text=_("The version of the collection."), max_length=128)
 
     class Meta:
         fields = (
