@@ -76,9 +76,9 @@ v3_urls = [
 
 urlpatterns = [
     path("ansible/collections/", CollectionUploadViewSet.as_view({"post": "create"})),
-    path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
     path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
     path(GALAXY_API_ROOT + "v2/", include(v2_urls)),
     path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
+    path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
     url(r"^pulp/api/v3/ansible/copy/$", CopyViewSet.as_view({"post": "create"})),
 ]
