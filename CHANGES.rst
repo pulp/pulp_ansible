@@ -13,6 +13,27 @@ Changelog
 
 .. towncrier release notes start
 
+0.7.3 (2021-04-29)
+==================
+
+Bugfixes
+--------
+
+- Fix requirements.yml parser for pinned collection version
+  `#8647 <https://pulp.plan.io/issues/8647>`_
+- V3 sync now properly waits for async task completion
+  `#8664 <https://pulp.plan.io/issues/8664>`_
+- Remove scheme from apache snippet
+  `#8665 <https://pulp.plan.io/issues/8665>`_
+- Fix collections endpoint for collections named "api"
+  `#8666 <https://pulp.plan.io/issues/8666>`_
+- Updated api lengths for collection version fields to match db model lengths.
+  `#8667 <https://pulp.plan.io/issues/8667>`_
+
+
+----
+
+
 0.7.2 (2021-04-09)
 ==================
 
