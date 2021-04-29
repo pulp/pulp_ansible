@@ -13,6 +13,23 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.9 (2021-04-29)
+==================
+
+Bugfixes
+--------
+
+- Remove scheme from apache snippet
+  `#8661 <https://pulp.plan.io/issues/8661>`_
+- Fix collections endpoint for collections named "api"
+  `#8662 <https://pulp.plan.io/issues/8662>`_
+- Updated api lengths for collection version fields to match db model lengths.
+  `#8663 <https://pulp.plan.io/issues/8663>`_
+
+
+----
+
+
 0.5.8 (2021-03-08)
 ==================
 
