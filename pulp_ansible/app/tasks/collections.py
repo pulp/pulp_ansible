@@ -461,12 +461,10 @@ class CollectionSyncFirstStage(Stage):
             loop = asyncio.get_event_loop()
             for full_name, version in dependencies.items():
                 namespace, name = full_name.split(".")
-                if not (namespace, name, version) in self.already_synced:
-                    new_req = RequirementsFileEntry(
-                        name=full_name,
-                        version=version,
-                        source=None,
-                    )
+                req = (namespace, name, version)
+                new_req = RequirementsFileEntry(full_name, version=version, source=None)
+                if not any([req in self.already_synced, new_req in self.collection_info]):
+                    self.collection_info.append(new_req)
                     tasks.append(loop.create_task(self._fetch_collection_metadata(new_req)))
             await asyncio.gather(*tasks)
 
