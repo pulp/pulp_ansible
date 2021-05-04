@@ -434,24 +434,15 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         """
         distro_content = self._distro_content
 
-        return CollectionVersion.objects.select_related("content_ptr__contentartifact").filter(
-            pk__in=distro_content
-        )
+        return CollectionVersion.objects.select_related().filter(pk__in=distro_content)
 
     def list(self, request, *args, **kwargs):
         """
         Returns paginated CollectionVersions list.
         """
-        queryset = self.filter_queryset(self.get_queryset())
-        queryset = sorted(
-            queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
-        )
+        queryset = self.get_queryset().iterator()
 
         context = self.get_serializer_context()
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True, context=context)
-            return self.get_paginated_response(serializer.data)
 
         serializer = self.get_serializer(queryset, many=True, context=context)
         return Response(serializer.data)
