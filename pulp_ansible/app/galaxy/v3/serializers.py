@@ -6,6 +6,7 @@ from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
 from pulp_ansible.app import models
+from pulpcore.plugin.models import ContentArtifact
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -198,7 +199,8 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get atrifact summary.
         """
-        return ArtifactRefSerializer(obj.contentartifact_set.get()).data
+        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
+        return ArtifactRefSerializer(content_artifact.get()).data
 
     def get_download_url(self, obj) -> str:
         """
@@ -206,7 +208,7 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         host = settings.ANSIBLE_CONTENT_HOSTNAME.strip("/")
         distro_base_path = self.context["path"]
-        filename_path = obj.contentartifact_set.get().relative_path.lstrip("/")
+        filename_path = obj.relative_path.lstrip("/")
         download_url = f"{host}/{distro_base_path}/{filename_path}"
         return download_url
 
