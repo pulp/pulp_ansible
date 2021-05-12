@@ -9,7 +9,7 @@ import uuid
 
 from django.db import IntegrityError
 from pulpcore.plugin.models import Artifact
-from pulpcore.plugin.tasking import enqueue_with_reservation
+from pulpcore.plugin.tasking import dispatch
 
 from pulp_ansible.app.models import AnsibleRepository, CollectionVersion
 from pulp_ansible.app.tasks.collections import import_collection
@@ -139,13 +139,13 @@ def promote_content(repos_per_task, num_repos_to_update):
         locks.append(repo)
         if len(repos_to_dispatch) == repos_per_task:
             task_args = (random_collection_version.pk, repos_to_dispatch)
-            enqueue_with_reservation(add_content_to_repositories, locks, args=task_args)
+            dispatch(add_content_to_repositories, locks, args=task_args)
             repos_to_dispatch = []
             locks = []
 
     if repos_to_dispatch:
         task_args = (random_collection_version.pk, repos_to_dispatch)
-        enqueue_with_reservation(add_content_to_repositories, locks, args=task_args)
+        dispatch(add_content_to_repositories, locks, args=task_args)
 
 
 def add_content_to_repositories(collection_version_pk, repositories_pks):

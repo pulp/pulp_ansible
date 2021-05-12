@@ -365,12 +365,12 @@ class CollectionUploadViewSet(
         async_result = self._dispatch_import_collection_task(
             temp_file.pk, distro.repository, **kwargs
         )
-        CollectionImport.objects.create(task_id=async_result.id)
+        CollectionImport.objects.create(task_id=async_result.pk)
 
         data = {
             "task": reverse(
                 "collection-imports-detail",
-                kwargs={"path": path, "pk": async_result.id},
+                kwargs={"path": path, "pk": async_result.pk},
                 request=None,
             )
         }
