@@ -5,7 +5,7 @@ import django
 django.setup()
 
 from pulpcore.plugin.tasking import (  # noqa otherwise E402: module level not at top of file
-    enqueue_with_reservation,
+    dispatch,
 )
 
 from pulp_ansible.app.tasks.test_tasks import (  # noqa otherwise E402: module level not at top of file
@@ -57,6 +57,4 @@ if __name__ == "__main__":
             "collection_n": args.collections_per_namespace[0],
             "versions_per_collection": args.versions_per_collection[0],
         }
-        async_result = enqueue_with_reservation(
-            create_namespace, [], args=(args.base_path[0],), kwargs=kwargs
-        )
+        async_result = dispatch(create_namespace, [], args=(args.base_path[0],), kwargs=kwargs)

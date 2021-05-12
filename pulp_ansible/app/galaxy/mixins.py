@@ -1,4 +1,4 @@
-from pulpcore.plugin.tasking import enqueue_with_reservation
+from pulpcore.plugin.tasking import dispatch
 
 from pulp_ansible.app.tasks.collections import import_collection
 
@@ -18,4 +18,4 @@ class UploadGalaxyCollectionMixin:
             locks.append(repository)
             kwargs["repository_pk"] = repository.pk
 
-        return enqueue_with_reservation(import_collection, locks, kwargs=kwargs)
+        return dispatch(import_collection, locks, kwargs=kwargs)

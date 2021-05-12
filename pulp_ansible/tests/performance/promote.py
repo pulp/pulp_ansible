@@ -5,7 +5,7 @@ import django
 django.setup()
 
 from pulpcore.plugin.tasking import (  # noqa otherwise E402: module level not at top of file
-    enqueue_with_reservation,
+    dispatch,
 )
 
 from pulp_ansible.app.tasks.test_tasks import (  # noqa otherwise E402: module level not at top of file
@@ -37,4 +37,4 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     task_args = (args.repos_per_task[0], args.num_repos_to_update[0])
-    enqueue_with_reservation(promote_content, [], args=task_args)
+    dispatch(promote_content, [], args=task_args)

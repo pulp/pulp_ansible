@@ -16,7 +16,7 @@ from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
-from pulpcore.plugin.tasking import enqueue_with_reservation
+from pulpcore.plugin.tasking import dispatch
 from pulpcore.plugin.viewsets import (
     BaseDistributionViewSet,
     BaseFilterSet,
@@ -221,7 +221,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             sync_func = collection_sync
             sync_kwargs["optimize"] = serializer.validated_data["optimize"]
 
-        result = enqueue_with_reservation(
+        result = dispatch(
             sync_func,
             [repository, remote],
             kwargs=sync_kwargs,
@@ -258,7 +258,7 @@ class CollectionRemoteViewSet(RemoteViewSet):
             remote_id=pk, last_synced_metadata_time__isnull=False
         ).all()
         lock.extend(repos)
-        async_result = enqueue_with_reservation(
+        async_result = dispatch(
             update_collection_remote,
             lock,
             args=(pk,),
@@ -357,7 +357,7 @@ class CopyViewSet(viewsets.ViewSet):
 
         config, repos = self._process_config(config)
 
-        async_result = enqueue_with_reservation(copy_content, repos, args=[config], kwargs={})
+        async_result = dispatch(copy_content, repos, args=[config], kwargs={})
         return OperationPostponedResponse(async_result, request)
 
     def _process_config(self, config):
