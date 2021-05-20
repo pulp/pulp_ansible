@@ -26,9 +26,11 @@ export FUNC_TEST_SCRIPT=$PWD/.github/workflows/scripts/func_test_script.sh
 export DJANGO_SETTINGS_MODULE=pulpcore.app.settings
 export PULP_SETTINGS=$PWD/.ci/ansible/settings/settings.py
 
+export PULP_URL="http://pulp"
+
 if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
   cd docs
-  make PULP_URL="http://pulp" html
+  make PULP_URL="$PULP_URL" html
   cd ..
 
   echo "Validating OpenAPI schema..."
@@ -94,6 +96,52 @@ cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --n
 
 # Run functional tests
 export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
+
+
+if [[ "$TEST" == "upgrade" ]]; then
+  git checkout ci_upgrade_test -- pulp_ansible/tests/
+
+  # Handle app label change:
+  sed -i "/require_pulp_plugins(/d" pulp_ansible/tests/functional/utils.py
+
+  # Running pre upgrade tests:
+  pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.pre
+
+  # Checking out ci_upgrade_test branch and upgrading plugins
+  cmd_prefix bash -c "cd pulp_ansible; git checkout -f ci_upgrade_test; pip install ."
+  cmd_prefix bash -c "cd pulpcore; git checkout -f ci_upgrade_test; pip install ."
+
+  # Migrating
+  cmd_prefix bash -c "django-admin migrate --no-input"
+
+  # Restarting single container services
+  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-api"
+  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-content"
+  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-resource-manager"
+  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-worker@1"
+  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-worker@2"
+
+  echo "Restarting in 60 seconds"
+  sleep 60
+
+  # CLI commands to display plugin versions and content data
+  pulp status
+  pulp show --href /pulp/api/v3/content/
+  pulp artifact list
+
+  # Rebuilding bindings
+  cd ../pulp-openapi-generator
+  ./generate.sh pulpcore python
+  pip install ./pulpcore-client
+  ./generate.sh pulp_ansible python
+  pip install ./pulp_ansible-client
+  cd $REPO_ROOT
+
+  # Running post upgrade tests
+  pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.post
+  exit
+fi
+
 
 if [[ "$TEST" == "performance" ]]; then
   if [[ -z ${PERFORMANCE_TEST+x} ]]; then
