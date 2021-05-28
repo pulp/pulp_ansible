@@ -30,7 +30,8 @@ export PULP_URL="http://pulp"
 
 if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
   cd docs
-  make PULP_URL="$PULP_URL" html
+  make PULP_URL="$PULP_URL" diagrams html
+  tar -cvf docs.tar ./_build
   cd ..
 
   echo "Validating OpenAPI schema..."
@@ -126,8 +127,12 @@ if [[ "$TEST" == "upgrade" ]]; then
 
   # CLI commands to display plugin versions and content data
   pulp status
-  pulp show --href /pulp/api/v3/content/
-  pulp artifact list
+  pulp content list
+  CONTENT_LENGTH=$(pulp content list | jq length)
+  if [[ "$CONTENT_LENGTH" == "0" ]]; then
+    echo "Empty content list"
+    exit 1
+  fi
 
   # Rebuilding bindings
   cd ../pulp-openapi-generator
