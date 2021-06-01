@@ -28,7 +28,7 @@ export PULP_SETTINGS=$PWD/.ci/ansible/settings/settings.py
 
 export PULP_URL="http://pulp"
 
-if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
+if [[ "$TEST" = "docs" ]]; then
   cd docs
   make PULP_URL="$PULP_URL" diagrams html
   tar -cvf docs.tar ./_build
@@ -51,38 +51,28 @@ if [[ "$TEST" == "plugin-from-pypi" ]]; then
 fi
 
 cd ../pulp-openapi-generator
-
 ./generate.sh pulpcore python
 pip install ./pulpcore-client
-./generate.sh pulp_ansible python
-pip install ./pulp_ansible-client
-cd $REPO_ROOT
-
-if [[ "$TEST" = 'bindings' || "$TEST" = 'publish' ]]; then
-  python $REPO_ROOT/.ci/assets/bindings/test_bindings.py
-  cd ../pulp-openapi-generator
-  if [ ! -f $REPO_ROOT/.ci/assets/bindings/test_bindings.rb ]
-  then
-    exit
-  fi
-
-  rm -rf ./pulpcore-client
-
+rm -rf ./pulpcore-client
+if [[ "$TEST" = 'bindings' ]]; then
   ./generate.sh pulpcore ruby 0
   cd pulpcore-client
-  gem build pulpcore_client
+  gem build pulpcore_client.gemspec
   gem install --both ./pulpcore_client-0.gem
-  cd ..
-  rm -rf ./pulp_ansible-client
+fi
+cd $REPO_ROOT
 
-  ./generate.sh pulp_ansible ruby 0
+if [[ "$TEST" = 'bindings' ]]; then
+  python $REPO_ROOT/.ci/assets/bindings/test_bindings.py
+fi
 
-  cd pulp_ansible-client
-  gem build pulp_ansible_client
-  gem install --both ./pulp_ansible_client-0.gem
-  cd ..
-  ruby $REPO_ROOT/.ci/assets/bindings/test_bindings.rb
-  exit
+if [[ "$TEST" = 'bindings' ]]; then
+  if [ ! -f $REPO_ROOT/.ci/assets/bindings/test_bindings.rb ]; then
+    exit
+  else
+    ruby $REPO_ROOT/.ci/assets/bindings/test_bindings.rb
+    exit
+  fi
 fi
 
 cat unittest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/unittest_requirements.txt"
