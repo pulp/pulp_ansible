@@ -66,6 +66,7 @@ jobs:
           - TEST: pulp
           - TEST: docs
           - TEST: s3
+          - TEST: generate-bindings
 
     steps:
       - uses: actions/download-artifact@v2
@@ -75,6 +76,9 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: "3.7"
+      - uses: actions/setup-ruby@v1
+        with:
+          ruby-version: "2.6"
 
       - name: Untar repository
         run: |
@@ -122,11 +126,11 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Install Python client
-        if: ${{ env.TEST == 'bindings' }}
+        if: ${{ env.TEST == 'bindings' or env.TEST == 'generate-bindings' }}
         run: .github/workflows/scripts/install_python_client.sh
 
       - name: Install Ruby client
-        if: ${{ env.TEST == 'bindings' }}
+        if: ${{ env.TEST == 'bindings' or env.TEST == 'generate-bindings' }}
         run: .github/workflows/scripts/install_ruby_client.sh
 
       - name: Script
