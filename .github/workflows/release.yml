@@ -126,11 +126,11 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Install Python client
-        if: ${{ env.TEST == 'bindings' or env.TEST == 'generate-bindings' }}
+        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
         run: .github/workflows/scripts/install_python_client.sh
 
       - name: Install Ruby client
-        if: ${{ env.TEST == 'bindings' or env.TEST == 'generate-bindings' }}
+        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
         run: .github/workflows/scripts/install_ruby_client.sh
 
       - name: Script
