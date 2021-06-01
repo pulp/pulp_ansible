@@ -13,6 +13,56 @@ Changelog
 
 .. towncrier release notes start
 
+0.8.0 (2021-06-01)
+Features
+--------
+
+- Pulp Ansible can now sync collection dependencies by setting the ``sync_dependencies`` option for ``CollectionRemote`` objects.
+  (By default set to true)
+  `#7751 <https://pulp.plan.io/issues/7751>`_
+- Enabled pulp_label support for AnsibleDistributions
+  `#8441 <https://pulp.plan.io/issues/8441>`_
+- Provide backend storage url to galaxy-importer on collection import.
+  `#8486 <https://pulp.plan.io/issues/8486>`_
+
+
+Bugfixes
+--------
+
+- `/collection_versions/all/` endpoint is now streamed to alleviate timeout issues
+  `#8439 <https://pulp.plan.io/issues/8439>`_
+- V3 sync now properly waits for async task completion
+  `#8442 <https://pulp.plan.io/issues/8442>`_
+- Remove scheme from apache snippet
+  `#8572 <https://pulp.plan.io/issues/8572>`_
+- Fix collections endpoint for collections named "api"
+  `#8587 <https://pulp.plan.io/issues/8587>`_
+- Fix requirements.yml parser for pinned collection version
+  `#8627 <https://pulp.plan.io/issues/8627>`_
+- Fixed dependency syncing slowing down from excessive task creation
+  `#8639 <https://pulp.plan.io/issues/8639>`_
+- Updated api lengths for collection version fields to match db model lengths.
+  `#8649 <https://pulp.plan.io/issues/8649>`_
+- Optimized unpaginated collection_versions endpoint
+  `#8746 <https://pulp.plan.io/issues/8746>`_
+
+
+Improved Documentation
+----------------------
+
+- Fixed broken link on client bindings page
+  `#8298 <https://pulp.plan.io/issues/8298>`_
+
+
+Misc
+----
+
+- `#8589 <https://pulp.plan.io/issues/8589>`_
+
+
+----
+
+
 0.7.1 (2021-03-04)
 ==================
 
