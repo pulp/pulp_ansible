@@ -126,7 +126,6 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Install Python client
-        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
         run: .github/workflows/scripts/install_python_client.sh
 
       - name: Install Ruby client
@@ -138,14 +137,14 @@ jobs:
         shell: bash
 
       - name: Upload python client packages
-        if: ${{ env.TEST == 'bindings' }}
+        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
         uses: actions/upload-artifact@v2
         with:
           name: python-client.tar
           path: python-client.tar
 
       - name: Upload ruby client packages
-        if: ${{ env.TEST == 'bindings' }}
+        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
         uses: actions/upload-artifact@v2
         with:
           name: pulp_ansible_client-${{ github.event.inputs.release }}.gem
