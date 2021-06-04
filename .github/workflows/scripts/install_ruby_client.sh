@@ -29,7 +29,8 @@ if [ "$response" == "200" ];
 then
   echo "pulp_ansible client $VERSION has already been released. Installing from RubyGems.org."
   gem install pulp_ansible_client -v $VERSION
-  touch ../pulp_ansible/pulp_ansible_client-$VERSION.gem
+  touch pulp_ansible_client-$VERSION.gem
+  tar cvf ../../pulp_ansible/ruby-client.tar ./pulp_ansible_client-$VERSION.gem
   exit
 fi
 
@@ -39,4 +40,4 @@ cd ../pulp-openapi-generator
 cd pulp_ansible-client
 gem build pulp_ansible_client
 gem install --both ./pulp_ansible_client-$VERSION.gem
-cp ./pulp_ansible_client-$VERSION.gem ../../pulp_ansible/pulp_ansible_client-$VERSION.gem
+tar cvf ../../pulp_ansible/ruby-client.tar ./pulp_ansible_client-$VERSION.gem

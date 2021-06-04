@@ -19,11 +19,12 @@ echo "---
 :rubygems_api_key: $RUBYGEMS_API_KEY" > ~/.gem/credentials
 sudo chmod 600 ~/.gem/credentials
 
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://rubygems.org/gems/pulp_ansible_client/versions/$1)
+export VERSION=$(ls pulp_ansible_client* | sed -rn 's/pulp_ansible_client-(.*)\.gem/\1/p')
+export response=$(curl --write-out %{http_code} --silent --output /dev/null https://rubygems.org/gems/pulp_ansible_client/versions/$VERSION)
 
 if [ "$response" == "200" ];
 then
-  echo "pulp_ansible $VERSION has already been released. Skipping."
+  echo "pulp_ansible client $VERSION has already been released. Skipping."
   exit
 fi
 

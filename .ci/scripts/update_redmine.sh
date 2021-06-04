@@ -21,6 +21,8 @@ echo "Releasing $RELEASE"
 echo "Milestone URL: $MILESTONE_URL"
 echo "Query: $REDMINE_QUERY_URL"
 
+pip install python-redmine httpie
+
 MILESTONE=$(http $MILESTONE_URL | jq -r .version.name)
 echo "Milestone: $MILESTONE"
 
@@ -29,5 +31,4 @@ if [[ "$MILESTONE" != "${RELEASE%.post*}" ]]; then
   exit 1
 fi
 
-pip install python-redmine
 python3 .ci/scripts/redmine.py $REDMINE_QUERY_URL
