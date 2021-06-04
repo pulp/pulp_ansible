@@ -147,8 +147,8 @@ jobs:
         if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
         uses: actions/upload-artifact@v2
         with:
-          name: pulp_ansible_client-${{ github.event.inputs.release }}.gem
-          path: pulp_ansible_client-${{ github.event.inputs.release }}.gem
+          name: ruby-client.tar
+          path: ruby-client.tar
 
       - name: Upload built docs
         if: ${{ env.TEST == 'docs' }}
@@ -231,13 +231,16 @@ jobs:
         run: tar -xvf python-client.tar
 
       - name: Publish client to pypi
-        run: bash .github/workflows/scripts/publish_client_pypi.sh ${{ github.event.inputs.release }}
+        run: bash .github/workflows/scripts/publish_client_pypi.sh
       - name: Download Ruby client
         uses: actions/download-artifact@v2
         with:
-          name: pulp_ansible_client-${{ github.event.inputs.release }}.gem
+          name: python-client.tar
+
+      - name: Untar Ruby client packages
+        run: tar -xvf ruby-client.tar
 
       - name: Publish client to rubygems
-        run: bash .github/workflows/scripts/publish_client_gem.sh ${{ github.event.inputs.release }}
+        run: bash .github/workflows/scripts/publish_client_gem.sh
       - name: Update Redmine
         run: bash .ci/scripts/update_redmine.sh

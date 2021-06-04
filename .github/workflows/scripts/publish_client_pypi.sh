@@ -14,17 +14,19 @@ cd "$(dirname "$(realpath -e "$0")")"/../../..
 
 pip install twine
 
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible-client/$1/)
+export VERSION=$(ls dist | sed -rn 's/pulp_ansible-client-(.*)\.tar.gz/\1/p')
+
+export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible-client/$VERSION/)
 
 if [ "$response" == "200" ];
 then
-  echo "pulp_ansible client $1 has already been released. Skipping."
+  echo "pulp_ansible client $VERSION has already been released. Skipping."
   exit
 fi
 
-twine check dist/pulp_ansible-client-$1.tar.gz || exit 1
-twine check dist/pulp_ansible_client-$1-py3-none-any.whl || exit 1
-twine upload dist/pulp_ansible-client-$1.tar.gz -u pulp -p $PYPI_PASSWORD
-twine upload dist/pulp_ansible_client-$1-py3-none-any.whl -u pulp -p $PYPI_PASSWORD
+twine check dist/pulp_ansible_client-$VERSION-py3-none-any.whl || exit 1
+twine check dist/pulp_ansible-client-$VERSION.tar.gz || exit 1
+twine upload dist/pulp_ansible_client-$VERSION-py3-none-any.whl -u pulp -p $PYPI_PASSWORD
+twine upload dist/pulp_ansible-client-$VERSION.tar.gz -u pulp -p $PYPI_PASSWORD
 
 exit $?

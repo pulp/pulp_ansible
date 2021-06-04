@@ -31,7 +31,7 @@ if [ "$response" == "200" ];
 then
   echo "pulp_ansible client $VERSION has already been released. Installing from PyPI."
   pip install pulp-ansible-client==$VERSION
-  mkdir dist
+  mkdir -p dist
   tar cvf ../../pulp_ansible/python-client.tar ./dist
   exit
 fi
