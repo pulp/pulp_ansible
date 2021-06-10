@@ -1,0 +1,1 @@
+Fixed a broken test due to increased validation in the ``galaxy-importer`` dependency.
