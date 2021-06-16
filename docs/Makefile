@@ -7,6 +7,7 @@ SPHINXBUILD   = sphinx-build
 SPHINXPROJ    = PulpAnsible
 SOURCEDIR     = .
 BUILDDIR      = _build
+STATIC_BUILD_DIR     = _static
 DIAGRAM_BUILD_DIR    = _diagrams
 DIAGRAM_SOURCE_DIR    = diagrams_src
 PULP_URL      = "http://localhost:24817"
@@ -35,7 +36,8 @@ endif
 
 
 html:
-	curl -o _static/api.json "$(PULP_URL)/pulp/api/v3/docs/api.json?plugin=pulp_ansible"
+	mkdir -p $(STATIC_BUILD_DIR)
+	curl --fail -o $(STATIC_BUILD_DIR)/api.json "$(PULP_URL)/pulp/api/v3/docs/api.json?plugin=pulp_ansible&include_html=1"
 	@$(SPHINXBUILD) -M html "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
