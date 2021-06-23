@@ -163,7 +163,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
             """Based on https://git.io/JTMAA."""
             if not url.endswith("/") and url != "https://galaxy.ansible.com":
                 raise serializers.ValidationError(
-                    _("Invalid URL {url}. Ensure the URL ends '/'.").format(url=data["url"])
+                    _("Invalid URL {url}. Ensure the URL ends '/'.").format(url=url)
                 )
 
         data = super().validate(data)
