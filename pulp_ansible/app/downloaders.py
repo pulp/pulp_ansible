@@ -1,5 +1,4 @@
 import asyncio
-import backoff
 import json
 
 from gettext import gettext as _
@@ -8,7 +7,7 @@ from logging import getLogger
 from aiohttp import BasicAuth
 from aiohttp.client_exceptions import ClientResponseError
 
-from pulpcore.plugin.download import http_giveup, DownloaderFactory, FileDownloader, HttpDownloader
+from pulpcore.plugin.download import DownloaderFactory, FileDownloader, HttpDownloader
 
 
 log = getLogger(__name__)
@@ -72,7 +71,6 @@ class TokenAuthHttpDownloader(HttpDownloader):
         if response.status == 404:
             raise FileNotFoundError()
 
-    @backoff.on_exception(backoff.expo, ClientResponseError, max_tries=10, giveup=http_giveup)
     async def _run(self, extra_data=None):
         """
         Download, validate, and compute digests on the `url`. This is a coroutine.
