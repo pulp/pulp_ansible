@@ -1,4 +1,4 @@
-async_lru
+async_lru~=1.0
 galaxy_importer>=0.3.1
 jsonschema>=3.0
 packaging
