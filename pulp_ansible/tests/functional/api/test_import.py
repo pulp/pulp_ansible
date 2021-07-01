@@ -16,7 +16,7 @@ from pulp_ansible.tests.functional.utils import get_psql_smash_cmd
 
 from pulpcore.client.pulpcore import (
     ImportersPulpApi,
-    ImportersCoreImportsApi,
+    ImportersPulpImportsApi,
 )
 from pulpcore.client.pulp_ansible import PulpAnsibleTagsApi
 
@@ -42,7 +42,7 @@ class BaseImport(BaseExport):
         super().setUpClass()
         cls.import_repos = []
         cls.importer_api = ImportersPulpApi(cls.core_client)
-        cls.imports_api = ImportersCoreImportsApi(cls.core_client)
+        cls.imports_api = ImportersPulpImportsApi(cls.core_client)
         cls.tags_api = PulpAnsibleTagsApi(cls.client)
         cls.exporter, _ = cls._create_exporter(cls, False)
         cls.export = cls._create_export()

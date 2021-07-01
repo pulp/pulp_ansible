@@ -33,8 +33,8 @@ from pulpcore.client.pulp_ansible import (
     ApiClient as AnsibleApiClient,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
-    PulpAnsibleGalaxyApiCollectionsApi,
-    PulpAnsibleGalaxyApiV3VersionsApi,
+    PulpAnsibleApiV3CollectionsApi,
+    PulpAnsibleApiV3CollectionsVersionsApi,
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
     RemotesRoleApi,
@@ -151,8 +151,8 @@ class TestCaseUsingBindings(unittest.TestCase):
         cls.remote_role_api = RemotesRoleApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
-        cls.collections_v3api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
-        cls.collections_versions_v3api = PulpAnsibleGalaxyApiV3VersionsApi(cls.client)
+        cls.collections_v3api = PulpAnsibleApiV3CollectionsApi(cls.client)
+        cls.collections_versions_v3api = PulpAnsibleApiV3CollectionsVersionsApi(cls.client)
 
 
 class SyncHelpersMixin:

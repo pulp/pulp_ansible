@@ -6,7 +6,7 @@ from pulp_ansible.tests.functional.utils import (
 )
 from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
 from orionutils.generator import build_collection
-from pulpcore.client.pulp_ansible import PulpAnsibleGalaxyApiV3CollectionsApi
+from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -184,7 +184,7 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
         cls.collections = []
         cls.repo, cls.distro = cls._create_empty_repo_and_distribution(cls(), cleanup=False)
 
-        upload_api = PulpAnsibleGalaxyApiV3CollectionsApi(cls.client)
+        upload_api = PulpAnsibleArtifactsCollectionsV3Api(cls.client)
         for config in TEST_COLLECTION_CONFIGS:
             collection = build_collection("skeleton", config=config)
             upload_api.create(cls.distro.base_path, collection.filename)

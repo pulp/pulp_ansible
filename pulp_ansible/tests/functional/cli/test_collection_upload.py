@@ -9,8 +9,8 @@ import os
 
 from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
-    PulpAnsibleGalaxyApiCollectionsApi,
-    PulpAnsibleGalaxyApiV3VersionsApi,
+    PulpAnsibleApiV3CollectionsApi,
+    PulpAnsibleApiV3CollectionsVersionsApi,
     RemotesCollectionApi,
     RepositoriesAnsibleApi,
     RepositoriesAnsibleVersionsApi,
@@ -34,8 +34,8 @@ class InstallCollectionTestCase(unittest.TestCase):
         cls.repo_versions_api = RepositoriesAnsibleVersionsApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
-        cls.collections_v3api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
-        cls.collections_versions_v3api = PulpAnsibleGalaxyApiV3VersionsApi(cls.client)
+        cls.collections_v3api = PulpAnsibleApiV3CollectionsApi(cls.client)
+        cls.collections_versions_v3api = PulpAnsibleApiV3CollectionsVersionsApi(cls.client)
 
     def test_upload_collection(self):
         """Test whether ansible-galaxy can upload a Collection to Pulp."""
