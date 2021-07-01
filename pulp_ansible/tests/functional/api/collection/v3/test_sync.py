@@ -6,7 +6,7 @@ from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
-    PulpAnsibleGalaxyApiCollectionsApi,
+    PulpAnsibleApiV3CollectionsApi,
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
 )
@@ -172,7 +172,7 @@ class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
-        cls.collections_api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
+        cls.collections_api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
 
     def test_sync_with_token_from_automation_hub(self):
@@ -211,7 +211,7 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
-        cls.collections_api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
+        cls.collections_api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
         cls.url = "https://qa.cloud.redhat.com/api/automation-hub/"
         cls.aurl = (

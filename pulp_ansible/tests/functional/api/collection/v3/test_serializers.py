@@ -2,8 +2,8 @@
 from pulpcore.client.pulp_ansible import (
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
-    PulpAnsibleGalaxyApiCollectionsApi,
-    PulpAnsibleGalaxyApiV3VersionsApi,
+    PulpAnsibleApiV3CollectionsApi,
+    PulpAnsibleApiV3CollectionsVersionsApi,
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
 )
@@ -24,9 +24,9 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
-        cls.collections_api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
+        cls.collections_api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.collections_versions_api = ContentCollectionVersionsApi(cls.client)
-        cls.collections_versions_v3api = PulpAnsibleGalaxyApiV3VersionsApi(cls.client)
+        cls.collections_versions_v3api = PulpAnsibleApiV3CollectionsVersionsApi(cls.client)
 
     def test_v3_updated_at(self):
         """Test Collections V3 endpoint field: ``updated_at``."""

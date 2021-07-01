@@ -322,6 +322,7 @@ class CollectionUploadViewSet(
     authentication_classes = []
     permission_classes = []
     serializer_class = CollectionOneShotSerializer
+    pulp_tag_name = "Pulp_Ansible: Artifacts Collections V3"
 
     @extend_schema(
         description="Create an artifact and trigger an asynchronous task to create "
