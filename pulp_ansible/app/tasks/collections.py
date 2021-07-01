@@ -19,7 +19,6 @@ from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
 from pkg_resources import Requirement
-from rq.job import get_current_job
 
 from pulpcore.plugin.constants import TASK_STATES
 from pulpcore.plugin.models import (
@@ -29,6 +28,7 @@ from pulpcore.plugin.models import (
     ProgressReport,
     PulpTemporaryFile,
     Remote,
+    Task,
 )
 from pulpcore.plugin.stages import (
     ArtifactDownloader,
@@ -189,7 +189,7 @@ def import_collection(
             match the metadata in the tarball.
 
     """
-    CollectionImport.objects.get_or_create(task_id=get_current_job().id)
+    CollectionImport.objects.get_or_create(task_id=Task.current().pulp_id)
 
     temp_file = PulpTemporaryFile.objects.get(pk=temp_file_pk)
     filename = CollectionFilename(expected_namespace, expected_name, expected_version)
