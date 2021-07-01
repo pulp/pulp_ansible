@@ -20,7 +20,7 @@ from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL, RepositoriesA
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
     ExportersPulpApi,
-    ExportersCoreExportsApi,
+    ExportersPulpExportsApi,
 )
 
 
@@ -83,7 +83,7 @@ class BaseExport(TestCaseUsingBindings):
         cls.api_client = api.Client(cls.cfg, api.json_handler)
         cls.core_client = CoreApiClient(configuration=cls.cfg.get_bindings_config())
         cls.exporter_api = ExportersPulpApi(cls.core_client)
-        cls.exports_api = ExportersCoreExportsApi(cls.core_client)
+        cls.exports_api = ExportersPulpExportsApi(cls.core_client)
         cls.repo_ver_api = RepositoriesAnsibleVersionsApi(cls.client)
         cls._setup_content()
 
