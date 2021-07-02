@@ -186,7 +186,7 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
 
         upload_api = PulpAnsibleGalaxyApiV3CollectionsApi(cls.client)
         for config in TEST_COLLECTION_CONFIGS:
-            collection = build_collection("collection_dep_a", config=config)
+            collection = build_collection("skeleton", config=config)
             upload_api.create(cls.distro.base_path, collection.filename)
             cls.collections.append(collection)
         cls.distro.client_url += "api/"
