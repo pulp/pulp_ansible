@@ -30,12 +30,12 @@ then
   echo "pulp_ansible client $VERSION has already been released. Installing from RubyGems.org."
   gem install pulp_ansible_client -v $VERSION
   touch pulp_ansible_client-$VERSION.gem
-  tar cvf ../../pulp_ansible/ruby-client.tar ./pulp_ansible_client-$VERSION.gem
+  tar cvf ruby-client.tar ./pulp_ansible_client-$VERSION.gem
   exit
 fi
 
 cd ../pulp-openapi-generator
-
+rm -rf pulp_ansible-client
 ./generate.sh pulp_ansible ruby $VERSION
 cd pulp_ansible-client
 gem build pulp_ansible_client

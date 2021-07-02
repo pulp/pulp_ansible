@@ -49,6 +49,11 @@ jobs:
         run: .github/workflows/scripts/before_install.sh
         shell: bash
 
+      - uses: ruby/setup-ruby@v1
+        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
+        with:
+          ruby-version: "2.6"
+
       - name: Install
         run: .github/workflows/scripts/install.sh
         env:

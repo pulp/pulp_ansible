@@ -45,6 +45,16 @@ if [[ "$TEST" = "docs" ]]; then
   exit
 fi
 
+if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
+  REPORTED_VERSION=$(http pulp/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible/$REPORTED_VERSION/)
+  if [ "$response" == "200" ];
+  then
+    echo "pulp_ansible $REPORTED_VERSION has already been released. Skipping running tests."
+    exit
+  fi
+fi
+
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ansible/json | jq -r '.info.version')
   git checkout ${COMPONENT_VERSION} -- pulp_ansible/tests/
@@ -90,13 +100,16 @@ export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
 
 
 if [[ "$TEST" == "upgrade" ]]; then
-  git checkout ci_upgrade_test -- pulp_ansible/tests/
+  git fetch --depth=1 origin heads/master:master
+  git checkout master -- pulp_ansible/tests/
 
   # Handle app label change:
   sed -i "/require_pulp_plugins(/d" pulp_ansible/tests/functional/utils.py
 
   # Running pre upgrade tests:
   pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.pre
+
+  git checkout ci_upgrade_test -- pulp_ansible/tests/
 
   # Checking out ci_upgrade_test branch and upgrading plugins
   cmd_prefix bash -c "cd pulp_ansible; git checkout -f ci_upgrade_test; pip install ."
@@ -108,9 +121,12 @@ if [[ "$TEST" == "upgrade" ]]; then
   # Restarting single container services
   cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-api"
   cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-content"
-  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-resource-manager"
-  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-worker@1"
-  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-worker@2"
+  cmd_prefix bash -c "s6-svc -d /var/run/s6/services/pulpcore-resource-manager"
+  cmd_prefix bash -c "s6-svc -d /var/run/s6/services/pulpcore-worker@1"
+  cmd_prefix bash -c "s6-svc -d /var/run/s6/services/pulpcore-worker@2"
+  cmd_prefix bash -c "s6-svc -u /var/run/s6/services/new-pulpcore-resource-manager"
+  cmd_prefix bash -c "s6-svc -u /var/run/s6/services/new-pulpcore-worker@1"
+  cmd_prefix bash -c "s6-svc -u /var/run/s6/services/new-pulpcore-worker@2"
 
   echo "Restarting in 60 seconds"
   sleep 60

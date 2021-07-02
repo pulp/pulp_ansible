@@ -32,12 +32,12 @@ then
   echo "pulp_ansible client $VERSION has already been released. Installing from PyPI."
   pip install pulp-ansible-client==$VERSION
   mkdir -p dist
-  tar cvf ../../pulp_ansible/python-client.tar ./dist
+  tar cvf python-client.tar ./dist
   exit
 fi
 
 cd ../pulp-openapi-generator
-
+rm -rf pulp_ansible-client
 ./generate.sh pulp_ansible python $VERSION
 cd pulp_ansible-client
 python setup.py sdist bdist_wheel --python-tag py3
