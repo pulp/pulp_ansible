@@ -58,6 +58,11 @@ class InstallCollectionTestCase(unittest.TestCase):
             )
             subprocess.run(cmd.split())
 
+            collection_meta = os.path.join(temp_dir, f"pulp/{collection_name}/meta")
+            os.mkdir(collection_meta)
+            with open(os.path.join(collection_meta, "runtime.yml"), "w") as runtime:
+                runtime.write('requires_ansible: ">=2.9"')
+
             cmd = "ansible-galaxy collection build --output-path {} {}{}".format(
                 temp_dir, temp_dir, "/pulp/" + collection_name + "/"
             )

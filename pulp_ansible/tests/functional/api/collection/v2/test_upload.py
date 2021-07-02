@@ -22,9 +22,9 @@ class UploadCollectionTestCase(unittest.TestCase):
         cls.client = api.Client(cls.cfg)
 
         collection_content = http_get(
-            "https://galaxy.ansible.com/download/newswangerd-collection_demo-1.0.10.tar.gz"
+            "https://galaxy.ansible.com/download/pulp-pulp_installer-3.14.0.tar.gz"
         )
-        cls.collection = {"file": ("newswangerd-collection_demo-1.0.10.tar.gz", collection_content)}
+        cls.collection = {"file": ("pulp-pulp_installer-3.14.0.tar.gz", collection_content)}
         cls.collection_sha256 = hashlib.sha256(collection_content).hexdigest()
 
     def test_collection_upload(self):
