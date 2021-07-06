@@ -100,16 +100,12 @@ export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
 
 
 if [[ "$TEST" == "upgrade" ]]; then
-  git fetch --depth=1 origin heads/master:master
-  git checkout master -- pulp_ansible/tests/
 
   # Handle app label change:
   sed -i "/require_pulp_plugins(/d" pulp_ansible/tests/functional/utils.py
 
   # Running pre upgrade tests:
   pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.pre
-
-  git checkout ci_upgrade_test -- pulp_ansible/tests/
 
   # Checking out ci_upgrade_test branch and upgrading plugins
   cmd_prefix bash -c "cd pulp_ansible; git checkout -f ci_upgrade_test; pip install ."
@@ -149,6 +145,7 @@ if [[ "$TEST" == "upgrade" ]]; then
   cd $REPO_ROOT
 
   # Running post upgrade tests
+  git checkout ci_upgrade_test -- pulp_ansible/tests/
   pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.post
   exit
 fi
