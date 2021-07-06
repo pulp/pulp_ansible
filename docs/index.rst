@@ -14,7 +14,7 @@ you can:
 Issues are tracked `in Redmine <https://pulp.plan.io/projects/ansible_plugin/issues>`_. You can file
 a new issue or feature request `here <https://pulp.plan.io/projects/ansible_plugin/issues/new>`_.
 You can also ask questions in the #pulp-ansible channel on
-`Freenode <https://webchat.freenode.net/>`_.
+`Matrix <https://matrix.to/#/!cbADstEIkixyOUTCtO:matrix.org?via=libera.chat&via=matrix.org>`_.
 
 
 Table of Contents
