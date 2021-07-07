@@ -80,6 +80,8 @@ fi
 
 cat >> vars/main.yaml << VARSYAML
 pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "http://pulp:80", "ansible_content_hostname": "http://pulp:80/pulp/content"}
+pulp_scheme: http
+pulp_container_tag: latest
 VARSYAML
 
 if [ "$TEST" = "s3" ]; then
