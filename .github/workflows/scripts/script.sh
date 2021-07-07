@@ -46,7 +46,7 @@ if [[ "$TEST" = "docs" ]]; then
 fi
 
 if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  REPORTED_VERSION=$(http pulp/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
   response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible/$REPORTED_VERSION/)
   if [ "$response" == "200" ];
   then
@@ -100,7 +100,6 @@ export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
 
 
 if [[ "$TEST" == "upgrade" ]]; then
-
   # Handle app label change:
   sed -i "/require_pulp_plugins(/d" pulp_ansible/tests/functional/utils.py
 
