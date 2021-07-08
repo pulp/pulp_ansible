@@ -14,7 +14,7 @@ from git import Repo
 
 helper = textwrap.dedent(
     """\
-        Stage the changelog for a release on master branch.
+        Stage the changelog for a release on main branch.
 
         Example:
             $ python .github/workflows/scripts/stage-changelog-for-master.py 3.4.0
@@ -52,6 +52,6 @@ if not changelog_commit:
 
 git = repo.git
 git.stash()
-git.checkout("origin/master")
+git.checkout("origin/main")
 git.cherry_pick(changelog_commit.hexsha)
-git.reset("origin/master")
+git.reset("origin/main")

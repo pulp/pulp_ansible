@@ -29,7 +29,7 @@ plugin_caps: PULP_ANSIBLE
 plugin_caps_short: ANSIBLE
 plugin_dash: pulp-ansible
 plugin_dash_short: ansible
-plugin_default_branch: master
+plugin_default_branch: main
 plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
