@@ -41,6 +41,6 @@ rm -rf pulp_ansible-client
 ./generate.sh pulp_ansible python $VERSION
 cd pulp_ansible-client
 python setup.py sdist bdist_wheel --python-tag py3
-pip install dist/pulp_ansible_client-$VERSION-py3-none-any.whl
+find . -name "*.whl" -exec pip install {} \;
 tar cvf ../../pulp_ansible/python-client.tar ./dist
 exit $?

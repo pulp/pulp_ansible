@@ -11,8 +11,8 @@ fi
 # Set up CLI config file
 if [ ! -f ~/.config/pulp/settings.toml ]; then
   echo "Configuring pulp-cli"
-  mkdir ~/.config/pulp
-  cat > ~/.config/pulp/settings.toml << EOF
+  mkdir -p ~/.config/pulp
+  cat > ~/.config/pulp/cli.toml << EOF
 [cli]
 base_url = "$BASE_ADDR"
 verify_ssl = false
