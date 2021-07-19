@@ -35,12 +35,12 @@ plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
 publish_docs_to_pulpprojectdotorg: true
-pulp_scheme: http
+pulp_scheme: https
 pulp_settings:
   allowed_export_paths: /tmp
   allowed_import_paths: /tmp
-  ansible_api_hostname: http://pulp:80
-  ansible_content_hostname: http://pulp:80/pulp/content
+  ansible_api_hostname: https://pulp:443
+  ansible_content_hostname: https://pulp:443/pulp/content
 pulpcore_branch: master
 pulpcore_pip_version_specifier: null
 pulpprojectdotorg_key_id: aa499d7938ed

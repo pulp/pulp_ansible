@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-export BASE_ADDR=${BASE_ADDR:-http://pulp:80}
+export BASE_ADDR=${BASE_ADDR:-https://pulp:443}
 
 if [ -z "$(pip freeze | grep pulp-cli)" ]; then
   echo "Installing pulp-cli"

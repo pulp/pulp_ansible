@@ -20,5 +20,5 @@ LOGGING = {
     "dynaconf_merge": True,
 }
 
-ANSIBLE_API_HOSTNAME = "http://" + socket.getfqdn()
+ANSIBLE_API_HOSTNAME = "https://" + socket.getfqdn()
 ANSIBLE_CONTENT_HOSTNAME = settings.CONTENT_ORIGIN + "/pulp/content"
