@@ -34,7 +34,7 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
       - name: Install httpie
         run: |
@@ -48,6 +48,11 @@ jobs:
       - name: Before Install
         run: .github/workflows/scripts/before_install.sh
         shell: bash
+
+      - uses: ruby/setup-ruby@v1
+        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
+        with:
+          ruby-version: "2.6"
 
       - name: Install
         run: .github/workflows/scripts/install.sh
@@ -97,6 +102,17 @@ jobs:
           name: docs.tar
           path: docs/docs.tar
 
+      - name: After failure
+        if: failure()
+        run: |
+          http --timeout 30 --check-status --pretty format --print hb http://pulp/pulp/api/v3/status/ || true
+          docker images || true
+          docker ps -a || true
+          docker logs pulp || true
+          docker exec pulp ls -latr /etc/yum.repos.d/ || true
+          docker exec pulp cat /etc/yum.repos.d/* || true
+          docker exec pulp pip3 list
+
   publish:
     runs-on: ubuntu-latest
     needs: test
@@ -113,7 +129,7 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
       - uses: actions/setup-ruby@v1
         with:
@@ -196,3 +212,14 @@ jobs:
           tar -xvf docs.tar -C ./docs
           .github/workflows/scripts/publish_docs.sh nightly ${GITHUB_REF##*/}
       
+
+      - name: After failure
+        if: failure()
+        run: |
+          http --timeout 30 --check-status --pretty format --print hb http://pulp/pulp/api/v3/status/ || true
+          docker images || true
+          docker ps -a || true
+          docker logs pulp || true
+          docker exec pulp ls -latr /etc/yum.repos.d/ || true
+          docker exec pulp cat /etc/yum.repos.d/* || true
+          docker exec pulp pip3 list

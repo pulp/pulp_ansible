@@ -1,6 +1,8 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
+# generated with plugin_template@2021.04.08-77-g74c9bb3
+
 additional_repos:
 - bindings: false
   branch: master
@@ -21,6 +23,7 @@ deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
 docker_fixtures: false
 docs_test: true
+flake8: true
 issue_tracker: redmine
 plugin_app_label: ansible
 plugin_camel: PulpAnsible
@@ -29,23 +32,26 @@ plugin_caps: PULP_ANSIBLE
 plugin_caps_short: ANSIBLE
 plugin_dash: pulp-ansible
 plugin_dash_short: ansible
-plugin_default_branch: master
+plugin_default_branch: main
 plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
 publish_docs_to_pulpprojectdotorg: true
+pulp_scheme: http
 pulp_settings:
   allowed_export_paths: /tmp
   allowed_import_paths: /tmp
   ansible_api_hostname: http://pulp:80
   ansible_content_hostname: http://pulp:80/pulp/content
-pulpcore_branch: master
-pulpcore_pip_version_specifier: null
+pulpcore_branch: "3.13"
+pulpcore_pip_version_specifier: "<3.14"
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
 pypi_username: pulp
 redmine_project: ansible_plugin
+release_user: pulpbot
 stable_branch: null
+sync_ci: true
 test_bindings: false
 test_cli: true
 test_performance: false
@@ -53,6 +59,6 @@ test_released_plugin_with_next_pulpcore_release: false
 test_s3: true
 update_redmine: true
 upgrade_range:
-  - pulp_ansible_branch: 0.7
-    pulpcore_branch: 3.11
+- pulp_ansible_branch: 0.7
+  pulpcore_branch: 3.11
 

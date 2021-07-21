@@ -10,9 +10,6 @@ on:
   pull_request:
     branches:
       - '*'
-  push:
-    branches:
-      - '*'
 
 jobs:
 
@@ -28,7 +25,7 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
         # dev_requirements contains tools needed for flake8, etc.
       - name: Install requirements
@@ -81,7 +78,7 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
       - name: Install httpie
         run: |
@@ -155,7 +152,7 @@ jobs:
 
       - uses: actions/setup-python@v2
         with:
-          python-version: "3.7"
+          python-version: "3.8"
 
       - name: Install httpie
         run: |

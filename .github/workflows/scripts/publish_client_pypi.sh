@@ -16,6 +16,11 @@ pip install twine
 
 export VERSION=$(ls dist | sed -rn 's/pulp_ansible-client-(.*)\.tar.gz/\1/p')
 
+if [[ -z "$VERSION" ]]; then
+  echo "No client package found."
+  exit
+fi
+
 export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible-client/$VERSION/)
 
 if [ "$response" == "200" ];
