@@ -13,6 +13,25 @@ Changelog
 
 .. towncrier release notes start
 
+0.9.0 (2021-07-21)
+==================
+
+Bugfixes
+--------
+
+- Renaming bindings to be compatible with pulpcore >= 3.14
+  `#8971 <https://pulp.plan.io/issues/8971>`_
+
+
+Misc
+----
+
+- `#8882 <https://pulp.plan.io/issues/8882>`_
+
+
+----
+
+
 0.8.1 (2021-07-21)
 ==================
 
