@@ -13,6 +13,28 @@ Changelog
 
 .. towncrier release notes start
 
+0.8.1 (2021-07-21)
+==================
+
+Bugfixes
+--------
+
+- Fixed an error message which indicated that the remote url was invalid when in fact the requirements
+  source url was invalid.
+  `#8957 <https://pulp.plan.io/issues/8957>`_
+- Use proxy auth credentials of a Remote when syncing content.
+  `#9075 <https://pulp.plan.io/issues/9075>`_
+
+
+Misc
+----
+
+- `#9006 <https://pulp.plan.io/issues/9006>`_
+
+
+----
+
+
 0.8.0 (2021-06-01)
 Features
 --------

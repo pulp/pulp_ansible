@@ -1,2 +1,0 @@
-Fixed an error message which indicated that the remote url was invalid when in fact the requirements
-source url was invalid.
