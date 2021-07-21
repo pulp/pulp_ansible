@@ -27,6 +27,9 @@ else
   BRANCH="${GITHUB_REF##refs/tags/}"
 fi
 
+COMMIT_MSG=$(git log --format=%B --no-merges -1)
+export COMMIT_MSG
+
 if [[ "$TEST" == "upgrade" ]]; then
   git checkout -b ci_upgrade_test
   cp -R .github /tmp/.github
@@ -42,7 +45,7 @@ fi
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ansible/json | jq -r '.info.version')
 else
-  COMPONENT_VERSION=$(sed -ne "s/\s*version=['\"]\(.*\)['\"][\s,]*/\1/p" setup.py)
+  COMPONENT_VERSION=$(sed -ne "s/\s*version.*=.*['\"]\(.*\)['\"][\s,]*/\1/p" setup.py)
 fi
 mkdir .ci/ansible/vars || true
 echo "---" > .ci/ansible/vars/main.yaml
@@ -53,9 +56,6 @@ echo "component_version: '${COMPONENT_VERSION}'" >> .ci/ansible/vars/main.yaml
 export PRE_BEFORE_INSTALL=$PWD/.github/workflows/scripts/pre_before_install.sh
 export POST_BEFORE_INSTALL=$PWD/.github/workflows/scripts/post_before_install.sh
 
-COMMIT_MSG=$(git log --format=%B --no-merges -1)
-export COMMIT_MSG
-
 if [ -f $PRE_BEFORE_INSTALL ]; then
   source $PRE_BEFORE_INSTALL
 fi
@@ -65,7 +65,7 @@ if [[ -n $(echo -e $COMMIT_MSG | grep -P "Required PR:.*" | grep -v "https") ]];
   exit 1
 fi
 
-if [ "$GITHUB_EVENT_NAME" = "pull_request" ] || [ "${BRANCH_BUILD}" = "1" -a "${BRANCH}" != "master" ]
+if [ "$GITHUB_EVENT_NAME" = "pull_request" ] || [ "${BRANCH_BUILD}" = "1" -a "${BRANCH}" != "main" ]
 then
   export PULPCORE_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulpcore\/pull\/(\d+)' | awk -F'/' '{print $7}')
   export PULP_SMASH_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-smash\/pull\/(\d+)' | awk -F'/' '{print $7}')
@@ -117,13 +117,13 @@ fi
 
 cd pulp-cli
 pip install -e .
-pulp config create --base-url http://pulp --location tests/settings.toml --no-verify-ssl
+pulp config create --base-url http://pulp --location tests/cli.toml --no-verify-ssl
 mkdir ~/.config/pulp
-cp tests/settings.toml ~/.config/pulp/settings.toml
+cp tests/cli.toml ~/.config/pulp/cli.toml
 cd ..
 
 
-git clone --depth=1 https://github.com/pulp/pulpcore.git --branch master
+git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.13
 
 cd pulpcore
 if [ -n "$PULPCORE_PR_NUMBER" ]; then

@@ -45,6 +45,16 @@ if [[ "$TEST" = "docs" ]]; then
   exit
 fi
 
+if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
+  REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible/$REPORTED_VERSION/)
+  if [ "$response" == "200" ];
+  then
+    echo "pulp_ansible $REPORTED_VERSION has already been released. Skipping running tests."
+    exit
+  fi
+fi
+
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ansible/json | jq -r '.info.version')
   git checkout ${COMPONENT_VERSION} -- pulp_ansible/tests/
@@ -83,15 +93,13 @@ echo "Checking for uncommitted migrations..."
 cmd_prefix bash -c "django-admin makemigrations --check --dry-run"
 
 # Run unit tests.
-cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python3.6/site-packages/pulp_ansible/tests/unit/"
+cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python3.8/site-packages/pulp_ansible/tests/unit/"
 
 # Run functional tests
 export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
 
 
 if [[ "$TEST" == "upgrade" ]]; then
-  git checkout ci_upgrade_test -- pulp_ansible/tests/
-
   # Handle app label change:
   sed -i "/require_pulp_plugins(/d" pulp_ansible/tests/functional/utils.py
 
@@ -108,9 +116,12 @@ if [[ "$TEST" == "upgrade" ]]; then
   # Restarting single container services
   cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-api"
   cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-content"
-  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-resource-manager"
-  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-worker@1"
-  cmd_prefix bash -c "s6-svc -r /var/run/s6/services/pulpcore-worker@2"
+  cmd_prefix bash -c "s6-svc -d /var/run/s6/services/pulpcore-resource-manager"
+  cmd_prefix bash -c "s6-svc -d /var/run/s6/services/pulpcore-worker@1"
+  cmd_prefix bash -c "s6-svc -d /var/run/s6/services/pulpcore-worker@2"
+  cmd_prefix bash -c "s6-svc -u /var/run/s6/services/new-pulpcore-resource-manager"
+  cmd_prefix bash -c "s6-svc -u /var/run/s6/services/new-pulpcore-worker@1"
+  cmd_prefix bash -c "s6-svc -u /var/run/s6/services/new-pulpcore-worker@2"
 
   echo "Restarting in 60 seconds"
   sleep 60
@@ -133,6 +144,7 @@ if [[ "$TEST" == "upgrade" ]]; then
   cd $REPO_ROOT
 
   # Running post upgrade tests
+  git checkout ci_upgrade_test -- pulp_ansible/tests/
   pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.post
   exit
 fi

@@ -16,7 +16,7 @@ cd "$(dirname "$(realpath -e "$0")")"/../../..
 
 pip install twine wheel
 
-export REPORTED_VERSION=$(http pulp/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+export REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
 export DESCRIPTION="$(git describe --all --exact-match `git rev-parse HEAD`)"
 if [[ $DESCRIPTION == 'tags/'$REPORTED_VERSION ]]; then
   export VERSION=${REPORTED_VERSION}
@@ -32,15 +32,15 @@ then
   echo "pulp_ansible client $VERSION has already been released. Installing from PyPI."
   pip install pulp-ansible-client==$VERSION
   mkdir -p dist
-  tar cvf ../../pulp_ansible/python-client.tar ./dist
+  tar cvf python-client.tar ./dist
   exit
 fi
 
 cd ../pulp-openapi-generator
-
+rm -rf pulp_ansible-client
 ./generate.sh pulp_ansible python $VERSION
 cd pulp_ansible-client
 python setup.py sdist bdist_wheel --python-tag py3
-pip install dist/pulp_ansible_client-$VERSION-py3-none-any.whl
+find . -name "*.whl" -exec pip install {} \;
 tar cvf ../../pulp_ansible/python-client.tar ./dist
 exit $?
