@@ -123,7 +123,7 @@ cp tests/cli.toml ~/.config/pulp/cli.toml
 cd ..
 
 
-git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.13
+git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.14
 
 cd pulpcore
 if [ -n "$PULPCORE_PR_NUMBER" ]; then

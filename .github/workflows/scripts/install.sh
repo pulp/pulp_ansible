@@ -47,7 +47,7 @@ image:
   tag: "${TAG}"
 plugins:
   - name: pulpcore
-    source: pulpcore<3.14
+    source: pulpcore<3.15
   - name: pulp_ansible
     source:  "${PLUGIN_NAME}"
   - name: galaxy-importer
