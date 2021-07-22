@@ -493,6 +493,7 @@ class CollectionSyncFirstStage(Stage):
             d_artifacts=[d_artifact],
             extra_data=extra_data,
         )
+        self.parsing_metadata_progress_bar._using_context_manager = True
         self.parsing_metadata_progress_bar.increment()
         await self.put(d_content)
 
