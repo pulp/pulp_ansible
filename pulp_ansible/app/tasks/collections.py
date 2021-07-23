@@ -371,10 +371,6 @@ class CollectionSyncFirstStage(Stage):
 
         """
         super().__init__()
-        msg = _("Parsing CollectionVersion Metadata")
-        self.parsing_metadata_progress_bar = ProgressReport(
-            message=msg, code="sync.parsing.metadata"
-        )
         self.remote = remote
         self.repository = repository
         self.optimize = optimize
@@ -768,16 +764,19 @@ class CollectionSyncFirstStage(Stage):
         tasks = []
         loop = asyncio.get_event_loop()
 
-        await self._download_unpaginated_metadata()
+        msg = _("Parsing CollectionVersion Metadata")
+        with ProgressReport(message=msg, code="sync.parsing.metadata") as pb:
+            self.parsing_metadata_progress_bar = pb
+            await self._download_unpaginated_metadata()
 
-        if self.collection_info:
-            for requirement_entry in self.collection_info:
-                tasks.append(loop.create_task(self._fetch_collection_metadata(requirement_entry)))
-        else:
-            tasks.append(loop.create_task(self._find_all_collections()))
-        await asyncio.gather(*tasks)
-        self.parsing_metadata_progress_bar.state = TASK_STATES.COMPLETED
-        self.parsing_metadata_progress_bar.save()
+            if self.collection_info:
+                for requirement_entry in self.collection_info:
+                    tasks.append(
+                        loop.create_task(self._fetch_collection_metadata(requirement_entry))
+                    )
+            else:
+                tasks.append(loop.create_task(self._find_all_collections()))
+            await asyncio.gather(*tasks)
 
 
 class DocsBlobDownloader(ArtifactDownloader):
