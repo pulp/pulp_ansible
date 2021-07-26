@@ -1,6 +1,8 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
+# generated with plugin_template@2021.04.08-84-ga0077c1
+
 additional_repos:
 - bindings: false
   branch: master
@@ -35,17 +37,18 @@ plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
 publish_docs_to_pulpprojectdotorg: true
-pulp_scheme: http
+pulp_scheme: https
 pulp_settings:
   allowed_export_paths: /tmp
   allowed_import_paths: /tmp
-  ansible_api_hostname: http://pulp:80
-  ansible_content_hostname: http://pulp:80/pulp/content
+  ansible_api_hostname: https://pulp:443
+  ansible_content_hostname: https://pulp:443/pulp/content
 pulpcore_branch: master
 pulpcore_pip_version_specifier: null
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
 pypi_username: pulp
+python_version: '3.8'
 redmine_project: ansible_plugin
 release_user: pulpbot
 stable_branch: null
