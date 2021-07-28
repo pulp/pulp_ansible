@@ -1,5 +1,5 @@
 from import_export import fields
-from import_export.widgets import ManyToManyWidget
+from import_export.widgets import JSONWidget, ManyToManyWidget
 from pulpcore.plugin.importexport import BaseContentResource, QueryModelResource
 from pulp_ansible.app.models import (
     Role,
@@ -30,6 +30,10 @@ class CollectionVersionContentResource(BaseContentResource):
     Resource for import/export of ansible_collectionversion-content entities.
     """
 
+    # required for jsonb fields in PostgreSQL database, specially when JSONField(default=list)
+    contents = fields.Field(
+        column_name="contents", attribute="contents", widget=JSONWidget(), default=list()
+    )
     tags = fields.Field(
         column_name="tags", attribute="tags", widget=ManyToManyWidget(Tag, field="name")
     )

@@ -58,7 +58,7 @@ class CollectionImport(models.Model):
     task = models.OneToOneField(
         Task, on_delete=models.CASCADE, editable=False, related_name="+", primary_key=True
     )
-    messages = psql_fields.JSONField(default=list, editable=False)
+    messages = models.JSONField(default=list, editable=False)
 
     class Meta:
         ordering = ["task__pulp_created"]
@@ -101,14 +101,14 @@ class CollectionVersion(Content):
     Fields:
 
         authors (psql_fields.ArrayField): A list of the CollectionVersion content's authors.
-        contents (psql_fields.JSONField): A JSON field with data about the contents.
-        dependencies (psql_fields.JSONField): A dict declaring Collections that this collection
+        contents (models.JSONField): A JSON field with data about the contents.
+        dependencies (models.JSONField): A dict declaring Collections that this collection
             requires to be installed for it to be usable.
         description (models.TextField): A short summary description of the collection.
-        docs_blob (psql_fields.JSONField): A JSON field holding the various documentation blobs in
+        docs_blob (models.JSONField): A JSON field holding the various documentation blobs in
             the collection.
-        manifest (psql_fields.JSONField): A JSON field holding MANIFEST.json data.
-        files (psql_fields.JSONField): A JSON field holding FILES.json data.
+        manifest (models.JSONField): A JSON field holding MANIFEST.json data.
+        files (models.JSONField): A JSON field holding FILES.json data.
         documentation (models.CharField): The URL to any online docs.
         homepage (models.CharField): The URL to the homepage of the collection/project.
         issues (models.CharField): The URL to the collection issue tracker.
@@ -131,12 +131,12 @@ class CollectionVersion(Content):
 
     # Data Fields
     authors = psql_fields.ArrayField(models.CharField(max_length=64), default=list, editable=False)
-    contents = psql_fields.JSONField(default=list, editable=False)
-    dependencies = psql_fields.JSONField(default=dict, editable=False)
+    contents = models.JSONField(default=list, editable=False)
+    dependencies = models.JSONField(default=dict, editable=False)
     description = models.TextField(default="", blank=True, editable=False)
-    docs_blob = psql_fields.JSONField(default=dict, editable=False)
-    manifest = psql_fields.JSONField(default=dict, editable=False)
-    files = psql_fields.JSONField(default=dict, editable=False)
+    docs_blob = models.JSONField(default=dict, editable=False)
+    manifest = models.JSONField(default=dict, editable=False)
+    files = models.JSONField(default=dict, editable=False)
     documentation = models.CharField(default="", blank=True, max_length=2000, editable=False)
     homepage = models.CharField(default="", blank=True, max_length=2000, editable=False)
     issues = models.CharField(default="", blank=True, max_length=2000, editable=False)

@@ -321,11 +321,9 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         child=serializers.CharField(max_length=64),
     )
 
-    contents = serializers.ListField(
-        child=serializers.DictField(), help_text=_("A JSON field with data about the contents.")
-    )
+    contents = serializers.JSONField(help_text=_("A JSON field with data about the contents."))
 
-    dependencies = serializers.DictField(
+    dependencies = serializers.JSONField(
         help_text=_(
             "A dict declaring Collections that this collection requires to be installed for it to "
             "be usable."
@@ -336,13 +334,13 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         help_text=_("A short summary description of the collection."), allow_blank=True
     )
 
-    docs_blob = serializers.DictField(
+    docs_blob = serializers.JSONField(
         help_text=_("A JSON field holding the various documentation blobs in the collection.")
     )
 
-    manifest = serializers.DictField(help_text=_("A JSON field holding MANIFEST.json data."))
+    manifest = serializers.JSONField(help_text=_("A JSON field holding MANIFEST.json data."))
 
-    files = serializers.DictField(help_text=_("A JSON field holding FILES.json data."))
+    files = serializers.JSONField(help_text=_("A JSON field holding FILES.json data."))
 
     documentation = serializers.CharField(
         help_text=_("The URL to any online docs."), allow_blank=True, max_length=2000
