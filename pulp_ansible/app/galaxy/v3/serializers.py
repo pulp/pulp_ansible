@@ -218,10 +218,10 @@ class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
     A serializer for a CollectionVersion.
     """
 
-    manifest = serializers.DictField(
+    manifest = serializers.JSONField(
         help_text="A JSON field holding MANIFEST.json data.", read_only=True
     )
-    files = serializers.DictField(help_text="A JSON field holding FILES.json data.", read_only=True)
+    files = serializers.JSONField(help_text="A JSON field holding FILES.json data.", read_only=True)
 
     class Meta:
         model = models.CollectionVersion
