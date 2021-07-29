@@ -162,7 +162,12 @@ class TokenAuthHttpDownloader(HttpDownloader):
             }
             url = self.ansible_auth_url
             async with self.session.post(
-                url, data=form_payload, proxy=self.proxy, raise_for_status=True
+                url,
+                data=form_payload,
+                proxy=self.proxy,
+                proxy_auth=self.proxy_auth,
+                auth=self.auth,
+                raise_for_status=True,
             ) as response:
                 token_data = await response.text()
 
