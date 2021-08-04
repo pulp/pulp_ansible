@@ -30,6 +30,7 @@ from pulpcore.plugin.viewsets import (
 )
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
+    AnsibleCollectionDeprecated,
     AnsibleDistribution,
     RoleRemote,
     AnsibleRepository,
@@ -173,6 +174,16 @@ class CollectionVersionViewSet(ContentViewSet):
     filterset_class = CollectionVersionFilter
     filter_backends = (OrderingFilter, DjangoFilterBackend)
     ordering_fields = ("pulp_created", "name", "version", "namespace")
+
+
+class CollectionDeprecatedViewSet(ContentViewSet):
+    """
+    ViewSet for AnsibleCollectionDeprecated.
+    """
+
+    endpoint_name = "collection_deprecations"
+    queryset = AnsibleCollectionDeprecated.objects.all()
+    serializer_class = CollectionSerializer
 
 
 class RoleRemoteViewSet(RemoteViewSet):

@@ -5,6 +5,7 @@ from pulp_ansible.tests.functional.utils import (
     TestCaseUsingBindings,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulp_smash.pulp3.bindings import monitor_task
 
 
 class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
@@ -52,9 +53,10 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertTrue(collections.data[0].deprecated)
 
         # Change the deprecated status for the testing collection on the original repo to False
-        self.collections_v3api.update(
+        result = self.collections_v3api.update(
             "k8s_demo_collection", "testing", first_distro.base_path, {"deprecated": False}
         )
+        monitor_task(result.task)
         collections = self.collections_v3api.list(first_distro.base_path, namespace="testing")
         self.assertFalse(collections.data[0].deprecated)
 

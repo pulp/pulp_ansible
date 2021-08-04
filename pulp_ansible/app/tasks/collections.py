@@ -12,7 +12,6 @@ from aiohttp.client_exceptions import ClientResponseError
 from async_lru import alru_cache
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Q
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from galaxy_importer.collection import import_collection as process_collection
@@ -28,6 +27,7 @@ from pulpcore.plugin.models import (
     ProgressReport,
     PulpTemporaryFile,
     Remote,
+    RepositoryContent,
     Task,
 )
 from pulpcore.plugin.stages import (
@@ -136,21 +136,10 @@ def sync(remote_pk, repository_pk, mirror, optimize):
         repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
         repository.save()
 
-    to_deprecate = []
-    if first_stage.deprecations:
-        collections_deprecate_true_qs = Collection.objects.filter(first_stage.deprecations)
-        for collection in collections_deprecate_true_qs:
-            to_deprecate.append(
-                AnsibleCollectionDeprecated(repository_version=repo_version, collection=collection)
-            )
-
-        AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
-
-    non_deprecated_qs = Collection.objects.exclude(first_stage.deprecations)
-    AnsibleCollectionDeprecated.objects.filter(
-        repository_version=repo_version,
-        collection__pk__in=non_deprecated_qs,
-    ).delete()
+    deprecated = AnsibleCollectionDeprecated.objects.filter(pk__in=repo_version.content)
+    RepositoryContent.objects.filter(repository=repository, content__in=deprecated).exclude(
+        version_added=repo_version
+    ).all().update(version_removed=repo_version)
 
 
 def import_collection(
@@ -375,7 +364,6 @@ class CollectionSyncFirstStage(Stage):
         self.repository = repository
         self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
-        self.deprecations = Q()
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
         self.already_synced = set()
         self._unpaginated_collection_metadata = None
@@ -527,7 +515,10 @@ class CollectionSyncFirstStage(Stage):
                     version_num = collection_version["version"]
                     collection_version_detail_url = f"{collection_url}/versions/{version_num}/"
                     if collection_metadata["deprecated"]:
-                        self.deprecations |= Q(namespace=namespace, name=name)
+                        d_content = DeclarativeContent(
+                            content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
+                        )
+                        await self.put(d_content)
                     tasks.append(
                         loop.create_task(
                             self._fetch_collection_version_metadata(
@@ -548,7 +539,10 @@ class CollectionSyncFirstStage(Stage):
         loop = asyncio.get_event_loop()
 
         if self._unpaginated_collection_metadata[namespace][name]["deprecated"]:
-            self.deprecations |= Q(namespace=namespace, name=name)
+            d_content = DeclarativeContent(
+                content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
+            )
+            await self.put(d_content)
 
         all_versions_of_collection = self._unpaginated_collection_version_metadata[namespace][name]
 
@@ -644,9 +638,12 @@ class CollectionSyncFirstStage(Stage):
         for collection_namespace_dict in self._unpaginated_collection_metadata.values():
             for collection in collection_namespace_dict.values():
                 if collection["deprecated"]:
-                    self.deprecations |= Q(
-                        namespace=collection["namespace"], name=collection["name"]
+                    d_content = DeclarativeContent(
+                        content=AnsibleCollectionDeprecated(
+                            namespace=collection["namespace"], name=collection["name"]
+                        ),
                     )
+                    await self.put(d_content)
 
         for collections_in_namespace in self._unpaginated_collection_version_metadata.values():
             for collection_versions in collections_in_namespace.values():

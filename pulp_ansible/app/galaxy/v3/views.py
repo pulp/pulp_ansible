@@ -3,7 +3,8 @@ from gettext import gettext as _
 import semantic_version
 
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db.models import F
+from django.db import DatabaseError
+from django.db.models import F, Q
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
 from django.http import StreamingHttpResponse
@@ -22,7 +23,8 @@ from rest_framework import viewsets
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, Content
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
-from pulpcore.plugin.viewsets import BaseFilterSet
+from pulpcore.plugin.viewsets import BaseFilterSet, OperationPostponedResponse
+from pulpcore.plugin.tasking import add_and_remove, dispatch
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -136,10 +138,10 @@ class CollectionFilter(BaseFilterSet):
     def get_deprecated(self, qs, name, value):
         """Deprecated filter."""
         deprecation = self.request.parser_context["view"]._deprecation
-        if value:
+        if value and deprecation:
             return qs.filter(pk__in=deprecation)
 
-        if value is False:
+        if value is False and deprecation:
             return qs.exclude(pk__in=deprecation)
         return qs
 
@@ -168,12 +170,16 @@ class CollectionViewSet(
     @property
     def _deprecation(self):
         """Return deprecated collecion ids."""
-        repo_version = self._repository_version
-        deprecated = AnsibleCollectionDeprecated.objects.filter(
-            repository_version=repo_version
-        ).values_list("collection_id", flat=True)
-        self.deprecated_collections_context = deprecated  # needed by get__serializer_context
-        return deprecated
+        deprecations = Q()
+        for namespace, name in AnsibleCollectionDeprecated.objects.filter(
+            pk__in=self._distro_content
+        ).values_list("namespace", "name"):
+            deprecations |= Q(namespace=namespace, name=name)
+        collection_pks = []
+        if len(deprecations):
+            collection_pks = Collection.objects.filter(deprecations).values_list("pk", flat=True)
+        self.deprecated_collections_context = collection_pks  # needed by get__serializer_context
+        return collection_pks
 
     def get_queryset(self):
         """
@@ -286,6 +292,10 @@ class CollectionViewSet(
         super_data["deprecated_collections"] = getattr(self, "deprecated_collections_context", [])
         return super_data
 
+    @extend_schema(
+        description="Trigger an asynchronous update task",
+        responses={202: AsyncOperationResponseSerializer},
+    )
     def update(self, request, *args, **kwargs):
         """
         Update a Collection object.
@@ -295,15 +305,37 @@ class CollectionViewSet(
         serializer = self.get_serializer(collection, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         deprecated_value = request.data.get("deprecated")
+        add_content_units = []
+        remove_content_units = []
+
+        deprecation, created = AnsibleCollectionDeprecated.objects.get_or_create(
+            namespace=collection.namespace, name=collection.name
+        )
+        if not created:
+            try:
+                deprecation.touch()
+            except DatabaseError:
+                # deprecation has since been removed. try to create it
+                deprecation = AnsibleCollectionDeprecated.objects.create(
+                    namespace=collection.namespace, name=collection.name
+                )
+
         if deprecated_value:
-            AnsibleCollectionDeprecated.objects.get_or_create(
-                repository_version=repo_version, collection=collection
-            )
+            add_content_units.append(deprecation.pk)
         else:
-            AnsibleCollectionDeprecated.objects.filter(
-                repository_version=repo_version, collection=collection
-            ).delete()
-        return Response(serializer.data)
+            remove_content_units.append(deprecation.pk)
+
+        task = dispatch(
+            add_and_remove,
+            [repo_version.repository],
+            kwargs={
+                "repository_pk": repo_version.repository.pk,
+                "base_version_pk": repo_version.pk,
+                "add_content_units": add_content_units,
+                "remove_content_units": remove_content_units,
+            },
+        )
+        return OperationPostponedResponse(task, request)
 
 
 class UnpaginatedCollectionViewSet(CollectionViewSet):

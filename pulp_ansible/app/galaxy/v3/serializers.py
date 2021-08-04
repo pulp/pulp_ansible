@@ -6,7 +6,7 @@ from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
 from pulp_ansible.app import models
-from pulpcore.plugin.models import ContentArtifact
+from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
 
 
 class CollectionSerializer(serializers.ModelSerializer):
@@ -248,4 +248,4 @@ class RepoMetadataSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = ("published",)
-        model = models.RepositoryVersion
+        model = RepositoryVersion
