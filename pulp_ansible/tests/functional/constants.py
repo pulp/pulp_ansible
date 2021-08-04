@@ -92,6 +92,7 @@ TABLES_TO_KEEP = (
     "django_migrations",
     # not to create an admin user every time
     "auth_user",
+    "galaxy_user",
     # not to be doomed by the lack of permissions
     "auth_permission",
     "core_accesspolicy",
