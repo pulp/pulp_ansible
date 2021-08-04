@@ -2,7 +2,7 @@ from django.db import transaction
 from django.db.models import Q
 from pulpcore.plugin.models import RepositoryVersion
 
-from pulp_ansible.app.models import AnsibleCollectionDeprecated, AnsibleRepository, Collection
+from pulp_ansible.app.models import AnsibleRepository
 
 
 @transaction.atomic
@@ -62,16 +62,3 @@ def copy_content(config):
         base_version = dest_repo_version if dest_version_provided else None
         with dest_repo.new_version(base_version=base_version) as new_version:
             new_version.add_content(content_to_copy)
-            deprecated_in_source_repo_version_qs = Collection.objects.filter(
-                ansiblecollectiondeprecated__repository_version=source_repo_version
-            )
-            to_deprecate = []
-            for collection_deprecated in deprecated_in_source_repo_version_qs:
-                to_deprecate.append(
-                    AnsibleCollectionDeprecated(
-                        repository_version=new_version, collection=collection_deprecated
-                    )
-                )
-
-            if to_deprecate:
-                AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)

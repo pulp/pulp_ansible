@@ -134,6 +134,11 @@ class PulpImportTestCase(BaseImport):
                     self.export_content_count["collection_version"],
                     added["ansible.collection_version"]["count"],
                 )
+            elif "ansible.collection_deprecation" in added.keys():
+                self.assertEqual(
+                    self.export_content_count["collection_deprecation"],
+                    added["ansible.collection_deprecation"]["count"],
+                )
         tags = self.tags_api.list()
         self.assertEqual(tags.count, 2)
 

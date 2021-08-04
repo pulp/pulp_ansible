@@ -10,7 +10,6 @@ from pulpcore.plugin.models import (
     Content,
     Remote,
     Repository,
-    RepositoryVersion,
     Distribution,
     Task,
 )
@@ -227,6 +226,21 @@ class CollectionRemote(Remote):
         default_related_name = "%(app_label)s_%(model_name)s"
 
 
+class AnsibleCollectionDeprecated(Content):
+    """
+    A model that represents if a Collection is `deprecated` for a given RepositoryVersion.
+    """
+
+    TYPE = "collection_deprecation"
+
+    namespace = models.CharField(max_length=64, editable=False)
+    name = models.CharField(max_length=64, editable=False)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("namespace", "name")
+
+
 class AnsibleRepository(Repository):
     """
     Repository for "ansible" content.
@@ -237,7 +251,7 @@ class AnsibleRepository(Repository):
     """
 
     TYPE = "ansible"
-    CONTENT_TYPES = [Role, CollectionVersion]
+    CONTENT_TYPES = [Role, CollectionVersion, AnsibleCollectionDeprecated]
     REMOTE_TYPES = [RoleRemote, CollectionRemote]
 
     last_synced_metadata_time = models.DateTimeField(null=True)
@@ -246,50 +260,6 @@ class AnsibleRepository(Repository):
         default_related_name = "%(app_label)s_%(model_name)s"
 
         permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
-
-    def finalize_new_version(self, new_version):
-        """
-        Finalize the incomplete RepositoryVersion with correct repository-level metadata.
-
-        `AnsibleCollectionDeprecated` objects may need to be created for the new
-        `RepositoryVersion`.
-
-        Args:
-            new_version (pulpcore.app.models.RepositoryVersion): The incomplete RepositoryVersion to
-                finalize.
-
-        """
-        deprecated_in_prev_version_qs = Collection.objects.filter(
-            ansiblecollectiondeprecated__repository_version=new_version.previous()
-        )
-        collection_versions_removed_pks = new_version.removed().values("pk")
-        deprecated_in_this_version = deprecated_in_prev_version_qs.exclude(
-            versions__in=collection_versions_removed_pks
-        )
-        to_deprecate = []
-        for collection_deprecated in deprecated_in_this_version:
-            to_deprecate.append(
-                AnsibleCollectionDeprecated(
-                    repository_version=new_version, collection=collection_deprecated
-                )
-            )
-
-        if to_deprecate:
-            AnsibleCollectionDeprecated.objects.bulk_create(to_deprecate, ignore_conflicts=True)
-
-
-class AnsibleCollectionDeprecated(BaseModel):
-    """
-    A model that represents if a Collection is `deprecated` for a given RepositoryVersion.
-    """
-
-    repository_version = models.ForeignKey(
-        RepositoryVersion, on_delete=models.CASCADE, related_name="collection_memberships"
-    )
-    collection = models.ForeignKey(Collection, on_delete=models.CASCADE)
-
-    class Meta:
-        unique_together = ("collection", "repository_version")
 
 
 class AnsibleDistribution(Distribution):

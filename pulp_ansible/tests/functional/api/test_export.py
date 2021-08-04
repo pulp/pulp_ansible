@@ -49,7 +49,7 @@ class BaseExport(TestCaseUsingBindings):
         """
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
-            requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+            requirements_file="collections:\n  - testing.k8s_demo_collection",
         )
         remote_a = cls.remote_collection_api.create(body)
         remote_b = cls.remote_role_api.create(gen_ansible_remote())
@@ -69,6 +69,9 @@ class BaseExport(TestCaseUsingBindings):
         repo_ver_b = cls.repo_ver_api.read(f"{cls.export_repos[1].pulp_href}versions/1/")
         cls.export_content_count["collection_version"] = repo_ver_a.content_summary.added[
             "ansible.collection_version"
+        ]["count"]
+        cls.export_content_count["collection_deprecation"] = repo_ver_a.content_summary.added[
+            "ansible.collection_deprecation"
         ]["count"]
         cls.export_content_count["role"] = repo_ver_b.content_summary.added["ansible.role"]["count"]
 
