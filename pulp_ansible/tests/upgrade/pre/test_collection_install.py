@@ -2,7 +2,6 @@
 from os import path
 import subprocess
 import tempfile
-import unittest
 
 from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
@@ -10,7 +9,7 @@ from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
     RemotesCollectionApi,
 )
-from pulp_smash.pulp3.bindings import monitor_task
+from pulp_smash.pulp3.bindings import monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
@@ -22,7 +21,7 @@ from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class InstallCollectionTestCase(unittest.TestCase):
+class InstallCollectionTestCase(PulpTestCase):
     """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
 
     @classmethod

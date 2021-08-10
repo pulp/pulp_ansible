@@ -10,7 +10,7 @@ from pulpcore.client.pulp_ansible import (
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
 )
-from pulp_smash.pulp3.bindings import PulpTaskError
+from pulp_smash.pulp3.bindings import PulpTaskError, PulpTestCase
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
@@ -162,7 +162,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
     "AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
     "'AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
 )
-class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
+class AutomationHubV3SyncCase(PulpTestCase, SyncHelpersMixin):
     """Test syncing from Pulp to Pulp."""
 
     @classmethod
@@ -201,7 +201,7 @@ class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
     "QA_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
     "'QA_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
 )
-class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
+class AutomationHubCIV3SyncCase(PulpTestCase, SyncHelpersMixin):
     """Test syncing from Pulp to Pulp."""
 
     @classmethod

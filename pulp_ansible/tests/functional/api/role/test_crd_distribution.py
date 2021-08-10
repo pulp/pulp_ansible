@@ -6,6 +6,7 @@ from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, selectors
 from pulp_smash.pulp3.utils import gen_distribution, gen_remote, gen_repo, sync
+from pulp_smash.pulp3.bindings import PulpTestCase
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
@@ -17,7 +18,7 @@ from pulp_ansible.tests.functional.utils import skip_if
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class RepositoryVersionDistributionTestCase(unittest.TestCase):
+class RepositoryVersionDistributionTestCase(PulpTestCase):
     """Test AnsibleDistribution using repo and repo_version.
 
     This test targets the following issue:

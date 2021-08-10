@@ -6,6 +6,7 @@ from urllib.parse import urljoin
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config
+from pulp_smash.pulp3.bindings import PulpTestCase
 from pulp_smash.pulp3.utils import gen_repo, get_content, get_versions, publish, sync
 
 from pulp_ansible.tests.functional.utils import (
@@ -22,7 +23,7 @@ from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # 
 
 
 @unittest.skip("FIXME: Re-enable later")
-class PublishAnyRepoVersionTestCase(unittest.TestCase):
+class PublishAnyRepoVersionTestCase(PulpTestCase):
     """Test whether a particular repository version can be published.
 
     This test targets the following issues:

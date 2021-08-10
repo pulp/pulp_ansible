@@ -1,17 +1,16 @@
 """Tests related to upload of collections."""
 import hashlib
-import unittest
 from urllib.parse import urljoin
 
 from pulp_smash import api, config
 from pulp_smash.exceptions import TaskReportError
-from pulp_smash.pulp3.bindings import delete_orphans
+from pulp_smash.pulp3.bindings import delete_orphans, PulpTestCase
 from pulp_smash.utils import http_get
 
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class UploadCollectionTestCase(unittest.TestCase):
+class UploadCollectionTestCase(PulpTestCase):
     """Upload a collection."""
 
     @classmethod
