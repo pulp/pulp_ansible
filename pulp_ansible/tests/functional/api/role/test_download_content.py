@@ -5,6 +5,7 @@ from random import choice
 from urllib.parse import urljoin
 
 from pulp_smash import api, config, utils
+from pulp_smash.pulp3.bindings import PulpTestCase
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo, publish, sync
 
 from pulp_ansible.tests.functional.utils import (
@@ -23,7 +24,7 @@ from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # 
 
 
 @unittest.skip("FIXME: Re-enable later")
-class DownloadContentTestCase(unittest.TestCase):
+class DownloadContentTestCase(PulpTestCase):
     """Verify whether content served by pulp can be downloaded."""
 
     def test_all(self):

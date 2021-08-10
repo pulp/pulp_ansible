@@ -1,10 +1,10 @@
 """Tests that CRUD remotes."""
 from random import choice
-import unittest
 
 from requests.exceptions import HTTPError
 
 from pulp_smash import api, config, utils
+from pulp_smash.pulp3.bindings import PulpTestCase
 from pulp_smash.pulp3.constants import IMMEDIATE_DOWNLOAD_POLICIES
 
 from pulp_ansible.tests.functional.constants import ANSIBLE_REMOTE_PATH
@@ -12,7 +12,7 @@ from pulp_ansible.tests.functional.utils import skip_if, gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class CRUDRemotesTestCase(unittest.TestCase):
+class CRUDRemotesTestCase(PulpTestCase):
     """CRUD remotes."""
 
     @classmethod
@@ -93,7 +93,7 @@ class CRUDRemotesTestCase(unittest.TestCase):
             self.client.get(self.remote["pulp_href"])
 
 
-class CreateRemoteNoURLTestCase(unittest.TestCase):
+class CreateRemoteNoURLTestCase(PulpTestCase):
     """Verify whether is possible to create a remote without a URL."""
 
     def test_all(self):

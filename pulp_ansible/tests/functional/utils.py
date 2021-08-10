@@ -5,7 +5,7 @@ from time import sleep
 import unittest
 
 from pulp_smash import api, config, selectors
-from pulp_smash.pulp3.bindings import monitor_task
+from pulp_smash.pulp3.bindings import monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_remote,
@@ -139,7 +139,7 @@ def wait_tasks():
         running_tasks = tasks.list(state="running")
 
 
-class TestCaseUsingBindings(unittest.TestCase):
+class TestCaseUsingBindings(PulpTestCase):
     """A parent TestCase that instantiates the various bindings used throughout tests."""
 
     @classmethod

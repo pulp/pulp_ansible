@@ -1,7 +1,6 @@
 """Tests related to sync ansible plugin collection content type."""
-import unittest
-
 from pulp_smash import api, config
+from pulp_smash.pulp3.bindings import PulpTestCase
 from pulp_smash.pulp3.utils import gen_repo, sync
 
 
@@ -16,7 +15,7 @@ from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class ListContentVersionsCase(unittest.TestCase):
+class ListContentVersionsCase(PulpTestCase):
     """Test listing CollectionVersions."""
 
     @classmethod

@@ -1,7 +1,6 @@
 """Tests that sync ansible plugin repositories."""
-import unittest
-
 from pulp_smash import api, config, exceptions
+from pulp_smash.pulp3.bindings import PulpTestCase
 from pulp_smash.pulp3.utils import gen_repo, get_added_content_summary, get_content_summary, sync
 
 from pulp_ansible.tests.functional.constants import (
@@ -13,7 +12,7 @@ from pulp_ansible.tests.functional.utils import gen_ansible_remote
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class BasicSyncTestCase(unittest.TestCase):
+class BasicSyncTestCase(PulpTestCase):
     """Sync repositories with the ansible plugin."""
 
     @classmethod
@@ -66,7 +65,7 @@ class BasicSyncTestCase(unittest.TestCase):
         self.assertDictEqual(get_added_content_summary(repo), {"ansible.role": 5})
 
 
-class SyncInvalidURLTestCase(unittest.TestCase):
+class SyncInvalidURLTestCase(PulpTestCase):
     """Sync a repository with an invalid url on the Remote."""
 
     def test_all(self):
