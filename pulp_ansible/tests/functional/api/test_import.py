@@ -7,8 +7,7 @@ will fail if this is not the case.
 
 from pulp_smash import cli
 from pulp_smash.utils import uuid4
-from pulp_smash.pulp3.bindings import monitor_task, monitor_task_group
-from pulp_smash.pulp3.utils import delete_orphans
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, monitor_task_group
 
 from pulp_ansible.tests.functional.api.test_export import BaseExport
 from pulp_ansible.tests.functional.constants import TRUNCATE_TABLES_QUERY_BASH
@@ -52,7 +51,7 @@ class BaseImport(BaseExport):
         """Clean up."""
         for repo in cls.import_repos:
             cls.repo_api.delete(repo.pulp_href)
-        delete_orphans(cls.cfg)
+        delete_orphans()
 
         cli_client = cli.Client(cls.cfg)
         cmd = ("rm", "-rf", cls.exporter.path)
