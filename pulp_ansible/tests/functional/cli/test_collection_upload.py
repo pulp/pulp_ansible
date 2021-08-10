@@ -15,8 +15,8 @@ from pulpcore.client.pulp_ansible import (
     RepositoriesAnsibleApi,
     RepositoriesAnsibleVersionsApi,
 )
-from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import delete_orphans, gen_distribution, gen_repo
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
+from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.utils import gen_ansible_client, wait_tasks
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
