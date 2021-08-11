@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 
 from pulp_smash import api, config
 from pulp_smash.exceptions import TaskReportError
-from pulp_smash.pulp3.utils import delete_orphans
+from pulp_smash.pulp3.bindings import delete_orphans
 from pulp_smash.utils import http_get
 
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -18,7 +18,7 @@ class UploadCollectionTestCase(unittest.TestCase):
     def setUpClass(cls):
         """Create class-wide variables."""
         cls.cfg = config.get_config()
-        delete_orphans(cls.cfg)
+        delete_orphans()
         cls.client = api.Client(cls.cfg)
 
         collection_content = http_get(
@@ -47,4 +47,4 @@ class UploadCollectionTestCase(unittest.TestCase):
         for key in ("artifact", "already", "exists"):
             self.assertIn(key, error["description"].lower(), error)
 
-        delete_orphans(self.cfg)
+        delete_orphans()
