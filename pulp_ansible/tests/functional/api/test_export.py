@@ -111,7 +111,7 @@ class BaseExport(TestCaseUsingBindings):
 
     def _create_exporter(self, cleanup=True):
         """
-        Utility routine to create an exporter for the available repositories.
+        Utility routin to create an exporter for the available repositories.
         """
         body = {
             "name": uuid4(),
