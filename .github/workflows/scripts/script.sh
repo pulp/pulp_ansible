@@ -165,8 +165,6 @@ else
     pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional
 fi
 pushd ../pulp-cli
-# Temporary fix
-sed -i "s/content list/content list --limit 2/" tests/scripts/pulp_ansible/test_sync.sh
 pytest -v -m pulp_ansible
 popd
 
