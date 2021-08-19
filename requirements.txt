@@ -2,6 +2,6 @@ async_lru~=1.0
 galaxy_importer>=0.3.1
 jsonschema>=3.0
 packaging
-pulpcore>=3.14
+pulpcore>=3.15.0.dev
 PyYAML
 semantic_version
