@@ -107,8 +107,8 @@ if [[ "$TEST" == "upgrade" ]]; then
   pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.pre
 
   # Checking out ci_upgrade_test branch and upgrading plugins
+  cmd_prefix bash -c "cd pulpcore; git checkout -f ci_upgrade_test; pip install --upgrade --force-reinstall ."
   cmd_prefix bash -c "cd pulp_ansible; git checkout -f ci_upgrade_test; pip install ."
-  cmd_prefix bash -c "cd pulpcore; git checkout -f ci_upgrade_test; pip install ."
 
   # Migrating
   cmd_prefix bash -c "django-admin migrate --no-input"
