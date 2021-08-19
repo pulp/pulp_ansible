@@ -76,7 +76,9 @@ class RoleFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        with ProgressReport(message="Parsing Role Metadata", code="sync.parsing.metadata") as pb:
+        async with ProgressReport(
+            message="Parsing Role Metadata", code="sync.parsing.metadata"
+        ) as pb:
             async for metadata in self._fetch_roles():
                 for version in metadata["summary_fields"]["versions"]:
                     url = GITHUB_URL % (
@@ -102,7 +104,7 @@ class RoleFirstStage(Stage):
                         deferred_download=self.deferred_download,
                     )
                     d_content = DeclarativeContent(content=role, d_artifacts=[d_artifact])
-                    pb.increment()
+                    await pb.aincrement()
                     await self.put(d_content)
 
     async def _fetch_roles(self):
@@ -131,17 +133,17 @@ class RoleFirstStage(Stage):
         progress_data = dict(
             message="Parsing Pages from Galaxy Roles API", code="sync.parsing.roles"
         )
-        with ProgressReport(**progress_data) as progress_bar:
+        async with ProgressReport(**progress_data) as progress_bar:
             api_version = get_api_version(remote.url)
             downloader = remote.get_downloader(url=get_page_url(remote.url, api_version))
             metadata = parse_metadata(await downloader.run())
 
             page_count = math.ceil(float(metadata["count"]) / float(PAGE_SIZE))
             progress_bar.total = page_count
-            progress_bar.save()
+            await progress_bar.asave()
 
             yield metadata
-            progress_bar.increment()
+            await progress_bar.aincrement()
 
             # Concurrent downloads are limited by aiohttp...
             not_done = set(
@@ -153,4 +155,4 @@ class RoleFirstStage(Stage):
                 done, not_done = await asyncio.wait(not_done, return_when=FIRST_COMPLETED)
                 for item in done:
                     yield parse_metadata(item.result())
-                    progress_bar.increment()
+                    await progress_bar.aincrement()

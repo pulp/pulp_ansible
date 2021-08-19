@@ -477,7 +477,7 @@ class CollectionSyncFirstStage(Stage):
             d_artifacts=[d_artifact],
             extra_data=extra_data,
         )
-        self.parsing_metadata_progress_bar.increment()
+        await self.parsing_metadata_progress_bar.aincrement()
         await self.put(d_content)
 
     def _collection_versions_list_downloader(
@@ -762,7 +762,7 @@ class CollectionSyncFirstStage(Stage):
         loop = asyncio.get_event_loop()
 
         msg = _("Parsing CollectionVersion Metadata")
-        with ProgressReport(message=msg, code="sync.parsing.metadata") as pb:
+        async with ProgressReport(message=msg, code="sync.parsing.metadata") as pb:
             self.parsing_metadata_progress_bar = pb
             await self._download_unpaginated_metadata()
 
@@ -828,7 +828,7 @@ class CollectionContentSaver(ContentSaver):
         super().__init__(*args, **kwargs)
         self.repository_version = repository_version
 
-    async def _pre_save(self, batch):
+    def _pre_save(self, batch):
         """
         Save a batch of Collection objects.
 
@@ -850,7 +850,7 @@ class CollectionContentSaver(ContentSaver):
 
             d_content.content.collection = collection
 
-    async def _post_save(self, batch):
+    def _post_save(self, batch):
         """
         Save a batch of CollectionVersion, Tag objects.
 
