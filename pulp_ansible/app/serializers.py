@@ -4,6 +4,7 @@ from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 
+from pulpcore.plugin.models import Artifact, PulpTemporaryFile
 from pulpcore.plugin.serializers import (
     ContentChecksumSerializer,
     ModelSerializer,
@@ -11,10 +12,12 @@ from pulpcore.plugin.serializers import (
     RepositorySerializer,
     RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
+    SingleArtifactContentUploadSerializer,
     DistributionSerializer,
     RepositoryVersionRelatedField,
     validate_unknown_fields,
 )
+from rest_framework.exceptions import ValidationError
 
 from .models import (
     AnsibleDistribution,
@@ -307,6 +310,48 @@ class CollectionSerializer(ModelSerializer):
     class Meta:
         model = Collection
         fields = ("name", "namespace")
+
+
+class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
+    """
+    A serializer for CollectionVersion Content.
+    """
+
+    name = serializers.CharField(help_text=_("The name of the collection."), max_length=64)
+
+    namespace = serializers.CharField(
+        help_text=_("The namespace of the collection."), max_length=64
+    )
+
+    version = serializers.CharField(help_text=_("The version of the collection."), max_length=128)
+
+    def validate(self, data):
+        """Validate that we have a file or can create one."""
+        if "artifact" in data:
+            raise serializers.ValidationError(_("Only 'file' may be specified."))
+
+        if "request" not in self.context:
+            data = self.deferred_validate(data)
+
+        sha256 = data["file"].hashers["sha256"].hexdigest()
+        artifact = Artifact.objects.filter(sha256=sha256).first()
+        if artifact:
+            ValidationError(_("Artifact already exists"))
+        temp_file = PulpTemporaryFile.init_and_validate(data.pop("file"))
+        temp_file.save()
+        data["temp_file_pk"] = str(temp_file.pk)
+
+        return data
+
+    class Meta:
+        fields = tuple(
+            set(SingleArtifactContentUploadSerializer.Meta.fields) - {"artifact", "relative_path"}
+        ) + (
+            "name",
+            "namespace",
+            "version",
+        )
+        model = CollectionVersion
 
 
 class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecksumSerializer):
