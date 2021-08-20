@@ -93,6 +93,14 @@ def parse_collections_requirements_file(requirements_file_string):
                 )
             )
 
+        if not isinstance(requirements["collections"], list):
+            raise ValidationError(
+                _(
+                    "Expecting collections requirements file to be a dict with the key "
+                    "collections that contains a list of collections to install."
+                )
+            )
+
         for collection_req in requirements["collections"]:
             if isinstance(collection_req, dict):
                 req_name = collection_req.get("name", None)
@@ -105,10 +113,16 @@ def parse_collections_requirements_file(requirements_file_string):
                 req_source = collection_req.get("source", None)
 
                 entry = RequirementsFileEntry(name=req_name, version=req_version, source=req_source)
-                collection_info.append(entry)
             else:
                 entry = RequirementsFileEntry(name=collection_req, version="*", source=None)
-                collection_info.append(entry)
+            if "." not in entry.name:
+                raise ValidationError(
+                    _(
+                        "Collections requirement entry should contain the collection name in the "
+                        "format namespace.name"
+                    )
+                )
+            collection_info.append(entry)
 
     return collection_info
 
