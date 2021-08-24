@@ -124,6 +124,7 @@ cd ..
 git clone --depth=1 https://github.com/pulp/pulpcore.git --branch master
 
 cd pulpcore
+
 if [ -n "$PULPCORE_PR_NUMBER" ]; then
   git fetch --depth=1 origin pull/$PULPCORE_PR_NUMBER/head:$PULPCORE_PR_NUMBER
   git checkout $PULPCORE_PR_NUMBER
@@ -132,12 +133,14 @@ cd ..
 
 
 git clone --depth=1 https://github.com/ansible/galaxy-importer.git --branch master
+cd galaxy-importer
+
 if [ -n "$GALAXY_IMPORTER_PR_NUMBER" ]; then
-  cd galaxy-importer
   git fetch --depth=1 origin pull/$GALAXY_IMPORTER_PR_NUMBER/head:$GALAXY_IMPORTER_PR_NUMBER
   git checkout $GALAXY_IMPORTER_PR_NUMBER
-  cd ..
 fi
+
+cd ..
 
 
 if [[ "$TEST" == "upgrade" ]]; then
