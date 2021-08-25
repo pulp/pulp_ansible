@@ -13,6 +13,27 @@ Changelog
 
 .. towncrier release notes start
 
+0.9.1 (2021-08-25)
+==================
+
+Bugfixes
+--------
+
+- Improved performance on reporting progress on parsing collection metadata
+  `#9137 <https://pulp.plan.io/issues/9137>`_
+- Ensure galaxy-importer is used when uploading collections
+  `#9220 <https://pulp.plan.io/issues/9220>`_
+
+
+Misc
+----
+
+- `#9250 <https://pulp.plan.io/issues/9250>`_
+
+
+----
+
+
 0.9.0 (2021-07-21)
 ==================
 
