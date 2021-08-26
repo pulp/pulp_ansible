@@ -188,6 +188,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        env:
+          - TEST: upgrade
         include:
           - FROM_PULPCORE_BRANCH: "3.11"
             FROM_PULP_ANSIBLE_BRANCH: "0.7"
