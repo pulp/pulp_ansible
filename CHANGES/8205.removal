@@ -1,6 +1,1 @@
 Turned collection deprecation status into a content.
-
-.. warning::
-
-   Current deprecation history will be lost, only accounting for
-   the latest repository version.
