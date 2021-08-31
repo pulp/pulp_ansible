@@ -49,8 +49,8 @@ pulp_settings:
   allowed_import_paths: /tmp
   ansible_api_hostname: https://pulp:443
   ansible_content_hostname: https://pulp:443/pulp/content
-pulpcore_branch: master
-pulpcore_pip_version_specifier: null
+pulpcore_branch: 3.15
+pulpcore_pip_version_specifier: "<3.17"
 pulpcore_revision: null
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
