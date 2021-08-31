@@ -34,6 +34,12 @@ Deprecations and Removals
 -------------------------
 
 - Turned collection deprecation status into a content.
+
+  .. warning::
+
+   Current deprecation history will be lost, only accounting for
+   the latest repository version.
+
   `#8205 <https://pulp.plan.io/issues/8205>`_
 - Dropped support for Python 3.6 and 3.7. pulp_ansible now supports Python 3.8+.
   `#9034 <https://pulp.plan.io/issues/9034>`_
