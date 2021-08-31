@@ -166,6 +166,8 @@ then
   exit $s
 fi
 
+sed -i -e 's/DEBUG = False/DEBUG = True/' pulpcore/pulpcore/app/settings.py
+
 cd pulp_ansible
 
 if [ -f $POST_BEFORE_INSTALL ]; then
