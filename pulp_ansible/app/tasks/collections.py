@@ -19,7 +19,6 @@ from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
 from pkg_resources import Requirement
 
-from pulpcore.plugin.constants import TASK_STATES
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -122,10 +121,14 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     remote = CollectionRemote.objects.get(pk=remote_pk)
     repository = AnsibleRepository.objects.get(pk=repository_pk)
 
+    is_repo_remote = False
+    if repository.remote:
+        is_repo_remote = remote.pk == repository.remote.pk
+
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
-    first_stage = CollectionSyncFirstStage(remote, repository, optimize)
+    first_stage = CollectionSyncFirstStage(remote, repository, is_repo_remote, optimize)
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     repo_version = d_version.create()
 
@@ -349,19 +352,21 @@ class CollectionSyncFirstStage(Stage):
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote, repository, optimize):
+    def __init__(self, remote, repository, is_repo_remote, optimize):
         """
         The first stage of a pulp_ansible sync pipeline.
 
         Args:
             remote (CollectionRemote): The remote data to be used when syncing
             repository (AnsibleRepository): The repository being syncedself.
+            is_repo_remote (bool): True if the remote is the repository's remote.
             optimize (boolean): Whether to optimize sync or not.
 
         """
         super().__init__()
         self.remote = remote
         self.repository = repository
+        self.is_repo_remote = is_repo_remote
         self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
@@ -705,46 +710,39 @@ class CollectionSyncFirstStage(Stage):
     async def _should_we_sync(self):
         """Check last synced metadata time."""
         msg = _("no_change: Checking if remote changed since last sync.")
-        noop = ProgressReport(message=msg, code="sync.no_change")
-        noop.state = TASK_STATES.COMPLETED
-        noop.save()
-
-        if not self.repository.remote:
-            return True
-
-        if self.remote != self.repository.remote.cast():
-            return True
-
-        root, api_version = await self._get_root_api(self.remote.url)
-        if api_version == 3:
-            downloader = self.remote.get_downloader(
-                url=root, silence_errors_for_response_status_codes={404}
-            )
-            try:
-                metadata = parse_metadata(await downloader.run())
-            except FileNotFoundError:
+        async with ProgressReport(message=msg, code="sync.no_change") as noop:
+            if not self.is_repo_remote:
                 return True
 
-            try:
-                self.last_synced_metadata_time = parse_datetime(metadata["published"])
-            except KeyError:
-                return True
-
-            sources = set()
-            if self.collection_info:
-                sources = {r.source for r in self.collection_info if r.source}
-            sources.add(self.remote.url)
-            if len(sources) > 1:
-                return True
-
-            if self.last_synced_metadata_time == self.repository.last_synced_metadata_time:
-                noop.message = _(
-                    "no-op: {remote} did not change since last sync - {published}".format(
-                        remote=self.remote.url, published=self.last_synced_metadata_time
-                    )
+            root, api_version = await self._get_root_api(self.remote.url)
+            if api_version == 3:
+                downloader = self.remote.get_downloader(
+                    url=root, silence_errors_for_response_status_codes={404}
                 )
-                noop.save()
-                return False
+                try:
+                    metadata = parse_metadata(await downloader.run())
+                except FileNotFoundError:
+                    return True
+
+                try:
+                    self.last_synced_metadata_time = parse_datetime(metadata["published"])
+                except KeyError:
+                    return True
+
+                sources = set()
+                if self.collection_info:
+                    sources = {r.source for r in self.collection_info if r.source}
+                sources.add(self.remote.url)
+                if len(sources) > 1:
+                    return True
+
+                if self.last_synced_metadata_time == self.repository.last_synced_metadata_time:
+                    noop.message = _(
+                        "no-op: {remote} did not change since last sync - {published}".format(
+                            remote=self.remote.url, published=self.last_synced_metadata_time
+                        )
+                    )
+                    return False
 
         return True
 
