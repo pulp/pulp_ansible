@@ -8,11 +8,6 @@ from pulp_smash.exceptions import TaskReportError
 from pulp_smash.pulp3.utils import delete_orphans
 from pulp_smash.utils import http_get
 
-from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_COLLECTION_FILE_NAME,
-    ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL,
-    COLLECTION_METADATA,
-)
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -26,8 +21,10 @@ class UploadCollectionTestCase(unittest.TestCase):
         delete_orphans(cls.cfg)
         cls.client = api.Client(cls.cfg)
 
-        collection_content = http_get(ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL)
-        cls.collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, collection_content)}
+        collection_content = http_get(
+            "https://galaxy.ansible.com/download/pulp-pulp_installer-3.14.0.tar.gz"
+        )
+        cls.collection = {"file": ("pulp-pulp_installer-3.14.0.tar.gz", collection_content)}
         cls.collection_sha256 = hashlib.sha256(collection_content).hexdigest()
 
     def test_collection_upload(self):
@@ -40,6 +37,7 @@ class UploadCollectionTestCase(unittest.TestCase):
         UPLOAD_PATH = urljoin(self.cfg.get_base_url(), "ansible/collections/")
         response = self.client.post(UPLOAD_PATH, files=self.collection)
 
+        COLLECTION_METADATA = {"name": "pulp_installer", "version": "3.14.0"}
         for key, value in response.items():
             with self.subTest(key=key):
                 if key in COLLECTION_METADATA.keys():
