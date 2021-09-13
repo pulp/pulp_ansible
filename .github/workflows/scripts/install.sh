@@ -13,12 +13,7 @@ REPO_ROOT="$PWD"
 
 set -euv
 
-if [ "${GITHUB_REF##refs/tags/}" = "${GITHUB_REF}" ]
-then
-  TAG_BUILD=0
-else
-  TAG_BUILD=1
-fi
+source .github/workflows/scripts/utils.sh
 
 if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
   pip install -r ../pulpcore/doc_requirements.txt
@@ -32,10 +27,12 @@ cd .ci/ansible/
 TAG=ci_build
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   PLUGIN_NAME=pulp_ansible
+elif [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
+  PLUGIN_NAME=./pulp_ansible/dist/pulp_ansible-$PLUGIN_VERSION-py3-none-any.whl
 else
   PLUGIN_NAME=./pulp_ansible
 fi
-if [ "${TAG_BUILD}" = "1" ]; then
+if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
   # Install the plugin only and use published PyPI packages for the rest
   # Quoting ${TAG} ensures Ansible casts the tag as a string.
   cat >> vars/main.yaml << VARSYAML
@@ -44,7 +41,7 @@ image:
   tag: "${TAG}"
 plugins:
   - name: pulpcore
-    source: pulpcore<3.10
+    source: pulpcore==3.7.8
   - name: pulp_ansible
     source:  "${PLUGIN_NAME}"
 services:
@@ -73,6 +70,10 @@ fi
 
 cat >> vars/main.yaml << VARSYAML
 pulp_settings: {"ansible_api_hostname": "http://pulp:80", "ansible_content_hostname": "http://pulp:80/pulp/content"}
+pulp_scheme: http
+
+pulp_container_tag: python36
+
 VARSYAML
 
 if [ "$TEST" = "s3" ]; then
@@ -92,3 +93,7 @@ fi
 
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
+
+echo ::group::PIP_LIST
+cmd_prefix bash -c "pip3 list && pip3 install pipdeptree && pipdeptree"
+echo ::endgroup::

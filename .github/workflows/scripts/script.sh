@@ -26,9 +26,12 @@ export FUNC_TEST_SCRIPT=$PWD/.github/workflows/scripts/func_test_script.sh
 export DJANGO_SETTINGS_MODULE=pulpcore.app.settings
 export PULP_SETTINGS=$PWD/.ci/ansible/settings/settings.py
 
-if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
+export PULP_URL="http://pulp"
+
+if [[ "$TEST" = "docs" ]]; then
   cd docs
-  make PULP_URL="http://pulp" html
+  make PULP_URL="$PULP_URL" diagrams html
+  tar -cvf docs.tar ./_build
   cd ..
 
   if [ -f $POST_DOCS_TEST ]; then
@@ -37,44 +40,44 @@ if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
   exit
 fi
 
+if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
+  REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible/$REPORTED_VERSION/)
+  if [ "$response" == "200" ];
+  then
+    echo "pulp_ansible $REPORTED_VERSION has already been released. Skipping running tests."
+    exit
+  fi
+fi
+
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ansible/json | jq -r '.info.version')
   git checkout ${COMPONENT_VERSION} -- pulp_ansible/tests/
 fi
 
 cd ../pulp-openapi-generator
-
 ./generate.sh pulpcore python
 pip install ./pulpcore-client
-./generate.sh pulp_ansible python
-pip install ./pulp_ansible-client
-cd $REPO_ROOT
-
-if [[ "$TEST" = 'bindings' || "$TEST" = 'publish' ]]; then
-  python $REPO_ROOT/.ci/assets/bindings/test_bindings.py
-  cd ../pulp-openapi-generator
-  if [ ! -f $REPO_ROOT/.ci/assets/bindings/test_bindings.rb ]
-  then
-    exit
-  fi
-
-  rm -rf ./pulpcore-client
-
+rm -rf ./pulpcore-client
+if [[ "$TEST" = 'bindings' ]]; then
   ./generate.sh pulpcore ruby 0
   cd pulpcore-client
-  gem build pulpcore_client
+  gem build pulpcore_client.gemspec
   gem install --both ./pulpcore_client-0.gem
-  cd ..
-  rm -rf ./pulp_ansible-client
+fi
+cd $REPO_ROOT
 
-  ./generate.sh pulp_ansible ruby 0
+if [[ "$TEST" = 'bindings' ]]; then
+  python $REPO_ROOT/.ci/assets/bindings/test_bindings.py
+fi
 
-  cd pulp_ansible-client
-  gem build pulp_ansible_client
-  gem install --both ./pulp_ansible_client-0.gem
-  cd ..
-  ruby $REPO_ROOT/.ci/assets/bindings/test_bindings.rb
-  exit
+if [[ "$TEST" = 'bindings' ]]; then
+  if [ ! -f $REPO_ROOT/.ci/assets/bindings/test_bindings.rb ]; then
+    exit
+  else
+    ruby $REPO_ROOT/.ci/assets/bindings/test_bindings.rb
+    exit
+  fi
 fi
 
 cat unittest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/unittest_requirements.txt"
@@ -85,10 +88,21 @@ echo "Checking for uncommitted migrations..."
 cmd_prefix bash -c "django-admin makemigrations --check --dry-run"
 
 # Run unit tests.
-cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python3.7/site-packages/pulp_ansible/tests/unit/"
+cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python3.6/site-packages/pulp_ansible/tests/unit/"
 
 # Run functional tests
 export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
+
+
+
+if [[ "$TEST" == "performance" ]]; then
+  if [[ -z ${PERFORMANCE_TEST+x} ]]; then
+    pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance
+  else
+    pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_$PERFORMANCE_TEST
+  fi
+  exit
+fi
 
 if [ -f $FUNC_TEST_SCRIPT ]; then
   source $FUNC_TEST_SCRIPT
