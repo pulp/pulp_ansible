@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.10 (2021-09-13)
+===================
+
+Bugfixes
+--------
+
+- Use proxy auth credentials of a Remote when syncing content.
+  `#9390 <https://pulp.plan.io/issues/9390>`_
+
+
+----
+
+
 0.5.9 (2021-04-29)
 ==================
 
