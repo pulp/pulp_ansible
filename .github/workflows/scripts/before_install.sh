@@ -27,10 +27,24 @@ else
   BRANCH="${GITHUB_REF##refs/tags/}"
 fi
 
+COMMIT_MSG=$(git log --format=%B --no-merges -1)
+export COMMIT_MSG
+
+if [[ "$TEST" == "upgrade" ]]; then
+  pip install -r functest_requirements.txt
+  git checkout -b ci_upgrade_test
+  cp -R .github /tmp/.github
+  cp -R .ci /tmp/.ci
+  git checkout $FROM_PULP_ANSIBLE_BRANCH
+  rm -rf .ci .github
+  cp -R /tmp/.github .
+  cp -R /tmp/.ci .
+fi
+
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ansible/json | jq -r '.info.version')
 else
-  COMPONENT_VERSION=$(sed -ne "s/\s*version=['\"]\(.*\)['\"][\s,]*/\1/p" setup.py)
+  COMPONENT_VERSION=$(sed -ne "s/\s*version.*=.*['\"]\(.*\)['\"][\s,]*/\1/p" setup.py)
 fi
 mkdir .ci/ansible/vars || true
 echo "---" > .ci/ansible/vars/main.yaml
@@ -40,9 +54,6 @@ echo "component_version: '${COMPONENT_VERSION}'" >> .ci/ansible/vars/main.yaml
 
 export PRE_BEFORE_INSTALL=$PWD/.github/workflows/scripts/pre_before_install.sh
 export POST_BEFORE_INSTALL=$PWD/.github/workflows/scripts/post_before_install.sh
-
-COMMIT_MSG=$(git log --format=%B --no-merges -1)
-export COMMIT_MSG
 
 if [ -f $PRE_BEFORE_INSTALL ]; then
   source $PRE_BEFORE_INSTALL
@@ -68,32 +79,8 @@ else
   export CI_BASE_IMAGE=
 fi
 
+
 cd ..
-
-git clone --depth=1 https://github.com/pulp/pulp-openapi-generator.git
-if [ -n "$PULP_OPENAPI_GENERATOR_PR_NUMBER" ]; then
-  cd pulp-openapi-generator
-  git fetch origin pull/$PULP_OPENAPI_GENERATOR_PR_NUMBER/head:$PULP_OPENAPI_GENERATOR_PR_NUMBER
-  git checkout $PULP_OPENAPI_GENERATOR_PR_NUMBER
-  cd ..
-fi
-
-cd pulp-openapi-generator
-sed -i -e 's/localhost:24817/pulp/g' generate.sh
-sed -i -e 's/:24817/pulp/g' generate.sh
-cd ..
-
-
-
-git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.12
-
-cd pulpcore
-if [ -n "$PULPCORE_PR_NUMBER" ]; then
-  git fetch --depth=1 origin pull/$PULPCORE_PR_NUMBER/head:$PULPCORE_PR_NUMBER
-  git checkout $PULPCORE_PR_NUMBER
-fi
-cd ..
-
 
 
 git clone --depth=1 https://github.com/pulp/pulp-smash.git
@@ -108,10 +95,43 @@ fi
 pip install --upgrade --force-reinstall ./pulp-smash
 
 
+git clone --depth=1 https://github.com/pulp/pulp-openapi-generator.git
+if [ -n "$PULP_OPENAPI_GENERATOR_PR_NUMBER" ]; then
+  cd pulp-openapi-generator
+  git fetch origin pull/$PULP_OPENAPI_GENERATOR_PR_NUMBER/head:$PULP_OPENAPI_GENERATOR_PR_NUMBER
+  git checkout $PULP_OPENAPI_GENERATOR_PR_NUMBER
+  cd ..
+fi
+
+
+
+git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.12
+
+cd pulpcore
+
+if [ -n "$PULPCORE_PR_NUMBER" ]; then
+  git fetch --depth=1 origin pull/$PULPCORE_PR_NUMBER/head:$PULPCORE_PR_NUMBER
+  git checkout $PULPCORE_PR_NUMBER
+fi
+cd ..
+
+
+
+
 # Intall requirements for ansible playbooks
 pip install docker netaddr boto3 ansible
 
-ansible-galaxy collection install amazon.aws
+for i in {1..3}
+do
+  ansible-galaxy collection install amazon.aws && s=0 && break || s=$? && sleep 3
+done
+if [[ $s -gt 0 ]]
+then
+  echo "Failed to install amazon.aws"
+  exit $s
+fi
+
+sed -i -e 's/DEBUG = False/DEBUG = True/' pulpcore/pulpcore/app/settings.py
 
 cd pulp_ansible
 
