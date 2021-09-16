@@ -157,6 +157,23 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         repo = self.repo_api.read(repo.pulp_href)
         self.assertIsNone(repo.last_synced_metadata_time)
 
+    def test_sync_with_missing_collection(self):
+        """Test that syncing with a non-present collection gives a useful error."""
+        body = gen_ansible_remote(
+            url=self.distribution.client_url,
+            requirements_file="collections:\n  - absent.not_present",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        with self.assertRaises(PulpTaskError) as cm:
+            self._create_repo_and_sync_with_remote(remote)
+
+        task_result = cm.exception.task.to_dict()
+        msg = "absent.not_present does not exist"
+        self.assertIn(msg, task_result["error"]["description"], task_result["error"]["description"])
+
 
 @unittest.skipUnless(
     "AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
