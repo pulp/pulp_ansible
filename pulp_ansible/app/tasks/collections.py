@@ -19,6 +19,7 @@ from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
 from pkg_resources import Requirement
 from rq.job import get_current_job
+from rest_framework.serializers import ValidationError
 
 from pulpcore.plugin.constants import TASK_STATES
 from pulpcore.plugin.models import (
@@ -386,7 +387,7 @@ class CollectionSyncFirstStage(Stage):
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.exclude_info = {req.name: req for req in map(parse_requirements_entry, excludes)}
         self.deprecations = Q()
-
+        self.already_synced = set()
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
         self.last_synced_metadata_time = None
@@ -455,8 +456,10 @@ class CollectionSyncFirstStage(Stage):
             version=metadata["version"],
         )
         cv_unique = attrgetter("namespace", "name", "version")(collection_version)
-        fullname = ".".join(cv_unique[:2])
-        if fullname in self.exclude_info and cv_unique[2] in self.exclude_info[fullname]:
+        fullname, version = f"{cv_unique[0]}.{cv_unique[1]}", cv_unique[2]
+        if fullname in self.exclude_info and version in self.exclude_info[fullname]:
+            return
+        if cv_unique in self.already_synced:
             return
 
         info = metadata["metadata"]
@@ -592,15 +595,32 @@ class CollectionSyncFirstStage(Stage):
         root_endpoint, api_version = await self._get_root_api(self.remote.url)
         self._api_version = api_version
         if api_version > 2:
+            loop = asyncio.get_event_loop()
+
             collection_endpoint = f"{root_endpoint}/collections/all/"
-            downloader = self.remote.get_downloader(
+            excludes_endpoint = f"{root_endpoint}/excludes/"
+            col_downloader = self.remote.get_downloader(
                 url=collection_endpoint, silence_errors_for_response_status_codes={404}
             )
-            try:
-                collection_metadata_list = parse_metadata(await downloader.run())
-            except FileNotFoundError:
-                pass
-            else:
+            exc_downloader = self.remote.get_downloader(
+                url=excludes_endpoint, silence_errors_for_response_status_codes={404}
+            )
+            tasks = [loop.create_task(col_downloader.run()), loop.create_task(exc_downloader.run())]
+            col_results, exc_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            if not isinstance(exc_results, FileNotFoundError):
+                excludes_response = parse_metadata(exc_results)
+                if excludes_response:
+                    try:
+                        excludes_list = parse_collections_requirements_file(excludes_response)
+                    except ValidationError:
+                        pass
+                    else:
+                        excludes = {r.name: parse_requirements_entry(r) for r in excludes_list}
+                        self.exclude_info.update(excludes)
+
+            if not isinstance(col_results, FileNotFoundError):
+                collection_metadata_list = parse_metadata(col_results)
                 self._unpaginated_collection_metadata = defaultdict(dict)
                 for collection in collection_metadata_list:
                     namespace = collection["namespace"]
