@@ -543,6 +543,14 @@ class CollectionSyncFirstStage(Stage):
         tasks = []
         loop = asyncio.get_event_loop()
 
+        if (
+            namespace not in self._unpaginated_collection_metadata
+            or name not in self._unpaginated_collection_metadata[namespace]
+        ):
+            raise FileNotFoundError(
+                f"Collection {namespace}.{name} does not exist on {self.remote.url}"
+            )
+
         if self._unpaginated_collection_metadata[namespace][name]["deprecated"]:
             d_content = DeclarativeContent(
                 content=AnsibleCollectionDeprecated(namespace=namespace, name=name),

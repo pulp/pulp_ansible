@@ -1,0 +1,1 @@
+Added a better error message when trying to sync a missing collection using V3 endpoints.
