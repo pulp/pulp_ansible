@@ -73,17 +73,20 @@ def parse_collections_requirements_file(requirements_file_string):
     collection_info = []
 
     if requirements_file_string:
-        try:
-            requirements = yaml.safe_load(requirements_file_string)
-        except YAMLError as err:
-            raise ValidationError(
-                _(
-                    "Failed to parse the collection requirements yml: {file} "
-                    "with the following error: {error}".format(
-                        file=requirements_file_string, error=err
+        if isinstance(requirements_file_string, str):
+            try:
+                requirements = yaml.safe_load(requirements_file_string)
+            except YAMLError as err:
+                raise ValidationError(
+                    _(
+                        "Failed to parse the collection requirements yml: {file} "
+                        "with the following error: {error}".format(
+                            file=requirements_file_string, error=err
+                        )
                     )
                 )
-            )
+        else:
+            requirements = requirements_file_string
 
         if not isinstance(requirements, dict) or "collections" not in requirements:
             raise ValidationError(
