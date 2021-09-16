@@ -19,6 +19,7 @@ from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
 from pkg_resources import Requirement
+from rest_framework.serializers import ValidationError
 
 from pulpcore.plugin.models import (
     Artifact,
@@ -157,6 +158,25 @@ def sync(remote_pk, repository_pk, mirror, optimize):
         RepositoryContent.objects.filter(
             repository=repository, content__in=deprecated
         ).all().update(version_removed=repo_version)
+
+
+def parse_requirements_entry(requirements_entry):
+    """Parses a `RequirementsFileEntry` and returns a `Requirement` object."""
+    if requirements_entry.version == "*":
+        requirement_version = Requirement.parse("collection")
+    else:
+        # We need specifiers to enforce Requirement object criteria
+        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
+        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
+        # If requirements_entry.version is a valid version, adds == specifier to the requirement
+        try:
+            Version(requirements_entry.version)
+            req_to_parse = f"collection=={requirements_entry.version}"
+        except ValueError:
+            req_to_parse = f"collection{requirements_entry.version}"
+
+        requirement_version = Requirement.parse(req_to_parse)
+    return requirement_version
 
 
 def import_collection(
@@ -386,6 +406,7 @@ class CollectionSyncFirstStage(Stage):
         self.deprecation_after_sync = set()
         self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
+        self.exclude_info = {}
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
         self.already_synced = set()
         self._unpaginated_collection_metadata = None
@@ -455,6 +476,9 @@ class CollectionSyncFirstStage(Stage):
             version=metadata["version"],
         )
         cv_unique = attrgetter("namespace", "name", "version")(collection_version)
+        fullname, version = f"{cv_unique[0]}.{cv_unique[1]}", cv_unique[2]
+        if fullname in self.exclude_info and version in self.exclude_info[fullname]:
+            return
         if cv_unique in self.already_synced:
             return
         self.already_synced.add(cv_unique)
@@ -591,20 +615,7 @@ class CollectionSyncFirstStage(Stage):
         await asyncio.gather(*tasks)
 
     async def _fetch_collection_metadata(self, requirements_entry):
-        if requirements_entry.version == "*":
-            requirement_version = Requirement.parse("collection")
-        else:
-            # We need specifiers to enforce Requirement object criteria
-            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
-            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
-            # If requirements_entry.version is a valid version, adds == specifier to the requirement
-            try:
-                Version(requirements_entry.version)
-                req_to_parse = f"collection=={requirements_entry.version}"
-            except ValueError:
-                req_to_parse = f"collection{requirements_entry.version}"
-
-            requirement_version = Requirement.parse(req_to_parse)
+        requirement_version = parse_requirements_entry(requirements_entry)
 
         namespace, name = requirements_entry.name.split(".")
 
@@ -634,15 +645,32 @@ class CollectionSyncFirstStage(Stage):
         root_endpoint, api_version = await self._get_root_api(self.remote.url)
         self._api_version = api_version
         if api_version > 2:
+            loop = asyncio.get_event_loop()
+
             collection_endpoint = f"{root_endpoint}/collections/all/"
-            downloader = self.remote.get_downloader(
+            excludes_endpoint = f"{root_endpoint}/excludes/"
+            col_downloader = self.remote.get_downloader(
                 url=collection_endpoint, silence_errors_for_response_status_codes={404}
             )
-            try:
-                collection_metadata_list = parse_metadata(await downloader.run())
-            except FileNotFoundError:
-                pass
-            else:
+            exc_downloader = self.remote.get_downloader(
+                url=excludes_endpoint, silence_errors_for_response_status_codes={404}
+            )
+            tasks = [loop.create_task(col_downloader.run()), loop.create_task(exc_downloader.run())]
+            col_results, exc_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+            if not isinstance(exc_results, FileNotFoundError):
+                excludes_response = parse_metadata(exc_results)
+                if excludes_response:
+                    try:
+                        excludes_list = parse_collections_requirements_file(excludes_response)
+                    except ValidationError:
+                        pass
+                    else:
+                        excludes = {r.name: parse_requirements_entry(r) for r in excludes_list}
+                        self.exclude_info.update(excludes)
+
+            if not isinstance(col_results, FileNotFoundError):
+                collection_metadata_list = parse_metadata(col_results)
                 self._unpaginated_collection_metadata = defaultdict(dict)
                 for collection in collection_metadata_list:
                     namespace = collection["namespace"]
