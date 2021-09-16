@@ -220,14 +220,17 @@ class AutomationHubV3SyncCase(PulpTestCase, SyncHelpersMixin):
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
         cls.collections_api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
+        cls.url = "https://cloud.redhat.com/api/automation-hub/"
+        cls.aurl = (
+            "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
+        )
 
     def test_sync_with_token_from_automation_hub(self):
         """Test whether we can sync with an auth token from Automation Hub."""
-        aurl = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
         body = gen_ansible_remote(
-            url="https://cloud.redhat.com/api/automation-hub/",
+            url=self.url,
             requirements_file="collections:\n  - ansible.posix",
-            auth_url=aurl,
+            auth_url=self.aurl,
             token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
@@ -242,7 +245,45 @@ class AutomationHubV3SyncCase(PulpTestCase, SyncHelpersMixin):
         original_content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertTrue(len(original_content.results) >= 3)  # check that we have at least 3 results
 
+    @unittest.skip("Skipping until synclist no longer creates new repository")
+    def test_syncing_with_excludes_list_from_automation_hub(self):
+        """Test if syncing collections know to be on the synclist will be mirrored."""
+        namespace = "autohubtest2"
+        # Collections are randomly generated, in case of failure, please change the names below:
+        name = "collection_dep_a_zzduuntr"
+        excluded = "collection_dep_a_tworzgsx"
+        excluded_version = "awcrosby.collection_test==2.1.0"
+        requirements = f"""
+        collections:
+          - {namespace}.{name}
+          - {namespace}.{excluded}
+          - {excluded_version}
+        """
+        body = gen_ansible_remote(
+            url=self.url,
+            requirements_file=requirements,
+            auth_url=self.aurl,
+            token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
+            rate_limit=10,
+            tls_validation=False,
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        # Assert that at least one CollectionVersion was downloaded
+        repo_ver = f"{repo.pulp_href}versions/1/"
+        content = self.cv_api.list(repository_version=repo_ver)
+        self.assertTrue(content.count >= 1)
+
+        # Assert that excluded collection was not synced
+        exclude_content = self.cv_api.list(repository_version=repo_ver, name=excluded)
+        self.assertTrue(exclude_content.count == 0)
+
+
+# TODO QA-AH has been deprecated, remove/replace tests
 @unittest.skipUnless(
     "QA_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
     "'QA_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
