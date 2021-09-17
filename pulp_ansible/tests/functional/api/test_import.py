@@ -101,12 +101,8 @@ class BaseImport(BaseExport):
                 f for f in list(self.export.output_file_info.keys()) if f.endswith("tar.gz")
             ]
             import_response = self.imports_api.create(importer.pulp_href, {"path": filenames[0]})
-        monitor_task(import_response.task)
-        task = self.api_client.get(import_response.task)
-        resources = task["created_resources"]
-        task_group_href = resources[1]
-        task_group = monitor_task_group(task_group_href)
 
+        task_group = monitor_task_group(import_response.task_group)
         return task_group
 
 
