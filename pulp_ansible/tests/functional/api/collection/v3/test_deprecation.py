@@ -11,7 +11,7 @@ from pulp_smash.pulp3.bindings import monitor_task
 class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Test deprecation status sync."""
 
-    def test_v3_deprecation(self):
+    def deprecation_scenario(self, **repo_kwargs):
         """Test sync  sync."""
         # Sync down two collections into a repo
         requirements = (
@@ -26,7 +26,7 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         first_remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, first_remote.pulp_href)
 
-        first_repo = self._create_repo_and_sync_with_remote(first_remote)
+        first_repo = self._create_repo_and_sync_with_remote(first_remote, **repo_kwargs)
         first_distro = self._create_distribution_from_repo(first_repo)
 
         # Assert the state of deprecated True for testing, False for pulp
@@ -43,7 +43,7 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         second_remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
 
-        second_repo = self._create_repo_with_attached_remote_and_sync(second_remote)
+        second_repo = self._create_repo_with_attached_remote_and_sync(second_remote, **repo_kwargs)
         second_distribution = self._create_distribution_from_repo(second_repo)
 
         # Ensure the second remote received a deprecated=True for the testing namespace collection
@@ -75,3 +75,11 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         collections = self.collections_v3api.list(second_distribution.base_path)
         for collection in collections.data:
             self.assertFalse(collection.deprecated)
+
+    def test_v3_deprecation(self):
+        """Test that the deprecation status is set correctly for collections."""
+        self.deprecation_scenario()
+
+    def test_v3_deprecation_with_repo_versions_retained(self):
+        """Test that the deprecation status is set correctly for collections."""
+        self.deprecation_scenario(retain_repo_versions=1)
