@@ -12,6 +12,7 @@ from aiohttp.client_exceptions import ClientResponseError
 from async_lru import alru_cache
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Q
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from galaxy_importer.collection import import_collection as process_collection
@@ -128,7 +129,14 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
-    first_stage = CollectionSyncFirstStage(remote, repository, is_repo_remote, optimize)
+    deprecation_before_sync = set()
+    for namespace, name in AnsibleCollectionDeprecated.objects.filter(
+        pk__in=repository.latest_version().content
+    ).values_list("namespace", "name"):
+        deprecation_before_sync.add(f"{namespace}.{name}")
+    first_stage = CollectionSyncFirstStage(
+        remote, repository, is_repo_remote, deprecation_before_sync, optimize
+    )
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     repo_version = d_version.create()
 
@@ -139,10 +147,16 @@ def sync(remote_pk, repository_pk, mirror, optimize):
         repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
         repository.save()
 
-    deprecated = AnsibleCollectionDeprecated.objects.filter(pk__in=repo_version.content)
-    RepositoryContent.objects.filter(repository=repository, content__in=deprecated).exclude(
-        version_added=repo_version
-    ).all().update(version_removed=repo_version)
+    to_undeprecate = Q()
+    undeprecated = deprecation_before_sync.difference(first_stage.deprecation_after_sync)
+    if undeprecated:
+        for collection in undeprecated:
+            namespace, name = collection.split(".")
+            to_undeprecate |= Q(namespace=namespace, name=name)
+        deprecated = AnsibleCollectionDeprecated.objects.filter(to_undeprecate)
+        RepositoryContent.objects.filter(
+            repository=repository, content__in=deprecated
+        ).all().update(version_removed=repo_version)
 
 
 def import_collection(
@@ -352,7 +366,7 @@ class CollectionSyncFirstStage(Stage):
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote, repository, is_repo_remote, optimize):
+    def __init__(self, remote, repository, is_repo_remote, deprecation_before_sync, optimize):
         """
         The first stage of a pulp_ansible sync pipeline.
 
@@ -360,6 +374,7 @@ class CollectionSyncFirstStage(Stage):
             remote (CollectionRemote): The remote data to be used when syncing
             repository (AnsibleRepository): The repository being syncedself.
             is_repo_remote (bool): True if the remote is the repository's remote.
+            deprecation_before_sync (set): Set of deprecations before the sync.
             optimize (boolean): Whether to optimize sync or not.
 
         """
@@ -367,6 +382,8 @@ class CollectionSyncFirstStage(Stage):
         self.remote = remote
         self.repository = repository
         self.is_repo_remote = is_repo_remote
+        self.deprecation_before_sync = deprecation_before_sync
+        self.deprecation_after_sync = set()
         self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
@@ -523,6 +540,7 @@ class CollectionSyncFirstStage(Stage):
                         d_content = DeclarativeContent(
                             content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
                         )
+                        self.deprecation_after_sync.add(f"{namespace}.{name}")
                         await self.put(d_content)
                     tasks.append(
                         loop.create_task(
@@ -555,6 +573,7 @@ class CollectionSyncFirstStage(Stage):
             d_content = DeclarativeContent(
                 content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
             )
+            self.deprecation_after_sync.add(f"{namespace}.{name}")
             await self.put(d_content)
 
         all_versions_of_collection = self._unpaginated_collection_version_metadata[namespace][name]
@@ -655,6 +674,9 @@ class CollectionSyncFirstStage(Stage):
                         content=AnsibleCollectionDeprecated(
                             namespace=collection["namespace"], name=collection["name"]
                         ),
+                    )
+                    self.deprecation_after_sync.add(
+                        f"{collection['namespace']}.{collection['name']}"
                     )
                     await self.put(d_content)
 
