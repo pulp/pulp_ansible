@@ -5,7 +5,7 @@ from time import sleep
 import unittest
 
 from pulp_smash import api, config, selectors
-from pulp_smash.pulp3.bindings import monitor_task, PulpTestCase
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_remote,
@@ -154,11 +154,16 @@ class TestCaseUsingBindings(PulpTestCase):
         cls.collections_v3api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.collections_versions_v3api = PulpAnsibleApiV3CollectionsVersionsApi(cls.client)
 
+    @classmethod
+    def tearDownClass(cls):
+        """Clean class-wide variable."""
+        delete_orphans()
+
 
 class SyncHelpersMixin:
     """A common place for sync helper functions."""
 
-    def _create_repo_and_sync_with_remote(self, remote):
+    def _create_repo_and_sync_with_remote(self, remote, **repo_kwargs):
         """
         Create a repository and then sync with the provided `remote`.
 
@@ -169,11 +174,11 @@ class SyncHelpersMixin:
             repository: The created repository object to be asserted to.
         """
         # Create the repository.
-        repo = self.repo_api.create(gen_repo(remote=remote.pulp_href))
+        repo = self.repo_api.create(gen_repo(remote=remote.pulp_href, **repo_kwargs))
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
         return self._sync_repo(repo, remote=remote.pulp_href)
 
-    def _create_repo_with_attached_remote_and_sync(self, remote):
+    def _create_repo_with_attached_remote_and_sync(self, remote, **repo_kwargs):
         """
         Create a repository with the remote attached, and then sync without specifying the `remote`.
 
@@ -184,7 +189,7 @@ class SyncHelpersMixin:
             repository: The created repository object to be asserted to.
         """
         # Create the repository.
-        repo = self.repo_api.create(gen_repo(remote=remote.pulp_href))
+        repo = self.repo_api.create(gen_repo(remote=remote.pulp_href, **repo_kwargs))
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
         return self._sync_repo(repo)
 
