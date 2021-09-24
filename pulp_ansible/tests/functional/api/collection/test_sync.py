@@ -37,8 +37,11 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(repo.latest_version_href, f"{repo.versions_href}2/")
 
         # Assert more CollectionVersion are present in the first sync than the second
-        content_version_one = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(content_version_one.results), 3)
+        if repo.retain_repo_versions and repo.retain_repo_versions > 1:
+            content_version_one = self.cv_api.list(
+                repository_version=f"{repo.pulp_href}versions/1/"
+            )
+            self.assertGreaterEqual(len(content_version_one.results), 3)
         content_version_two = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/2/")
         self.assertEqual(len(content_version_two.results), 1)
 
@@ -66,8 +69,11 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(repo.latest_version_href, f"{repo.versions_href}2/")
 
         # Assert more CollectionVersion are present in the first sync than the second
-        content_version_one = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(content_version_one.results), 3)
+        if repo.retain_repo_versions and repo.retain_repo_versions > 1:
+            content_version_one = self.cv_api.list(
+                repository_version=f"{repo.pulp_href}versions/1/"
+            )
+            self.assertGreaterEqual(len(content_version_one.results), 3)
         content_version_two = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/2/")
         self.assertEqual(len(content_version_two.results), 4)
 
@@ -95,8 +101,11 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(repo.latest_version_href, f"{repo.versions_href}2/")
 
         # Assert more CollectionVersion are present in the first sync than the second
-        content_version_one = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(content_version_one.results), 3)
+        if repo.retain_repo_versions and repo.retain_repo_versions > 1:
+            content_version_one = self.cv_api.list(
+                repository_version=f"{repo.pulp_href}versions/1/"
+            )
+            self.assertGreaterEqual(len(content_version_one.results), 3)
         content_version_two = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/2/")
         self.assertEqual(len(content_version_two.results), 4)
 
