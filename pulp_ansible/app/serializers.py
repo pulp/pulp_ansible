@@ -468,7 +468,7 @@ class CollectionImportListSerializer(serializers.ModelSerializer):
     created_at = serializers.DateTimeField(source="task.pulp_created")
     updated_at = serializers.DateTimeField(source="task.pulp_last_updated")
     started_at = serializers.DateTimeField(source="task.started_at")
-    finished_at = serializers.DateTimeField(source="task.finished_at")
+    finished_at = serializers.DateTimeField(source="task.finished_at", required=False)
 
     class Meta:
         model = CollectionImport
@@ -480,7 +480,7 @@ class CollectionImportDetailSerializer(CollectionImportListSerializer):
     A serializer for a CollectionImport detail view.
     """
 
-    error = serializers.JSONField(source="task.error")
+    error = serializers.JSONField(source="task.error", required=False)
     messages = serializers.JSONField()
 
     class Meta(CollectionImportListSerializer.Meta):
