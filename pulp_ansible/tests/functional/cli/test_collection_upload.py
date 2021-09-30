@@ -102,8 +102,8 @@ class InstallCollectionTestCase(PulpTestCase):
         temp_path = f"/tmp/{uuid4()}"
         subprocess.run(f"mkdir -p {temp_path}".split())
 
-        content = http_get("https://galaxy.ansible.com/download/pulp-pulp_installer-3.14.0.tar.gz")
-        collection_path = f"{temp_path}/pulp-pulp_installer-3.14.0.tar.gz"
+        content = http_get("https://galaxy.ansible.com/download/pulp-squeezer-0.0.9.tar.gz")
+        collection_path = f"{temp_path}/pulp-squeezer-0.0.9.tar.gz"
         with open(collection_path, "wb") as f:
             f.write(content)
 
@@ -121,7 +121,7 @@ class InstallCollectionTestCase(PulpTestCase):
         self.assertEqual(repo_version.number, 1)  # We uploaded 1 collection
 
         version = self.collections_versions_v3api.read(
-            "pulp_installer", "pulp", distribution.base_path, "3.14.0"
+            "squeezer", "pulp", distribution.base_path, "0.0.9"
         )
 
-        self.assertEqual(version.requires_ansible, ">=2.9,<3.1")
+        self.assertEqual(version.requires_ansible, ">=2.8")
