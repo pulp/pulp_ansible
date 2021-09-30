@@ -32,7 +32,7 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         """Test Collections V3 endpoint field: ``updated_at``."""
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
-            requirements_file="collections:\n  - pulp.pulp_installer",
+            requirements_file="collections:\n  - pulp.squeezer",
             sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
@@ -46,9 +46,9 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         original_highest_version = collections.data[0].highest_version["version"]
         original_updated_at = collections.data[0].updated_at
 
-        versions = self.collections_versions_api.list(version="3.6.4")
+        versions = self.collections_versions_api.list(version="0.0.7")
         original_total_versions = self.collections_versions_v3api.list(
-            "pulp_installer", "pulp", distribution.base_path
+            "squeezer", "pulp", distribution.base_path
         ).meta.count
 
         data = {"remove_content_units": [versions.results[0].pulp_href]}
@@ -60,7 +60,7 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         updated_at = collections.data[0].updated_at
 
         total_versions = self.collections_versions_v3api.list(
-            "pulp_installer", "pulp", distribution.base_path
+            "squeezer", "pulp", distribution.base_path
         ).meta.count
 
         self.assertEqual(highest_version, original_highest_version)

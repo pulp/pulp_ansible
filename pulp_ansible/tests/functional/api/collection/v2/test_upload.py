@@ -11,7 +11,7 @@ from pulp_ansible.tests.functional.utils import gen_ansible_client
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-COLLECTION_URL = "https://galaxy.ansible.com/download/pulp-pulp_installer-3.14.0.tar.gz"
+COLLECTION_URL = "https://galaxy.ansible.com/download/pulp-squeezer-0.0.9.tar.gz"
 
 
 class UploadCollectionTestCase(PulpTestCase):
