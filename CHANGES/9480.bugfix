@@ -1,0 +1,2 @@
+Fixed optimized mirror syncs erroneously removing all content in the repository.
+(backported from #9476)

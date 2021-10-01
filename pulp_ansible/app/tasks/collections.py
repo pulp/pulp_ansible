@@ -126,6 +126,10 @@ def sync(remote_pk, repository_pk, mirror, optimize):
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
     first_stage = CollectionSyncFirstStage(remote, repository, optimize)
+    if first_stage.should_sync is False:
+        log.debug(_("no-op: remote wasn't updated since last sync."))
+        return
+
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     repo_version = d_version.create()
 
@@ -373,7 +377,6 @@ class CollectionSyncFirstStage(Stage):
         super().__init__()
         self.remote = remote
         self.repository = repository
-        self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.deprecations = Q()
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
@@ -384,6 +387,11 @@ class CollectionSyncFirstStage(Stage):
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
+
+        # Check if we should sync
+        self.should_sync = not optimize or asyncio.get_event_loop().run_until_complete(
+            self._should_we_sync()
+        )
 
     @alru_cache(maxsize=128)
     async def _get_root_api(self, root):
@@ -755,12 +763,6 @@ class CollectionSyncFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        if self.optimize:
-            should_we_sync = await self._should_we_sync()
-            if should_we_sync is False:
-                log.debug(_("no-op: remote wasn't updated since last sync."))
-                return
-
         tasks = []
         loop = asyncio.get_event_loop()
 
