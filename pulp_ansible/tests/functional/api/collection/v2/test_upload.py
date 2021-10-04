@@ -1,31 +1,44 @@
 """Tests related to upload of collections."""
 import hashlib
-import unittest
-from urllib.parse import urljoin
+from tempfile import NamedTemporaryFile
 
-from pulp_smash import api, config
-from pulp_smash.exceptions import TaskReportError
-from pulp_smash.pulp3.utils import delete_orphans
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase, PulpTaskError
 from pulp_smash.utils import http_get
 
+from pulpcore.client.pulp_ansible import AnsibleCollectionsApi, ContentCollectionVersionsApi
+
+from pulp_ansible.tests.functional.utils import gen_ansible_client
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
-class UploadCollectionTestCase(unittest.TestCase):
+COLLECTION_URL = "https://galaxy.ansible.com/download/pulp-squeezer-0.0.9.tar.gz"
+
+
+class UploadCollectionTestCase(PulpTestCase):
     """Upload a collection."""
 
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
-        cls.cfg = config.get_config()
-        delete_orphans(cls.cfg)
-        cls.client = api.Client(cls.cfg)
+        delete_orphans()
+        cls.client = gen_ansible_client()
+        cls.collections_api = AnsibleCollectionsApi(cls.client)
+        cls.content_api = ContentCollectionVersionsApi(cls.client)
 
-        collection_content = http_get(
-            "https://galaxy.ansible.com/download/pulp-pulp_installer-3.14.0.tar.gz"
-        )
-        cls.collection = {"file": ("pulp-pulp_installer-3.14.0.tar.gz", collection_content)}
-        cls.collection_sha256 = hashlib.sha256(collection_content).hexdigest()
+    @classmethod
+    def tearDownClass(cls):
+        """Clean up after tests."""
+        delete_orphans()
+
+    def upload_collection(self, url=COLLECTION_URL):
+        """Upload a collection."""
+        collection_content = http_get(url)
+        self.collection_sha256 = hashlib.sha256(collection_content).hexdigest()
+        with NamedTemporaryFile() as temp_file:
+            temp_file.write(collection_content)
+            response = self.collections_api.upload_collection(file=temp_file.name)
+            collection_version_href = monitor_task(response.task).created_resources[0]
+            return self.content_api.read(collection_version_href)
 
     def test_collection_upload(self):
         """Upload a collection.
@@ -34,17 +47,17 @@ class UploadCollectionTestCase(unittest.TestCase):
 
         * `Pulp #5262 <https://pulp.plan.io/issues/5262>`_
         """
-        UPLOAD_PATH = urljoin(self.cfg.get_base_url(), "ansible/collections/")
-        response = self.client.post(UPLOAD_PATH, files=self.collection)
+        response = self.upload_collection()
 
-        self.assertEqual(response["sha256"], self.collection_sha256, response)
+        self.assertEqual(response.sha256, self.collection_sha256, response)
 
-        with self.assertRaises(TaskReportError) as exc:
-            self.client.post(UPLOAD_PATH, files=self.collection)
+        with self.assertRaises(PulpTaskError) as exc:
+            self.upload_collection()
 
-        self.assertEqual(exc.exception.task["state"], "failed")
-        error = exc.exception.task["error"]
+        task_result = exc.exception.task.to_dict()
+        self.assertEqual(task_result["state"], "failed")
+        error = task_result["error"]
         for key in ("artifact", "already", "exists"):
-            self.assertIn(key, error["description"].lower(), error)
+            self.assertIn(key, task_result["error"]["description"].lower(), error)
 
-        delete_orphans(self.cfg)
+        delete_orphans()

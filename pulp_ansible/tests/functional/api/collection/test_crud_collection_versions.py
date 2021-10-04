@@ -96,7 +96,7 @@ class ContentUnitTestCase(unittest.TestCase):
         """Clean class-wide variable."""
         delete_orphans()
 
-    def upload_collection(self, namespace="pulp", name="pulp_installer", version="3.14.0"):
+    def upload_collection(self, namespace="pulp", name="squeezer", version="0.0.9"):
         """Upload collection."""
         url = f"https://galaxy.ansible.com/download/{namespace}-{name}-{version}.tar.gz"
         collection_content = http_get(url)
@@ -108,7 +108,7 @@ class ContentUnitTestCase(unittest.TestCase):
 
     def test_01_create_content_unit(self):
         """Create content unit."""
-        attrs = dict(namespace="pulp", name="pulp_installer", version="3.14.0")
+        attrs = dict(namespace="pulp", name="squeezer", version="0.0.9")
         response = self.upload_collection(**attrs)
         created_resources = monitor_task(response.task).created_resources
         content_unit = self.cv_content_api.read(created_resources[0])
@@ -174,7 +174,7 @@ class ContentUnitTestCase(unittest.TestCase):
     @skip_if(bool, "content_unit", False)
     def test_05_duplicate_raise_error(self):
         """Attempt to create duplicate collection."""
-        attrs = dict(namespace="pulp", name="pulp_installer", version="3.14.0")
+        attrs = dict(namespace="pulp", name="squeezer", version="0.0.9")
         with self.assertRaises(ApiException) as ctx:
             self.upload_collection(**attrs)
         self.assertIn(

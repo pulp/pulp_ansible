@@ -14,7 +14,7 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         """Test sync  sync."""
         # Sync down two collections into a repo
         requirements = (
-            "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.pulp_installer"
+            "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.squeezer"
         )
 
         body = gen_ansible_remote(
@@ -60,7 +60,7 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         # Update the requirements to sync down both collections this time
         requirements = (
-            "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.pulp_installer"
+            "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.squeezer"
         )
         self.remote_collection_api.partial_update(
             second_remote.pulp_href, {"requirements_file": requirements}
