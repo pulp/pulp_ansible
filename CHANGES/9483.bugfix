@@ -1,0 +1,1 @@
+Changed the use of ``dispatch`` to match the signature from pulpcore>=3.15.

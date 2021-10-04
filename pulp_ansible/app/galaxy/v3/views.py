@@ -327,7 +327,7 @@ class CollectionViewSet(
 
         task = dispatch(
             add_and_remove,
-            [repo_version.repository],
+            exclusive_resources=[repo_version.repository],
             kwargs={
                 "repository_pk": repo_version.repository.pk,
                 "base_version_pk": repo_version.pk,
