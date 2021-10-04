@@ -13,6 +13,20 @@ Changelog
 
 .. towncrier release notes start
 
+0.9.2 (2021-10-04)
+==================
+
+Bugfixes
+--------
+
+- Fixed optimized mirror syncs erroneously removing all content in the repository.
+  (backported from #9476)
+  `#9480 <https://pulp.plan.io/issues/9480>`_
+
+
+----
+
+
 0.9.1 (2021-08-25)
 ==================
 
