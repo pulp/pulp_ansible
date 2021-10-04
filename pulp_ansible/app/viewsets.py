@@ -267,7 +267,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
 
         result = dispatch(
             sync_func,
-            [repository, remote],
+            exclusive_resources=[repository, remote],
             kwargs=sync_kwargs,
         )
         return OperationPostponedResponse(result, request)
@@ -304,7 +304,7 @@ class CollectionRemoteViewSet(RemoteViewSet):
         lock.extend(repos)
         async_result = dispatch(
             update_collection_remote,
-            lock,
+            exclusive_resources=lock,
             args=(pk,),
             kwargs={"data": request.data, "partial": partial},
         )
@@ -401,7 +401,7 @@ class CopyViewSet(viewsets.ViewSet):
 
         config, repos = self._process_config(config)
 
-        async_result = dispatch(copy_content, repos, args=[config], kwargs={})
+        async_result = dispatch(copy_content, exclusive_resources=repos, args=[config], kwargs={})
         return OperationPostponedResponse(async_result, request)
 
     def _process_config(self, config):

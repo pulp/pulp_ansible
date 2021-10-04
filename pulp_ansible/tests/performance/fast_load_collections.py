@@ -33,5 +33,5 @@ if __name__ == "__main__":
         for file in files:
             if file.endswith(".tar.gz"):
                 async_result = dispatch(
-                    import_collection_from_path, [], args=(os.path.join(root, file),)
+                    import_collection_from_path, args=(os.path.join(root, file),)
                 )

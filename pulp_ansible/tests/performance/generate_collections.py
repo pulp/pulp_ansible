@@ -57,4 +57,4 @@ if __name__ == "__main__":
             "collection_n": args.collections_per_namespace[0],
             "versions_per_collection": args.versions_per_collection[0],
         }
-        async_result = dispatch(create_namespace, [], args=(args.base_path[0],), kwargs=kwargs)
+        async_result = dispatch(create_namespace, args=(args.base_path[0],), kwargs=kwargs)

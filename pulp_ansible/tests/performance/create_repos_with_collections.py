@@ -67,11 +67,11 @@ if __name__ == "__main__":
     while repos_to_still_make > 0:
         if repos_to_still_make >= args.batch_size[0]:
             task_args = (args.batch_size[0], num_repo_versions_per_repo, collection_percentage)
-            async_result = dispatch(create_repos_with_collections, [], args=task_args)
+            async_result = dispatch(create_repos_with_collections, args=task_args)
             print("Dispatched task with {} repositories".format(args.batch_size[0]))
             repos_to_still_make = repos_to_still_make - args.batch_size[0]
         else:
             task_args = (repos_to_still_make, num_repo_versions_per_repo, collection_percentage)
-            async_result = dispatch(create_repos_with_collections, [], args=task_args)
+            async_result = dispatch(create_repos_with_collections, args=task_args)
             print("Dispatched task with {} repositories".format(repos_to_still_make))
             repos_to_still_make = 0
