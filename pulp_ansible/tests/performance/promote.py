@@ -37,4 +37,4 @@ args = parser.parse_args()
 
 if __name__ == "__main__":
     task_args = (args.repos_per_task[0], args.num_repos_to_update[0])
-    dispatch(promote_content, [], args=task_args)
+    dispatch(promote_content, args=task_args)

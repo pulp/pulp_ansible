@@ -18,4 +18,4 @@ class UploadGalaxyCollectionMixin:
             locks.append(repository)
             kwargs["repository_pk"] = repository.pk
 
-        return dispatch(import_collection, locks, kwargs=kwargs)
+        return dispatch(import_collection, exclusive_resources=locks, kwargs=kwargs)
