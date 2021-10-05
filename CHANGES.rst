@@ -13,6 +13,31 @@ Changelog
 
 .. towncrier release notes start
 
+0.10.1 (2021-10-05)
+===================
+
+Bugfixes
+--------
+
+- Added a better error message when trying to sync a missing collection using V3 endpoints.
+  `#9404 <https://pulp.plan.io/issues/9404>`_
+- Ensure deprecation status is in sync with the remote
+  `#9442 <https://pulp.plan.io/issues/9442>`_
+- Fixed optimized mirror syncs erroneously removing all content in the repository.
+  `#9476 <https://pulp.plan.io/issues/9476>`_
+- Changed the use of ``dispatch`` to match the signature from pulpcore>=3.15.
+  `#9483 <https://pulp.plan.io/issues/9483>`_
+
+
+Misc
+----
+
+- `#9368 <https://pulp.plan.io/issues/9368>`_
+
+
+----
+
+
 0.10.0 (2021-08-31)
 ===================
 
