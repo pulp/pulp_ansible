@@ -267,7 +267,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
 
         result = dispatch(
             sync_func,
-            exclusive_resources=[repository, remote],
+            exclusive_resources=[repository],
+            shared_resources=[remote],
             kwargs=sync_kwargs,
         )
         return OperationPostponedResponse(result, request)
@@ -399,9 +400,14 @@ class CopyViewSet(viewsets.ViewSet):
 
         config = serializer.validated_data["config"]
 
-        config, repos = self._process_config(config)
+        config, exclusive_resources, shared_resources = self._process_config(config)
 
-        async_result = dispatch(copy_content, exclusive_resources=repos, args=[config], kwargs={})
+        async_result = dispatch(
+            copy_content,
+            exclusive_resources=exclusive_resources,
+            shared_resources=shared_resources,
+            args=[config],
+        )
         return OperationPostponedResponse(async_result, request)
 
     def _process_config(self, config):
@@ -412,7 +418,8 @@ class CopyViewSet(viewsets.ViewSet):
         repos so that the task can lock on them.
         """
         result = []
-        repos = []
+        exclusive_resources = []
+        shared_resources = []
 
         for entry in config:
             r = dict()
@@ -422,7 +429,8 @@ class CopyViewSet(viewsets.ViewSet):
             dest_repo = NamedModelViewSet().get_resource(entry["dest_repo"], AnsibleRepository)
             r["source_repo_version"] = source_version.pk
             r["dest_repo"] = dest_repo.pk
-            repos.extend((source_version.repository, dest_repo))
+            exclusive_resources.append(dest_repo)
+            shared_resources.append(source_version.repository)
 
             if "dest_base_version" in entry:
                 try:
@@ -441,4 +449,4 @@ class CopyViewSet(viewsets.ViewSet):
                     r["content"].append(NamedModelViewSet().extract_pk(c))
             result.append(r)
 
-        return result, repos
+        return result, exclusive_resources, shared_resources
