@@ -42,7 +42,9 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         self.remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, self.remote.pulp_href)
 
-        self.first_repo = self._create_repo_and_sync_with_remote(self.remote)
+        self.first_repo = self._create_repo_and_sync_with_remote(
+            self.remote, retain_repo_versions=1
+        )
         self.distribution = self._create_distribution_from_repo(self.first_repo)
 
     def test_sync_collections_from_pulp(self):
@@ -146,7 +148,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
 
-        second_repo = self._create_repo_and_sync_with_remote(second_remote)
+        second_repo = self._create_repo_and_sync_with_remote(second_remote, retain_repo_versions=1)
 
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(second_content.results), 1)
