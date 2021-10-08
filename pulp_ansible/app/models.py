@@ -226,6 +226,19 @@ class CollectionRemote(Remote):
         default_related_name = "%(app_label)s_%(model_name)s"
 
 
+class GitRemote(Remote):
+    """
+    A Remote for Collection content hosted in Git repositories.
+    """
+
+    TYPE = "git"
+
+    metadata_only = models.BooleanField(default=False)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
 class AnsibleCollectionDeprecated(Content):
     """
     A model that represents if a Collection is `deprecated` for a given RepositoryVersion.

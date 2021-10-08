@@ -33,6 +33,7 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
+    GitRemote,
     RoleRemote,
     AnsibleRepository,
     Collection,
@@ -43,6 +44,7 @@ from .models import (
 )
 from .serializers import (
     AnsibleDistributionSerializer,
+    GitRemoteSerializer,
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
     AnsibleRepositorySyncURLSerializer,
@@ -223,6 +225,16 @@ class RoleRemoteViewSet(RemoteViewSet):
     endpoint_name = "role"
     queryset = RoleRemote.objects.all()
     serializer_class = RoleRemoteSerializer
+
+
+class GitRemoteViewSet(RemoteViewSet):
+    """
+    ViewSet for Ansible Remotes.
+    """
+
+    endpoint_name = "git"
+    queryset = GitRemote.objects.all()
+    serializer_class = GitRemoteSerializer
 
 
 class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
