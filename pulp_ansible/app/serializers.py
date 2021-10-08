@@ -21,6 +21,7 @@ from rest_framework.exceptions import ValidationError
 
 from .models import (
     AnsibleDistribution,
+    GitRemote,
     RoleRemote,
     AnsibleRepository,
     Collection,
@@ -81,6 +82,24 @@ class RoleRemoteSerializer(RemoteSerializer):
     class Meta:
         fields = RemoteSerializer.Meta.fields
         model = RoleRemote
+
+
+class GitRemoteSerializer(RemoteSerializer):
+    """
+    A serializer for Git Collection Remotes.
+    """
+
+    metadata_only = serializers.BooleanField(
+        help_text=_(
+            "If True, only metadata about the content will be stored in Pulp. Clients will "
+            "retrieve content from the remote URL."
+        ),
+        required=False,
+    )
+
+    class Meta:
+        model = GitRemote
+        fields = tuple(set(RemoteSerializer.Meta.fields) - {"policy"}) + ("metadata_only",)
 
 
 class AnsibleRepositorySerializer(RepositorySerializer):
