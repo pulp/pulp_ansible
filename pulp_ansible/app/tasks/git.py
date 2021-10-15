@@ -1,0 +1,123 @@
+import logging
+
+from asgiref.sync import sync_to_async
+from django.urls import reverse
+from django.db.utils import IntegrityError
+from galaxy_importer.collection import sync_collection
+from gettext import gettext as _
+from git import Repo
+from rest_framework.exceptions import ValidationError
+
+from pulpcore.plugin.models import Artifact, ContentArtifact, ProgressReport
+from pulpcore.plugin.stages import (
+    DeclarativeArtifact,
+    DeclarativeContent,
+    DeclarativeVersion,
+    Stage,
+)
+from pulp_ansible.app.models import AnsibleRepository, CollectionVersion, GitRemote
+from pulp_ansible.app.tasks.collections import create_collection_from_importer
+
+log = logging.getLogger(__name__)
+
+
+def synchronize(remote_pk, repository_pk, mirror=False):
+    """
+    Sync content from the remote repository.
+
+    Create a new version of the repository that is synchronized with the remote.
+
+    Args:
+        remote_pk (str): The remote PK.
+        repository_pk (str): The repository PK.
+        mirror (bool): True for mirror mode, False for additive.
+
+    Raises:
+        ValueError: If the remote does not specify a URL to sync.
+
+    """
+    remote = GitRemote.objects.get(pk=remote_pk)
+    repository = AnsibleRepository.objects.get(pk=repository_pk)
+
+    if not remote.url:
+        raise ValueError(_("A remote must have a url specified to synchronize."))
+
+    log.info(
+        _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}
+    )
+    first_stage = GitFirstStage(remote)
+    d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
+    return d_version.create()
+
+
+class GitFirstStage(Stage):
+    """
+    The first stage of a pulp_ansible sync pipeline for git repositories.
+    """
+
+    def __init__(self, remote):
+        """
+        The first stage of a pulp_ansible sync pipeline.
+
+        Args:
+            remote (RoleRemote): The remote data to be used when syncing
+
+        """
+        super().__init__()
+        self.remote = remote
+
+        # Interpret download policy
+        self.metadata_only = self.remote.metadata_only
+
+    async def run(self):
+        """
+        Build and emit `DeclarativeContent` from the ansible metadata.
+        """
+        async with ProgressReport(
+            message="Cloning Git repository for Collection", code="sync.git.clone"
+        ) as pb:
+            gitrepo = Repo.clone_from(self.remote.url, self.remote.name, depth=1)
+            metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
+            artifact = Artifact.init_and_validate(artifact_path)
+            try:
+                await sync_to_async(artifact.save)()
+            except IntegrityError:
+                artifact = Artifact.objects.get(sha256=artifact.sha256)
+            metadata["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
+            metadata["artifact"] = artifact
+            await self._add_collection_version(metadata, artifact_path)
+            await pb.aincrement()
+
+    async def _add_collection_version(self, metadata, artifact_path):
+        """Add CollectionVersion to the sync pipeline."""
+        try:
+            collection_version = await sync_to_async(create_collection_from_importer)(metadata)
+            await sync_to_async(ContentArtifact.objects.get_or_create)(
+                artifact=metadata["artifact"],
+                content=collection_version,
+                relative_path=collection_version.relative_path,
+            )
+        except ValidationError:
+            namespace = metadata["metadata"]["namespace"]
+            name = metadata["metadata"]["name"]
+            version = metadata["metadata"]["version"]
+            collection_version = await sync_to_async(CollectionVersion.objects.get)(
+                namespace=namespace, name=name, version=version
+            )
+
+        artifact = metadata["artifact"]
+
+        d_artifact = DeclarativeArtifact(
+            artifact=Artifact(sha256=artifact.sha256, size=artifact.size),
+            url=self.remote.url,
+            relative_path=collection_version.relative_path,
+            remote=self.remote,
+        )
+
+        # TODO: docs blob support??
+
+        d_content = DeclarativeContent(
+            content=collection_version,
+            d_artifacts=[d_artifact],
+        )
+        await self.put(d_content)
