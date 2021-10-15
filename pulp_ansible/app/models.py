@@ -234,6 +234,7 @@ class GitRemote(Remote):
     TYPE = "git"
 
     metadata_only = models.BooleanField(default=False)
+    git_ref = models.TextField()
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

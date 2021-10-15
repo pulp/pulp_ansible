@@ -260,7 +260,7 @@ def import_collection(
         CreatedResource.objects.create(content_object=repository)
 
 
-def create_collection_from_importer(importer_result):
+def create_collection_from_importer(importer_result, metadata_only=False):
     """
     Process results from importer.
     """
@@ -293,11 +293,12 @@ def create_collection_from_importer(importer_result):
         serializer_fields = CollectionVersionSerializer.Meta.fields
         data = {k: v for k, v in collection_version.__dict__.items() if k in serializer_fields}
         data["id"] = collection_version.pulp_id
-        data["artifact"] = importer_result["artifact_url"]
+        if not metadata_only:
+            data["artifact"] = importer_result["artifact_url"]
 
         serializer = CollectionVersionSerializer(data=data)
-        serializer.is_valid(raise_exception=True)
 
+        serializer.is_valid(raise_exception=True)
         collection_version.save()
 
         for name in tags:

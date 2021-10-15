@@ -179,6 +179,8 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
     collection = CollectionRefSerializer(read_only=True)
     artifact = serializers.SerializerMethodField()
     download_url = serializers.SerializerMethodField()
+    git_url = serializers.SerializerMethodField()
+    git_commit_sha = serializers.SerializerMethodField()
 
     metadata = CollectionMetadataSerializer(source="*", read_only=True)
     namespace = CollectionNamespaceSerializer(source="*", read_only=True)
@@ -192,6 +194,8 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
             "name",
             "namespace",
             "metadata",
+            "git_url",
+            "git_commit_sha",
         )
 
     @extend_schema_field(ArtifactRefSerializer)
@@ -200,17 +204,36 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         Get atrifact summary.
         """
         content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        return ArtifactRefSerializer(content_artifact.get()).data
+        if content_artifact.get().artifact:
+            return ArtifactRefSerializer(content_artifact.get()).data
 
     def get_download_url(self, obj) -> str:
         """
         Get artifact download URL.
         """
-        host = settings.ANSIBLE_CONTENT_HOSTNAME.strip("/")
-        distro_base_path = self.context["path"]
-        filename_path = obj.relative_path.lstrip("/")
-        download_url = f"{host}/{distro_base_path}/{filename_path}"
-        return download_url
+        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
+        if content_artifact.get().artifact:
+            host = settings.ANSIBLE_CONTENT_HOSTNAME.strip("/")
+            distro_base_path = self.context["path"]
+            filename_path = obj.relative_path.lstrip("/")
+            download_url = f"{host}/{distro_base_path}/{filename_path}"
+            return download_url
+
+    def get_git_url(self, obj) -> str:
+        """
+        Get the git URL.
+        """
+        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
+        if not content_artifact.get().artifact:
+            return content_artifact.get().remoteartifact_set.all()[0].url[:-47]
+
+    def get_git_commit_sha(self, obj) -> str:
+        """
+        Get the git commit sha.
+        """
+        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
+        if not content_artifact.get().artifact:
+            return content_artifact.get().remoteartifact_set.all()[0].url[-40:]
 
 
 class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):

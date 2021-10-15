@@ -14,8 +14,6 @@ from pulp_smash.pulp3.utils import gen_distribution
 
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
-from pulpcore.client.pulp_ansible import DistributionsAnsibleApi
-
 
 class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Collection sync tests for collections with unique properties."""
@@ -47,14 +45,13 @@ class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(len(content.results), 2)
 
         # Create a distribution.
-        distributions_api = DistributionsAnsibleApi(self.client)
         body = gen_distribution()
         body["repository"] = repo.pulp_href
-        distribution_create = distributions_api.create(body)
+        distribution_create = self.distributions_api.create(body)
         created_resources = monitor_task(distribution_create.task).created_resources
-        distribution = distributions_api.read(created_resources[0])
+        distribution = self.distributions_api.read(created_resources[0])
 
-        self.addCleanup(distributions_api.delete, distribution.pulp_href)
+        self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
         collection_name = "pulp.squeezer"
         with tempfile.TemporaryDirectory() as temp_dir:
 
@@ -74,3 +71,35 @@ class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             subprocess.run(cmd.split())
 
             self.assertTrue(path.exists(directory), "Could not find directory {}".format(directory))
+
+    def test_sync_metadata_only_collection_from_git(self):
+        """Sync collections from Git repositories with metadata_only=True."""
+        body = gen_ansible_remote(
+            url="https://github.com/ansible-collections/amazon.aws/",
+            metadata_only=True,
+            git_ref="2.1.0",
+        )
+        amazon_remote = self.remote_git_api.create(body)
+        self.addCleanup(self.remote_git_api.delete, amazon_remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(amazon_remote)
+
+        content = self.cv_api.list(repository_version=repo.latest_version_href)
+        self.assertEqual(len(content.results), 1)
+
+        # Create a distribution.
+        body = gen_distribution()
+        body["repository"] = repo.pulp_href
+        distribution_create = self.distributions_api.create(body)
+        created_resources = monitor_task(distribution_create.task).created_resources
+        distribution = self.distributions_api.read(created_resources[0])
+
+        self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
+
+        version = self.collections_versions_v3api.read(
+            "aws", "amazon", distribution.base_path, "2.1.0"
+        )
+
+        self.assertEqual(version.git_url, "https://github.com/ansible-collections/amazon.aws/")
+        self.assertEqual(version.git_commit_sha, "013162a952c7b2d11c7e2ebf443d8d4d7a21e95a")
+        self.assertEqual(version.download_url, None)

@@ -13,6 +13,7 @@ from pulpcore.plugin.serializers import (
     RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
     SingleArtifactContentUploadSerializer,
+    SingleContentArtifactField,
     DistributionSerializer,
     RepositoryVersionRelatedField,
     validate_unknown_fields,
@@ -96,10 +97,17 @@ class GitRemoteSerializer(RemoteSerializer):
         ),
         required=False,
     )
+    git_ref = serializers.CharField(
+        help_text=_("A git ref. e.g.: branch, tag, or commit sha."),
+        required=False,
+    )
 
     class Meta:
         model = GitRemote
-        fields = tuple(set(RemoteSerializer.Meta.fields) - {"policy"}) + ("metadata_only",)
+        fields = tuple(set(RemoteSerializer.Meta.fields) - {"policy"}) + (
+            "metadata_only",
+            "git_ref",
+        )
 
 
 class AnsibleRepositorySerializer(RepositorySerializer):
@@ -377,6 +385,11 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
     """
     A serializer for CollectionVersion Content.
     """
+
+    artifact = SingleContentArtifactField(
+        help_text=_("Artifact file representing the physical content"),
+        required=False,
+    )
 
     id = serializers.UUIDField(source="pk", help_text="A collection identifier.")
 
