@@ -37,6 +37,7 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleApiV3CollectionsVersionsApi,
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
+    RemotesGitApi,
     RemotesRoleApi,
     AnsibleRepositorySyncURL,
 )
@@ -148,6 +149,7 @@ class TestCaseUsingBindings(PulpTestCase):
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
+        cls.remote_git_api = RemotesGitApi(cls.client)
         cls.remote_role_api = RemotesRoleApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
@@ -174,7 +176,7 @@ class SyncHelpersMixin:
             repository: The created repository object to be asserted to.
         """
         # Create the repository.
-        repo = self.repo_api.create(gen_repo(remote=remote.pulp_href, **repo_kwargs))
+        repo = self.repo_api.create(gen_repo(**repo_kwargs))
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
         return self._sync_repo(repo, remote=remote.pulp_href)
 
