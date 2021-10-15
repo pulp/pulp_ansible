@@ -60,6 +60,7 @@ from .serializers import (
 from .tasks.collections import update_collection_remote, sync as collection_sync
 from .tasks.copy import copy_content
 from .tasks.roles import synchronize as role_sync
+from .tasks.git import synchronize as git_sync
 
 
 class RoleFilter(ContentFilter):
@@ -276,6 +277,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         elif isinstance(remote, CollectionRemote):
             sync_func = collection_sync
             sync_kwargs["optimize"] = serializer.validated_data["optimize"]
+        elif isinstance(remote, GitRemote):
+            sync_func = git_sync
 
         result = dispatch(
             sync_func,
