@@ -76,42 +76,61 @@ class GitFirstStage(Stage):
         async with ProgressReport(
             message="Cloning Git repository for Collection", code="sync.git.clone"
         ) as pb:
-            gitrepo = Repo.clone_from(self.remote.url, self.remote.name, depth=1)
+            if self.remote.git_ref:
+                gitrepo = Repo.clone_from(
+                    self.remote.url, self.remote.name, depth=1, branch=self.remote.git_ref
+                )
+            else:
+                gitrepo = Repo.clone_from(self.remote.url, self.remote.name, depth=1)
+            commit_sha = gitrepo.head.commit.hexsha
             metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
-            artifact = Artifact.init_and_validate(artifact_path)
-            try:
-                await sync_to_async(artifact.save)()
-            except IntegrityError:
-                artifact = Artifact.objects.get(sha256=artifact.sha256)
-            metadata["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
-            metadata["artifact"] = artifact
-            await self._add_collection_version(metadata, artifact_path)
+            if not self.remote.metadata_only:
+                artifact = Artifact.init_and_validate(artifact_path)
+                try:
+                    await sync_to_async(artifact.save)()
+                except IntegrityError:
+                    artifact = Artifact.objects.get(sha256=artifact.sha256)
+                metadata["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
+                metadata["artifact"] = artifact
+            else:
+                metadata["artifact"] = None
+                metadata["artifact_url"] = None
+            metadata["remote_artifact_url"] = "{}/commit/{}".format(
+                self.remote.url.rstrip("/"), commit_sha
+            )
+            await self._add_collection_version(metadata)
             await pb.aincrement()
 
-    async def _add_collection_version(self, metadata, artifact_path):
+    async def _add_collection_version(self, metadata):
         """Add CollectionVersion to the sync pipeline."""
+        artifact = metadata["artifact"]
         try:
-            collection_version = await sync_to_async(create_collection_from_importer)(metadata)
+            collection_version = await sync_to_async(create_collection_from_importer)(
+                metadata, metadata_only=self.remote.metadata_only
+            )
             await sync_to_async(ContentArtifact.objects.get_or_create)(
-                artifact=metadata["artifact"],
+                artifact=artifact,
                 content=collection_version,
                 relative_path=collection_version.relative_path,
             )
-        except ValidationError:
-            namespace = metadata["metadata"]["namespace"]
-            name = metadata["metadata"]["name"]
-            version = metadata["metadata"]["version"]
+        except ValidationError as e:
+            if e.args[0]["non_field_errors"][0].code == "unique":
+                namespace = metadata["metadata"]["namespace"]
+                name = metadata["metadata"]["name"]
+                version = metadata["metadata"]["version"]
+            else:
+                raise e
             collection_version = await sync_to_async(CollectionVersion.objects.get)(
                 namespace=namespace, name=name, version=version
             )
-
-        artifact = metadata["artifact"]
-
+        if artifact is None:
+            artifact = Artifact()
         d_artifact = DeclarativeArtifact(
-            artifact=Artifact(sha256=artifact.sha256, size=artifact.size),
-            url=self.remote.url,
+            artifact=artifact,
+            url=metadata["remote_artifact_url"],
             relative_path=collection_version.relative_path,
             remote=self.remote,
+            deferred_download=self.metadata_only,
         )
 
         # TODO: docs blob support??
