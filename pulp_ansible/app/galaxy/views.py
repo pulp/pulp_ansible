@@ -64,10 +64,10 @@ class RoleList(generics.ListAPIView):
 
         namespace = self.request.query_params.get("owner__username", None)
         if namespace:
-            roles = roles.filter(namespace=namespace)
+            roles = roles.filter(namespace__iexact=namespace)
         name = self.request.query_params.get("name", None)
         if name:
-            roles = roles.filter(name=name)
+            roles = roles.filter(name__iexact=name)
 
         return roles
 
