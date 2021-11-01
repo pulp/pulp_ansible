@@ -340,21 +340,20 @@ def import_collection(
 
             # an ngrole tag implies this is a "smuggled role" ...
             tags = tb_manifest_content.get('collection_info', {}).get('tags')
+            is_role = 'ngrole' in tags
+
+            # is there an scm url and a ref?
+            scm_url = tb_manifest_content.get('collection_info', {}).get('repository')
+
+            # is there a commit?
+            scm_sha = tb_manifest_content.get('collection_info', {}).get('commit')
+
             if tb_manifest_content:
-
-                # what is the role name?
-                role_name = tb_manifest_content.get('collection_info', {}).get('name')
-
-                # what is the ref?
-                scm_ref = tb_manifest_content.get('collection_info', {}).get('repository')
 
                 # make a tempdir for extracting the shim
                 tdir = tempfile.mkdtemp()
 
-                # define the full role path
-                role_path = os.path.join(tdir, 'roles', role_name)
-
-                # extract the artifact to the tempdir
+                # extract the shim artifact to the tempdir
                 tb2 = artifact_file.file.open().read()
                 tb2fh, tb2fn = tempfile.mkstemp(suffix='.tar.gz')
                 with open(tb2fn, 'wb') as f:
@@ -362,38 +361,52 @@ def import_collection(
                 cmd = f'cd {tdir}; tar xzvf {tb2fn}'
                 pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-                # clone the repo into the role path
-                cmd = f'git clone --depth=1 {scm_ref} {role_path}'
-                pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                # inject the scm based role into the shim collection ...
+                if is_role:
 
-                # what is the sha?
-                cmd = f'cd {tdir}; git log -1 --format="%H"'
-                pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                scm_sha = pid.stdout.decode('utf-8').strip()
+                    # what is the role name?
+                    role_name = tb_manifest_content.get('collection_info', {}).get('name')
 
-                # re-assemble a galaxy.yml for the importer
-                gfile = os.path.join(tdir, 'galaxy.yml')
-                if not os.path.exists(gfile):
-                    gyml = manifest_to_galaxy_yaml(tb_manifest_content)
-                    with open(gfile, 'w') as f:
-                        f.write(yaml.dump(gyml))
+                    # define the full role path
+                    role_path = os.path.join(tdir, 'roles', role_name)
 
-                # what is the sha?
-                cmd = f'cd {tdir}; git log -1 --format="%H"'
-                pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                scm_sha = pid.stdout.decode('utf-8').strip()
+                    # clone the repo into the role path
+                    cmd = f'git clone --depth=1 {scm_url} {role_path}'
+                    pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-                # delete the .git dir
-                gdir = os.path.join(role_path, '.git')
-                if os.path.exists(gdir):
-                    shutil.rmtree(gdir)
+                    # what is the sha?
+                    cmd = f'cd {tdir}; git log -1 --format="%H"'
+                    pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    scm_sha = pid.stdout.decode('utf-8').strip()
 
-                # what files do we have?
-                find_cmd = f'find {tdir}'
-                cfiles = subprocess.run(find_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    # re-assemble a galaxy.yml for the importer / build process
+                    gfile = os.path.join(tdir, 'galaxy.yml')
+                    if not os.path.exists(gfile):
+                        gyml = manifest_to_galaxy_yaml(tb_manifest_content)
+                        with open(gfile, 'w') as f:
+                            f.write(yaml.dump(gyml))
 
-                # add role files to the manifest
-                update_manifest_and_files(tdir)
+                    if scm_sha:
+                        # use predefined sha ...
+                        cmd = f'cd {role_path}; git checkout {scm_sha}'
+                        pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                    else:
+                        # what is the sha?
+                        cmd = f'cd {role_path}; git log -1 --format="%H"'
+                        pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                        scm_sha = pid.stdout.decode('utf-8').strip()
+
+                    # delete the .git dir
+                    gdir = os.path.join(role_path, '.git')
+                    if os.path.exists(gdir):
+                        shutil.rmtree(gdir)
+
+                    # what files do we have?
+                    find_cmd = f'find {tdir}'
+                    cfiles = subprocess.run(find_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+                    # add role files to the manifest
+                    update_manifest_and_files(tdir)
 
                 # run the importer on the cloned path
                 importer_result = process_collection(
@@ -403,6 +416,7 @@ def import_collection(
                     is_role=True,
                     logger=user_facing_logger
                 )
+
                 #import epdb; epdb.serve(port=8888)
                 if isinstance(importer_result, tuple):
                     importer_result = importer_result[0]
@@ -414,12 +428,10 @@ def import_collection(
                 )
 
             artifact = Artifact.from_pulp_temporary_file(temp_file)
-            #import epdb; epdb.serve(port=8888)
-
             importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
             collection_version = create_collection_from_importer(importer_result)
 
-            if tb_manifest_content and 'ngrole' in tags:
+            if is_role:
                 collection_version.is_role = True
                 collection_version.save()
 
