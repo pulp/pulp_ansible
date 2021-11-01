@@ -146,6 +146,11 @@ class CollectionVersion(Content):
     version = models.CharField(max_length=128, editable=False)
     requires_ansible = models.CharField(null=True, max_length=255)
 
+    # for galaxy cli to install from scm
+    is_role = models.BooleanField(default=False, editable=False)
+    #scmref = models.CharField(default="", blank=True, max_length=2000, editable=False)
+    commit = models.CharField(default="", blank=True, max_length=2000, editable=False)
+
     is_highest = models.BooleanField(editable=False, default=False)
 
     # Foreign Key Fields
