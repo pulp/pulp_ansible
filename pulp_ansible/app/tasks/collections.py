@@ -1,14 +1,9 @@
 import asyncio
 from collections import defaultdict
 from gettext import gettext as _
-import glob
 import json
 import logging
-import os
-import shutil
-import subprocess
 import tarfile
-import tempfile
 import yaml
 from operator import attrgetter
 from urllib.parse import urljoin
@@ -71,96 +66,6 @@ from pulp_ansible.app.tasks.utils import (
 
 
 log = logging.getLogger(__name__)
-
-
-
-def update_manifest_and_files(collection_path):
-
-    # wipe the old manifest and files json
-    os.remove(os.path.join(collection_path, 'MANIFEST.json'))
-    os.remove(os.path.join(collection_path, 'FILES.json'))
-
-    # build the collection
-    cmd = f'cd {collection_path}; ansible-galaxy collection build .'
-    pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    # find the tar name
-    gfiles = glob.glob(f'{collection_path}/*.tar.gz')
-    tar_name = gfiles[0]
-
-    with tarfile.open(tar_name) as tf:
-
-        # map each member as the filename
-        tb_members = dict((x.path, x) for x in tf.getmembers())
-
-        # pull out the manifest.json from the tar
-        manifest_json = tf.extractfile(tb_members['MANIFEST.json']).read().decode('utf-8')
-
-        # pull out the files.json from the tar
-        files_json = tf.extractfile(tb_members['FILES.json']).read().decode('utf-8')
-
-    # delete the tar
-    os.remove(tar_name)
-
-    # write the new manifest.json
-    with open(os.path.join(collection_path, 'MANIFEST.json'), 'w') as f:
-        f.write(manifest_json)
-
-    # write the file files.json
-    with open(os.path.join(collection_path, 'FILES.json'), 'w') as f:
-        f.write(files_json)
-
-    fcmd = f'cd {collection_path}; find .'
-    final_files= subprocess.run(fcmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-    #import epdb; epdb.serve(port=8888)
-
-    return None
-
-
-def manifest_to_galaxy_yaml(manifest):
-    '''
-    namespace: community
-    name: general
-    version: 4.0.0
-    readme: README.md
-    authors:
-      - Ansible (https://github.com/ansible)
-    description: null
-    license_file: COPYING
-    tags: [community]
-    repository: https://github.com/ansible-collections/community.general
-    documentation: https://docs.ansible.com/ansible/latest/collections/community/general/
-    homepage: https://github.com/ansible-collections/community.general
-    issues: https://github.com/ansible-collections/community.general/issues
-    '''
-
-    '''
-    {'collection_info': {'authors': ['Anton Osenenko'],
-                         'dependencies': {},
-                         'description': 'Set-up avahi-daemon',
-                         'documentation': 'https://github.com/a0s/ansible-role-avahi',
-                         'homepage': 'https://github.com/a0s/ansible-role-avahi',
-                         'issues': 'https://github.com/a0s/ansible-role-avahi/issues',
-                         'license': ['MIT'],
-                         'license_file': None,
-                         'name': 'avahi',
-                         'namespace': 'a0s',
-                         'readme': 'README.md',
-                         'repository': 'https://github.com/a0s/ansible-role-avahi',
-                         'tags': ['ngrole', 'security', 'networking'],
-                         'version': '1.0.0'},
-     'file_manifest_file': {
-        'chksum_sha256': '8122b953903b8a2f9a7116fad8dd248307442fdcc4424736aa1139d16a61fb97',
-        'chksum_type': 'sha256',
-        'format': 1,
-        'ftype': 'file',
-        'name': 'FILES.json'
-     },
-     'format': 1}
-    '''
-
-    return manifest['collection_info']
 
 
 def update_collection_remote(remote_pk, *args, **kwargs):
@@ -324,108 +229,12 @@ def import_collection(
     try:
         with temp_file.file.open() as artifact_file:
             url = _get_backend_storage_url(artifact_file)
-
-            # get the manifest data ...
-            tb = tarfile.open(artifact_file.path)
-            tb_paths = [x.path for x in tb.members]
-            tb_members = dict((x.path, x) for x in tb.members)
-            tb_manifest_content = None
-            if 'MANIFEST.json' in tb_members:
-                tb_manifest = tb.extractfile(tb_members['MANIFEST.json'])
-                tb_manifest_content = tb_manifest.read()
-                tb_manifest_content = json.loads(tb_manifest_content)
-
-            scm_ref = None
-            scm_sha = None
-
-            # an ngrole tag implies this is a "smuggled role" ...
-            tags = tb_manifest_content.get('collection_info', {}).get('tags')
-            if tb_manifest_content:
-
-                # what is the role name?
-                role_name = tb_manifest_content.get('collection_info', {}).get('name')
-
-                # what is the ref?
-                scm_ref = tb_manifest_content.get('collection_info', {}).get('repository')
-
-                # make a tempdir for extracting the shim
-                tdir = tempfile.mkdtemp()
-
-                # define the full role path
-                role_path = os.path.join(tdir, 'roles', role_name)
-
-                # extract the artifact to the tempdir
-                tb2 = artifact_file.file.open().read()
-                tb2fh, tb2fn = tempfile.mkstemp(suffix='.tar.gz')
-                with open(tb2fn, 'wb') as f:
-                    f.write(tb2)
-                cmd = f'cd {tdir}; tar xzvf {tb2fn}'
-                pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-                # clone the repo into the role path
-                cmd = f'git clone --depth=1 {scm_ref} {role_path}'
-                pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-                # what is the sha?
-                cmd = f'cd {tdir}; git log -1 --format="%H"'
-                pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                scm_sha = pid.stdout.decode('utf-8').strip()
-
-                # re-assemble a galaxy.yml for the importer
-                gfile = os.path.join(tdir, 'galaxy.yml')
-                if not os.path.exists(gfile):
-                    gyml = manifest_to_galaxy_yaml(tb_manifest_content)
-                    with open(gfile, 'w') as f:
-                        f.write(yaml.dump(gyml))
-
-                # what is the sha?
-                cmd = f'cd {tdir}; git log -1 --format="%H"'
-                pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                scm_sha = pid.stdout.decode('utf-8').strip()
-
-                # delete the .git dir
-                gdir = os.path.join(role_path, '.git')
-                if os.path.exists(gdir):
-                    shutil.rmtree(gdir)
-
-                # what files do we have?
-                find_cmd = f'find {tdir}'
-                cfiles = subprocess.run(find_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-                # add role files to the manifest
-                update_manifest_and_files(tdir)
-
-                # run the importer on the cloned path
-                importer_result = process_collection(
-                    git_clone_path=tdir,
-                    output_path=tempfile.mkdtemp(),
-                    file_url=url,
-                    is_role=True,
-                    logger=user_facing_logger
-                )
-                #import epdb; epdb.serve(port=8888)
-                if isinstance(importer_result, tuple):
-                    importer_result = importer_result[0]
-
-            else:
-
-                importer_result = process_collection(
-                    artifact_file, filename=filename, file_url=url, logger=user_facing_logger
-                )
-
+            importer_result = process_collection(
+                artifact_file, filename=filename, file_url=url, logger=user_facing_logger
+            )
             artifact = Artifact.from_pulp_temporary_file(temp_file)
-            #import epdb; epdb.serve(port=8888)
-
             importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
             collection_version = create_collection_from_importer(importer_result)
-
-            if tb_manifest_content and 'ngrole' in tags:
-                collection_version.is_role = True
-                collection_version.save()
-
-            if scm_sha:
-                collection_version.commit = scm_sha
-                collection_version.save()
 
     except ImporterError as exc:
         log.info(f"Collection processing was not successful: {exc}")
@@ -433,11 +242,7 @@ def import_collection(
         raise
     except Exception as exc:
         user_facing_logger.error(f"Collection processing was not successful: {exc}")
-        log.exception(exc)
-        try:
-            temp_file.delete()
-        except Exception as e:
-            log.exception(e)
+        temp_file.delete()
         raise
 
     ContentArtifact.objects.create(

@@ -48,8 +48,6 @@ def copy_content(config):
             dest_version_provided,
         )
 
-    #import epdb; epdb.serve(port=8888)
-
     for entry in config:
         (
             source_repo_version,
