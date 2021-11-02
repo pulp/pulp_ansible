@@ -404,6 +404,12 @@ def import_collection(
                         shutil.rmtree(role_path)
                         shutil.move(tdir2, role_path)
 
+                    # the importer insists that every role must have a README.md
+                    readme = os.path.join(role_path, 'README.md')
+                    if not os.path.exists(readme):
+                        with open(readme, 'w') as f:
+                            f.write('')
+
                     # re-assemble a galaxy.yml for the importer / build process
                     gfile = os.path.join(tdir, 'galaxy.yml')
                     if not os.path.exists(gfile):
