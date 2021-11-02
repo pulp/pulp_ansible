@@ -342,12 +342,23 @@ def import_collection(
             tags = tb_manifest_content.get('collection_info', {}).get('tags')
             is_role = 'ngrole' in tags
 
-            # is there an scm url and a ref?
-            scm_url = tb_manifest_content.get('collection_info', {}).get('repository')
+            # is there an scmref or a repository?
+            if tb_manifest_content.get('collection_info', {}).get('scmref'):
+                scm_url = tb_manifest_content.get('collection_info', {}).get('scmref')
+            elif tb_manifest_content.get('collection_info', {}).get('repository'):
+                scm_url = tb_manifest_content.get('collection_info', {}).get('repository')
+            else:
+                scm_url = None
 
             # is there a commit?
-            scm_sha = tb_manifest_content.get('collection_info', {}).get('commit')
+            if tb_manifest_content.get('collection_info', {}).get('commit'):
+                scm_sha = tb_manifest_content.get('collection_info', {}).get('commit')
+            elif tb_manifest_content.get('collection_info', {}).get('scm_sha'):
+                scm_sha = tb_manifest_content.get('collection_info', {}).get('scm_sha')
+            else:
+                scm_sha = None
 
+            # FIXME - how to properly detect scm based content ?!?!
             if tb_manifest_content:
 
                 # make a tempdir for extracting the shim
@@ -374,18 +385,7 @@ def import_collection(
                     cmd = f'git clone --depth=1 {scm_url} {role_path}'
                     pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
-                    # what is the sha?
-                    cmd = f'cd {tdir}; git log -1 --format="%H"'
-                    pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-                    scm_sha = pid.stdout.decode('utf-8').strip()
-
-                    # re-assemble a galaxy.yml for the importer / build process
-                    gfile = os.path.join(tdir, 'galaxy.yml')
-                    if not os.path.exists(gfile):
-                        gyml = manifest_to_galaxy_yaml(tb_manifest_content)
-                        with open(gfile, 'w') as f:
-                            f.write(yaml.dump(gyml))
-
+                    # set the right commit OR get the current sha ...
                     if scm_sha:
                         # use predefined sha ...
                         cmd = f'cd {role_path}; git checkout {scm_sha}'
@@ -395,6 +395,21 @@ def import_collection(
                         cmd = f'cd {role_path}; git log -1 --format="%H"'
                         pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                         scm_sha = pid.stdout.decode('utf-8').strip()
+
+                    # was this a multi-role repo? ...
+                    if os.path.exists(os.path.join(role_path, 'roles')):
+                        src = os.path.join(role_path, 'roles', role_name)
+                        tdir2 = tempfile.mkdtemp()
+                        shutil.move(src, tdir2)
+                        shutil.rmtree(role_path)
+                        shutil.move(tdir2, role_path)
+
+                    # re-assemble a galaxy.yml for the importer / build process
+                    gfile = os.path.join(tdir, 'galaxy.yml')
+                    if not os.path.exists(gfile):
+                        gyml = manifest_to_galaxy_yaml(tb_manifest_content)
+                        with open(gfile, 'w') as f:
+                            f.write(yaml.dump(gyml))
 
                     # delete the .git dir
                     gdir = os.path.join(role_path, '.git')
