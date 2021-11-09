@@ -422,6 +422,11 @@ def import_collection(
                     if os.path.exists(gdir):
                         shutil.rmtree(gdir)
 
+                    # test files are just a distraction ...
+                    tests_dir = os.path.join(role_path, 'tests')
+                    if os.path.exists(tests_dir):
+                        shutil.rmtree(tests_dir)
+
                     # what files do we have?
                     find_cmd = f'find {tdir}'
                     cfiles = subprocess.run(find_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

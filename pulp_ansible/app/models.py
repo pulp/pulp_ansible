@@ -47,6 +47,10 @@ class Collection(BaseModel):
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
 
+    @property
+    def is_role(self):
+        return True
+
     class Meta:
         unique_together = ("namespace", "name")
 

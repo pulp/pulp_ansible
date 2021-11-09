@@ -19,6 +19,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     versions_url = serializers.SerializerMethodField()
     highest_version = serializers.SerializerMethodField()
+    is_role = serializers.SerializerMethodField()
 
     class Meta:
         fields = (
@@ -30,6 +31,7 @@ class CollectionSerializer(serializers.ModelSerializer):
             "highest_version",
             "created_at",
             "updated_at",
+            "is_role"
         )
         model = models.Collection
 
@@ -50,6 +52,23 @@ class CollectionSerializer(serializers.ModelSerializer):
             "collection-versions-list",
             kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
         )
+
+    def get_is_role(self, obj):
+        """Get a highest version and its link."""
+        '''
+        available_versions = self.context["available_versions"][obj.pk]
+        import epdb; epdb.serve(port=8888)
+        version = sorted(
+            available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
+        )[0]
+        import epdb; epdb.serve(port=8888)
+        return version.is_role
+        return obj.is_role
+        '''
+
+        # FIXME ...
+        return True
+
 
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_created_at(self, obj):
@@ -82,6 +101,17 @@ class CollectionSerializer(serializers.ModelSerializer):
         )
         return {"href": href, "version": version}
 
+    '''
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_is_role(self, obj):
+        """Get a highest version and its link."""
+        available_versions = self.context["available_versions"][obj.pk]
+        version = sorted(
+            available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
+        )[0]
+        return version.is_role
+    '''
+
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
     """A serializer for a CollectionVersion list item."""
@@ -97,6 +127,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "requires_ansible",
+            "is_role",
         )
         model = models.CollectionVersion
 

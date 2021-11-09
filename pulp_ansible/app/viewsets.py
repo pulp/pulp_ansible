@@ -107,6 +107,10 @@ class CollectionViewset(NamedModelViewSet, mixins.RetrieveModelMixin, mixins.Lis
     serializer_class = CollectionSerializer
     filterset_class = CollectionFilter
 
+    # doesn't work here!?
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['is_role']
+
 
 class CollectionVersionFilter(ContentFilter):
     """

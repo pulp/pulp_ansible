@@ -333,10 +333,14 @@ class CollectionSerializer(ModelSerializer):
 
     name = serializers.CharField(help_text=_("The name of the Collection."))
     namespace = serializers.CharField(help_text=_("The namespace of the Collection."))
+    is_role = serializers.SerializerMethodField()
+
+    def get_is_role(self):
+        return True
 
     class Meta:
         model = Collection
-        fields = ("name", "namespace")
+        fields = ("name", "namespace", "is_role")
 
 
 class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):

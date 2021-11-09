@@ -134,6 +134,7 @@ class CollectionFilter(BaseFilterSet):
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
     deprecated = filters.BooleanFilter(field_name="deprecated", method="get_deprecated")
+    role = filters.BooleanFilter(field_name="is_role", method="get_roles")
 
     def get_deprecated(self, qs, name, value):
         """Deprecated filter."""
@@ -145,9 +146,29 @@ class CollectionFilter(BaseFilterSet):
             return qs.exclude(pk__in=deprecation)
         return qs
 
+    def get_roles(self, qs, name, value):
+
+        non_roles = []
+        roles = []
+        for collection in qs:
+            pk = collection.pk
+            collection_versions = CollectionVersion.objects.filter(collection=pk)
+            is_role = [x.is_role for x in collection_versions]
+            if any(is_role):
+                roles.append(pk)
+            else:
+                non_roles.append(pk)
+
+        if value == True:
+            return Collection.objects.filter(pk__in=roles)
+
+        return Collection.objects.filter(pk__in=non_roles)
+
     class Meta:
         model = Collection
-        fields = ["namespace", "name", "deprecated"]
+        #fields = ["namespace", "name", "deprecated"]
+        #fields = ["namespace", "name", "deprecated", "is_role"]
+        fields = ["namespace", "name", "deprecated", "role"]
 
 
 class CollectionViewSet(
