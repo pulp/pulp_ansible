@@ -13,6 +13,29 @@ Changelog
 
 .. towncrier release notes start
 
+0.7.4 (2021-11-12)
+==================
+
+Bugfixes
+--------
+
+- `/collection_versions/all/` endpoint is now streamed to alleviate timeout issues
+  Optimized unpaginated collection_versions endpoint
+  (backported from #8439 and #8746) rochacbruno
+  `#8923 <https://pulp.plan.io/issues/8923>`_
+- Use proxy auth credentials of a Remote when syncing content.
+  `#9391 <https://pulp.plan.io/issues/9391>`_
+
+
+Misc
+----
+
+- `#8857 <https://pulp.plan.io/issues/8857>`_
+
+
+----
+
+
 0.7.3 (2021-04-29)
 ==================
 

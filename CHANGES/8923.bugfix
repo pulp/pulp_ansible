@@ -1,3 +1,0 @@
-`/collection_versions/all/` endpoint is now streamed to alleviate timeout issues
-Optimized unpaginated collection_versions endpoint
-(backported from #8439 and #8746) rochacbruno
