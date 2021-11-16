@@ -47,9 +47,11 @@ from pulp_ansible.app.serializers import (
     CollectionImportDetailSerializer,
 )
 
+
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import CollectionVersionFilter
+from pulp_ansible.app.utils.mangler import CollectionSCMShim
 
 
 class AnsibleDistributionMixin:
@@ -389,6 +391,8 @@ class CollectionUploadViewSet(
         Dispatch a Collection creation task.
         """
         distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        #import epdb; epdb.serve(port=8888)
+
         serializer = self.get_serializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
@@ -528,7 +532,10 @@ class CollectionVersionDocsViewSet(
 
 
 class CollectionImportViewSet(
-    ExceptionHandlerMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+    ExceptionHandlerMixin,
+    # mixins.RetrieveModelMixin,
+    # mixins.CreateModelMixin,
+    viewsets.GenericViewSet
 ):
     """
     ViewSet for CollectionImports.
@@ -544,6 +551,123 @@ class CollectionImportViewSet(
         # format=openapi.FORMAT_DATETIME,
         description="Filter messages since a given timestamp",
     )
+
+    def _get_data(self, *args, **kwargs):
+        '''
+        print(args)
+        print(kwargs)
+        import epdb; epdb.serve(port=8888)
+        print('DONE!')
+        '''
+
+        class FakeFileName:
+            def __init__(self, namespace, name):
+                self.namespace = namespace
+                self.name = name
+
+        data = {}
+        for k,v in args[0].POST.items():
+            data[k] = v
+
+        # the "filename" object needs ...
+        # 1) a "namespace" property
+
+        if 'filename' not in data:
+            data['filename'] = FakeFileName("geerlingguy", "teststuff")
+
+        return data
+
+    def create(self, *args, **kwargs):
+
+        print(args)
+        print(kwargs)
+        request = args[0]
+
+        '''
+        namespace
+        name
+        repository
+        type=role|collection(default)
+        '''
+        payload = args[0].data
+        print(payload)
+
+        '''
+        /src/pulp_ansible/pulp_ansible/app/galaxy/v3/views.py(395)create()
+        (Epdb) path
+        'inbound-awcrosby'
+        (Epdb) type(path)
+        <class 'str'>
+        (Epdb) pp distro
+        <AnsibleDistribution: inbound-awcrosby>
+        '''
+
+
+        # we need a "path" this is somehow a valid object ... ?
+
+        import epdb; epdb.serve(port=8888)
+
+        # make a shim collection and set the location as "path"?
+        cshim = CollectionSCMShim(
+            payload['namespace'],
+            payload['name'],
+            payload['repository'],
+            branch=payload.get('branch'),
+            tag=payload.get('tag'),
+            sha=payload.get('sha')
+        )
+        path = cshim.tarfile
+        import epdb; epdb.serve(port=8888)
+
+        # what is the distro for?
+        distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        import epdb; epdb.serve(port=8888)
+
+        # what is in the data?
+        # what needs to be in the request?
+        serializer = self.get_serializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+
+        expected_digests = {}
+        if serializer.validated_data["sha256"]:
+            expected_digests["sha256"] = serializer.validated_data["sha256"]
+        try:
+            temp_file = PulpTemporaryFile.init_and_validate(
+                serializer.validated_data["file"],
+                expected_digests=expected_digests,
+            )
+        except DigestValidationError:
+            raise serializers.ValidationError(
+                _("The provided sha256 value does not match the sha256 of the uploaded file.")
+            )
+
+        temp_file.save()
+
+        kwargs = {}
+
+        if serializer.validated_data["expected_namespace"]:
+            kwargs["expected_namespace"] = serializer.validated_data["expected_namespace"]
+
+        if serializer.validated_data["expected_name"]:
+            kwargs["expected_name"] = serializer.validated_data["expected_name"]
+
+        if serializer.validated_data["expected_version"]:
+            kwargs["expected_version"] = serializer.validated_data["expected_version"]
+
+        # this comes from the uploadgalaxycollectionmixin ...
+        async_result = self._dispatch_import_collection_task(
+            temp_file.pk, distro.repository, **kwargs
+        )
+        CollectionImport.objects.create(task_id=async_result.pk)
+
+        data = {
+            "task": reverse(
+                "collection-imports-detail",
+                kwargs={"path": path, "pk": async_result.pk},
+                request=None,
+            )
+        }
+        return Response(data, status=http_status.HTTP_202_ACCEPTED)
 
     @extend_schema(parameters=[since_filter])
     def retrieve(self, request, *args, **kwargs):

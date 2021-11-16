@@ -316,6 +316,9 @@ def import_collection(
     """
     CollectionImport.objects.get_or_create(task_id=Task.current().pulp_id)
 
+    # the temp_file is the uploaded artifact. In the case of an SCM import,
+    # the caller of this function will be responsible for creating a temporary
+    # artifact ... ?
     temp_file = PulpTemporaryFile.objects.get(pk=temp_file_pk)
     filename = CollectionFilename(expected_namespace, expected_name, expected_version)
     log.info(f"Processing collection from {temp_file.file.name}")
@@ -359,7 +362,9 @@ def import_collection(
                 scm_sha = None
 
             # FIXME - how to properly detect scm based content ?!?!
-            if tb_manifest_content:
+            if tb_manifest_content and scm_url and is_role:
+
+                #import epdb; epdb.serve(port=8888)
 
                 # make a tempdir for extracting the shim
                 tdir = tempfile.mkdtemp()
