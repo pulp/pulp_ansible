@@ -212,6 +212,7 @@ class CollectionSCMShim:
 
         self.clone_path = tempfile.mkdtemp()
         self.tarfile = None
+        self._tar_sha256 = None
 
         self.clone_repo()
         self.build_artifact()
@@ -224,6 +225,10 @@ class CollectionSCMShim:
         proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
         self.sha = proc.stdout.decode('utf-8').strip()
         return self.sha
+    
+    @property
+    def tar_sha256(self):
+        return self._tar_sha256
 
     def clone_repo(self):
 
@@ -253,6 +258,10 @@ class CollectionSCMShim:
         if proc.returncode != 0:
             raise Exception('build failure')
         self.tarfile = proc.stdout.decode('utf-8').strip().split()[-1]
+
+        cmd = f'sha256sum {self.tarfile}'
+        proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
+        self._tar_sha256 = proc.stdout.decode('utf-8').strip().split()[0]
 
 
 class RoleMangler:

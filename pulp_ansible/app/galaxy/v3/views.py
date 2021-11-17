@@ -393,8 +393,11 @@ class CollectionUploadViewSet(
         distro = get_object_or_404(AnsibleDistribution, base_path=path)
         #import epdb; epdb.serve(port=8888)
 
+        # What is the right "shape" for the data param?!?!
         serializer = self.get_serializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
+        #import epdb; epdb.serve(port=8888)
+        serializer.is_valid(raise_exception=False)
+        #import epdb; epdb.serve(port=8888)
 
         expected_digests = {}
         if serializer.validated_data["sha256"]:
@@ -518,7 +521,7 @@ class CollectionVersionDocsViewSet(
     CollectionVersionRetrieveMixin,
     ExceptionHandlerMixin,
     AnsibleDistributionMixin,
-    viewsets.GenericViewSet,
+    viewsets.GenericViewSet
 ):
     """
     ViewSet for docs_blob of CollectionVersion.
@@ -535,7 +538,8 @@ class CollectionImportViewSet(
     ExceptionHandlerMixin,
     # mixins.RetrieveModelMixin,
     # mixins.CreateModelMixin,
-    viewsets.GenericViewSet
+    viewsets.GenericViewSet,
+    UploadGalaxyCollectionMixin
 ):
     """
     ViewSet for CollectionImports.
@@ -602,10 +606,8 @@ class CollectionImportViewSet(
         <AnsibleDistribution: inbound-awcrosby>
         '''
 
-
         # we need a "path" this is somehow a valid object ... ?
-
-        import epdb; epdb.serve(port=8888)
+        #import epdb; epdb.serve(port=8888)
 
         # make a shim collection and set the location as "path"?
         cshim = CollectionSCMShim(
@@ -616,35 +618,71 @@ class CollectionImportViewSet(
             tag=payload.get('tag'),
             sha=payload.get('sha')
         )
-        path = cshim.tarfile
-        import epdb; epdb.serve(port=8888)
+        #path = cshim.tarfile
+        path = f"inbound-{payload['namespace']}"
+        #import epdb; epdb.serve(port=8888)
 
         # what is the distro for?
+        #import epdb; epdb.serve(port=8888)
         distro = get_object_or_404(AnsibleDistribution, base_path=path)
-        import epdb; epdb.serve(port=8888)
+        #import epdb; epdb.serve(port=8888)
 
         # what is in the data?
         # what needs to be in the request?
-        serializer = self.get_serializer(data=request.data, context={"request": request})
+        # What is t#he right "shape" for the data param?!?!
+        #serializer = self.get_serializer(data=request.data, context={"request": request})
+        #import epdb; epdb.serve(port=8888)
+
+        '''
+        (Epdb) pp request.data
+        pp request.data
+        {'file': <PulpTemporaryUploadedFile: awcrosby-cisco_ios_test-1.0.0.tar.gz (application/octet-stream)>,
+        'sha256': '05cc38f07509bd4dbe21b1d9558ba916042dbefb76954bdf9f123e4d1151cea5'}
+        (Epdb) 
+        {'file': <PulpTemporaryUploadedFile: awcrosby-cisco_ios_test-1.0.0.tar.gz (application/octet-stream)>,
+        'sha256': '05cc38f07509bd4dbe21b1d9558ba916042dbefb76954bdf9f123e4d1151cea5'}
+
+        '''
+
+        sdata = {
+            'file': cshim.tarfile,
+            'sha256': cshim.tar_sha256,
+            'id': 1,
+            'state': 'importing',
+            'created_at': datetime.now().isoformat(),
+            'updated_at': datetime.now().isoformat(),
+            'started_at': datetime.now().isoformat(),
+            'messages': "messages ...?"
+        }
+
+        serializer = self.get_serializer(data=sdata, context={"request": request})
+        #import epdb; epdb.serve(port=8888)
         serializer.is_valid(raise_exception=True)
+        print(serializer.validated_data)
+        #import epdb; epdb.serve(port=8888)
 
         expected_digests = {}
-        if serializer.validated_data["sha256"]:
-            expected_digests["sha256"] = serializer.validated_data["sha256"]
+        #if serializer.validated_data["sha256"]:
+        #    expected_digests["sha256"] = serializer.validated_data["sha256"]
+        expected_digests["sha256"] = cshim.tar_sha256
+        #import epdb; epdb.serve(port=8888)
+
         try:
             temp_file = PulpTemporaryFile.init_and_validate(
-                serializer.validated_data["file"],
+                cshim.tarfile,
                 expected_digests=expected_digests,
             )
         except DigestValidationError:
             raise serializers.ValidationError(
                 _("The provided sha256 value does not match the sha256 of the uploaded file.")
             )
+        #import epdb; epdb.serve(port=8888)
 
         temp_file.save()
 
         kwargs = {}
 
+        '''
         if serializer.validated_data["expected_namespace"]:
             kwargs["expected_namespace"] = serializer.validated_data["expected_namespace"]
 
@@ -653,6 +691,10 @@ class CollectionImportViewSet(
 
         if serializer.validated_data["expected_version"]:
             kwargs["expected_version"] = serializer.validated_data["expected_version"]
+        '''
+
+        kwargs['expected_namespace'] = payload['namespace']
+        kwargs['expected_name'] = payload['name']
 
         # this comes from the uploadgalaxycollectionmixin ...
         async_result = self._dispatch_import_collection_task(
