@@ -1,6 +1,7 @@
 import asyncio
 from collections import defaultdict
 from gettext import gettext as _
+import hashlib
 import json
 import logging
 import tarfile
@@ -54,6 +55,7 @@ from pulp_ansible.app.models import (
     CollectionImport,
     CollectionRemote,
     CollectionVersion,
+    CollectionVersionSignature,
     Tag,
 )
 from pulp_ansible.app.serializers import CollectionVersionSerializer, CollectionRemoteSerializer
@@ -484,6 +486,7 @@ class CollectionSyncFirstStage(Stage):
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.exclude_info = {}
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
+        self.signed_only = self.remote.signed_only
         self.already_synced = set()
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
@@ -565,6 +568,10 @@ class CollectionSyncFirstStage(Stage):
         self.already_synced.add(cv_unique)
 
         info = metadata["metadata"]
+        signatures = metadata.get("signatures")
+
+        if self.signed_only and not signatures:
+            return
 
         if self.add_dependents:
             dependencies = info["dependencies"]
@@ -605,6 +612,18 @@ class CollectionSyncFirstStage(Stage):
         )
         await self.parsing_metadata_progress_bar.aincrement()
         await self.put(d_content)
+
+        if signatures:
+            collection_version = await d_content.resolution()
+            for signature in signatures:
+                sig = signature["signature"].encode("utf8")
+                cv_signature = CollectionVersionSignature(
+                    signed_collection=collection_version,
+                    data=sig,
+                    digest=hashlib.sha256(sig),
+                    pubkey_fingerprint=signature["pubkey_fingerprint"],
+                )
+                await self.put(DeclarativeContent(content=cv_signature))
 
     async def _add_collection_version_from_git(self, url, gitref, metadata_only):
         d_content = await declarative_content_from_git_repo(

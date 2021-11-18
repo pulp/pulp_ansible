@@ -26,6 +26,14 @@ ANSIBLE_CONTENT_HOSTNAME
    CONTENT_ORIGIN, this would default to "https://example.com/pulp/content".
 
 
+ANSIBLE_SIGNING_TASK_LIMITER
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   This number determines the amount of concurrent signing processes that can be spawned at one time
+   during a signature task. Increasing this number will generally increase the speed of the task, but
+   will also consume more resources of the worker. Defaults to 10 concurrent processes.
+
+
 GALAXY_API_ROOT
 ^^^^^^^^^^^^^^^
 

@@ -24,6 +24,7 @@ from pulpcore.plugin.viewsets import (
     ContentViewSet,
     NamedModelViewSet,
     OperationPostponedResponse,
+    ReadOnlyContentViewSet,
     RemoteViewSet,
     RepositoryViewSet,
     RepositoryVersionViewSet,
@@ -38,6 +39,7 @@ from .models import (
     AnsibleRepository,
     Collection,
     CollectionVersion,
+    CollectionVersionSignature,
     CollectionRemote,
     Role,
     Tag,
@@ -48,8 +50,10 @@ from .serializers import (
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
     AnsibleRepositorySyncURLSerializer,
+    AnsibleRepositorySignatureSerializer,
     CollectionSerializer,
     CollectionVersionSerializer,
+    CollectionVersionSignatureSerializer,
     CollectionVersionUploadSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
@@ -61,6 +65,7 @@ from .tasks.collections import update_collection_remote, sync as collection_sync
 from .tasks.copy import copy_content
 from .tasks.roles import synchronize as role_sync
 from .tasks.git import synchronize as git_sync
+from .tasks.signature import sign
 
 
 class RoleFilter(ContentFilter):
@@ -208,6 +213,31 @@ class CollectionVersionViewSet(SingleArtifactContentUploadViewSet, UploadGalaxyC
         return OperationPostponedResponse(async_result, request)
 
 
+class SignatureFilter(ContentFilter):
+    """
+    A filter for signatures.
+    """
+
+    class Meta:
+        model = CollectionVersionSignature
+        fields = {
+            "signed_collection": ["exact"],
+            "pubkey_fingerprint": ["exact", "in"],
+            "signing_service": ["exact"],
+        }
+
+
+class CollectionVersionSignatureViewSet(ReadOnlyContentViewSet):
+    """
+    ViewSet for looking at signature objects for CollectionVersion content.
+    """
+
+    endpoint_name = "collection_signatures"
+    filterset_class = SignatureFilter
+    queryset = CollectionVersionSignature.objects.all()
+    serializer_class = CollectionVersionSignatureSerializer
+
+
 class CollectionDeprecatedViewSet(ContentViewSet):
     """
     ViewSet for AnsibleCollectionDeprecated.
@@ -287,6 +317,46 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             exclusive_resources=[repository],
             shared_resources=[remote],
             kwargs=sync_kwargs,
+        )
+        return OperationPostponedResponse(result, request)
+
+    @extend_schema(
+        description="Trigger an asynchronous task to sign Ansible content.",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=AnsibleRepositorySignatureSerializer)
+    def sign(self, request, pk):
+        """
+        Dispatches a sync task.
+
+        This endpoint is in tech preview and can change at any time in the future.
+        """
+        content_units = {}
+
+        repository = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        signing_service = serializer.validated_data["signing_service"]
+        content = serializer.validated_data["content_units"]
+
+        if "*" in content:
+            content_units_pks = ["*"]
+        else:
+            for url in content:
+                content_units[NamedModelViewSet.extract_pk(url)] = url
+            content_units_pks = list(content_units.keys())
+            existing_content_units = CollectionVersion.objects.filter(pk__in=content_units_pks)
+            self.verify_content_units(existing_content_units, content_units)
+
+        result = dispatch(
+            sign,
+            exclusive_resources=[repository],
+            kwargs={
+                "repository_href": repository.pk,
+                "content_hrefs": content_units_pks,
+                "signing_service_href": signing_service.pk,
+            },
         )
         return OperationPostponedResponse(result, request)
 

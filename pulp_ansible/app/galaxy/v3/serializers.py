@@ -171,6 +171,29 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     name = serializers.CharField(source="namespace")
 
 
+class CollectionVersionSignatureSerializer(serializers.ModelSerializer):
+    """
+    A serializer for the signatures on a Collection Version.
+    """
+
+    signature = serializers.SerializerMethodField()
+    signing_service = serializers.SlugRelatedField(
+        slug_field="name",
+        allow_null=True,
+        read_only=True,
+    )
+
+    def get_signature(self, obj):
+        """
+        Get the signature data.
+        """
+        return bytes(obj.data).decode("utf-8")
+
+    class Meta:
+        model = models.CollectionVersionSignature
+        fields = ("signature", "pubkey_fingerprint", "signing_service", "pulp_created")
+
+
 class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
     """
     A serializer for unpaginated CollectionVersion.
@@ -184,6 +207,7 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
 
     metadata = CollectionMetadataSerializer(source="*", read_only=True)
     namespace = CollectionNamespaceSerializer(source="*", read_only=True)
+    signatures = serializers.SerializerMethodField()
 
     class Meta:
         model = models.CollectionVersion
@@ -193,6 +217,7 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
             "download_url",
             "name",
             "namespace",
+            "signatures",
             "metadata",
             "git_url",
             "git_commit_sha",
@@ -234,6 +259,13 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
         if not content_artifact.get().artifact:
             return content_artifact.get().remoteartifact_set.all()[0].url[-40:]
+
+    def get_signatures(self, obj):
+        """
+        Get the signatures.
+        """
+        filtered_signatures = obj.signatures.filter(pk__in=self.context.get("sigs", []))
+        return CollectionVersionSignatureSerializer(filtered_signatures, many=True).data
 
 
 class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):

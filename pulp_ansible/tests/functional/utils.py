@@ -2,9 +2,10 @@
 from dynaconf import Dynaconf
 from functools import partial
 from time import sleep
+import os
 import unittest
 
-from pulp_smash import api, config, selectors
+from pulp_smash import api, cli, config, selectors, utils
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import (
     gen_distribution,
@@ -28,6 +29,7 @@ from pulp_ansible.tests.functional.constants import (
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
     TasksApi,
+    SigningServicesApi,
 )
 from pulpcore.client.pulp_ansible import (
     ApiClient as AnsibleApiClient,
@@ -130,6 +132,7 @@ identical, except that ``exc`` has been set to ``unittest.SkipTest``.
 
 core_client = CoreApiClient(configuration)
 tasks = TasksApi(core_client)
+signing = SigningServicesApi(core_client)
 
 
 def wait_tasks():
@@ -268,3 +271,41 @@ def get_psql_smash_cmd(sql_statement):
     password = settings.DATABASES["default"]["PASSWORD"]
     dbname = settings.DATABASES["default"]["NAME"]
     return ("psql", "-c", sql_statement, f"postgresql://{user}:{password}@{host}/{dbname}")
+
+
+def create_signing_service():
+    """
+    Generates an AsciiArmoredSigningService using the signing script in /assets.
+
+    The signing script requires a GPG key and environment variables to be set in order to work.
+    TEST_PULP_SIGNING_SCRIPT - Where the signing script exists
+    TEST_PULP_SIGNING_KEY_ID - The signing key id used by the signing script
+    """
+    cli_client = cli.Client(cfg)
+    name = utils.uuid4()
+    script = os.environ.get("TEST_PULP_SIGNING_SCRIPT", "/var/lib/pulp/sign-metadata.sh")
+    key_id = os.environ.get("TEST_PULP_SIGNING_KEY_ID", "Pulp QE")
+    cmd = (
+        "pulpcore-manager",
+        "add-signing-service",
+        name,
+        script,
+        key_id,
+    )
+    stdout = cli_client.run(cmd).stdout
+    if "Successfully added signing service" not in stdout:
+        raise Exception("Failed to create a signing service")
+    results = signing.list(name=name)
+    return results.results[0]
+
+
+def delete_signing_service(name):
+    """
+    Deletes a signing service on the test machine.
+    """
+    python_cmd = (
+        "from pulpcore.app.models import SigningService",
+        f"SigningService.objects.get(name='{name}').delete()",
+    )
+    cli_client = cli.Client(cfg)
+    utils.execute_pulpcore_python(cli_client, "\n".join(python_cmd))
