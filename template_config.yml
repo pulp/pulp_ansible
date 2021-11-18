@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-18-g3793012
+# generated with plugin_template@2021.08.26-37-gf062376
 
 additional_repos:
 - bindings: false
@@ -27,7 +27,7 @@ deploy_to_pypi: true
 docker_fixtures: false
 docs_test: true
 flake8: true
-issue_tracker: redmine
+issue_tracker: github
 noissue_marker: '[noissue]'
 plugin_app_label: ansible
 plugin_camel: PulpAnsible
@@ -69,7 +69,7 @@ test_cli: true
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: false
 test_s3: true
-update_redmine: true
+update_redmine: false
 upgrade_range:
 - pulp_ansible_branch: 0.7
   pulpcore_branch: 3.11

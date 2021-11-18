@@ -19,7 +19,7 @@ Changelog update
 The CHANGES.rst file is managed using the `towncrier tool <https://github.com/hawkowl/towncrier>`_
 and all non trivial changes must be accompanied by a news entry.
 
-To add an entry to the news file, you first need an issue in pulp.plan.io describing the change you
+To add an entry to the news file, you first need an issue describing the change you
 want to make. Once you have an issue, take its number and create a file inside of the ``CHANGES/``
 directory named after that issue number with an extension of .feature, .bugfix, .doc, .removal, or
 .misc. So if your issue is 3543 and it fixes a bug, you would create the file
