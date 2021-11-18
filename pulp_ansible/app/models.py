@@ -11,6 +11,7 @@ from pulpcore.plugin.models import (
     Remote,
     Repository,
     Distribution,
+    SigningService,
     Task,
 )
 from .downloaders import AnsibleDownloaderFactory
@@ -178,6 +179,38 @@ class CollectionVersion(Content):
         ]
 
 
+class CollectionVersionSignature(Content):
+    """
+    A content type representing a signature that is attached to a content unit.
+
+    Fields:
+        data (models.BinaryField): A signature, base64 encoded. # Not sure if it is base64 encoded
+        digest (models.CharField): A signature sha256 digest.
+        pubkey_fingerprint (models.CharField): A fingerprint of the public key used.
+
+    Relations:
+        signed_collection (models.ForeignKey): A collection version this signature is relevant to.
+        signing_service (models.ForeignKey): An optional signing service used for creation.
+    """
+
+    PROTECTED_FROM_RECLAIM = False
+    TYPE = "collection_signature"
+
+    signed_collection = models.ForeignKey(
+        CollectionVersion, on_delete=models.CASCADE, related_name="signatures"
+    )
+    data = models.BinaryField()  # This is what the pulp_container folks used
+    digest = models.CharField(max_length=64)  # does adding a min length improve db efficiency?
+    pubkey_fingerprint = models.CharField(max_length=64)
+    signing_service = models.ForeignKey(
+        SigningService, on_delete=models.SET_NULL, related_name="signatures", null=True
+    )
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("pubkey_fingerprint", "signed_collection")
+
+
 class RoleRemote(Remote):
     """
     A Remote for Ansible content.
@@ -200,6 +233,7 @@ class CollectionRemote(Remote):
     auth_url = models.CharField(null=True, max_length=255)
     token = models.TextField(null=True, max_length=2000)
     sync_dependencies = models.BooleanField(default=True)
+    signed_only = models.BooleanField(default=False)
 
     @property
     def download_factory(self):
@@ -265,7 +299,12 @@ class AnsibleRepository(Repository):
     """
 
     TYPE = "ansible"
-    CONTENT_TYPES = [Role, CollectionVersion, AnsibleCollectionDeprecated]
+    CONTENT_TYPES = [
+        Role,
+        CollectionVersion,
+        AnsibleCollectionDeprecated,
+        CollectionVersionSignature,
+    ]
     REMOTE_TYPES = [RoleRemote, CollectionRemote]
 
     last_synced_metadata_time = models.DateTimeField(null=True)

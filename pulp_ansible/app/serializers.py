@@ -4,10 +4,13 @@ from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 
-from pulpcore.plugin.models import Artifact, PulpTemporaryFile
+from pulpcore.plugin.models import Artifact, PulpTemporaryFile, SigningService
 from pulpcore.plugin.serializers import (
+    DetailRelatedField,
     ContentChecksumSerializer,
     ModelSerializer,
+    NoArtifactContentSerializer,
+    RelatedField,
     RemoteSerializer,
     RepositorySerializer,
     RepositorySyncURLSerializer,
@@ -28,6 +31,7 @@ from .models import (
     Collection,
     CollectionImport,
     CollectionVersion,
+    CollectionVersionSignature,
     CollectionRemote,
     Role,
     Tag,
@@ -171,6 +175,12 @@ class CollectionRemoteSerializer(RemoteSerializer):
         default=True,
     )
 
+    signed_only = serializers.BooleanField(
+        help_text=_("Sync only collections that have a signature"),
+        allow_null=True,
+        default=False,
+    )
+
     def validate(self, data):
         """
         Validate collection remote data.
@@ -221,6 +231,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
             "auth_url",
             "token",
             "sync_dependencies",
+            "signed_only",
         )
         model = CollectionRemote
 
@@ -488,6 +499,58 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
             )
         )
         model = CollectionVersion
+
+
+class CollectionVersionSignatureSerializer(NoArtifactContentSerializer):
+    """
+    A serializer for signature models.
+    """
+
+    signed_collection = DetailRelatedField(
+        help_text=_("The content this signature is pointing to."),
+        view_name_pattern=r"content(-.*/.*)-detail",
+        queryset=CollectionVersion.objects.all(),
+    )
+    pubkey_fingerprint = serializers.CharField(help_text=_("The fingerprint of the public key."))
+    signing_service = RelatedField(
+        help_text=_("The signing service used to create the signature."),
+        view_name="signing-services-detail",
+        queryset=SigningService.objects.all(),
+        allow_null=True,
+    )
+
+    class Meta:
+        model = CollectionVersionSignature
+        fields = NoArtifactContentSerializer.Meta.fields + (
+            "signed_collection",
+            "pubkey_fingerprint",
+            "signing_service",
+        )
+
+
+class AnsibleRepositorySignatureSerializer(serializers.Serializer):
+    """
+    A serializer for the signing action.
+    """
+
+    content_units = serializers.ListField(
+        required=True,
+        help_text=_(
+            "List of collection version hrefs to sign, use * to sign all content in repository"
+        ),
+    )
+    signing_service = RelatedField(
+        required=True,
+        view_name="signing-services-detail",
+        queryset=SigningService.objects.all(),
+        help_text=_("A signing service to use to sign the collections"),
+    )
+
+    def validate_content_units(self, value):
+        """Make sure the list is correctly formatted."""
+        if len(value) > 1 and "*" in value:
+            raise serializers.ValidationError("Cannot supply content units and '*'.")
+        return value
 
 
 class CollectionImportListSerializer(serializers.ModelSerializer):
