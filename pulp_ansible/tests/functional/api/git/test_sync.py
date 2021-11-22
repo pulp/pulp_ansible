@@ -103,3 +103,35 @@ class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(version.git_url, "https://github.com/ansible-collections/amazon.aws/")
         self.assertEqual(version.git_commit_sha, "013162a952c7b2d11c7e2ebf443d8d4d7a21e95a")
         self.assertEqual(version.download_url, None)
+
+    def test_sync_collection_from_git_commit_sha(self):
+        """Sync collections from Git repositories with git_ref that is a commit sha."""
+        body = gen_ansible_remote(
+            url="https://github.com/ansible-collections/amazon.aws/",
+            metadata_only=True,
+            git_ref="d0b54fc082cb63f63d34246c8fe668e19e74777c",
+        )
+        amazon_remote = self.remote_git_api.create(body)
+        self.addCleanup(self.remote_git_api.delete, amazon_remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(amazon_remote)
+
+        content = self.cv_api.list(repository_version=repo.latest_version_href)
+        self.assertEqual(len(content.results), 1)
+
+        # Create a distribution.
+        body = gen_distribution()
+        body["repository"] = repo.pulp_href
+        distribution_create = self.distributions_api.create(body)
+        created_resources = monitor_task(distribution_create.task).created_resources
+        distribution = self.distributions_api.read(created_resources[0])
+
+        self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
+
+        version = self.collections_versions_v3api.read(
+            "aws", "amazon", distribution.base_path, "1.5.1"
+        )
+
+        self.assertEqual(version.git_url, "https://github.com/ansible-collections/amazon.aws/")
+        self.assertEqual(version.git_commit_sha, "d0b54fc082cb63f63d34246c8fe668e19e74777c")
+        self.assertEqual(version.download_url, None)

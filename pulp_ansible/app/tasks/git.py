@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.db.utils import IntegrityError
 from galaxy_importer.collection import sync_collection
 from gettext import gettext as _
-from git import Repo
+from git import GitCommandError, Repo
 from rest_framework.exceptions import ValidationError
 
 from pulpcore.plugin.models import Artifact, ContentArtifact, ProgressReport
@@ -77,9 +77,13 @@ class GitFirstStage(Stage):
             message="Cloning Git repository for Collection", code="sync.git.clone"
         ) as pb:
             if self.remote.git_ref:
-                gitrepo = Repo.clone_from(
-                    self.remote.url, self.remote.name, depth=1, branch=self.remote.git_ref
-                )
+                try:
+                    gitrepo = Repo.clone_from(
+                        self.remote.url, self.remote.name, depth=1, branch=self.remote.git_ref
+                    )
+                except GitCommandError:
+                    gitrepo = Repo.clone_from(self.remote.url, self.remote.name)
+                    gitrepo.git.checkout(self.remote.git_ref)
             else:
                 gitrepo = Repo.clone_from(self.remote.url, self.remote.name, depth=1)
             commit_sha = gitrepo.head.commit.hexsha
