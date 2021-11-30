@@ -96,6 +96,8 @@ TABLES_TO_KEEP = (
     # not to be doomed by the lack of permissions
     "auth_permission",
     "core_accesspolicy",
+    "core_role",
+    "core_role_permissions",
     # 'auth_permission' references it, so it should not be truncated
     "django_content_type",
     # not to freak out the tasking system
