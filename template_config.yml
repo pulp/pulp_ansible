@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-37-gf062376
+# generated with plugin_template@2021.08.26-39-gb86dbd0
 
 additional_repos:
 - bindings: false
@@ -24,6 +24,7 @@ deploy_client_to_rubygems: true
 deploy_daily_client_to_pypi: true
 deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
+disabled_redis_runners: []
 docker_fixtures: false
 docs_test: true
 flake8: true
@@ -49,7 +50,7 @@ pulp_settings:
   allowed_import_paths: /tmp
   ansible_api_hostname: https://pulp:443
   ansible_content_hostname: https://pulp:443/pulp/content
-pulpcore_branch: master
+pulpcore_branch: main
 pulpcore_pip_version_specifier: null
 pulpcore_revision: null
 pulpprojectdotorg_key_id: aa499d7938ed
