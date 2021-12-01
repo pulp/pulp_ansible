@@ -5,7 +5,7 @@ from django.urls import reverse
 from django.db.utils import IntegrityError
 from galaxy_importer.collection import sync_collection
 from gettext import gettext as _
-from git import Repo
+from git import Repo, GitCommandError
 from rest_framework.exceptions import ValidationError
 
 from pulpcore.plugin.models import Artifact, ContentArtifact, ProgressReport
@@ -36,6 +36,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
         ValueError: If the remote does not specify a URL to sync.
 
     """
+    log.info('SYNCHRONIZE!!!...')
     remote = GitRemote.objects.get(pk=remote_pk)
     repository = AnsibleRepository.objects.get(pk=repository_pk)
 
@@ -46,8 +47,14 @@ def synchronize(remote_pk, repository_pk, mirror=False):
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}
     )
     first_stage = GitFirstStage(remote)
+    log.info(f'FIRST_STAGE: {first_stage}')
     d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
-    return d_version.create()
+    log.info(f'D_VERSION: {d_version}')
+    #import epdb; epdb.serve(port=8888)
+    #return d_version.create()
+    result = d_version.create()
+    log.info(f'D_VERSION.create() result: {result}')
+    return result
 
 
 class GitFirstStage(Stage):
@@ -73,15 +80,26 @@ class GitFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
+        log.info('run ...')
         async with ProgressReport(
             message="Cloning Git repository for Collection", code="sync.git.clone"
         ) as pb:
+            log.info(f'self.remote.git_ref: {self.remote.git_ref}')
             if self.remote.git_ref:
-                gitrepo = Repo.clone_from(
-                    self.remote.url, self.remote.name, depth=1, branch=self.remote.git_ref
-                )
+                log.info('clone with git_ref')
+                try:
+                    gitrepo = Repo.clone_from(
+                        self.remote.url, self.remote.name, depth=1, branch=self.remote.git_ref
+                    )
+                except GitCommandError as e:
+                    log.exception(e)
+                    #gitrepo = Repo.clone_from(self.remote.url, self.remote.name)
+                    gitrepo = Repo.clone_from(self.remote.url, f'testrepo.{self.remote.git_ref}')
+                    gitrepo.git.checkout(self.remote.git_ref)
             else:
+                log.info('clone without git_ref')
                 gitrepo = Repo.clone_from(self.remote.url, self.remote.name, depth=1)
+
             commit_sha = gitrepo.head.commit.hexsha
             metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
             if not self.remote.metadata_only:
@@ -103,17 +121,27 @@ class GitFirstStage(Stage):
 
     async def _add_collection_version(self, metadata):
         """Add CollectionVersion to the sync pipeline."""
+        log.info('_add_collection_version ...')
         artifact = metadata["artifact"]
         try:
             collection_version = await sync_to_async(create_collection_from_importer)(
                 metadata, metadata_only=self.remote.metadata_only
             )
+            log.info(f'1) collection_version: {collection_version}')
+            for method in dir(collection_version):
+                log.info(f'\t{method}')
+            #collection_version.save()
+            await sync_to_async(collection_version.save)()
             await sync_to_async(ContentArtifact.objects.get_or_create)(
                 artifact=artifact,
                 content=collection_version,
                 relative_path=collection_version.relative_path,
             )
+
         except ValidationError as e:
+
+            log.exception(e)
+
             if e.args[0]["non_field_errors"][0].code == "unique":
                 namespace = metadata["metadata"]["namespace"]
                 name = metadata["metadata"]["name"]
@@ -123,6 +151,8 @@ class GitFirstStage(Stage):
             collection_version = await sync_to_async(CollectionVersion.objects.get)(
                 namespace=namespace, name=name, version=version
             )
+            log.info(f'2) collection_version: {collection_version}')
+
         if artifact is None:
             artifact = Artifact()
         d_artifact = DeclarativeArtifact(

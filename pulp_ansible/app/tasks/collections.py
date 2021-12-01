@@ -284,6 +284,7 @@ def import_collection(
     expected_namespace=None,
     expected_name=None,
     expected_version=None,
+    resources=None
 ):
     """
     Create a Collection from an uploaded artifact and optionally validate its expected metadata.
@@ -314,6 +315,7 @@ def import_collection(
             match the metadata in the tarball.
 
     """
+    log.info('IMPORT_COLLECTION ...')
     CollectionImport.objects.get_or_create(task_id=Task.current().pulp_id)
 
     # the temp_file is the uploaded artifact. In the case of an SCM import,
@@ -352,6 +354,7 @@ def import_collection(
                 scm_url = tb_manifest_content.get('collection_info', {}).get('repository')
             else:
                 scm_url = None
+            log.info(f'IMPORT_COLLECTION scm_url: {scm_url}')
 
             # is there a commit?
             if tb_manifest_content.get('collection_info', {}).get('commit'):
@@ -360,9 +363,11 @@ def import_collection(
                 scm_sha = tb_manifest_content.get('collection_info', {}).get('scm_sha')
             else:
                 scm_sha = None
+            log.info(f'IMPORT_COLLECTION scm_sha: {scm_sha}')
 
             # FIXME - how to properly detect scm based content ?!?!
             if tb_manifest_content and scm_url and is_role:
+                log.info('is_role path')
 
                 #import epdb; epdb.serve(port=8888)
 
@@ -444,7 +449,7 @@ def import_collection(
                     git_clone_path=tdir,
                     output_path=tempfile.mkdtemp(),
                     file_url=url,
-                    is_role=True,
+                    #is_role=True,
                     logger=user_facing_logger
                 )
 
@@ -453,6 +458,8 @@ def import_collection(
                     importer_result = importer_result[0]
 
             else:
+
+                log.info('not is_role path')
 
                 importer_result = process_collection(
                     artifact_file, filename=filename, file_url=url, logger=user_facing_logger
@@ -502,6 +509,8 @@ def create_collection_from_importer(importer_result, metadata_only=False):
     """
     Process results from importer.
     """
+    log.info('create_collection_from_importer')
+    #import epdb; epdb.serve(port=8888)
     collection_info = importer_result["metadata"]
 
     with transaction.atomic():
@@ -514,6 +523,7 @@ def create_collection_from_importer(importer_result, metadata_only=False):
         # Remove fields not used by this model
         collection_info.pop("license_file")
         collection_info.pop("readme")
+        log.info(f'collection_info: {collection_info}')
 
         # the importer returns many None values. We need to let the defaults in the model prevail
         for key in ["description", "documentation", "homepage", "issues", "repository"]:
@@ -527,6 +537,7 @@ def create_collection_from_importer(importer_result, metadata_only=False):
             contents=importer_result["contents"],
             docs_blob=importer_result["docs_blob"],
         )
+        log.info(f'collection_version: {collection_version}')
 
         serializer_fields = CollectionVersionSerializer.Meta.fields
         data = {k: v for k, v in collection_version.__dict__.items() if k in serializer_fields}
@@ -534,6 +545,8 @@ def create_collection_from_importer(importer_result, metadata_only=False):
         if not metadata_only:
             data["artifact"] = importer_result["artifact_url"]
 
+        log.info(f'data: {data.keys()}')
+        log.info(f'data["version"]: {data["version"]}')
         serializer = CollectionVersionSerializer(data=data)
 
         serializer.is_valid(raise_exception=True)
