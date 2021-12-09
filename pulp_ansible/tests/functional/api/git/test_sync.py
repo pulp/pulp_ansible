@@ -135,3 +135,57 @@ class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(version.git_url, "https://github.com/ansible-collections/amazon.aws/")
         self.assertEqual(version.git_commit_sha, "d0b54fc082cb63f63d34246c8fe668e19e74777c")
         self.assertEqual(version.download_url, None)
+
+    def test_sync_metadata_only_collection_from_pulp(self):
+        """Sync collections from another Pulp that only has metadata.
+
+        Create a GitRemote
+        Create a repository
+        Sync from the remote
+        Create distribution to serve the repository
+        Create CollectionRemote pointing to the distribution.
+        Create a second repository.
+        Sync using the CollectionRemote into the second repository.
+        Assert content is added to the second repository.
+
+        """
+        body = gen_ansible_remote(
+            url="https://github.com/ansible-collections/amazon.aws/",
+            metadata_only=True,
+            git_ref="2.1.0",
+        )
+        amazon_remote = self.remote_git_api.create(body)
+        self.addCleanup(self.remote_git_api.delete, amazon_remote.pulp_href)
+
+        self.first_repo = self._create_repo_and_sync_with_remote(amazon_remote)
+
+        content = self.cv_api.list(repository_version=self.first_repo.latest_version_href)
+        self.assertEqual(len(content.results), 1)
+
+        # Create a distribution.
+        body = gen_distribution()
+        body["repository"] = self.first_repo.pulp_href
+        distribution_create = self.distributions_api.create(body)
+        created_resources = monitor_task(distribution_create.task).created_resources
+        self.distribution = self.distributions_api.read(created_resources[0])
+
+        self.addCleanup(self.distributions_api.delete, self.distribution.pulp_href)
+
+        self.requirements_file = "collections:\n  - amazon.aws"
+
+        second_body = gen_ansible_remote(
+            url=self.distribution.client_url,
+            requirements_file=self.requirements_file,
+            sync_dependencies=False,
+        )
+        second_remote = self.remote_collection_api.create(second_body)
+        self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
+
+        second_repo = self._create_repo_and_sync_with_remote(second_remote)
+
+        first_content = self.cv_api.list(
+            repository_version=f"{self.first_repo.pulp_href}versions/1/"
+        )
+        self.assertGreaterEqual(len(first_content.results), 1)
+        second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(second_content.results), 1)

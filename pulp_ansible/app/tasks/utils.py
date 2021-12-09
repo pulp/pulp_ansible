@@ -4,7 +4,6 @@ import logging
 import json
 import re
 import yaml
-
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
