@@ -7,7 +7,10 @@ from pulp_ansible.tests.functional.utils import (
 from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
 from orionutils.generator import build_collection
 from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulp_ansible.tests.functional.utils import (  # noqa
+    monitor_task,
+    set_up_module as setUpModule,
+)
 
 
 class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
@@ -196,7 +199,8 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
         upload_api = PulpAnsibleArtifactsCollectionsV3Api(cls.client)
         for config in TEST_COLLECTION_CONFIGS:
             collection = build_collection("skeleton", config=config)
-            upload_api.create(cls.distro.base_path, collection.filename)
+            upload_response = upload_api.create(cls.distro.base_path, collection.filename)
+            monitor_task("/pulp/api/v3/tasks/{}/".format(upload_response.task[-37:-1]))
             cls.collections.append(collection)
         cls.distro.client_url += "api/"
 
