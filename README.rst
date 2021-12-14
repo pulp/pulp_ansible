@@ -1,8 +1,8 @@
 pulp_ansible
 ============
 
-.. figure:: https://github.com/pulp/pulp_ansible/workflows/Pulp%20CI/badge.svg
-   :alt: Pulp CI
+.. figure:: https://github.com/pulp/pulp_ansible/actions/workflows/nightly.yml/badge.svg?branch=main
+   :alt: Ansible Nightly CI/CD
 
 A Pulp plugin to support hosting ``Role`` and ``Collection`` Ansible content.
 
