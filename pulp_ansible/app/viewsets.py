@@ -231,6 +231,8 @@ class RoleRemoteViewSet(RemoteViewSet):
 class GitRemoteViewSet(RemoteViewSet):
     """
     ViewSet for Ansible Remotes.
+
+    This is a tech preview feature. The functionality may change in the future.
     """
 
     endpoint_name = "git"
