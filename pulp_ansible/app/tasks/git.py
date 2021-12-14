@@ -102,6 +102,7 @@ class GitFirstStage(Stage):
 
             commit_sha = gitrepo.head.commit.hexsha
             metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
+            log.info(f'metadata1: {metadata}')
             if not self.remote.metadata_only:
                 artifact = Artifact.init_and_validate(artifact_path)
                 try:
@@ -122,6 +123,7 @@ class GitFirstStage(Stage):
     async def _add_collection_version(self, metadata):
         """Add CollectionVersion to the sync pipeline."""
         log.info('_add_collection_version ...')
+        log.info(f'metadataN: {metadata}')
         artifact = metadata["artifact"]
         try:
             collection_version = await sync_to_async(create_collection_from_importer)(
