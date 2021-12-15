@@ -1,1 +1,0 @@
-Case-insensitive search for the ``owner__username`` and role ``name`` fields in the pulp_ansible role view (same as on galaxy.ansible.com).
