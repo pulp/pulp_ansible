@@ -13,6 +13,37 @@ Changelog
 
 .. towncrier release notes start
 
+0.11.0 (2021-12-15)
+===================
+
+Features
+--------
+
+- Added ability to sync only metadata from a Git remote. This is a tech preview feature. The
+  functionality may change in the future.
+  `#744 <https://github.com/pulp/pulp_ansible/issues/744>`_
+- Syncing now excludes collection versions found at ``/excludes/`` endpoint of remote.
+  `#750 <https://github.com/pulp/pulp_ansible/issues/750>`_
+- Added a Git Remote that is used to sync content from Git repositories. This is a tech preview
+  feature. The functionality may change in the future.
+  `#751 <https://github.com/pulp/pulp_ansible/issues/751>`_
+- Added ability to sync collections using GitRemote. This is a tech preview feature. The
+  functionality may change in the future.
+  `#752 <https://github.com/pulp/pulp_ansible/issues/752>`_
+- Use ``shared_resources`` in tasks where appropriate.
+  `#753 <https://github.com/pulp/pulp_ansible/issues/753>`_
+
+
+Bugfixes
+--------
+
+- Case-insensitive search for the ``owner__username`` and role ``name`` fields in the pulp_ansible role view (same as on galaxy.ansible.com).
+  `#747 <https://github.com/pulp/pulp_ansible/issues/747>`_
+
+
+----
+
+
 0.10.1 (2021-10-05)
 ===================
 
