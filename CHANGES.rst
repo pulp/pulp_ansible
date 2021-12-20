@@ -13,6 +13,18 @@ Changelog
 
 .. towncrier release notes start
 
+0.11.1 (2021-12-20)
+===================
+
+Misc
+----
+
+- `#774 <https://github.com/pulp/pulp_ansible/issues/774>`_
+
+
+----
+
+
 0.11.0 (2021-12-15)
 ===================
 
