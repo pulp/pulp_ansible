@@ -47,7 +47,7 @@ jobs:
         run: pip3 install -r dev_requirements.txt
 
       - name: Check commit message
-        if: github.event_name == 'pull_request' && github.actor != 'patchback'
+        if: github.event_name == 'pull_request'
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
