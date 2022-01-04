@@ -1,13 +1,14 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-39-gb86dbd0
+# generated with plugin_template@2021.08.26-50-g3eb3ccb
 
 additional_repos:
 - bindings: false
   branch: master
   name: galaxy-importer
   org: ansible
+aiohttp_fixtures_origin: 172.18.0.1
 black: true
 check_commit_message: true
 check_gettext: true

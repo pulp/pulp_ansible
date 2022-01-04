@@ -29,7 +29,7 @@ jobs:
 
   lint:
     runs-on: ubuntu-latest
-
+    
 
     steps:
       - uses: actions/checkout@v2
@@ -47,7 +47,7 @@ jobs:
         run: pip3 install -r dev_requirements.txt
 
       - name: Check commit message
-        if: github.event_name == 'pull_request' && github.actor != 'patchback[bot]'
+        if: github.event_name == 'pull_request'
         env:
           PY_COLORS: '1'
           ANSIBLE_FORCE_COLOR: '1'
@@ -115,7 +115,7 @@ jobs:
           echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Before Install
-
+        
         run: .github/workflows/scripts/before_install.sh
         shell: bash
         env:
@@ -129,7 +129,7 @@ jobs:
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
       - name: Install
-
+        
         run: .github/workflows/scripts/install.sh
         shell: bash
         env:
@@ -143,7 +143,7 @@ jobs:
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
       - name: Install Python client
-
+        
         run: .github/workflows/scripts/install_python_client.sh
         shell: bash
 
@@ -153,7 +153,7 @@ jobs:
         shell: bash
 
       - name: Before Script
-
+        
         run: .github/workflows/scripts/before_script.sh
         shell: bash
         env:
@@ -174,7 +174,7 @@ jobs:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Script
-
+        
         run: .github/workflows/scripts/script.sh
         shell: bash
         env:
@@ -242,7 +242,7 @@ jobs:
           echo ::endgroup::
 
       - name: Before Install
-
+        
         run: .github/workflows/scripts/before_install.sh
         shell: bash
         env:
@@ -256,7 +256,7 @@ jobs:
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
       - name: Install
-
+        
         run: .github/workflows/scripts/install.sh
         shell: bash
         env:
@@ -270,12 +270,12 @@ jobs:
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
 
       - name: Install Python client
-
+        
         run: .github/workflows/scripts/install_python_client.sh
         shell: bash
 
       - name: Before Script
-
+        
         run: .github/workflows/scripts/before_script.sh
         shell: bash
         env:
@@ -290,13 +290,13 @@ jobs:
           REDIS_DISABLED: ${{ contains('', matrix.env.TEST) }}
 
       - name: Setting secrets
-
+        
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Upgrade Test
-
+        
         run: .github/workflows/scripts/script.sh
         shell: bash
         env:
