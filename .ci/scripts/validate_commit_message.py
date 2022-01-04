@@ -31,7 +31,8 @@ def __check_status(issue):
     gi = repo.get_issue(int(issue))
     if gi.pull_request:
         sys.exit(f"Error: issue #{issue} is a pull request.")
-    if gi.closed_at:
+    PR_BODY = os.environ.get("GITHUB_PULL_REQUEST_BODY", "")
+    if gi.closed_at and "backport" not in PR_BODY:
         sys.exit(f"Error: issue #{issue} is closed.")
 
 
