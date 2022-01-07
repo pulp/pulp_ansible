@@ -1,0 +1,2 @@
+Fixed the migrations 0035 and 0036 that handle the transition of deprecations to being repository
+content and used to fail on uniquenes constraints.
