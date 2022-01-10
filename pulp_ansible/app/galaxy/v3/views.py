@@ -638,7 +638,7 @@ class CollectionImportViewSet(
         pp request.data
         {'file': <PulpTemporaryUploadedFile: awcrosby-cisco_ios_test-1.0.0.tar.gz (application/octet-stream)>,
         'sha256': '05cc38f07509bd4dbe21b1d9558ba916042dbefb76954bdf9f123e4d1151cea5'}
-        (Epdb) 
+        (Epdb)
         {'file': <PulpTemporaryUploadedFile: awcrosby-cisco_ios_test-1.0.0.tar.gz (application/octet-stream)>,
         'sha256': '05cc38f07509bd4dbe21b1d9558ba916042dbefb76954bdf9f123e4d1151cea5'}
 

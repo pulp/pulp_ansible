@@ -225,7 +225,7 @@ class CollectionSCMShim:
         proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
         self.sha = proc.stdout.decode('utf-8').strip()
         return self.sha
-    
+
     @property
     def tar_sha256(self):
         return self._tar_sha256
@@ -253,6 +253,12 @@ class CollectionSCMShim:
             proc = subprocess.run(cmd, shell=True)
 
     def build_artifact(self):
+
+        # ensure a galaxy.yml exists ...
+        galaxy_fp = os.path.join(self.clone_path, 'galaxy.yml')
+        if not os.path.exists(galaxy_fp):
+            raise Exception('MISSING GALAXY.YML')
+
         cmd = f'cd {self.clone_path} && ansible-galaxy collection build .'
         proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE)
         if proc.returncode != 0:
