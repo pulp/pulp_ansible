@@ -12,6 +12,7 @@ on:
     # * is a special character in YAML so you have to quote this string
     # runs at 3:00 UTC daily
     - cron: '00 3 * * *'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -95,6 +96,7 @@ jobs:
           GITHUB_REPO_SLUG: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
+          REDIS_DISABLED: ${{ contains('', matrix.env.TEST) }}
 
       - name: Setting secrets
         
@@ -139,7 +141,6 @@ jobs:
         with:
           name: ruby-client.tar
           path: ruby-client.tar
-
       - name: Upload built docs
         if: ${{ env.TEST == 'docs' }}
         uses: actions/upload-artifact@v2
@@ -250,6 +251,7 @@ jobs:
           GITHUB_REPO_SLUG: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_CONTEXT: ${{ github.event.pull_request.commits_url }}
+          REDIS_DISABLED: ${{ contains('', matrix.env.TEST) }}
 
       - name: Setting secrets
         
