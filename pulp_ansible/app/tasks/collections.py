@@ -863,7 +863,10 @@ class CollectionContentSaver(ContentSaver):
                     )
                     if runtime_metadata:
                         runtime_yaml = yaml.safe_load(runtime_metadata)
-                        collection_version.requires_ansible = runtime_yaml.get("requires_ansible")
+                        if runtime_yaml:
+                            collection_version.requires_ansible = runtime_yaml.get(
+                                "requires_ansible"
+                            )
                     manifest_data = json.load(
                         get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
                     )
