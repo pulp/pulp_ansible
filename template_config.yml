@@ -1,10 +1,11 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-14-g7edf776
+# generated with plugin_template@2021.08.26-65-g3505809
 
 additional_plugins: []
 additional_repos: []
+aiohttp_fixtures_origin: 172.18.0.1
 all: false
 black: true
 bootstrap: false
@@ -23,12 +24,14 @@ deploy_client_to_rubygems: true
 deploy_daily_client_to_pypi: true
 deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
+disabled_redis_runners: []
 docker_fixtures: false
 docs: false
 docs_test: true
 flake8: true
-issue_tracker: redmine
+issue_tracker: github
 noissue_marker: '[noissue]'
+parallel_test_workers: 8
 plugin_app_label: ansible
 plugin_camel: PulpAnsible
 plugin_camel_short: Ansible
@@ -48,7 +51,7 @@ pulp_settings:
   ansible_api_hostname: http://pulp:80
   ansible_content_hostname: http://pulp:80/pulp/content
 pulpcore_branch: 3.7
-pulpcore_pip_version_specifier: "==3.7.8"
+pulpcore_pip_version_specifier: ==3.7.8
 pulpcore_revision: null
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
@@ -60,14 +63,17 @@ release_user: pulpbot
 single_commit_check: false
 stable_branch: null
 sync_ci: true
+tasking_allow_async_unsafe: true
 test: false
+test_azure: false
 test_bindings: false
 test_cli: false
+test_deprecations: false
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: false
 test_s3: true
 travis_addtl_services: []
 travis_notifications: []
-update_redmine: true
+update_github: true
 upgrade_range: []
 

@@ -94,6 +94,11 @@ fi
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
 
+if [ "$TEST" = "azure" ]; then
+  AZURE_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ci-azurite:10000/devstoreaccount1;'
+  az storage container create --name pulp-test --connection-string $AZURE_STORAGE_CONNECTION_STRING
+fi
+
 echo ::group::PIP_LIST
 cmd_prefix bash -c "pip3 list && pip3 install pipdeptree && pipdeptree"
 echo ::endgroup::
