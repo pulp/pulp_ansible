@@ -22,3 +22,8 @@ cmd_prefix chmod a+x /var/lib/pulp/sign-metadata.sh
 KEY_FINGERPRINT="6EDF301256480B9B801EBA3D05A5E6DA269D9D98"
 TRUST_LEVEL="6"
 echo "$KEY_FINGERPRINT:$TRUST_LEVEL:" | cmd_stdin_prefix gpg --import-ownertrust
+
+
+if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
+    export MIRROR_GALAXY=enabled
+fi
