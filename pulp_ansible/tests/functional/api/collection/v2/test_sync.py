@@ -134,6 +134,21 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         )
         self.assertRaises(ApiException, self.remote_collection_api.create, body)
 
+    def test_sync_collection_missing_requires_ansible(self):
+        """Sync a collection with the expected `requires_ansible` data missing."""
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: inexio.thola\n    version: 1.0.0",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(content.results), 1)
+
     @unittest.skipUnless(
         "MIRROR_GALAXY" in os.environ,
         "'MIRROR_GALAXY' env var is not defined",
