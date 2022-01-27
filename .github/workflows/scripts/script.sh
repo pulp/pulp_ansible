@@ -160,6 +160,9 @@ if [[ "$TEST" == "performance" ]]; then
   exit
 fi
 
+# Enable proxy.py
+export PULP_PROXY_TEST=enabled
+
 if [ -f $FUNC_TEST_SCRIPT ]; then
   source $FUNC_TEST_SCRIPT
 else
