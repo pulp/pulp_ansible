@@ -1,7 +1,9 @@
 """Tests related to upload of collections."""
 import hashlib
 import logging
+import os
 import re
+import shutil
 from datetime import datetime
 from urllib.parse import urljoin
 
@@ -59,8 +61,22 @@ def get_galaxy_url(base, path):
 @pytest.fixture(scope="session")
 def artifact():
     """Generate a randomized collection for testing."""
+    # build_collection will only store one collection, so copy to new location and delete later
     artifact = build_collection("skeleton")
-    return artifact
+    artifact.filename = shutil.copy(artifact.filename, "/tmp")
+    yield artifact
+    os.remove(artifact.filename)
+
+
+@pytest.fixture(scope="session")
+def artifact2():
+    """
+    Generate a second randomized collection for testing.
+
+    This collection will have the same namespace and version, but different name.
+    """
+    artifact2 = build_collection("skeleton")
+    return artifact2
 
 
 def get_metadata_published(pulp_client, pulp_dist):
@@ -78,6 +94,20 @@ def collection_upload(pulp_client, artifact, pulp_dist):
     published_before_upload = get_metadata_published(pulp_client, pulp_dist)
     logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
     collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
+
+    response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
+    published_after_upload = get_metadata_published(pulp_client, pulp_dist)
+    assert published_after_upload > published_before_upload
+    return response
+
+
+@pytest.fixture(scope="session")
+def collection_upload2(pulp_client, artifact2, pulp_dist):
+    """Publish the second new collection and return the processed response data."""
+    UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
+    published_before_upload = get_metadata_published(pulp_client, pulp_dist)
+    logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
+    collection = {"file": (open(artifact2.filename, "rb"))}
 
     response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
     published_after_upload = get_metadata_published(pulp_client, pulp_dist)
@@ -171,6 +201,22 @@ def test_collection_upload(collection_upload):
             assert COLLECTION_METADATA[key] == value, collection_upload
 
 
+def test_collection_list(
+    artifact, artifact2, collection_upload, collection_upload2, pulp_client, pulp_dist
+):
+    """Tests the collection list endpoint after uploading both collections."""
+    url = get_galaxy_url(pulp_dist["base_path"], "v3/collections/")
+    response = pulp_client.using_handler(api.json_handler).get(url)
+
+    assert response["meta"]["count"] >= 2
+    present_collections = {c["href"].split("collections/")[1] for c in response["data"]}
+    uploaded_collections = {
+        f"{artifact.namespace}/{artifact.name}/",
+        f"{artifact2.namespace}/{artifact2.name}/",
+    }
+    assert uploaded_collections.issubset(present_collections)
+
+
 def test_collection_detail(artifact, collection_detail, pulp_dist):
     """Test collection detail resulting from a successful upload of one version.
 
@@ -187,7 +233,7 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
     assert collection_detail["highest_version"]["version"] == "1.0.0"
 
 
-def test_collection_version_list(artifact, pulp_client, collection_detail):
+def test_collection_version_list(artifact, pulp_client, collection_detail, collection_upload2):
     """Test the versions endpoint, listing the available versions of a given collection."""
     # Version List Endpoint
     versions = pulp_client.using_handler(api.json_handler).get(collection_detail["versions_url"])
