@@ -89,8 +89,9 @@ class AnsibleDistributionMixin:
         context = super().get_serializer_context()
         if "path" in self.kwargs:
             context["path"] = self.kwargs["path"]
-        if "sigs" in self.kwargs:
-            context["sigs"] = self.kwargs["sigs"]
+
+        distro_content = self._distro_content
+        context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
         return context
 
 
@@ -434,14 +435,6 @@ class CollectionVersionViewSet(
 
     lookup_field = "version"
 
-    def get_queryset(self):
-        """
-        Returns a CollectionVersions queryset for specified distribution.
-        """
-        distro_content = self._distro_content
-        self.kwargs["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
-        return CollectionVersion.objects.select_related().filter(pk__in=distro_content)
-
     def get_list_serializer(self, *args, **kwargs):
         """
         Return the list serializer instance.
@@ -473,6 +466,14 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
 
     serializer_class = UnpaginatedCollectionVersionSerializer
     pagination_class = None
+
+    def get_queryset(self):
+        """
+        Returns a CollectionVersions queryset for specified distribution.
+        """
+        distro_content = self._distro_content
+
+        return CollectionVersion.objects.select_related().filter(pk__in=distro_content)
 
     def list(self, request, *args, **kwargs):
         """

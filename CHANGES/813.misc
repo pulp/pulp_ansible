@@ -1,0 +1,1 @@
+Fixed issue with improper filtering on the CollectionVersionViewset introduced with collection signing.
