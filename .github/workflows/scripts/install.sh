@@ -75,9 +75,6 @@ services:
     image: "pulp:${TAG}"
     volumes:
       - ./settings:/etc/pulp
-  - name: ciproxy
-    image: ghcr.io/abhinavsingh/proxy.py:latest
-    command: "--basic-auth foo:bar --hostname 0.0.0.0"
 VARSYAML
 fi
 
