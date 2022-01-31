@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.5.11 (2022-01-31)
+===================
+
+Bugfixes
+--------
+
+- Use proxy auth credentials of a Remote when syncing content
+  `#801 <https://github.com/pulp/pulp_ansible/issues/801>`_
+
+
+----
+
+
 0.5.10 (2021-09-13)
 ===================
 
