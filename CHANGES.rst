@@ -13,6 +13,22 @@ Changelog
 
 .. towncrier release notes start
 
+0.7.5 (2022-01-31)
+==================
+
+Bugfixes
+--------
+
+- Use proxy auth credentials of a Remote when syncing content
+  `#801 <https://github.com/pulp/pulp_ansible/issues/801>`_
+- Adds workaround to handle collections that do not have a ``requires_ansible`` in the
+  ``meta/runtime.yml`` data. This can happen in collections from ``galaxy.ansible.com``.
+  `#806 <https://github.com/pulp/pulp_ansible/issues/806>`_
+
+
+----
+
+
 0.7.4 (2021-11-12)
 ==================
 

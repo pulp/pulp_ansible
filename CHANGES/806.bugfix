@@ -1,2 +1,0 @@
-Adds workaround to handle collections that do not have a ``requires_ansible`` in the
-``meta/runtime.yml`` data. This can happen in collections from ``galaxy.ansible.com``.
