@@ -203,54 +203,6 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         msg = "absent.not_present does not exist"
         self.assertIn(msg, task_result["error"]["description"], task_result["error"]["description"])
 
-    def test_sync_with_proxy_auth(self):
-        """Test sync collections from pulp server."""
-        if not os.getenv("PULP_PROXY_TEST"):
-            self.skipTest("Proxy isn't set.")
-
-        second_body = gen_ansible_remote(
-            url=self.distribution.client_url,
-            requirements_file=self.requirements_file,
-            sync_dependencies=False,
-            proxy_url="http://ciproxy:8899",
-            proxy_username="foo",
-            proxy_password="bar",
-        )
-        second_remote = self.remote_collection_api.create(second_body)
-        self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
-
-        second_repo = self._create_repo_and_sync_with_remote(second_remote)
-
-        first_content = self.cv_api.list(
-            repository_version=f"{self.first_repo.pulp_href}versions/1/"
-        )
-        self.assertGreaterEqual(len(first_content.results), 1)
-        second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(second_content.results), 1)
-
-    def test_sync_with_proxy_auth_without_credentials(self):
-        """Test sync collections from pulp server."""
-        if not os.getenv("PULP_PROXY_TEST"):
-            self.skipTest("Proxy isn't set.")
-
-        second_body = gen_ansible_remote(
-            url=self.distribution.client_url,
-            requirements_file=self.requirements_file,
-            sync_dependencies=False,
-            proxy_url="http://ciproxy:8899",
-        )
-        second_remote = self.remote_collection_api.create(second_body)
-        self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
-
-        with self.assertRaises(PulpTaskError) as ctx:
-            self._create_repo_and_sync_with_remote(second_remote)
-
-        task_result = ctx.exception.task.to_dict()
-        msg = "407, message='Proxy Authentication Required', url=URL(" "'http://ciproxy:8899')"
-        self.assertEqual(
-            msg, task_result["error"]["description"], task_result["error"]["description"]
-        )
-
 
 @unittest.skipUnless(
     "AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
