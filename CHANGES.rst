@@ -13,6 +13,44 @@ Changelog
 
 .. towncrier release notes start
 
+0.12.0 (2022-02-02)
+===================
+
+Features
+--------
+
+- Added Collection Signatures to the Galaxy V3 API to allow for syncing of signatures during a collection sync.
+  `#748 <https://github.com/pulp/pulp_ansible/issues/748>`_
+- Added ``CollectionVersionSignature`` content model to store signatures for Collections.
+  `#757 <https://github.com/pulp/pulp_ansible/issues/757>`_
+- Added API to serve Collection Signatures at ``/pulp/api/v3/content/ansible/collection_signatures/``.
+  `#758 <https://github.com/pulp/pulp_ansible/issues/758>`_
+- Enabled Collection Remote to sync content that was initially synced using Git Remote.
+  `#778 <https://github.com/pulp/pulp_ansible/issues/778>`_
+
+
+Bugfixes
+--------
+
+- Fixed the migrations 0035 and 0036 that handle the transition of deprecations to being repository
+  content and used to fail on uniquenes constraints.
+  `#791 <https://github.com/pulp/pulp_ansible/issues/791>`_
+- Use proxy auth credentials of a Remote when syncing content
+  `#801 <https://github.com/pulp/pulp_ansible/issues/801>`_
+- Adds workaround to handle collections that do not have a ``requires_ansible`` in the
+  ``meta/runtime.yml`` data. This can happen in collections from ``galaxy.ansible.com``.
+  `#806 <https://github.com/pulp/pulp_ansible/issues/806>`_
+
+
+Misc
+----
+
+- `#813 <https://github.com/pulp/pulp_ansible/issues/813>`_
+
+
+----
+
+
 0.11.1 (2021-12-20)
 ===================
 
