@@ -1,7 +1,5 @@
 """Tests collection sync using the Galaxy V2 API."""
-import os
-import unittest
-
+import pytest
 from pulpcore.client.pulp_ansible import ApiException
 
 from pulp_ansible.tests.functional.utils import (
@@ -149,10 +147,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(content.results), 1)
 
-    @unittest.skipUnless(
-        "MIRROR_GALAXY" in os.environ,
-        "'MIRROR_GALAXY' env var is not defined",
-    )
+    @pytest.mark.nightly
     def test_mirror_galaxy(self):
         """Mirror Galaxy."""
         body = gen_ansible_remote(url="https://galaxy.ansible.com")
