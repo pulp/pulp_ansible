@@ -164,8 +164,7 @@ if [ -f $FUNC_TEST_SCRIPT ]; then
   source $FUNC_TEST_SCRIPT
 else
 
-    echo $GITHUB_EVENT_NAME
-    if [[ "$GITHUB_EVENT_NAME" == "schedule" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+    if [[ "$GITHUB_EVENT_NAME" == "schedule" ]]; then
         pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8
         pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel"
     else
