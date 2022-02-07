@@ -157,7 +157,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         repo = self._create_repo_and_sync_with_remote(remote)
 
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(content.results), 300)
+        self.assertGreaterEqual(content.count, 300)
 
 
 class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
