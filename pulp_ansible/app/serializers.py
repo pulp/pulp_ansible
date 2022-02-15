@@ -9,7 +9,7 @@ from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
     ModelSerializer,
-    NoArtifactContentSerializer,
+    NoArtifactContentUploadSerializer,
     RelatedField,
     RemoteSerializer,
     RepositorySerializer,
@@ -501,7 +501,7 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         model = CollectionVersion
 
 
-class CollectionVersionSignatureSerializer(NoArtifactContentSerializer):
+class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
     """
     A serializer for signature models.
     """
@@ -515,13 +515,33 @@ class CollectionVersionSignatureSerializer(NoArtifactContentSerializer):
     signing_service = RelatedField(
         help_text=_("The signing service used to create the signature."),
         view_name="signing-services-detail",
-        queryset=SigningService.objects.all(),
+        read_only=True,
         allow_null=True,
     )
 
+    def __init__(self, *args, **kwargs):
+        """Ensure `file` field is required."""
+        super().__init__(*args, **kwargs)
+        self.fields["file"].required = True
+
+    def validate(self, data):
+        """
+        Prepare the necessary data for signature creation. Minimal validation is performed.
+        """
+        data = super().validate(data)
+
+        if "request" not in self.context:
+            # Validate is called twice, first on the viewset, and second on the create task
+            # data should be set up properly on the second time, when request isn't in context
+            file = data["file"]
+            data["data"] = file.read()
+            data["digest"] = file.hashers["sha256"].hexdigest()
+
+        return data
+
     class Meta:
         model = CollectionVersionSignature
-        fields = NoArtifactContentSerializer.Meta.fields + (
+        fields = NoArtifactContentUploadSerializer.Meta.fields + (
             "signed_collection",
             "pubkey_fingerprint",
             "signing_service",
