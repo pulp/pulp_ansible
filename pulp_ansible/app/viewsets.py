@@ -23,8 +23,8 @@ from pulpcore.plugin.viewsets import (
     ContentFilter,
     ContentViewSet,
     NamedModelViewSet,
+    NoArtifactContentUploadViewSet,
     OperationPostponedResponse,
-    ReadOnlyContentViewSet,
     RemoteViewSet,
     RepositoryViewSet,
     RepositoryVersionViewSet,
@@ -227,7 +227,7 @@ class SignatureFilter(ContentFilter):
         }
 
 
-class CollectionVersionSignatureViewSet(ReadOnlyContentViewSet):
+class CollectionVersionSignatureViewSet(NoArtifactContentUploadViewSet):
     """
     ViewSet for looking at signature objects for CollectionVersion content.
     """
