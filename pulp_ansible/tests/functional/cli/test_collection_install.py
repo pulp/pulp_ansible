@@ -9,7 +9,7 @@ from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
     RemotesCollectionApi,
 )
-from pulp_smash.pulp3.bindings import monitor_task, PulpTestCase
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulp_ansible.tests.functional.constants import (
@@ -17,7 +17,13 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
     GALAXY_ANSIBLE_BASE_URL,
 )
-from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
+from pulp_ansible.tests.functional.utils import (
+    create_signing_service,
+    delete_signing_service,
+    gen_ansible_client,
+    gen_ansible_remote,
+    get_client_keyring,
+)
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
@@ -27,12 +33,13 @@ class InstallCollectionTestCase(PulpTestCase):
     @classmethod
     def setUpClass(cls):
         """Create class-wide variables."""
+        delete_orphans()
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
 
-    def create_install_scenario(self, body, collection_name):
+    def create_install_scenario(self, body):
         """Create Install scenario."""
         repo = self.repo_api.create(gen_repo())
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
@@ -55,10 +62,13 @@ class InstallCollectionTestCase(PulpTestCase):
         distribution = self.distributions_api.read(created_resources[0])
 
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
+        return distribution
 
+    def perform_install_test(self, collection_name, distribution, extra_args=""):
+        """Test that the collection can be installed from Pulp."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            cmd = "ansible-galaxy collection install {} -c -s {} -p {}".format(
-                collection_name, distribution.client_url, temp_dir
+            cmd = "ansible-galaxy collection install {} -c -s {} -p {} {}".format(
+                collection_name, distribution.client_url, temp_dir, extra_args
             )
 
             directory = "{}/ansible_collections/{}".format(
@@ -76,4 +86,22 @@ class InstallCollectionTestCase(PulpTestCase):
     def test_install_collection(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
-        self.create_install_scenario(body, ANSIBLE_DEMO_COLLECTION)
+        distribution = self.create_install_scenario(body)
+        self.perform_install_test(ANSIBLE_DEMO_COLLECTION, distribution)
+
+    def test_signature_collection_install(self):
+        """Test whether ansible-galaxy can install a Collection w/ a signature hosted by Pulp."""
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
+        distribution = self.create_install_scenario(body)
+        self.addCleanup(delete_orphans)
+        repository_href = distribution.repository
+        signing_service = create_signing_service()
+        self.addCleanup(delete_signing_service, signing_service.name)
+        # Switch this over to signature upload in the future
+        signing_body = {"signing_service": signing_service.pulp_href, "content_units": ["*"]}
+        monitor_task(self.repo_api.sign(repository_href, signing_body).task)
+        repo = self.repo_api.read(repository_href)
+        self.assertEqual(repo.latest_version_href[-2], "2")
+
+        keyring_arg = f"--keyring {get_client_keyring()}"
+        self.perform_install_test(ANSIBLE_DEMO_COLLECTION, distribution, keyring_arg)

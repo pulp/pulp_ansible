@@ -1,7 +1,7 @@
 import aiofiles
 import asyncio
-import json
 import hashlib
+import tarfile
 from gettext import gettext as _
 
 from pulpcore.plugin.stages import (
@@ -18,8 +18,10 @@ from pulp_ansible.app.models import (
 )
 
 from django.conf import settings
+from django.core.files.storage import default_storage as storage
 from pulpcore.plugin.models import SigningService, ProgressReport
 from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
+from pulp_ansible.app.tasks.utils import get_file_obj_from_tarball
 
 
 def sign(repository_href, content_hrefs, signing_service_href):
@@ -68,16 +70,26 @@ class CollectionSigningFirstStage(Stage):
 
     async def sign_collection_version(self, collection_version):
         """Signs the collection version."""
+
+        def _extract_manifest():
+            cartifact = collection_version.contentartifact_set.select_related("artifact").first()
+            artifact_name = cartifact.artifact.file.name
+            artifact_file = storage.open(artifact_name)
+            with tarfile.open(fileobj=artifact_file, mode="r") as tar:
+                manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact_name)
+                return manifest.read()
+
         # Limits the number of subprocesses spawned/running at one time
         async with self.semaphore:
             # We use the manifest to create the signature
-            async with aiofiles.tempfile.TemporaryDirectory(dir=".") as d:
-                # OpenPGP doesn't take filename into account for signatures, not sure about others
-                async with aiofiles.open(f"{d}/MANIFEST.json", "w") as t:
-                    await t.write(json.dumps(collection_version.manifest))
-                result = await self.signing_service.asign(t.name)
-                async with aiofiles.open(result["signature"], "rb") as sig:
-                    data = await sig.read()
+            # OpenPGP doesn't take filename into account for signatures, not sure about others
+            async with aiofiles.tempfile.NamedTemporaryFile(dir=".", mode="wb") as m:
+                manifest_data = await sync_to_async(_extract_manifest)()
+                await m.write(manifest_data)
+                await m.flush()
+                result = await self.signing_service.asign(m.name)
+            async with aiofiles.open(result["signature"], "rb") as sig:
+                data = await sig.read()
             cv_signature = CollectionVersionSignature(
                 data=data,
                 digest=hashlib.sha256(data),
