@@ -3,6 +3,7 @@ from dynaconf import Dynaconf
 from functools import partial
 from time import sleep
 import os
+import subprocess
 import unittest
 
 from pulp_smash import api, cli, config, selectors, utils
@@ -309,3 +310,23 @@ def delete_signing_service(name):
     )
     cli_client = cli.Client(cfg)
     utils.execute_pulpcore_python(cli_client, "\n".join(python_cmd))
+
+
+def get_client_keyring():
+    """
+    Finds the GPG keyring for the client used in the tests.
+
+    Uses the environment variables to change the default keyring
+    TEST_PULP_CLIENT_KEYRING - The location for the GPG keyring
+    TEST_PULP_SIGNING_KEY_ID - The signing key id used by the signing script
+    """
+    keyring = os.environ.get("TEST_PULP_CLIENT_KEYRING", "~/.gnupg/pubring.kbx")
+    key_id = os.environ.get("TEST_PULP_SIGNING_KEY_ID", "Pulp QE")
+
+    # Check that key_id is in the keyring
+    cmd = ("gpg", "--list-keys", "--keyring", keyring, "--no-default-keyring")
+    stdout = subprocess.run(cmd, capture_output=True, check=True).stdout
+    if key_id not in stdout.decode():
+        raise Exception(f"Key ID: {key_id} not found in keyring: {keyring}")
+
+    return keyring
