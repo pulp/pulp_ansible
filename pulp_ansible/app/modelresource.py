@@ -7,6 +7,7 @@ from pulp_ansible.app.models import (
     Collection,
     Tag,
     CollectionVersion,
+    CollectionVersionSignature,
 )
 
 
@@ -55,6 +56,23 @@ class CollectionVersionContentResource(BaseContentResource):
     class Meta:
         model = CollectionVersion
         import_id_fields = model.natural_key_fields()
+
+
+class CollectionVersionSignatureResource(BaseContentResource):
+    """
+    Resource for import/export of ansible_collectionversionsignature entities.
+    """
+
+    def set_up_queryset(self):
+        """
+        :return: CollectionVersionSignature content specific to a specified repo-version.
+        """
+        return CollectionVersionSignature.objects.filter(pk__in=self.repo_version.content)
+
+    class Meta:
+        model = CollectionVersionSignature
+        import_id_fields = ("pubkey_fingerprint", "signed_collection")
+        exclude = BaseContentResource.Meta.exclude + ("signing_service",)
 
 
 class CollectionResource(QueryModelResource):
@@ -109,13 +127,11 @@ class TagResource(QueryModelResource):
         import_id_fields = ("name",)
 
 
-# TODO: Add resource for AnsibleCollectionDeprecated
-
-
 IMPORT_ORDER = [
     CollectionResource,
     CollectionDeprecationResource,
     TagResource,
     CollectionVersionContentResource,
+    CollectionVersionSignatureResource,
     RoleContentResource,
 ]

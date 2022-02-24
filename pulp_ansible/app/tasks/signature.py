@@ -35,7 +35,7 @@ log = logging.getLogger(__name__)
 def verify_signature_upload(data):
     """The task code for verifying collection signature upload."""
     file = data["file"]
-    sig_data = file.read()
+    sig_data = file.read().decode()
     file.seek(0)
     collection = data["signed_collection"]
     repository = data.get("repository")
@@ -139,7 +139,7 @@ class CollectionSigningFirstStage(Stage):
             async with aiofiles.open(result["signature"], "rb") as sig:
                 data = await sig.read()
             cv_signature = CollectionVersionSignature(
-                data=data,
+                data=data.decode(),
                 digest=hashlib.sha256(data).hexdigest(),
                 signed_collection=collection_version,
                 pubkey_fingerprint=self.signing_service.pubkey_fingerprint,
