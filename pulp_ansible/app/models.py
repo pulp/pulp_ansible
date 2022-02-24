@@ -199,8 +199,8 @@ class CollectionVersionSignature(Content):
     signed_collection = models.ForeignKey(
         CollectionVersion, on_delete=models.CASCADE, related_name="signatures"
     )
-    data = models.BinaryField()  # This is what the pulp_container folks used
-    digest = models.CharField(max_length=64)  # does adding a min length improve db efficiency?
+    data = models.TextField()
+    digest = models.CharField(max_length=64)
     pubkey_fingerprint = models.CharField(max_length=64)
     signing_service = models.ForeignKey(
         SigningService, on_delete=models.SET_NULL, related_name="signatures", null=True

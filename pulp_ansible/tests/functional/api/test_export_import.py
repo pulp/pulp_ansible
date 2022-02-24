@@ -27,6 +27,7 @@ def test_export_then_import(
     exporters_pulp_exports_api_client,
     importers_pulp_api_client,
     importers_pulp_imports_api_client,
+    ascii_armored_detached_signing_service,
 ):
     """Issue and evaluate a PulpExport (tests both Create and Read)."""
     # Prepare content
@@ -45,7 +46,12 @@ def test_export_then_import(
     )
     monitor_task(sync_response_a.task)
     monitor_task(sync_response_b.task)
-    repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/1/")
+    signing_body = {
+        "signing_service": ascii_armored_detached_signing_service.pulp_href,
+        "content_units": ["*"],
+    }
+    monitor_task(ansible_repo_api_client.sign(repo_a.pulp_href, signing_body).task)
+    repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/2/")
     repo_ver_b = ansible_repo_version_api_client.read(f"{repo_b.pulp_href}versions/1/")
 
     # Prepare export
@@ -91,15 +97,19 @@ def test_export_then_import(
     repo_ver_d = ansible_repo_version_api_client.read(f"{repo_d.pulp_href}versions/1/")
     assert (
         repo_ver_c.content_summary.added["ansible.collection_version"]["count"]
-        == repo_ver_a.content_summary.added["ansible.collection_version"]["count"]
+        == repo_ver_a.content_summary.present["ansible.collection_version"]["count"]
     )
     assert (
         repo_ver_c.content_summary.added["ansible.collection_deprecation"]["count"]
-        == repo_ver_a.content_summary.added["ansible.collection_deprecation"]["count"]
+        == repo_ver_a.content_summary.present["ansible.collection_deprecation"]["count"]
+    )
+    assert (
+        repo_ver_c.content_summary.added["ansible.collection_signature"]["count"]
+        == repo_ver_a.content_summary.present["ansible.collection_signature"]["count"]
     )
     assert (
         repo_ver_d.content_summary.added["ansible.role"]["count"]
-        == repo_ver_b.content_summary.added["ansible.role"]["count"]
+        == repo_ver_b.content_summary.present["ansible.role"]["count"]
     )
 
     # Import a second time

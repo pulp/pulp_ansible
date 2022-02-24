@@ -202,7 +202,7 @@ class CollectionVersionSignatureSerializer(serializers.ModelSerializer):
         """
         Get the signature data.
         """
-        return bytes(obj.data).decode("utf-8")
+        return obj.data
 
     class Meta:
         model = models.CollectionVersionSignature
