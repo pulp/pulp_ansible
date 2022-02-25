@@ -1,5 +1,6 @@
 import aiofiles
 import asyncio
+import gnupg
 import hashlib
 import tarfile
 from gettext import gettext as _
@@ -22,6 +23,38 @@ from django.core.files.storage import default_storage as storage
 from pulpcore.plugin.models import SigningService, ProgressReport
 from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
 from pulp_ansible.app.tasks.utils import get_file_obj_from_tarball
+from rest_framework import serializers
+
+
+def verify_signature_upload(data):
+    """The task code for verifying collection signature upload."""
+    file = data["file"]
+    sig_data = file.read()
+    file.seek(0)
+    collection = data["signed_collection"]
+    keyring = None
+    if (repository := data.get("repository")) and repository.keyring:
+        keyring = repository.keyring
+    gpg = gnupg.GPG(keyring=keyring)
+    artifact = collection.contentartifact_set.select_related("artifact").first().artifact.file.name
+    artifact_file = storage.open(artifact)
+    with tarfile.open(fileobj=artifact_file, mode="r") as tar:
+        manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact_file)
+        with open("MANIFEST.json", mode="wb") as m:
+            m.write(manifest.read())
+        verified = gpg.verify_file(file, m.name)
+
+    if verified.trust_level is None or verified.trust_level < verified.TRUST_FULLY:
+        # Skip verification if repository isn't specified, or it doesn't have a keyring attached
+        if verified.fingerprint is None or keyring is not None:
+            raise serializers.ValidationError(
+                _("Signature verification failed: {}").format(verified.status)
+            )
+
+    data["data"] = sig_data
+    data["digest"] = file.hashers["sha256"].hexdigest()
+    data["pubkey_fingerprint"] = verified.fingerprint
+    return data
 
 
 def sign(repository_href, content_hrefs, signing_service_href):
@@ -92,7 +125,7 @@ class CollectionSigningFirstStage(Stage):
                 data = await sig.read()
             cv_signature = CollectionVersionSignature(
                 data=data,
-                digest=hashlib.sha256(data),
+                digest=hashlib.sha256(data).hexdigest(),
                 signed_collection=collection_version,
                 pubkey_fingerprint=self.signing_service.pubkey_fingerprint,
                 signing_service=self.signing_service,

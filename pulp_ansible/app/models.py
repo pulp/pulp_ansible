@@ -308,6 +308,7 @@ class AnsibleRepository(Repository):
     REMOTE_TYPES = [RoleRemote, CollectionRemote]
 
     last_synced_metadata_time = models.DateTimeField(null=True)
+    keyring = models.FilePathField(path="/etc/pulp/certs/", recursive=True, blank=True)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
