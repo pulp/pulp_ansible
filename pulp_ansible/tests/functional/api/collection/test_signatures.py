@@ -1,5 +1,7 @@
 """Tests functionality around Collection-Version Signatures."""
-from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
+import tarfile
+from tempfile import TemporaryDirectory
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTaskError
 from pulp_ansible.tests.functional.utils import (
     create_signing_service,
     delete_signing_service,
@@ -7,6 +9,7 @@ from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     gen_distribution,
     get_content,
+    run_signing_script,
     SyncHelpersMixin,
     TestCaseUsingBindings,
     skip_if,
@@ -38,26 +41,34 @@ class CRUDCollectionVersionSignatures(TestCaseUsingBindings, SyncHelpersMixin):
         cls.repo = {}
         cls.sig_api = ContentCollectionSignaturesApi(cls.client)
         col_api = AnsibleCollectionsApi(cls.client)
-        for i in range(4):
+        for i in range(5):
             collection = build_collection("skeleton", config=TEST_COLLECTION_CONFIGS[i])
             response = col_api.upload_collection(collection.filename)
             task = monitor_task(response.task)
             cls.collections.append(task.created_resources[0])
+        # Locally sign the last collection
+        cls.t = TemporaryDirectory()
+        with tarfile.open(collection.filename, mode="r") as tar:
+            filename = f"{cls.t.name}/MANIFEST.json"
+            tar.extract("MANIFEST.json", path=cls.t.name)
+        cls.last_signed_filenames = run_signing_script(filename)
 
     @classmethod
     def tearDownClass(cls):
         """Deletes repository and removes any content and signatures."""
+        cls.t.cleanup()
         monitor_task(cls.repo_api.delete(cls.repo["pulp_href"]).task)
         delete_signing_service(cls.sign_service.name)
         delete_orphans()
 
-    def test_01_create_signed_collections(self):
+    def test_00_create_signed_collections(self):
         """Test collection signatures can be created through the sign task."""
         repo = self.repo_api.create(gen_repo())
-        body = {"add_content_units": self.collections}
+        first_four = self.collections[:4]
+        body = {"add_content_units": first_four}
         monitor_task(self.repo_api.modify(repo.pulp_href, body).task)
 
-        body = {"content_units": self.collections, "signing_service": self.sign_service.pulp_href}
+        body = {"content_units": first_four, "signing_service": self.sign_service.pulp_href}
         monitor_task(self.repo_api.sign(repo.pulp_href, body).task)
         repo = self.repo_api.read(repo.pulp_href)
         self.repo.update(repo.to_dict())
@@ -67,6 +78,20 @@ class CRUDCollectionVersionSignatures(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertIn("ansible.collection_signature", content_response)
         self.assertEqual(len(content_response["ansible.collection_signature"]), 4)
         self.signed_collections.extend(content_response["ansible.collection_signature"])
+
+    @skip_if(bool, "signed_collections", False)
+    def test_01_upload_signed_collections(self):
+        """Test that collection signatures can be uploaded."""
+        last_col = self.collections[-1]
+        signature = self.last_signed_filenames["signature"]
+        # Check that invalid signatures can't be uploaded
+        with self.assertRaises(PulpTaskError):
+            task = self.sig_api.create(signed_collection=self.collections[0], file=signature)
+            monitor_task(task.task)
+        # Proper upload
+        task = self.sig_api.create(signed_collection=last_col, file=signature)
+        sig = monitor_task(task.task).created_resources[0]
+        self.assertIn("content/ansible/collection_signatures/", sig)
 
     @skip_if(bool, "signed_collections", False)
     def test_02_read_signed_collection(self):
@@ -120,13 +145,19 @@ class CRUDCollectionVersionSignatures(TestCaseUsingBindings, SyncHelpersMixin):
 
     @skip_if(bool, "signed_collections", False)
     def test_07_duplicate(self):
-        """Attempt to create a signature duplicate."""
-        body = {"content_units": self.collections, "signing_service": self.sign_service.pulp_href}
+        """Attempt to create a signature duplicate through signing task and upload."""
+        first_four = self.collections[:4]
+        body = {"content_units": first_four, "signing_service": self.sign_service.pulp_href}
         result = monitor_task(self.repo_api.sign(self.repo["pulp_href"], body).task)
         repo = self.repo_api.read(self.repo["pulp_href"])
 
         self.assertEqual(repo.latest_version_href, self.repo["latest_version_href"])
         self.assertEqual(len(result.created_resources), 0)
+
+        with self.assertRaises(PulpTaskError):
+            signature = self.last_signed_filenames["signature"]
+            task = self.sig_api.create(signed_collection=self.collections[-1], file=signature)
+            monitor_task(task.task)
 
 
 class CollectionSignatureSyncing(TestCaseUsingBindings, SyncHelpersMixin):

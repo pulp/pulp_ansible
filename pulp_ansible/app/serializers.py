@@ -38,6 +38,7 @@ from .models import (
 )
 from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
 from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
+from pulp_ansible.app.tasks.signature import verify_signature_upload
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -122,9 +123,16 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     last_synced_metadata_time = serializers.DateTimeField(
         help_text=_("Last synced metadata time."), allow_null=True, required=False
     )
+    keyring = serializers.FilePathField(
+        path="/etc/pulp/certs/",
+        help_text=_("Location of keyring used to verify signatures uploaded to this repository"),
+        allow_blank=True,
+        default="",
+        required=False,
+    )
 
     class Meta:
-        fields = RepositorySerializer.Meta.fields + ("last_synced_metadata_time",)
+        fields = RepositorySerializer.Meta.fields + ("last_synced_metadata_time", "keyring")
         model = AnsibleRepository
 
 
@@ -511,7 +519,10 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         view_name_pattern=r"content(-.*/.*)-detail",
         queryset=CollectionVersion.objects.all(),
     )
-    pubkey_fingerprint = serializers.CharField(help_text=_("The fingerprint of the public key."))
+    pubkey_fingerprint = serializers.CharField(
+        help_text=_("The fingerprint of the public key."),
+        read_only=True,
+    )
     signing_service = RelatedField(
         help_text=_("The signing service used to create the signature."),
         view_name="signing-services-detail",
@@ -526,16 +537,14 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
 
     def validate(self, data):
         """
-        Prepare the necessary data for signature creation. Minimal validation is performed.
+        Verify the signature is valid before creating it.
         """
         data = super().validate(data)
 
         if "request" not in self.context:
             # Validate is called twice, first on the viewset, and second on the create task
             # data should be set up properly on the second time, when request isn't in context
-            file = data["file"]
-            data["data"] = file.read()
-            data["digest"] = file.hashers["sha256"].hexdigest()
+            data = verify_signature_upload(data)
 
         return data
 

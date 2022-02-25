@@ -2,6 +2,7 @@
 from dynaconf import Dynaconf
 from functools import partial
 from time import sleep
+import json
 import os
 import subprocess
 import unittest
@@ -272,6 +273,33 @@ def get_psql_smash_cmd(sql_statement):
     password = settings.DATABASES["default"]["PASSWORD"]
     dbname = settings.DATABASES["default"]["NAME"]
     return ("psql", "-c", sql_statement, f"postgresql://{user}:{password}@{host}/{dbname}")
+
+
+def run_signing_script(filename):
+    """
+    Runs the test signing script manually on test calling machine.
+
+    Returns the signature file produced.
+    """
+    file = os.path.realpath(f"{__file__}/../../assets/sign-metadata.sh")
+    script = os.environ.get("TEST_PULP_SIGNING_SCRIPT", file)
+    key_id = os.environ.get("TEST_PULP_SIGNING_KEY_ID", "Pulp QE")
+    env = {"PULP_SIGNING_KEY_FINGERPRINT": key_id}
+    completed_process = subprocess.run(
+        [script, filename],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if completed_process.returncode != 0:
+        raise RuntimeError(str(completed_process.stderr))
+
+    try:
+        return_value = json.loads(completed_process.stdout)
+    except json.JSONDecodeError:
+        raise RuntimeError("The signing script did not return valid JSON!")
+
+    return return_value
 
 
 def create_signing_service():

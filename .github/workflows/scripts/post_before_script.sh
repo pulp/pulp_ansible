@@ -22,5 +22,8 @@ cmd_prefix chmod a+x /var/lib/pulp/sign-metadata.sh
 KEY_FINGERPRINT="6EDF301256480B9B801EBA3D05A5E6DA269D9D98"
 TRUST_LEVEL="6"
 echo "$KEY_FINGERPRINT:$TRUST_LEVEL:" | cmd_stdin_prefix gpg --import-ownertrust
+
+curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-PRIVATE-KEY-pulp-qe | gpg --import
 curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-KEY-pulp-qe | cat > /tmp/GPG-KEY-pulp-qe
-gpg --import /tmp/GPG-KEY-pulp-qe
+echo "$KEY_FINGERPRINT:$TRUST_LEVEL:" | gpg --import-ownertrust
+export TEST_PULP_SIGNING_SCRIPT="$GITHUB_WORKSPACE"/pulp_ansible/tests/assets/sign-metadata.sh

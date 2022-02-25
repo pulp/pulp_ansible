@@ -620,7 +620,7 @@ class CollectionSyncFirstStage(Stage):
                 cv_signature = CollectionVersionSignature(
                     signed_collection=collection_version,
                     data=sig,
-                    digest=hashlib.sha256(sig),
+                    digest=hashlib.sha256(sig).hexdigest(),
                     pubkey_fingerprint=signature["pubkey_fingerprint"],
                 )
                 await self.put(DeclarativeContent(content=cv_signature))
