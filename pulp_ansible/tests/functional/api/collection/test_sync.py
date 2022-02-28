@@ -1,4 +1,5 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
+import os
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     SyncHelpersMixin,
@@ -200,7 +201,8 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
         for config in TEST_COLLECTION_CONFIGS:
             collection = build_collection("skeleton", config=config)
             upload_response = upload_api.create(cls.distro.base_path, collection.filename)
-            monitor_task("/pulp/api/v3/tasks/{}/".format(upload_response.task[-37:-1]))
+            api_root = os.environ.get("PULP_API_ROOT", "/pulp/")
+            monitor_task("{}api/v3/tasks/{}/".format(api_root, upload_response.task[-37:-1]))
             cls.collections.append(collection)
         cls.distro.client_url += "api/"
 

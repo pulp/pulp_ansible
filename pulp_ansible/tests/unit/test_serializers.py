@@ -1,4 +1,5 @@
 from unittest import mock
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
@@ -21,7 +22,7 @@ class TestRoleSerializer(TestCase):
             file=SimpleUploadedFile("test_filename", b"test content"),
         )
         self.data = {
-            "artifact": "/pulp/api/v3/artifacts/{}/".format(self.artifact.pk),
+            "artifact": "{}artifacts/{}/".format(settings.V3_API_ROOT, self.artifact.pk),
             "version": "0.1.2.3",
             "name": "test1",
             "namespace": "testns",
