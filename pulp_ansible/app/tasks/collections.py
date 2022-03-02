@@ -302,6 +302,13 @@ def import_collection(
 
     try:
         with temp_file.file.open() as artifact_file:
+            with tarfile.open(fileobj=artifact_file, mode="r") as tar:
+                manifest_data = json.load(
+                    get_file_obj_from_tarball(tar, "MANIFEST.json", temp_file.file.name)
+                )
+                files_data = json.load(
+                    get_file_obj_from_tarball(tar, "FILES.json", temp_file.file.name)
+                )
             url = _get_backend_storage_url(artifact_file)
             importer_result = process_collection(
                 artifact_file, filename=filename, file_url=url, logger=user_facing_logger
@@ -309,6 +316,9 @@ def import_collection(
             artifact = Artifact.from_pulp_temporary_file(temp_file)
             importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
             collection_version = create_collection_from_importer(importer_result)
+            collection_version.manifest = manifest_data
+            collection_version.files = files_data
+            collection_version.save()
 
     except ImporterError as exc:
         log.info(f"Collection processing was not successful: {exc}")
