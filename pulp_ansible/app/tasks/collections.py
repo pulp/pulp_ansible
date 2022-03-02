@@ -788,6 +788,7 @@ class CollectionSyncFirstStage(Stage):
 
             if not isinstance(col_results, FileNotFoundError):
                 collection_metadata_list = parse_metadata(col_results)
+
                 self._unpaginated_collection_metadata = defaultdict(dict)
                 for collection in collection_metadata_list:
                     namespace = collection["namespace"]

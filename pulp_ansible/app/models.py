@@ -1,3 +1,5 @@
+import os
+
 from logging import getLogger
 
 from django.db import models
@@ -325,3 +327,7 @@ class AnsibleDistribution(Distribution):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+
+
+def _gen_secret():
+    return os.urandom(32)

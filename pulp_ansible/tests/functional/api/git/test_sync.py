@@ -177,6 +177,7 @@ class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
             sync_dependencies=False,
+            include_pulp_auth=True,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)

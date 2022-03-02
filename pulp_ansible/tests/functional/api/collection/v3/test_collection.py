@@ -211,8 +211,8 @@ def test_collection_list(
     assert response["meta"]["count"] >= 2
     present_collections = {c["href"].split("collections/")[1] for c in response["data"]}
     uploaded_collections = {
-        f"{artifact.namespace}/{artifact.name}/",
-        f"{artifact2.namespace}/{artifact2.name}/",
+        f"index/{artifact.namespace}/{artifact.name}/",
+        f"index/{artifact2.namespace}/{artifact2.name}/",
     }
     assert uploaded_collections.issubset(present_collections)
 
@@ -222,12 +222,16 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
 
     Includes information of the most current version.
     """
-    url = get_galaxy_url(
-        pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
+    url = (
+        f"plugin/ansible/content/{pulp_dist['base_path']}"
+        f"/collections/index/{artifact.namespace}/{artifact.name}/"
     )
 
     assert not collection_detail["deprecated"]
-    assert collection_detail["href"] == url
+
+    # Check that the URL ends with the correct path so that this test doesn't fail
+    # when galaxy_ng is installed
+    assert collection_detail["href"].endswith(url)
     assert collection_detail["namespace"] == artifact.namespace
     assert collection_detail["name"] == artifact.name
     assert collection_detail["highest_version"]["version"] == "1.0.0"

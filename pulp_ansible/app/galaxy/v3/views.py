@@ -7,18 +7,22 @@ from django.db import DatabaseError
 from django.db.models import F, Q
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
-from django.http import StreamingHttpResponse
-from django.shortcuts import get_object_or_404
+from django.http import StreamingHttpResponse, HttpResponseNotFound
+from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
 from django_filters import filters
+from django.views.generic.base import RedirectView
+from django.conf import settings
+
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from jinja2 import Template
 from rest_framework import mixins
 from rest_framework.response import Response
-from rest_framework.reverse import reverse
+from rest_framework.reverse import reverse, reverse_lazy
 from rest_framework import serializers
 from rest_framework import status as http_status
-from rest_framework import viewsets
+from rest_framework import viewsets, views
+from rest_framework.exceptions import NotFound
 
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, Content
@@ -61,7 +65,8 @@ class AnsibleDistributionMixin:
     @property
     def _repository_version(self):
         """Returns repository version."""
-        path = self.kwargs["path"]
+        path = self.kwargs["distro_base_path"]
+
         context = getattr(self, "pulp_context", None)
         if context and context.get(path, None):
             return self.pulp_context[path]
@@ -92,6 +97,7 @@ class AnsibleDistributionMixin:
 
         distro_content = self._distro_content
         context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
+        context["distro_base_path"] = self.kwargs["distro_base_path"]
         return context
 
 
@@ -165,11 +171,13 @@ class CollectionViewSet(
     ViewSet for Collections.
     """
 
-    authentication_classes = []
-    permission_classes = []
     serializer_class = CollectionSerializer
     filterset_class = CollectionFilter
     pagination_class = LimitOffsetPagination
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "ansible-collection-viewset"
 
     @property
     def _deprecation(self):
@@ -355,10 +363,12 @@ class CollectionUploadViewSet(
     ViewSet for Collection Uploads.
     """
 
-    authentication_classes = []
-    permission_classes = []
     serializer_class = CollectionOneShotSerializer
     pulp_tag_name = "Pulp_Ansible: Artifacts Collections V3"
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "ansible-collection-upload-viewset"
 
     @extend_schema(
         description="Create an artifact and trigger an asynchronous task to create "
@@ -367,11 +377,11 @@ class CollectionUploadViewSet(
         request=CollectionOneShotSerializer,
         responses={202: AsyncOperationResponseSerializer},
     )
-    def create(self, request, path):
+    def create(self, request, distro_base_path):
         """
         Dispatch a Collection creation task.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        distro = get_object_or_404(AnsibleDistribution, base_path=distro_base_path)
         serializer = self.get_serializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
 
@@ -408,12 +418,59 @@ class CollectionUploadViewSet(
 
         data = {
             "task": reverse(
-                "collection-imports-detail",
-                kwargs={"path": path, "pk": async_result.pk},
+                settings.ANSIBLE_URL_NAMESPACE + "collection-imports-detail",
+                kwargs={"pk": async_result.pk},
                 request=None,
             )
         }
         return Response(data, status=http_status.HTTP_202_ACCEPTED)
+
+
+class LegacyCollectionUploadViewSet(CollectionUploadViewSet):
+    """
+    Collection upload viewset with deprecated markers for the openAPI spec.
+    """
+
+    @extend_schema(
+        description="Create an artifact and trigger an asynchronous task to create "
+        "Collection content from it.",
+        summary="Upload a collection",
+        request=CollectionOneShotSerializer,
+        responses={202: AsyncOperationResponseSerializer},
+        deprecated=True,
+    )
+    def create(self, request, path):
+        """Create collection."""
+        return super().create(request, distro_base_path=path)
+
+
+class CollectionArtifactDownloadView(views.APIView):
+    """Collection download endpoint."""
+
+    action = "download"
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "ansible-collection-download-viewset"
+
+    def get(self, request, *args, **kwargs):
+        """Download collection."""
+        distro_base_path = self.kwargs["distro_base_path"]
+        distribution = AnsibleDistribution.objects.get(base_path=distro_base_path)
+
+        url = "{host}/{prefix}/{distro_base_path}/{filename}".format(
+            host=settings.CONTENT_ORIGIN.strip("/"),
+            prefix=settings.CONTENT_PATH_PREFIX.strip("/"),
+            distro_base_path=distro_base_path,
+            filename=self.kwargs["filename"],
+        )
+
+        if distribution.content_guard:
+            guard = distribution.content_guard.cast()
+            if guard.TYPE == "content_redirect":
+                return redirect(guard.preauthenticate_url(url))
+
+        return redirect(url)
 
 
 class CollectionVersionViewSet(
@@ -426,14 +483,16 @@ class CollectionVersionViewSet(
     ViewSet for CollectionVersions.
     """
 
-    authentication_classes = []
-    permission_classes = []
     serializer_class = CollectionVersionSerializer
     list_serializer_class = CollectionVersionListSerializer
     filterset_class = CollectionVersionFilter
     pagination_class = LimitOffsetPagination
 
     lookup_field = "version"
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "ansible-collection-version-viewset"
 
     def get_list_serializer(self, *args, **kwargs):
         """
@@ -442,6 +501,9 @@ class CollectionVersionViewSet(
         kwargs.setdefault("context", self.get_serializer_context)
         return self.list_serializer_class(*args, **kwargs)
 
+    @extend_schema(
+        responses={202: list_serializer_class},
+    )
     def list(self, request, *args, **kwargs):
         """
         Returns paginated CollectionVersions list.
@@ -464,7 +526,7 @@ class CollectionVersionViewSet(
 class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
     """Unpaginated ViewSet for CollectionVersions."""
 
-    serializer_class = UnpaginatedCollectionVersionSerializer
+    list_serializer_class = UnpaginatedCollectionVersionSerializer
     pagination_class = None
 
     def get_queryset(self):
@@ -475,6 +537,9 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
 
         return CollectionVersion.objects.select_related().filter(pk__in=distro_content)
 
+    @extend_schema(
+        responses={202: list_serializer_class},
+    )
     def list(self, request, *args, **kwargs):
         """
         Returns paginated CollectionVersions list.
@@ -488,7 +553,7 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
             "{% endfor %}]"
         )
         cvs_template = Template(cvs_template_string)
-        serialized_map = (self.get_serializer(x, context=context).data for x in queryset)
+        serialized_map = (self.get_list_serializer(x, context=context).data for x in queryset)
         streamed = (x.encode("utf-8") for x in cvs_template.stream(versions=serialized_map))
         return StreamingHttpResponse(streamed)
 
@@ -503,11 +568,13 @@ class CollectionVersionDocsViewSet(
     ViewSet for docs_blob of CollectionVersion.
     """
 
-    authentication_classes = []
-    permission_classes = []
     serializer_class = CollectionVersionDocsSerializer
 
     lookup_field = "version"
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "ansible-collection-vesion-docs-viewset"
 
 
 class CollectionImportViewSet(
@@ -527,6 +594,10 @@ class CollectionImportViewSet(
         # format=openapi.FORMAT_DATETIME,
         description="Filter messages since a given timestamp",
     )
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "ansible-collection-import-viewset"
 
     @extend_schema(parameters=[since_filter])
     def retrieve(self, request, *args, **kwargs):
@@ -560,12 +631,119 @@ class RepoMetadataViewSet(
     ViewSet for Repository Metadata.
     """
 
-    authentication_classes = []
-    permission_classes = []
     serializer_class = RepoMetadataSerializer
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "ansible-repo-metadata-viewset"
 
     def get_object(self):
         """
         Returns a RepositoryVersion object.
         """
         return self._repository_version
+
+
+def redirect_view_generator(actions, url, viewset, distro_view=True, responses={}):
+    """
+    Generates a redirect view.
+
+    Generates a viewset that
+        - Redirects the selected actions to the given URL
+        - Mocks the OpenAPI generation for the selected viewset
+
+    Args:
+        actions: dictionary of actions to be passed into .as_view()
+        url: path name of the viewset that this view should redirect to
+        viewset: viewset class of the viewset that this path redirects to
+        distro_view: indicates if the viewset that is being redirected to is scoped to
+            a distribution base path (such as collections).
+        responses: allows the 202 response type to be overridden for specific actions.
+            ex: responses={"list": MyListSerializer} will override the list action on
+            the viewset to return MyListSerializer in the open api spec
+
+    Returns:
+        ViewSet.as_view()
+    """
+    # Serializers from the parent class are required so that the auto generated
+    # clients return the correct data structure when they call the API.
+    serializer = getattr(viewset, "serializer_class", None)
+    list_serializer = getattr(viewset, "list_serializer_class", serializer)
+
+    # TODO: it would be nice to be able to get a url pattern for the view that
+    # this redirects to to add to the description.
+    # url_pattern = resolve(settings.ANSIBLE_URL_NAMESPACE + url).route
+
+    description = "Legacy v3 endpoint."
+
+    # TODO: Might be able to load serializer info directly from spectacular
+    # schema that gets set on the viewset
+    def get_responses(action):
+        default = list_serializer if action == "list" else serializer
+        return {302: None, 202: responses.get(action, default)}
+
+    # subclasses viewset to make .as_view work correctly on non viewset views
+    # subclasses the redirected viewset to get pagination class and query params
+    class GeneratedRedirectView(RedirectView, viewsets.ViewSet, viewset):
+
+        permanent = False
+
+        def urlpattern(*args, **kwargs):
+            """Return url pattern for RBAC."""
+            return "legacy-galaxy-v3"
+
+        def _get(self, *args, **kwargs):
+            try:
+                return super().get(*args, **kwargs)
+            except NotFound:
+                return HttpResponseNotFound()
+
+        def get_redirect_url(self, *args, **kwargs):
+            if distro_view:
+                if "path" not in kwargs:
+                    if settings.ANSIBLE_DEFAULT_DISTRIBUTION_PATH is None:
+                        raise NotFound()
+                    else:
+                        path = settings.ANSIBLE_DEFAULT_DISTRIBUTION_PATH
+                else:
+                    path = self.kwargs["path"]
+                    # remove the old path kwarg since we're redirecting to the new api endpoints
+                    del kwargs["path"]
+
+                kwargs = {**self.kwargs, "distro_base_path": path}
+
+            url = reverse_lazy(
+                settings.ANSIBLE_URL_NAMESPACE + self.url, request=self.request, kwargs=kwargs
+            )
+
+            args = self.request.META.get("QUERY_STRING", "")
+            if args:
+                url = "%s?%s" % (url, args)
+
+            return url
+
+        @extend_schema(
+            description=description,
+            responses=get_responses("retrieve"),
+            deprecated=True,
+        )
+        def retrieve(self, request, *args, **kwargs):
+            return self._get(request, *args, **kwargs)
+
+        @extend_schema(
+            description=description,
+            responses=get_responses("list"),
+            deprecated=True,
+        )
+        def list(self, request, *args, **kwargs):
+            return self._get(request, *args, **kwargs)
+
+        @extend_schema(
+            description=description,
+            responses=get_responses("update"),
+            deprecated=True,
+        )
+        def update(self, request, *args, **kwargs):
+            return self._get(request, *args, **kwargs)
+
+    return GeneratedRedirectView.as_view(actions, url=url)
