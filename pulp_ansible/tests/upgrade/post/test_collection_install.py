@@ -78,5 +78,7 @@ class InstallCollectionTestCase(PulpTestCase):
     def test_install_collection(self):
         """Test whether ansible-galaxy can install a Collection hosted by Pulp."""
         url = self.cfg.get_content_host_base_url() + "/pulp_ansible/galaxy/pulp_pre_upgrade_test/"
-        body = gen_ansible_remote(url=url, requirements_file=DEMO_REQUIREMENTS)
+        body = gen_ansible_remote(
+            url=url, requirements_file=DEMO_REQUIREMENTS, include_pulp_auth=True
+        )
         self.create_install_scenario(body, ANSIBLE_DEMO_COLLECTION)

@@ -244,6 +244,7 @@ Install your collection by name by specifying the distribution serving your Repo
 
 ``ansible-galaxy collection install testing.ansible_testing_content:4.0.6 -c -s http://localhost/pulp_ansible/galaxy/my_content/``
 
+Note: the ``-c`` flag tells ``ansible-galaxy`` to ignore self signed https certificates.
 
 Configuring ansible-galaxy
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -256,18 +257,34 @@ config (e.g. ``~/.ansible.cfg`` or ``/etc/ansible/ansible.cfg``):
 .. code::
 
     [galaxy]
-    server: http://localhost/pulp_ansible/galaxy/my_content/
+    server_list = pulp, my_fallback_server
 
-Then you can install without the ``-s`` url
+    [galaxy_server.pulp]
+    server = http://localhost/pulp_ansible/galaxy/my_content/
+
+    [galaxy_server.my_fallback_server]
+    server = http://localhost/pulp_ansible/galaxy/my_other_content/
+    username = my_user
+    password = my_password
+
+    [galaxy_server.deprecated]
+    server = http://localhost/pulp_ansible/galaxy/deprecated/
+    username = my_user
+    password = my_password
+
+Servers will be used in the order that they appear in ``server_list`` in the configuration file. Specific servers 
+can also be specified using the ``-s`` (or ``--server``) flag, either by their name or URL. In this example
+``ansible-galaxy`` will attempt to fetch content from ``pulp`` and fallback to ``my_fallback_server`` if it can't
+find anything. The ``deprecated`` server is not listed under ``server_list``, so ``ansible-galaxy`` won't pull
+content from it unless the server is specified explicitly with the ``-s`` flag.
 
 .. code::
 
+   # Downloads from the "pulp" server
    ansible-galaxy collection install testing.ansible_testing_content:4.0.6
 
-   - downloading role 'elasticsearch', owned by elastic
-   - downloading role from http://localhost/pulp/content/dev/elastic/elasticsearch/6.2.4.tar.gz
-   - extracting elastic.elasticsearch to /home/vagrant/.ansible/roles/elastic.elasticsearch
-   - elastic.elasticsearch (6.2.4) was installed successfully
+   # Downloads from the "deprecated" server
+   ansible-galaxy collection install testing.ansible_testing_content:4.0.6 -s deprecated
 
 
 .. _collection-publish:
@@ -286,7 +303,7 @@ Collection to pulp_ansible and display it::
 
     ansible-galaxy collection init namespace_name.collection_name
     ansible-galaxy collection build namespace_name/collection_name/
-    ansible-galaxy collection publish namespace_name-collection_name-1.0.0.tar.gz -c -s http://localhost:24817/pulp_ansible/galaxy/my_content/
+    ansible-galaxy collection publish namespace_name-collection_name-1.0.0.tar.gz -c
 
 The client upload the Collection to the Repository associated with the Distribution. Each upload
 creates a new Repository Version for the Repository.

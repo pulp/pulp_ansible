@@ -44,3 +44,19 @@ GALAXY_API_ROOT
    The `<path:path>` must be included, which corresponds to the `base_path` of an
    `Ansible Distribution`. Clients using the Galaxy API will only receive content served by that
    `Ansible Distribution`.
+
+
+ANSIBLE_DEFAULT_DISTRIBUTION_PATH
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   Set the distribution base path to be used on the ``GALAXY_API_ROOT/default/api/`` endpoint.
+   By default, this is set to ``None``, which causes the API to return a 404 on the ``default``
+   endpoint.
+
+
+ANSIBLE_URL_NAMESPACE
+^^^^^^^^^^^^^^^^^^^^^
+
+   The Django URL namespace to be used when generating URLs that are returned by the galaxy
+   APIs. Setting this allows for the galaxy APIs to redirect requests to django URLs in other apps.
+   This defaults to the pulp ansible URL router.
