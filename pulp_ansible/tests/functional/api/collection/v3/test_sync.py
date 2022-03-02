@@ -51,6 +51,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
             sync_dependencies=False,
+            include_pulp_auth=True,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
@@ -77,9 +78,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         first_repo = self._create_repo_and_sync_with_remote(remote)
         distribution = self._create_distribution_from_repo(first_repo)
 
-        second_body = gen_ansible_remote(
-            url=distribution.client_url,
-        )
+        second_body = gen_ansible_remote(url=distribution.client_url, include_pulp_auth=True)
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
 
@@ -114,6 +113,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
             sync_dependencies=False,
+            include_pulp_auth=True,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
@@ -142,6 +142,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
             sync_dependencies=False,
+            include_pulp_auth=True,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
@@ -171,6 +172,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
             sync_dependencies=False,
+            include_pulp_auth=True,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -192,6 +194,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
             url=self.distribution.client_url,
             requirements_file="collections:\n  - absent.not_present",
             sync_dependencies=False,
+            include_pulp_auth=True,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)

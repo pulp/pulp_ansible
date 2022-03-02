@@ -787,7 +787,10 @@ class CollectionSyncFirstStage(Stage):
                         self.exclude_info.update(excludes)
 
             if not isinstance(col_results, FileNotFoundError):
-                collection_metadata_list = parse_metadata(col_results)
+                try:
+                    collection_metadata_list = parse_metadata(col_results)
+                except:  # noqa
+                    raise Exception(col_results)
                 self._unpaginated_collection_metadata = defaultdict(dict)
                 for collection in collection_metadata_list:
                     namespace = collection["namespace"]

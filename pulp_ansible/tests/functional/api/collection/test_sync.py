@@ -198,8 +198,8 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
         cls.repo, cls.distro = cls._create_empty_repo_and_distribution(cls(), cleanup=False)
 
         upload_api = PulpAnsibleArtifactsCollectionsV3Api(cls.client)
-        for config in TEST_COLLECTION_CONFIGS:
-            collection = build_collection("skeleton", config=config)
+        for cfg in TEST_COLLECTION_CONFIGS:
+            collection = build_collection("skeleton", config=cfg)
             upload_response = upload_api.create(cls.distro.base_path, collection.filename)
             api_root = os.environ.get("PULP_API_ROOT", "/pulp/")
             monitor_task("{}api/v3/tasks/{}/".format(api_root, upload_response.task[-37:-1]))
@@ -209,7 +209,9 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
     def test_simple_one_level_dependency(self):
         """Sync test.c which requires test.d."""
         body = gen_ansible_remote(
-            url=self.distro.client_url, requirements_file="collections:\n  - test.c"
+            url=self.distro.client_url,
+            requirements_file="collections:\n  - test.c",
+            include_pulp_auth=True,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -221,7 +223,9 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
     def test_simple_multi_level_dependency(self):
         """Sync test.a which should get the dependency chain: test.b -> test.c -> test.d."""
         body = gen_ansible_remote(
-            url=self.distro.client_url, requirements_file="collections:\n  - test.a"
+            url=self.distro.client_url,
+            requirements_file="collections:\n  - test.a",
+            include_pulp_auth=True,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -234,7 +238,9 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
     def test_complex_one_level_dependency(self):
         """Sync test.f which should get 3 versions of test.h."""
         body = gen_ansible_remote(
-            url=self.distro.client_url, requirements_file="collections:\n  - test.f"
+            url=self.distro.client_url,
+            requirements_file="collections:\n  - test.f",
+            include_pulp_auth=True,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -247,7 +253,9 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
     def test_complex_multi_level_dependency(self):
         """Sync test.e which should get test.f, test.d, test.g and 3 versions of test.h."""
         body = gen_ansible_remote(
-            url=self.distro.client_url, requirements_file="collections:\n  - test.e"
+            url=self.distro.client_url,
+            requirements_file="collections:\n  - test.e",
+            include_pulp_auth=True,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)

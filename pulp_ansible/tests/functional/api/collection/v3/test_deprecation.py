@@ -31,6 +31,7 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         # Assert the state of deprecated True for testing, False for pulp
         collections = self.collections_v3api.list(first_distro.base_path, namespace="testing")
+
         self.assertTrue(collections.data[0].deprecated)
         collections = self.collections_v3api.list(first_distro.base_path, namespace="pulp")
         self.assertFalse(collections.data[0].deprecated)
@@ -38,7 +39,10 @@ class DeprecationTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         # Sync a second repo from the first, just the testing namespace
         requirements = "collections:\n  - name: testing.k8s_demo_collection"
         body = gen_ansible_remote(
-            url=first_distro.client_url, requirements_file=requirements, sync_dependencies=False
+            url=first_distro.client_url,
+            requirements_file=requirements,
+            sync_dependencies=False,
+            include_pulp_auth=True,
         )
         second_remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)

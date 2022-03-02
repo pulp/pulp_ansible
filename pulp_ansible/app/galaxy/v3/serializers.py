@@ -9,6 +9,15 @@ from pulp_ansible.app import models
 from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
 
 
+def _get_distro_context(context):
+    distro_context = {}
+    if "path" in context:
+        distro_context["path"] = context["path"]
+    if "distro_base_path" in context:
+        distro_context["distro_base_path"] = context["distro_base_path"]
+    return distro_context
+
+
 class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
 
@@ -39,16 +48,18 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     def get_href(self, obj) -> str:
         """Get href."""
+        ctx = _get_distro_context(self.context)
         return reverse(
-            "collections-detail",
-            kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
+            settings.ANSIBLE_URL_NAMESPACE + "collections-detail",
+            kwargs={**ctx, "namespace": obj.namespace, "name": obj.name},
         )
 
     def get_versions_url(self, obj) -> str:
         """Get a link to a collection versions list."""
+        ctx = _get_distro_context(self.context)
         return reverse(
-            "collection-versions-list",
-            kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
+            settings.ANSIBLE_URL_NAMESPACE + "collection-versions-list",
+            kwargs={**ctx, "namespace": obj.namespace, "name": obj.name},
         )
 
     @extend_schema_field(OpenApiTypes.DATETIME)
@@ -71,10 +82,11 @@ class CollectionSerializer(serializers.ModelSerializer):
         version = sorted(
             available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
         )[0]
+        ctx = _get_distro_context(self.context)
         href = reverse(
-            "collection-versions-detail",
+            settings.ANSIBLE_URL_NAMESPACE + "collection-versions-detail",
             kwargs={
-                "path": self.context["path"],
+                **ctx,
                 "namespace": obj.namespace,
                 "name": obj.name,
                 "version": version,
@@ -104,10 +116,12 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
         """
         Get href.
         """
+        ctx = _get_distro_context(self.context)
+
         return reverse(
-            "collection-versions-detail",
+            settings.ANSIBLE_URL_NAMESPACE + "collection-versions-detail",
             kwargs={
-                "path": self.context["path"],
+                **ctx,
                 "namespace": obj.namespace,
                 "name": obj.name,
                 "version": obj.version,
@@ -134,9 +148,10 @@ class CollectionRefSerializer(serializers.Serializer):
 
     def get_href(self, obj) -> str:
         """Returns link to a collection."""
+        ctx = _get_distro_context(self.context)
         return reverse(
-            "collections-detail",
-            kwargs={"path": self.context["path"], "namespace": obj.namespace, "name": obj.name},
+            settings.ANSIBLE_URL_NAMESPACE + "collections-detail",
+            kwargs={**ctx, "namespace": obj.namespace, "name": obj.name},
         )
 
 
@@ -238,11 +253,23 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
         if content_artifact.get().artifact:
-            host = settings.ANSIBLE_CONTENT_HOSTNAME.strip("/")
-            distro_base_path = self.context["path"]
+            distro_base_path = self.context.get("path", self.context["distro_base_path"])
             filename_path = obj.relative_path.lstrip("/")
-            download_url = f"{host}/{distro_base_path}/{filename_path}"
-            return download_url
+
+            download_url = reverse(
+                settings.ANSIBLE_URL_NAMESPACE + "collection-artifact-download",
+                kwargs={"distro_base_path": distro_base_path, "filename": filename_path},
+            )
+
+            # Normally would just pass request to reverse and DRF would automatically build the
+            # absolute URI for us. However there's a weird bug where, because there's a kwarg
+            # in the URL for this view called "version" (the collection version), DRF gets
+            # confused and thinks we're using a versioning scheme
+            # (https://www.django-rest-framework.org/api-guide/versioning/) and attempts to insert
+            # the version into kwargs, which causes the reverse lookup to fail.
+
+            request = self.context["request"]
+            return request.build_absolute_uri(download_url)
 
     def get_git_url(self, obj) -> str:
         """

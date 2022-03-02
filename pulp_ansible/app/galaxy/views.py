@@ -28,12 +28,18 @@ class GalaxyVersionView(views.APIView):
     authentication_classes = []
     permission_classes = []
 
-    def get(self, request, path):
+    v3_only = False
+
+    def get(self, request, **kwargs):
         """
         Return a response to the "GET" action.
         """
+        available_versions = {"v1": "v1/", "v2": "v2/", "v3": "v3/"}
+        if self.v3_only:
+            available_versions = {"v3": "v3/"}
+
         api_info = {
-            "available_versions": {"v1": "v1/", "v2": "v2/", "v3": "v3/"},
+            "available_versions": available_versions,
             "current_version": "v3",
         }
 

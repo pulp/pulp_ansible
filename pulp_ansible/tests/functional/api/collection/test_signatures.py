@@ -178,7 +178,7 @@ class CollectionSignatureSyncing(TestCaseUsingBindings, SyncHelpersMixin):
 
     def test_sync_signatures(self):
         """Test that signatures are also synced."""
-        body = gen_ansible_remote(self.distro1.client_url)
+        body = gen_ansible_remote(self.distro1.client_url, include_pulp_auth=True)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
         repo = self._create_repo_and_sync_with_remote(remote)
@@ -189,7 +189,7 @@ class CollectionSignatureSyncing(TestCaseUsingBindings, SyncHelpersMixin):
 
     def test_sync_signatures_only(self):
         """Test that only collections with a signatures are synced when specified."""
-        body = gen_ansible_remote(self.distro2.client_url, signed_only=True)
+        body = gen_ansible_remote(self.distro2.client_url, signed_only=True, include_pulp_auth=True)
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
         repo = self._create_repo_and_sync_with_remote(remote)

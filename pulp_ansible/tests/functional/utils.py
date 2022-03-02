@@ -31,6 +31,7 @@ from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
     TasksApi,
     SigningServicesApi,
+    StatusApi,
 )
 from pulpcore.client.pulp_ansible import (
     ApiClient as AnsibleApiClient,
@@ -45,9 +46,22 @@ from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
 )
 
-
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
+
+
+def is_galaxy_ng_installed():
+    """Returns whether or not the galaxy_ng plugin is installed."""
+    configuration = cfg.get_bindings_config()
+    core_client = CoreApiClient(configuration)
+    status_client = StatusApi(core_client)
+
+    status = status_client.status_read()
+
+    for plugin in status.versions:
+        if plugin.component == "galaxy":
+            return True
+    return False
 
 
 def set_up_module():
@@ -61,11 +75,15 @@ def gen_ansible_client():
     return AnsibleApiClient(configuration)
 
 
-def gen_ansible_remote(url=ANSIBLE_FIXTURE_URL, **kwargs):
+def gen_ansible_remote(url=ANSIBLE_FIXTURE_URL, include_pulp_auth=False, **kwargs):
     """Return a semi-random dict for use in creating a ansible Remote.
 
     :param url: The URL of an external content source.
     """
+    if include_pulp_auth:
+        kwargs["username"] = cfg.pulp_auth[0]
+        kwargs["password"] = cfg.pulp_auth[1]
+
     if "rate_limit" not in kwargs:
         kwargs["rate_limit"] = 5
 
@@ -211,7 +229,11 @@ class SyncHelpersMixin:
         """
         repository_sync_data = AnsibleRepositorySyncURL(**kwargs)
         sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
+        try:
+            monitor_task(sync_response.task)
+        except:  # noqa
+            print(tasks.read(sync_response.task))
+            assert False
         repo = self.repo_api.read(repo.pulp_href)
         return repo
 
