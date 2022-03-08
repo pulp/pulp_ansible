@@ -124,7 +124,7 @@ class AnsibleRepositorySerializer(RepositorySerializer):
         help_text=_("Last synced metadata time."), allow_null=True, required=False
     )
     keyring = serializers.FilePathField(
-        path="/etc/pulp/certs/",
+        path=settings.ANSIBLE_CERTS_DIR,
         help_text=_("Location of keyring used to verify signatures uploaded to this repository"),
         allow_blank=True,
         default="",
