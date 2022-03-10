@@ -776,6 +776,8 @@ class CollectionSyncFirstStage(Stage):
             col_results, exc_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             if not isinstance(exc_results, FileNotFoundError):
+                if isinstance(exc_results, Exception):
+                    raise exc_results
                 excludes_response = parse_metadata(exc_results)
                 if excludes_response:
                     try:
@@ -787,6 +789,8 @@ class CollectionSyncFirstStage(Stage):
                         self.exclude_info.update(excludes)
 
             if not isinstance(col_results, FileNotFoundError):
+                if isinstance(col_results, Exception):
+                    raise col_results
                 collection_metadata_list = parse_metadata(col_results)
 
                 self._unpaginated_collection_metadata = defaultdict(dict)
