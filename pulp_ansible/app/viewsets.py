@@ -22,6 +22,7 @@ from pulpcore.plugin.viewsets import (
     BaseFilterSet,
     ContentFilter,
     ContentViewSet,
+    HyperlinkRelatedFilter,
     NamedModelViewSet,
     NoArtifactContentUploadViewSet,
     OperationPostponedResponse,
@@ -217,6 +218,15 @@ class SignatureFilter(ContentFilter):
     """
     A filter for signatures.
     """
+
+    signed_collection = HyperlinkRelatedFilter(
+        field_name="signed_collection",
+        help_text=_("Filter signatures for collection version"),
+    )
+    signing_service = HyperlinkRelatedFilter(
+        field_name="signing_service",
+        help_text=_("Filter signatures produced by signature service"),
+    )
 
     class Meta:
         model = CollectionVersionSignature
