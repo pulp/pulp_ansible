@@ -94,6 +94,25 @@ Bugfixes
 ----
 
 
+0.10.2 (2022-01-31)
+===================
+
+Bugfixes
+--------
+
+- Fixed the migrations 0035 and 0036 that handle the transition of deprecations to being repository
+  content and used to fail on uniquenes constraints.
+  `#791 <https://github.com/pulp/pulp_ansible/issues/791>`_
+- Use proxy auth credentials of a Remote when syncing content
+  `#801 <https://github.com/pulp/pulp_ansible/issues/801>`_
+- Adds workaround to handle collections that do not have a ``requires_ansible`` in the
+  ``meta/runtime.yml`` data. This can happen in collections from ``galaxy.ansible.com``.
+  `#806 <https://github.com/pulp/pulp_ansible/issues/806>`_
+
+
+----
+
+
 0.10.1 (2021-10-05)
 ===================
 
@@ -155,6 +174,20 @@ Misc
 ----
 
 - `#9119 <https://pulp.plan.io/issues/9119>`_
+
+
+----
+
+
+0.9.2 (2021-10-04)
+==================
+
+Bugfixes
+--------
+
+- Fixed optimized mirror syncs erroneously removing all content in the repository.
+  (backported from #9476)
+  `#9480 <https://pulp.plan.io/issues/9480>`_
 
 
 ----
@@ -272,6 +305,75 @@ Misc
 ----
 
 
+0.7.5 (2022-01-31)
+==================
+
+Bugfixes
+--------
+
+- Use proxy auth credentials of a Remote when syncing content
+  `#801 <https://github.com/pulp/pulp_ansible/issues/801>`_
+- Adds workaround to handle collections that do not have a ``requires_ansible`` in the
+  ``meta/runtime.yml`` data. This can happen in collections from ``galaxy.ansible.com``.
+  `#806 <https://github.com/pulp/pulp_ansible/issues/806>`_
+
+
+----
+
+
+0.7.4 (2021-11-12)
+==================
+
+Bugfixes
+--------
+
+- `/collection_versions/all/` endpoint is now streamed to alleviate timeout issues
+  Optimized unpaginated collection_versions endpoint
+  (backported from #8439 and #8746) rochacbruno
+  `#8923 <https://pulp.plan.io/issues/8923>`_
+- Use proxy auth credentials of a Remote when syncing content.
+  `#9391 <https://pulp.plan.io/issues/9391>`_
+
+
+Misc
+----
+
+- `#8857 <https://pulp.plan.io/issues/8857>`_
+
+
+----
+
+
+0.7.3 (2021-04-29)
+==================
+
+Bugfixes
+--------
+
+- Fix requirements.yml parser for pinned collection version
+  `#8647 <https://pulp.plan.io/issues/8647>`_
+- V3 sync now properly waits for async task completion
+  `#8664 <https://pulp.plan.io/issues/8664>`_
+- Remove scheme from apache snippet
+  `#8665 <https://pulp.plan.io/issues/8665>`_
+- Fix collections endpoint for collections named "api"
+  `#8666 <https://pulp.plan.io/issues/8666>`_
+- Updated api lengths for collection version fields to match db model lengths.
+  `#8667 <https://pulp.plan.io/issues/8667>`_
+
+
+----
+
+
+0.7.2 (2021-04-09)
+==================
+
+No significant changes.
+
+
+----
+
+
 0.7.1 (2021-03-04)
 ==================
 
@@ -299,6 +401,62 @@ Bugfixes
 
 - Use DRF token when no ``auth_url`` is provided
   `#8290 <https://pulp.plan.io/issues/8290>`_
+
+
+----
+
+
+0.5.11 (2022-01-31)
+===================
+
+Bugfixes
+--------
+
+- Use proxy auth credentials of a Remote when syncing content
+  `#801 <https://github.com/pulp/pulp_ansible/issues/801>`_
+
+
+----
+
+
+0.5.10 (2021-09-13)
+===================
+
+Bugfixes
+--------
+
+- Use proxy auth credentials of a Remote when syncing content.
+  `#9390 <https://pulp.plan.io/issues/9390>`_
+
+
+----
+
+
+0.5.9 (2021-04-29)
+==================
+
+Bugfixes
+--------
+
+- Remove scheme from apache snippet
+  `#8661 <https://pulp.plan.io/issues/8661>`_
+- Fix collections endpoint for collections named "api"
+  `#8662 <https://pulp.plan.io/issues/8662>`_
+- Updated api lengths for collection version fields to match db model lengths.
+  `#8663 <https://pulp.plan.io/issues/8663>`_
+
+
+----
+
+
+0.5.8 (2021-03-08)
+==================
+
+Bugfixes
+--------
+
+- Allow updating ``auth_url`` on CollectionRemote when ``token`` is already set
+  `#8362 <https://pulp.plan.io/issues/8362>`_
 
 
 ----
