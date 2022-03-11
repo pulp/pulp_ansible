@@ -61,12 +61,10 @@ for version, description in to_add.items():
         next_version = entries_list[entries_list.index(version) + index]
         index += 1
 
-    main_changelog = (
-        main_changelog.split(f"{next_version} (")[0]
-        + description
-        + f"{next_version} ("
-        + main_changelog.split(f"{next_version} (")[1]
-    )
+    new_changelog = main_changelog.split(f"{next_version} (")[0] + description
+    new_changelog = new_changelog + f"{next_version} ("
+    new_changelog = new_changelog + main_changelog.split(f"{next_version} (")[1]
+    main_changelog = new_changelog
 
 with open("CHANGES.rst", "w") as f:
     f.write(main_changelog)

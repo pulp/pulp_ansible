@@ -176,7 +176,7 @@ jobs:
       - name: Install python dependencies
         run: |
           echo ::group::PYDEPS
-          pip install gitpython
+          pip install gitpython requests packaging
           echo ::endgroup::
 
       - name: Changelog history
