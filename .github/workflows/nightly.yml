@@ -179,6 +179,11 @@ jobs:
           pip install gitpython requests packaging
           echo ::endgroup::
 
+      - name: Configure Git with pulpbot name and email
+        run: |
+          git config --global user.name 'pulpbot'
+          git config --global user.email 'pulp-infra@redhat.com'
+
       - name: Changelog history
         run: python .ci/scripts/changelog.py
 
