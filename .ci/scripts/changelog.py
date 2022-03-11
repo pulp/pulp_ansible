@@ -54,14 +54,9 @@ for branch in branches:
         to_add[entry] = description
 
 entries_list.sort(key=lambda ver: Version(ver), reverse=True)
-for version, description in to_add.items():
+for version in sorted(to_add, key=lambda ver: Version(ver)):
     next_version = entries_list[entries_list.index(version) + 1]
-    index = 2
-    while next_version not in main_entries:
-        next_version = entries_list[entries_list.index(version) + index]
-        index += 1
-
-    new_changelog = main_changelog.split(f"{next_version} (")[0] + description
+    new_changelog = main_changelog.split(f"{next_version} (")[0] + to_add[version]
     new_changelog = new_changelog + f"{next_version} ("
     new_changelog = new_changelog + main_changelog.split(f"{next_version} (")[1]
     main_changelog = new_changelog
