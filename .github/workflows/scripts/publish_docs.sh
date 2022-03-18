@@ -38,6 +38,7 @@ if [[ "$GITHUB_WORKFLOW" == "Ansible changelog update" ]]; then
 fi
 
 # Building python bindings
+export PULP_URL="${PULP_URL:-https://pulp}"
 VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
 cd ../pulp-openapi-generator
 rm -rf pulp_ansible-client
