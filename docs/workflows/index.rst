@@ -25,3 +25,4 @@
    roles
    collections
    copy
+   signature
