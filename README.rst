@@ -15,7 +15,7 @@ Collection Support
 .. warning::
 
     The 'Collection' content type is currently in tech-preview. Breaking changes could be introduced
-    in the future.
+    in the future
 
 pulp_ansible can manage the `multi-role repository content <https://galaxy.ansible.com/docs/using/
 installing.html#multi-role-repositories>`_ referred to as a `Collection`. The following features are
