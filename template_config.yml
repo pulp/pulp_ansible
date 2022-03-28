@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-65-g3505809
+# generated with plugin_template@2021.08.26-100-gbb6460d
 
 additional_plugins: []
 additional_repos: []
@@ -26,7 +26,9 @@ disabled_redis_runners: []
 docker_fixtures: false
 docs_test: true
 flake8: true
+github_org: pulp
 issue_tracker: github
+keep_ci_update_for_latest_branches: 5
 noissue_marker: '[noissue]'
 parallel_test_workers: 8
 plugin_app_label: ansible
@@ -69,7 +71,9 @@ test_cli: false
 test_deprecations: false
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: true
+test_reroute: false
 test_s3: true
 update_github: true
 upgrade_range: []
+use_issue_template: true
 
