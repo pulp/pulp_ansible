@@ -1,13 +1,14 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.04.08-77-g74c9bb3
+# generated with plugin_template@2021.08.26-100-gbb6460d
 
 additional_repos:
 - bindings: false
   branch: master
   name: galaxy-importer
   org: ansible
+aiohttp_fixtures_origin: 172.18.0.1
 black: true
 check_commit_message: true
 check_gettext: true
@@ -15,16 +16,24 @@ check_manifest: true
 check_openapi_schema: true
 check_stray_pulpcore_imports: true
 cherry_pick_automation: false
+ci_env: {}
+ci_trigger: '{pull_request: {branches: [''*'']}}'
+core_import_allowed: []
 coverage: false
 deploy_client_to_pypi: true
 deploy_client_to_rubygems: true
 deploy_daily_client_to_pypi: true
 deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
+disabled_redis_runners: []
 docker_fixtures: false
 docs_test: true
 flake8: true
-issue_tracker: redmine
+github_org: pulp
+issue_tracker: github
+keep_ci_update_for_latest_branches: 5
+noissue_marker: '[noissue]'
+parallel_test_workers: 8
 plugin_app_label: ansible
 plugin_camel: PulpAnsible
 plugin_camel_short: Ansible
@@ -36,6 +45,8 @@ plugin_default_branch: main
 plugin_name: pulp_ansible
 plugin_snake: pulp_ansible
 plugin_snake_short: ansible
+post_job_template: null
+pre_job_template: null
 publish_docs_to_pulpprojectdotorg: true
 pulp_scheme: http
 pulp_settings:
@@ -43,22 +54,32 @@ pulp_settings:
   allowed_import_paths: /tmp
   ansible_api_hostname: http://pulp:80
   ansible_content_hostname: http://pulp:80/pulp/content
-pulpcore_branch: "3.14"
-pulpcore_pip_version_specifier: "<3.15"
+pulpcore_branch: '3.14'
+pulpcore_pip_version_specifier: <3.15
+pulpcore_revision: null
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
 pypi_username: pulp
+python_version: '3.8'
 redmine_project: ansible_plugin
+release_email: pulp-infra@redhat.com
 release_user: pulpbot
+single_commit_check: true
 stable_branch: null
 sync_ci: true
+tasking_allow_async_unsafe: true
+test_azure: false
 test_bindings: false
 test_cli: true
+test_deprecations: false
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: false
+test_reroute: false
 test_s3: true
+update_github: true
 update_redmine: true
 upgrade_range:
 - pulp_ansible_branch: 0.7
   pulpcore_branch: 3.11
+use_issue_template: true
 
