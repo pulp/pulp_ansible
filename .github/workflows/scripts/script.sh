@@ -46,7 +46,9 @@ if [[ "$TEST" = "docs" ]]; then
 fi
 
 if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  STATUS_ENDPOINT="${PULP_URL}/pulp/api/v3/status/"
+  echo $STATUS_ENDPOINT
+  REPORTED_VERSION=$(http $STATUS_ENDPOINT | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
   response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible/$REPORTED_VERSION/)
   if [ "$response" == "200" ];
   then
@@ -73,16 +75,13 @@ fi
 cd $REPO_ROOT
 
 if [[ "$TEST" = 'bindings' ]]; then
-  python $REPO_ROOT/.ci/assets/bindings/test_bindings.py
-fi
-
-if [[ "$TEST" = 'bindings' ]]; then
-  if [ ! -f $REPO_ROOT/.ci/assets/bindings/test_bindings.rb ]; then
-    exit
-  else
-    ruby $REPO_ROOT/.ci/assets/bindings/test_bindings.rb
-    exit
+  if [ -f $REPO_ROOT/.ci/assets/bindings/test_bindings.py ]; then
+    python $REPO_ROOT/.ci/assets/bindings/test_bindings.py
   fi
+  if [ -f $REPO_ROOT/.ci/assets/bindings/test_bindings.rb ]; then
+    ruby $REPO_ROOT/.ci/assets/bindings/test_bindings.rb
+  fi
+  exit
 fi
 
 cat unittest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/unittest_requirements.txt"
@@ -92,11 +91,15 @@ cmd_prefix pip3 install -r /tmp/unittest_requirements.txt
 echo "Checking for uncommitted migrations..."
 cmd_prefix bash -c "django-admin makemigrations --check --dry-run"
 
-# Run unit tests.
-cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python3.8/site-packages/pulp_ansible/tests/unit/"
+if [[ "$TEST" != "upgrade" ]]; then
+  # Run unit tests.
+  cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python3.8/site-packages/pulp_ansible/tests/unit/"
+fi
 
 # Run functional tests
-export PYTHONPATH=$REPO_ROOT:$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
+export PYTHONPATH=$REPO_ROOT/../galaxy-importer${PYTHONPATH:+:${PYTHONPATH}}
+export PYTHONPATH=$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
+export PYTHONPATH=$REPO_ROOT${PYTHONPATH:+:${PYTHONPATH}}
 
 
 if [[ "$TEST" == "upgrade" ]]; then
@@ -104,11 +107,11 @@ if [[ "$TEST" == "upgrade" ]]; then
   sed -i "/require_pulp_plugins(/d" pulp_ansible/tests/functional/utils.py
 
   # Running pre upgrade tests:
-  pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.pre
+  pytest -v -r sx --color=yes --pyargs --capture=no pulp_ansible.tests.upgrade.pre
 
   # Checking out ci_upgrade_test branch and upgrading plugins
+  cmd_prefix bash -c "cd pulpcore; git checkout -f ci_upgrade_test; pip install --upgrade --force-reinstall ."
   cmd_prefix bash -c "cd pulp_ansible; git checkout -f ci_upgrade_test; pip install ."
-  cmd_prefix bash -c "cd pulpcore; git checkout -f ci_upgrade_test; pip install ."
 
   # Migrating
   cmd_prefix bash -c "django-admin migrate --no-input"
@@ -145,7 +148,7 @@ if [[ "$TEST" == "upgrade" ]]; then
 
   # Running post upgrade tests
   git checkout ci_upgrade_test -- pulp_ansible/tests/
-  pytest -v -r sx --color=yes --pyargs -capture=no pulp_ansible.tests.upgrade.post
+  pytest -v -r sx --color=yes --pyargs --capture=no pulp_ansible.tests.upgrade.post
   exit
 fi
 
@@ -162,7 +165,15 @@ fi
 if [ -f $FUNC_TEST_SCRIPT ]; then
   source $FUNC_TEST_SCRIPT
 else
-    pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional
+
+    if [[ "$GITHUB_WORKFLOW" == "Ansible Nightly CI/CD" ]]; then
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8
+        pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel"
+    else
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m "parallel and not nightly" -n 8
+        pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel and not nightly"
+    fi
+
 fi
 pushd ../pulp-cli
 pytest -v -m pulp_ansible

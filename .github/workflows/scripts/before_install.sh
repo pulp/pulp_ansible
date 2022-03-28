@@ -31,6 +31,7 @@ COMMIT_MSG=$(git log --format=%B --no-merges -1)
 export COMMIT_MSG
 
 if [[ "$TEST" == "upgrade" ]]; then
+  pip install -r functest_requirements.txt
   git checkout -b ci_upgrade_test
   cp -R .github /tmp/.github
   cp -R .ci /tmp/.ci
@@ -38,8 +39,6 @@ if [[ "$TEST" == "upgrade" ]]; then
   rm -rf .ci .github
   cp -R /tmp/.github .
   cp -R /tmp/.ci .
-  # Pin deps
-  sed -i "s/~/=/g" requirements.txt
 fi
 
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
@@ -126,6 +125,7 @@ cd ..
 git clone --depth=1 https://github.com/pulp/pulpcore.git --branch 3.13
 
 cd pulpcore
+
 if [ -n "$PULPCORE_PR_NUMBER" ]; then
   git fetch --depth=1 origin pull/$PULPCORE_PR_NUMBER/head:$PULPCORE_PR_NUMBER
   git checkout $PULPCORE_PR_NUMBER
@@ -134,12 +134,14 @@ cd ..
 
 
 git clone --depth=1 https://github.com/ansible/galaxy-importer.git --branch master
+cd galaxy-importer
+
 if [ -n "$GALAXY_IMPORTER_PR_NUMBER" ]; then
-  cd galaxy-importer
   git fetch --depth=1 origin pull/$GALAXY_IMPORTER_PR_NUMBER/head:$GALAXY_IMPORTER_PR_NUMBER
   git checkout $GALAXY_IMPORTER_PR_NUMBER
-  cd ..
 fi
+
+cd ..
 
 
 if [[ "$TEST" == "upgrade" ]]; then
@@ -147,8 +149,6 @@ if [[ "$TEST" == "upgrade" ]]; then
   git checkout -b ci_upgrade_test
   git fetch --depth=1 origin heads/$FROM_PULPCORE_BRANCH:$FROM_PULPCORE_BRANCH
   git checkout $FROM_PULPCORE_BRANCH
-  # Pin deps
-  sed -i "s/~/=/g" requirements.txt
   cd ..
 fi
 
@@ -158,7 +158,7 @@ pip install docker netaddr boto3 ansible
 
 for i in {1..3}
 do
-  ansible-galaxy collection install amazon.aws && s=0 && break || s=$? && sleep 3
+  ansible-galaxy collection install "amazon.aws:1.5.0" && s=0 && break || s=$? && sleep 3
 done
 if [[ $s -gt 0 ]]
 then
