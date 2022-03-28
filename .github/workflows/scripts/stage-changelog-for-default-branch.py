@@ -18,7 +18,7 @@ helper = textwrap.dedent(
         Stage the changelog for a release on main branch.
 
         Example:
-            $ python .github/workflows/scripts/stage-changelog-for-master.py 3.4.0
+            $ python .github/workflows/scripts/stage-changelog-for-default-branch.py 3.4.0
 
     """
 )
@@ -38,13 +38,19 @@ release_version_arg = args.release_version
 release_path = os.path.dirname(os.path.abspath(__file__))
 plugin_path = release_path.split("/.github")[0]
 
+if not release_version_arg.endswith(".0"):
+    os._exit(os.system("python .ci/scripts/changelog.py"))
+
 print(f"\n\nRepo path: {plugin_path}")
 repo = Repo(plugin_path)
 
 changelog_commit = None
 # Look for a commit with the requested release version
 for commit in repo.iter_commits():
-    if f"Building changelog for {release_version_arg}\n" in commit.message:
+    if f"{release_version_arg} changelog" == commit.message.split("\n")[0]:
+        changelog_commit = commit
+        break
+    if f"Add changelog for {release_version_arg}" == commit.message.split("\n")[0]:
         changelog_commit = commit
         break
 
