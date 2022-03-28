@@ -52,7 +52,7 @@ jobs:
           git config --global user.email 'pulp-infra@redhat.com'
 
       - name: Setting secrets
-
+        
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -92,7 +92,7 @@ jobs:
         with:
           python-version: "3.8"
       - uses: actions/setup-ruby@v1
-
+        
         with:
           ruby-version: "2.6"
 
@@ -122,7 +122,7 @@ jobs:
           echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Before Install
-
+        
         run: .github/workflows/scripts/before_install.sh
         shell: bash
         env:
@@ -151,7 +151,7 @@ jobs:
         shell: bash
 
       - name: Before Script
-
+        
         run: .github/workflows/scripts/before_script.sh
         shell: bash
         env:
@@ -166,13 +166,13 @@ jobs:
           REDIS_DISABLED: ${{ contains('', matrix.env.TEST) }}
 
       - name: Setting secrets
-
+        
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Install Python client
-
+        
         run: .github/workflows/scripts/install_python_client.sh
         shell: bash
 
@@ -205,6 +205,13 @@ jobs:
         with:
           name: python-client.tar
           path: python-client.tar
+
+      - name: Upload python client docs
+        if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: python-client-docs.tar
+          path: python-client-docs.tar
 
       - name: Upload ruby client packages
         if: ${{ env.TEST == 'bindings' || env.TEST == 'generate-bindings' }}
@@ -250,7 +257,7 @@ jobs:
           python-version: "3.8"
 
       - uses: actions/setup-ruby@v1
-
+        
         with:
           ruby-version: "2.6"
 
@@ -274,7 +281,7 @@ jobs:
           git checkout "origin/${GITHUB_REF##*/}" -- .github
 
       - name: Setting secrets
-
+        
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -282,7 +289,7 @@ jobs:
       - name: Install python dependencies
         run: |
           echo ::group::PYDEPS
-          pip install gitpython python-redmine
+          pip install gitpython python-redmine requests packaging
           echo ::endgroup::
 
       - name: Push branch and tag to GitHub
@@ -291,6 +298,11 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: docs.tar
+
+      - name: Download Python client docs
+        uses: actions/download-artifact@v2
+        with:
+          name: python-client-docs.tar
 
       - name: Publish docs to pulpproject.org
         run: |
@@ -319,16 +331,17 @@ jobs:
       - name: Publish client to rubygems
         run: bash .github/workflows/scripts/publish_client_gem.sh
 
-
+      
 
       - name: Update GitHub
+        continue-on-error: true
         run: |
           set -euv
           export COMMIT_MSG=$(git log --format=%B --no-merges -1)
           export GH_ISSUES=$(echo $COMMIT_MSG | grep -o "GH Issues: .*" | awk '{print $3}')
 
           echo "GH Issues $GH_ISSUES"
-          bash .ci/scripts/update_github.py
+          python .ci/scripts/update_github.py
 
       - name: Create release on GitHub
         run: bash .github/workflows/scripts/create_release_from_tag.sh ${{ github.event.inputs.release }}
