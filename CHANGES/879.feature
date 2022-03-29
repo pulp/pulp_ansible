@@ -1,0 +1,1 @@
+Add api endpoints to delete collections and collection versions.
