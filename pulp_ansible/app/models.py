@@ -151,7 +151,7 @@ class CollectionVersion(Content):
 
     # Foreign Key Fields
     collection = models.ForeignKey(
-        Collection, on_delete=models.CASCADE, related_name="versions", editable=False
+        Collection, on_delete=models.PROTECT, related_name="versions", editable=False
     )
     tags = models.ManyToManyField(Tag, editable=False)
 

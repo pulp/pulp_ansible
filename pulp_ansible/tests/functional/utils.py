@@ -45,7 +45,11 @@ from pulpcore.client.pulp_ansible import (
     RemotesGitApi,
     RemotesRoleApi,
     AnsibleRepositorySyncURL,
+    PulpAnsibleArtifactsCollectionsV3Api,
 )
+
+from orionutils.generator import build_collection, randstr
+
 
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
@@ -161,6 +165,52 @@ def wait_tasks():
     while running_tasks.count:
         sleep(1)
         running_tasks = tasks.list(state="running")
+
+
+def gen_collection_in_distribution(
+    base_path, name=None, namespace=None, versions=None, **cfg_kwargs
+):
+    """
+    Generate a randomized collection and upload it to the specified repository.
+
+    Params:
+        - base_path: distribtion base path for the repository to upload the
+          collection to.
+        - name: Name of the collection. If none is provided a random name will
+          be generated.
+        - namespace: Namespace of the collection. If none is provided a random
+          name will be generated.
+        - versions: A list of versions to create for the collection. If none
+          are specified the collection will be generated with version 1.0.0
+
+        Additional galaxy.yaml configuration options can be added as kwargs.
+        For example dependencies={"foo.bar": "1.0.0"} will set foo.bar as a
+        dependency for the newly generated collection
+
+    Returns: a dictionary with the name and namespace names of the newly generated
+    collection.
+    """
+    if versions is None:
+        versions = ["1.0.0"]
+    namespace = namespace or randstr()
+    name = name or randstr()
+
+    ansible_client = gen_ansible_client()
+    upload = PulpAnsibleArtifactsCollectionsV3Api(ansible_client)
+
+    for version in versions:
+        artifact = build_collection(
+            "skeleton",
+            config={"namespace": namespace, "name": name, "version": version, **cfg_kwargs},
+        )
+
+        upload.create(path=base_path, file=artifact.filename)
+
+        wait_tasks()
+
+        os.remove(artifact.filename)
+
+    return {"name": name, "namespace": namespace}
 
 
 class TestCaseUsingBindings(PulpTestCase):

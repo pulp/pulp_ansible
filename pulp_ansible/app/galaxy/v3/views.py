@@ -18,11 +18,13 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema
 from jinja2 import Template
 from rest_framework import mixins
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework.reverse import reverse, reverse_lazy
 from rest_framework import serializers
 from rest_framework import status as http_status
 from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
+from rest_framework import status
 
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, Content
@@ -56,6 +58,7 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import CollectionVersionFilter
 
+from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
 _PERMISSIVE_ACCESS_POLICY = {
     "statements": [
@@ -359,6 +362,73 @@ class CollectionViewSet(
         )
         return OperationPostponedResponse(task, request)
 
+    @extend_schema(
+        description="Trigger an asynchronous delete task",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    def destroy(self, request: Request, *args, **kwargs) -> Response:
+        """
+        Allow a Collection to be deleted.
+
+        1. Perform Dependency Check to verify that each CollectionVersion
+           inside Collection can be deleted
+        2. If the Collection can’t be deleted, return the reason why
+        3. If it can, dispatch task to delete each CollectionVersion
+           and the Collection
+        """
+        collection = self.get_object()
+
+        # dependency check
+        dependents = get_collection_dependents(collection)
+        if dependents:
+            return Response(
+                {
+                    "detail": _(
+                        "Collection {namespace}.{name} could not be deleted "
+                        "because there are other collections that require it."
+                    ).format(
+                        namespace=collection.namespace,
+                        name=collection.name,
+                    ),
+                    "dependent_collection_versions": [
+                        f"{dep.namespace}.{dep.name} {dep.version}" for dep in dependents
+                    ],
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        repositories = set()
+        for version in collection.versions.all():
+            for repo in version.repositories.all():
+                repositories.add(repo)
+
+        async_result = dispatch(
+            delete_collection,
+            exclusive_resources=list(repositories),
+            kwargs={"collection_pk": collection.pk},
+        )
+
+        return OperationPostponedResponse(async_result, request)
+
+
+def get_collection_dependents(parent):
+    """Given a parent collection, return a list of collection versions that depend on it."""
+    key = f"{parent.namespace}.{parent.name}"
+    return list(
+        CollectionVersion.objects.exclude(collection=parent).filter(dependencies__has_key=key)
+    )
+
+
+def get_dependents(parent):
+    """Given a parent collection version, return a list of collection versions that depend on it."""
+    key = f"{parent.namespace}.{parent.name}"
+    dependents = []
+    for child in CollectionVersion.objects.filter(dependencies__has_key=key):
+        spec = semantic_version.SimpleSpec(child.dependencies[key])
+        if spec.match(semantic_version.Version(parent.version)):
+            dependents.append(child)
+    return dependents
+
 
 class UnpaginatedCollectionViewSet(CollectionViewSet):
     """Unpaginated ViewSet for Collections."""
@@ -542,6 +612,50 @@ class CollectionVersionViewSet(
         serializer = self.get_list_serializer(queryset, many=True, context=context)
         return Response(serializer.data)
 
+    @extend_schema(
+        description="Trigger an asynchronous delete task",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    def destroy(self, request: Request, *args, **kwargs) -> Response:
+        """
+        Allow a CollectionVersion to be deleted.
+
+        1. Perform Dependency Check to verify that the collection version can be deleted
+        2. If the collection version can’t be deleted, return the reason why
+        3. If it can, dispatch task to delete CollectionVersion and clean up repository.
+           If the version being deleted is the last collection version in the collection,
+           remove the collection object as well.
+        """
+        collection_version = self.get_object()
+
+        # dependency check
+        dependents = get_dependents(collection_version)
+        if dependents:
+            return Response(
+                {
+                    "detail": _(
+                        "Collection version {namespace}.{name} {version} could not be "
+                        "deleted because there are other collections that require it."
+                    ).format(
+                        namespace=collection_version.namespace,
+                        name=collection_version.collection.name,
+                        version=collection_version.version,
+                    ),
+                    "dependent_collection_versions": [
+                        f"{dep.namespace}.{dep.name} {dep.version}" for dep in dependents
+                    ],
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        async_result = dispatch(
+            delete_collection_version,
+            exclusive_resources=collection_version.repositories.all(),
+            kwargs={"collection_version_pk": collection_version.pk},
+        )
+
+        return OperationPostponedResponse(async_result, request)
+
 
 class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
     """Unpaginated ViewSet for CollectionVersions."""
@@ -709,7 +823,11 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
     # TODO: Might be able to load serializer info directly from spectacular
     # schema that gets set on the viewset
     def get_responses(action):
-        default = list_serializer if action == "list" else serializer
+        default = serializer
+        if action == "list":
+            default = list_serializer
+        elif action == "destroy":
+            default = AsyncOperationResponseSerializer
         return {302: None, 202: responses.get(action, default)}
 
     # subclasses viewset to make .as_view work correctly on non viewset views
@@ -762,6 +880,14 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
             deprecated=True,
         )
         def retrieve(self, request, *args, **kwargs):
+            return self._get(request, *args, **kwargs)
+
+        @extend_schema(
+            description=description,
+            responses=get_responses("destroy"),
+            deprecated=True,
+        )
+        def destroy(self, request, *args, **kwargs):
             return self._get(request, *args, **kwargs)
 
         @extend_schema(

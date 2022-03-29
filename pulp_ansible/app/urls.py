@@ -67,7 +67,7 @@ legacy_v3_collection_urls = [
     path(
         "collections/<str:namespace>/<str:name>/",
         views_v3.redirect_view_generator(
-            {"get": "retrieve", "patch": "update"},
+            {"get": "retrieve", "patch": "update", "delete": "destroy"},
             url="collections-detail",
             viewset=views_v3.CollectionViewSet,
             responses={"update": AsyncOperationResponseSerializer},
@@ -86,7 +86,7 @@ legacy_v3_collection_urls = [
     path(
         "collections/<str:namespace>/<str:name>/versions/<str:version>/",
         views_v3.redirect_view_generator(
-            {"get": "retrieve"},
+            {"get": "retrieve", "delete": "destroy"},
             url="collection-versions-detail",
             viewset=views_v3.CollectionVersionViewSet,
         ),
@@ -157,7 +157,9 @@ v3_collection_urls = [
     ),
     path(
         "index/<str:namespace>/<str:name>/",
-        views_v3.CollectionViewSet.as_view({"get": "retrieve", "patch": "update"}),
+        views_v3.CollectionViewSet.as_view(
+            {"get": "retrieve", "patch": "update", "delete": "destroy"}
+        ),
         name="collections-detail",
     ),
     path(
@@ -167,7 +169,7 @@ v3_collection_urls = [
     ),
     path(
         "index/<str:namespace>/<str:name>/versions/<str:version>/",
-        views_v3.CollectionVersionViewSet.as_view({"get": "retrieve"}),
+        views_v3.CollectionVersionViewSet.as_view({"get": "retrieve", "delete": "destroy"}),
         name="collection-versions-detail",
     ),
     path(
