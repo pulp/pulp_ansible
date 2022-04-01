@@ -331,7 +331,8 @@ Bugfixes
   Optimized unpaginated collection_versions endpoint
   (backported from #8439 and #8746) rochacbruno
   `#8923 <https://pulp.plan.io/issues/8923>`_
-- Use proxy auth credentials of a Remote when syncing content.
+- Use proxy auth credentials of a Remote when syncing content. Warning: This is not a proper fix.
+  The actual fix is shipped with 0.7.5.
   `#9391 <https://pulp.plan.io/issues/9391>`_
 
 
