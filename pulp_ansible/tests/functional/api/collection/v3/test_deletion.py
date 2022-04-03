@@ -1,5 +1,9 @@
-from pulp_ansible.tests.functional.utils import gen_collection_in_distribution
-from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
+from pulp_ansible.tests.functional.utils import (
+    gen_collection_in_distribution,
+    SyncHelpersMixin,
+    TestCaseUsingBindings,
+    create_signing_service,
+)
 
 from pulpcore.client.pulp_ansible.exceptions import ApiException
 from pulp_smash.pulp3.bindings import monitor_task
@@ -192,3 +196,53 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         )
 
         resp = monitor_task(resp.task)
+
+    def test_delete_deprecated_content(self):
+        """Test that deprecated content is removed correctly."""
+        # Deprecate the collection
+        result = self.collections_v3api.update(
+            path=self.distribution.base_path,
+            name=self.collection_name,
+            namespace=self.collection_namespace,
+            body={"deprecated": True},
+        )
+        monitor_task(result.task)
+
+        resp = self.collections_v3api.delete(
+            path=self.distribution.base_path,
+            name=self.collection_name,
+            namespace=self.collection_namespace,
+        )
+        monitor_task(resp.task)
+
+        # Verify that all the content is gone
+        repo = self.repo_api.read(self.repo.pulp_href)
+        latest_version = self.repo_version_api.read(repo.latest_version_href)
+
+        assert len(latest_version.content_summary.present) == 0
+
+    def test_delete_signed_content(self):
+        """Test that signature content is removed correctly."""
+        sign_service = create_signing_service()
+
+        # Sign the collections
+        body = {
+            "content_units": [
+                "*",
+            ],
+            "signing_service": sign_service.pulp_href,
+        }
+        monitor_task(self.repo_api.sign(self.repo.pulp_href, body).task)
+
+        resp = self.collections_v3api.delete(
+            path=self.distribution.base_path,
+            name=self.collection_name,
+            namespace=self.collection_namespace,
+        )
+        monitor_task(resp.task)
+
+        # Verify that all the content is gone
+        repo = self.repo_api.read(self.repo.pulp_href)
+        latest_version = self.repo_version_api.read(repo.latest_version_href)
+
+        assert len(latest_version.content_summary.present) == 0

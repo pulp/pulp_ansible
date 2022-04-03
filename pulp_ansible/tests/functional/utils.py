@@ -46,6 +46,7 @@ from pulpcore.client.pulp_ansible import (
     RemotesRoleApi,
     AnsibleRepositorySyncURL,
     PulpAnsibleArtifactsCollectionsV3Api,
+    RepositoriesAnsibleVersionsApi,
 )
 
 from orionutils.generator import build_collection, randstr
@@ -221,6 +222,7 @@ class TestCaseUsingBindings(PulpTestCase):
         """Create class-wide variables."""
         cls.client = gen_ansible_client()
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
+        cls.repo_version_api = RepositoriesAnsibleVersionsApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.remote_git_api = RemotesGitApi(cls.client)
         cls.remote_role_api = RemotesRoleApi(cls.client)
