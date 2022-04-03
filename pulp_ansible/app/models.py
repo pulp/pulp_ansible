@@ -315,6 +315,38 @@ class AnsibleRepository(Repository):
 
         permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
 
+    def finalize_new_version(self, new_version):
+        """Finalize repo version."""
+        removed_collection_versions = new_version.removed(
+            base_version=new_version.base_version
+        ).filter(pulp_type=CollectionVersion.get_pulp_type())
+
+        # Remove any deprecated and signature content associated with the removed collection
+        # versions
+        for version in removed_collection_versions:
+            version = version.cast()
+
+            signatures = new_version.get_content(
+                content_qs=CollectionVersionSignature.objects.filter(signed_collection=version)
+            )
+            new_version.remove_content(signatures)
+
+            other_collection_versions = new_version.get_content(
+                content_qs=CollectionVersion.objects.filter(collection=version.collection)
+            )
+
+            # AnsibleCollectionDeprecated applies to all collection versions in a repository,
+            # so only remove it if there are no more collection versions for the specified
+            # collection present.
+            if not other_collection_versions.exists():
+                deprecations = new_version.get_content(
+                    content_qs=AnsibleCollectionDeprecated.objects.filter(
+                        namespace=version.namespace, name=version.name
+                    )
+                )
+
+                new_version.remove_content(deprecations)
+
 
 class AnsibleDistribution(Distribution):
     """
