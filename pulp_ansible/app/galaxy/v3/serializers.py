@@ -256,20 +256,16 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
             distro_base_path = self.context.get("path", self.context["distro_base_path"])
             filename_path = obj.relative_path.lstrip("/")
 
-            download_url = reverse(
+            # Note: We're using ANSIBLE_API_HOSTNAME here instead of calling reverse with request=
+            # because using the request context to generate the full URL causes the download URL
+            # to be inaccessible when pulp is running behind a reverse proxy.
+            host = settings.ANSIBLE_API_HOSTNAME.strip("/")
+            path = reverse(
                 settings.ANSIBLE_URL_NAMESPACE + "collection-artifact-download",
                 kwargs={"distro_base_path": distro_base_path, "filename": filename_path},
-            )
+            ).strip("/")
 
-            # Normally would just pass request to reverse and DRF would automatically build the
-            # absolute URI for us. However there's a weird bug where, because there's a kwarg
-            # in the URL for this view called "version" (the collection version), DRF gets
-            # confused and thinks we're using a versioning scheme
-            # (https://www.django-rest-framework.org/api-guide/versioning/) and attempts to insert
-            # the version into kwargs, which causes the reverse lookup to fail.
-
-            request = self.context["request"]
-            return request.build_absolute_uri(download_url)
+            return f"{host}/{path}"
 
     def get_git_url(self, obj) -> str:
         """
