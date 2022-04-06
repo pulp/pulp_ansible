@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-93-g0e28573
+# generated with plugin_template@2021.08.26-105-gfdf4c45
 
 additional_repos:
 - bindings: false
@@ -31,7 +31,7 @@ docs_test: true
 flake8: true
 github_org: pulp
 issue_tracker: github
-keep_ci_update_for_latest_branches: 5
+keep_ci_update_since_branch: 0.7
 noissue_marker: '[noissue]'
 parallel_test_workers: 8
 plugin_app_label: ansible
