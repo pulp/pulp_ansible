@@ -1,2 +1,0 @@
-Fix a bug where when a collection version is removed from a repository, it's associated signatures
-and deprecated content remains in the repository.
