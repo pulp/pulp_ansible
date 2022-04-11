@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.12.1 (2022-04-11)
+===================
+
+Bugfixes
+--------
+
+- Fixed ``manifest`` and ``files`` fields not being set when uploading a collection.
+  `#840 <https://github.com/pulp/pulp_ansible/issues/840>`__
+
+
+----
+
+
 0.12.0 (2022-02-02)
 ===================
 
