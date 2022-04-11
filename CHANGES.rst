@@ -13,6 +13,46 @@ Changelog
 
 .. towncrier release notes start
 
+0.13.0 (2022-04-11)
+===================
+
+Features
+--------
+
+- Galaxy API Refactor stage 1
+
+  Move the existing collection views under /plugin/ansible/.
+  Redirects the legacy v3 endpoints to their counterparts in /plugin/ansible/.
+  Adds a new configuration option ANSIBLE_DEFAULT_DISTRIBUTION_PATH that allows users to configure a default distribution base path for the API.
+  Adds a new configuration option ANSIBLE_URL_NAMESPACE that allows django URL namespace to be set on reverse so that urls can be configured to point correctly to the galaxy APIs when pulp ansible is deployed as part of automation hub.
+  Adds the get v3/artifacts/path/file API endpoint from galaxy_ng.
+  Enable RedirectContentGuard.
+  `#728 <https://github.com/pulp/pulp_ansible/issues/728>`__
+- Added upload endpoint for ``/content/ansible/collection_signatures/``
+  `#837 <https://github.com/pulp/pulp_ansible/issues/837>`__
+- Made certs dir configurable
+  `#851 <https://github.com/pulp/pulp_ansible/issues/851>`__
+- Add api endpoints to delete collections and collection versions.
+  `#879 <https://github.com/pulp/pulp_ansible/issues/879>`__
+
+
+Bugfixes
+--------
+
+- Fixed ``manifest`` and ``files`` fields not being set when uploading a collection.
+  `#840 <https://github.com/pulp/pulp_ansible/issues/840>`__
+- Signatures are now properly generated from a collection's MANIFEST.json file.
+  `#841 <https://github.com/pulp/pulp_ansible/issues/841>`__
+- Fixed collection signature filtering by ``signed_collection`` and ``signing_service``.
+  `#860 <https://github.com/pulp/pulp_ansible/issues/860>`__
+- Fix a bug where when a collection version is removed from a repository, it's associated signatures
+  and deprecated content remains in the repository.
+  `#889 <https://github.com/pulp/pulp_ansible/issues/889>`__
+
+
+----
+
+
 0.12.0 (2022-02-02)
 ===================
 
