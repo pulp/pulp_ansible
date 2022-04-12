@@ -43,7 +43,7 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         """
         Get source.
         """
-        distro_base = self.context["request"].parser_context["kwargs"]["path"]
+        distro_base = self.context["path"]
         distro_path = "".join([settings.CONTENT_ORIGIN, settings.CONTENT_PATH_PREFIX, distro_base])
 
         return "".join([distro_path, "/", obj.relative_path])
@@ -79,7 +79,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         return (
             "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/"
             "versions/".format(
-                path=obj.path,
+                path=self.context["path"],
                 hostname=settings.ANSIBLE_API_HOSTNAME,
                 namespace=obj.namespace,
                 name=obj.name,
@@ -93,7 +93,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         return (
             "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/"
             "{name}/".format(
-                path=obj.path,
+                path=self.context["path"],
                 hostname=settings.ANSIBLE_API_HOSTNAME,
                 namespace=obj.namespace,
                 name=obj.name,
@@ -109,7 +109,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         href = reverse(
             "collection-versions-detail",
             kwargs={
-                "path": obj.path,
+                "path": self.context["path"],
                 "namespace": obj.namespace,
                 "name": obj.name,
                 "version": rv.version,
@@ -150,7 +150,7 @@ class GalaxyCollectionVersionSerializer(serializers.Serializer):
         return (
             "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/"
             "versions/{version}/".format(
-                path=obj.path,
+                path=self.context["path"],
                 hostname=settings.ANSIBLE_API_HOSTNAME,
                 namespace=obj.collection.namespace,
                 name=obj.collection.name,
