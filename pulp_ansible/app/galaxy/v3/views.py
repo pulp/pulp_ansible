@@ -87,7 +87,7 @@ class AnsibleDistributionMixin:
             self.pulp_context = {path: distro.repository_version}
             return distro.repository_version
 
-        repo_version = distro.repository.latest_version()
+        repo_version = distro.repository.latest_version() if distro.repository else None
         self.pulp_context = {path: repo_version}
         return repo_version
 

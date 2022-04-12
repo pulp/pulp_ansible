@@ -1,7 +1,7 @@
 import re
 
 from django.conf import settings
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404, HttpResponse
 from rest_framework import generics, pagination, response, views
 
 from pulpcore.plugin.models import PulpTemporaryFile
@@ -18,6 +18,46 @@ from .serializers import (
     GalaxyRoleSerializer,
     GalaxyRoleVersionSerializer,
 )
+
+
+class DistributionMixin:
+    """
+    Mixin for getting the content for the view.
+    """
+
+    @property
+    def _repository_version(self):
+        """Returns repository version."""
+        path = self.kwargs["path"]
+
+        context = getattr(self, "pulp_context", None)
+        if context and context.get(path, None):
+            return self.pulp_context[path]
+
+        distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        if distro.repository_version:
+            self.pulp_context = {path: distro.repository_version}
+            return distro.repository_version
+
+        repo_version = distro.repository.latest_version() if distro.repository else None
+        self.pulp_context = {path: repo_version}
+        return repo_version
+
+    @property
+    def _distro_content(self):
+        """Returns distribution content."""
+        repo_version = self._repository_version
+        if repo_version is None:
+            return self.model.objects.none()
+
+        return repo_version.content
+
+    def get_serializer_context(self):
+        """Inserts distribution path to a serializer context."""
+        context = super().get_serializer_context()
+        if "path" in self.kwargs:
+            context["path"] = self.kwargs["path"]
+        return context
 
 
 class GalaxyVersionView(views.APIView):
@@ -46,7 +86,7 @@ class GalaxyVersionView(views.APIView):
         return response.Response(api_info)
 
 
-class RoleList(generics.ListAPIView):
+class RoleList(DistributionMixin, generics.ListAPIView):
     """
     APIView for Roles.
     """
@@ -60,13 +100,7 @@ class RoleList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
-
-        if distro.repository_version:
-            distro_content = distro.repository_version.content
-        else:
-            distro_content = distro.repository.latest_version().content
-        roles = Role.objects.distinct("namespace", "name").filter(pk__in=distro_content)
+        roles = Role.objects.distinct("namespace", "name").filter(pk__in=self._distro_content)
 
         namespace = self.request.query_params.get("owner__username", None)
         if namespace:
@@ -78,7 +112,7 @@ class RoleList(generics.ListAPIView):
         return roles
 
 
-class RoleVersionList(generics.ListAPIView):
+class RoleVersionList(DistributionMixin, generics.ListAPIView):
     """
     APIView for Role Versions.
     """
@@ -92,20 +126,12 @@ class RoleVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
-
-        if distro.repository_version:
-            distro_content = distro.repository_version.content
-        else:
-            distro_content = distro.repository.latest_version().content
         namespace, name = re.split(r"\.", self.kwargs["role_pk"])
-        versions = Role.objects.filter(pk__in=distro_content, name=name, namespace=namespace)
-        for version in versions:
-            version.distro_path = distro.base_path
+        versions = Role.objects.filter(pk__in=self._distro_content, name=name, namespace=namespace)
         return versions
 
 
-class GalaxyCollectionDetailView(generics.RetrieveAPIView):
+class GalaxyCollectionDetailView(DistributionMixin, generics.RetrieveAPIView):
     """
     View for a Collection Detail.
     """
@@ -119,12 +145,12 @@ class GalaxyCollectionDetailView(generics.RetrieveAPIView):
         """
         Get the detail view of a Collection.
         """
+        # This seems wrong, no repository scoping occurring
         collection = get_object_or_404(Collection, namespace=namespace, name=name)
-        collection.path = path
         return response.Response(GalaxyCollectionSerializer(collection).data)
 
 
-class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
+class GalaxyCollectionView(DistributionMixin, UploadGalaxyCollectionMixin, generics.ListAPIView):
     """
     View for Collection models.
     """
@@ -139,24 +165,16 @@ class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
         """
         Get the list of Collections for this view.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
-        if distro.repository_version:
-            distro_content = distro.repository_version.content
-        else:
-            distro_content = distro.repository.latest_version().content
-
-        collections = Collection.objects.filter(versions__pk__in=distro_content).distinct()
-
-        for c in collections:
-            c.path = self.kwargs["path"]  # annotation needed by the serializer
-
-        return collections
+        return Collection.objects.filter(versions__pk__in=self._distro_content).distinct()
 
     def post(self, request, path):
         """
         Queues a task that creates a new Collection from an uploaded artifact.
         """
         distro = get_object_or_404(AnsibleDistribution, base_path=path)
+        if not distro.repository and not distro.repository_version:
+            return HttpResponse(status=400, reason="Distribution has no repository.")
+
         serializer = GalaxyCollectionUploadSerializer(
             data=request.data, context={"request": request}
         )
@@ -169,7 +187,7 @@ class GalaxyCollectionView(generics.ListAPIView, UploadGalaxyCollectionMixin):
         return OperationPostponedResponse(async_result, request)
 
 
-class GalaxyCollectionVersionList(generics.ListAPIView):
+class GalaxyCollectionVersionList(DistributionMixin, generics.ListAPIView):
     """
     APIView for Collections by namespace/name.
     """
@@ -184,24 +202,15 @@ class GalaxyCollectionVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
-        if distro.repository_version:
-            distro_content = distro.repository_version.content
-        else:
-            distro_content = distro.repository.latest_version().content
-
         collection = get_object_or_404(
             Collection, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
         )
-        versions = collection.versions.filter(pk__in=distro_content)
-
-        for c in versions:
-            c.path = self.kwargs["path"]  # annotation needed by the serializer
+        versions = collection.versions.filter(pk__in=self._distro_content)
 
         return versions
 
 
-class GalaxyCollectionVersionDetail(views.APIView):
+class GalaxyCollectionVersionDetail(DistributionMixin, views.APIView):
     """
     APIView for Galaxy Collections Detail view.
     """
@@ -213,27 +222,20 @@ class GalaxyCollectionVersionDetail(views.APIView):
         """
         Return a response to the "GET" action.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
-        if distro.repository_version:
-            distro_content = distro.repository_version.content
-        else:
-            distro_content = distro.repository.latest_version().content
-
         version = CollectionVersion.objects.get(
             collection__namespace=namespace, collection__name=name, version=version
         )
 
         get_object_or_404(
-            ContentArtifact, content__in=distro_content, relative_path=version.relative_path
+            ContentArtifact, content__in=self._distro_content, relative_path=version.relative_path
         )
 
         download_url = "{content_hostname}/{base_path}/{relative_path}".format(
             content_hostname=settings.ANSIBLE_CONTENT_HOSTNAME,
-            base_path=distro.base_path,
+            base_path=self.kwargs["path"],
             relative_path=version.relative_path,
         )
 
-        version.path = path
         data = GalaxyCollectionVersionSerializer(version).data
         data["download_url"] = download_url
         return response.Response(data)
