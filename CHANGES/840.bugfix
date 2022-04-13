@@ -1,1 +1,0 @@
-Fixed ``manifest`` and ``files` fields not being set when uploading a collection.
