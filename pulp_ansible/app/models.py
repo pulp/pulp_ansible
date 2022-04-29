@@ -179,6 +179,43 @@ class CollectionVersion(Content):
         ]
 
 
+class CollectionVersionDownload(BaseModel):
+    """A model that represents the count of downloads of a CollectionVersion."""
+
+    collection_version = models.ForeignKey(
+        CollectionVersion, on_delete=models.CASCADE, related_name="downloads"
+    )
+    client = models.CharField(max_length=64, editable=False)
+    count = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("collection_version", "client")
+
+    def increment(self):
+        """Increment the download count."""
+        self.count += 1
+        self.save()
+        return self.count
+
+    @staticmethod
+    def last_updated_by_versions(versions_pks):
+        """
+        Return the last download time of a CollectionVersion from any source.
+        """
+        return CollectionVersionDownload.objects.filter(
+            collection_version__in=versions_pks
+        ).aggregate(models.Max("pulp_last_updated"))["pulp_last_updated__max"]
+
+    @staticmethod
+    def get_download_counts(version_pks):
+        """
+        Return all different download counts of a CollectionVersion.
+        """
+        return CollectionVersionDownload.objects.filter(
+            collection_version__in=version_pks
+        ).values('client').annotate(downloads=models.Sum('count'))
+
+
 class CollectionVersionSignature(Content):
     """
     A content type representing a signature that is attached to a content unit.

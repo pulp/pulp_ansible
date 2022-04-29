@@ -28,6 +28,8 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     versions_url = serializers.SerializerMethodField()
     highest_version = serializers.SerializerMethodField()
+    download_count = serializers.SerializerMethodField()
+    last_downloaded = serializers.SerializerMethodField()
 
     class Meta:
         fields = (
@@ -39,6 +41,8 @@ class CollectionSerializer(serializers.ModelSerializer):
             "highest_version",
             "created_at",
             "updated_at",
+            "download_count",
+            "last_downloaded",
         )
         model = models.Collection
 
@@ -93,6 +97,16 @@ class CollectionSerializer(serializers.ModelSerializer):
             },
         )
         return {"href": href, "version": version}
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_download_count(self, obj):
+        """Get the download count across all versions."""
+        return models.CollectionVersionDownload.get_download_counts(obj.versions.all())
+
+    @extend_schema_field(OpenApiTypes.DATETIME)
+    def get_last_downloaded(self, obj):
+        """Get the timestamp of the last downloaded across any versions."""
+        return models.CollectionVersionDownload.last_updated_by_versions(obj.versions.all())
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
@@ -300,13 +314,31 @@ class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
         help_text="A JSON field holding MANIFEST.json data.", read_only=True
     )
     files = serializers.JSONField(help_text="A JSON field holding FILES.json data.", read_only=True)
+    download_count = serializers.SerializerMethodField()
+    last_downloaded = serializers.SerializerMethodField()
 
     class Meta:
         model = models.CollectionVersion
         fields = UnpaginatedCollectionVersionSerializer.Meta.fields + (
             "manifest",
             "files",
+            "download_count",
+            "last_downloaded",
         )
+
+    @extend_schema_field(OpenApiTypes.OBJECT)
+    def get_download_count(self, obj):
+        """
+        Get the download count as an array of obejcts.
+        """
+        return models.CollectionVersionDownload.get_download_counts([obj])
+
+    @extend_schema_field(OpenApiTypes.DATETIME)
+    def get_last_downloaded(self, obj):
+        """
+        Get the last downloaded datetime.
+        """
+        return models.CollectionVersionDownload.last_updated_by_versions([obj])
 
 
 class CollectionVersionDocsSerializer(serializers.ModelSerializer):

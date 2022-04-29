@@ -48,6 +48,7 @@ from pulp_ansible.app.models import (
     CollectionVersion,
     CollectionVersionSignature,
     CollectionImport,
+    CollectionVersionDownload
 )
 from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
@@ -552,6 +553,17 @@ class CollectionArtifactDownloadView(views.APIView):
             distro_base_path=distro_base_path,
             filename=self.kwargs["filename"],
         )
+
+        # Update counter before returning the download
+        client = request.headers['user-agent']
+        if (client != 'pulp' and client != 'ansible-galaxy'):
+            client = 'other'
+
+        version = 'TODO'
+
+        counter = CollectionVersionDownload.objects.get_or_create(
+            collection_version=version, client=client)
+        counter.increment()
 
         if distribution.content_guard:
             guard = distribution.content_guard.cast()
