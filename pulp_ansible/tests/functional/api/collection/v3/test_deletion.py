@@ -48,16 +48,13 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         assert versions.meta.count == 0
 
-        try:
+        with self.assertRaises(ApiException) as e:
             self.collections_v3api.read(
                 path=self.distribution.base_path,
                 name=self.collection_name,
                 namespace=self.collection_namespace,
             )
 
-            # Fail if 404 isn't raised
-            assert False
-        except ApiException as e:
             assert e.status == 404
 
     def test_collection_version_deletion(self):
@@ -84,17 +81,13 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         monitor_task(resp.task)
 
-        try:
+        with self.assertRaises(ApiException) as e:
             self.collections_versions_v3api.read(
                 path=self.distribution.base_path,
                 name=self.collection_name,
                 namespace=self.collection_namespace,
                 version=to_delete,
             )
-
-            # Fail if 404 isn't raised
-            assert False
-        except ApiException as e:
             assert e.status == 404
 
         # Verify that the collection still exists
@@ -132,16 +125,12 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         # With all the versions deleted, verify that the collection has also
         # been deleted
-        try:
+        with self.assertRaises(ApiException) as e:
             self.collections_v3api.read(
                 path=self.distribution.base_path,
                 name=self.collection_name,
                 namespace=self.collection_namespace,
             )
-
-            # Fail if 404 isn't raised
-            assert False
-        except ApiException as e:
             assert e.status == 404
 
     def test_invalid_deletion(self):
@@ -155,33 +144,24 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         err_msg = f"{dependent_collection['namespace']}.{dependent_collection['name']} 1.0.0"
 
         # Verify entire collection can't be deleted
-        try:
+        with self.assertRaises(ApiException) as e:
             self.collections_v3api.delete(
                 path=self.distribution.base_path,
                 name=self.collection_name,
                 namespace=self.collection_namespace,
             )
 
-            # Fail if 400 isn't raised
-            assert False
-        except ApiException as e:
-            assert e.status == 400
-
             # check error message includes collection that's blocking delete
             assert err_msg in e.body
 
         # Verify specific version that's used can't be deleted
-        try:
+        with self.assertRaises(ApiException) as e:
             self.collections_versions_v3api.delete(
                 path=self.distribution.base_path,
                 name=self.collection_name,
                 namespace=self.collection_namespace,
                 version=dependent_version,
             )
-
-            # Fail if 400 isn't raised
-            assert False
-        except ApiException as e:
             assert e.status == 400
 
             # check error message includes collection that's blocking delete
@@ -246,3 +226,36 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         latest_version = self.repo_version_api.read(repo.latest_version_href)
 
         assert len(latest_version.content_summary.present) == 0
+
+    def test_version_deletion_with_range_of_versions(self):
+        """Verify collections can be deleted when another version satisfies requirements."""
+        # Create a collection that depends on any version of an existing collection
+        gen_collection_in_distribution(
+            self.distribution.base_path,
+            dependencies={f"{self.collection_namespace}.{self.collection_name}": "*"},
+        )
+
+        to_delete = self.collection_versions.pop()
+
+        # Verify the collection version can be deleted as long as there is one version
+        # left that satisfies the requirements.
+        resp = self.collections_versions_v3api.delete(
+            path=self.distribution.base_path,
+            name=self.collection_name,
+            namespace=self.collection_namespace,
+            version=to_delete,
+        )
+
+        resp = monitor_task(resp.task)
+
+        # Verify that the last version of the collection can't be deleted
+
+        with self.assertRaises(ApiException) as e:
+            self.collections_versions_v3api.delete(
+                path=self.distribution.base_path,
+                name=self.collection_name,
+                namespace=self.collection_namespace,
+                version=self.collection_versions[0],
+            )
+
+            assert e.status == 400
