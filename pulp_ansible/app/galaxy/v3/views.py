@@ -419,14 +419,27 @@ def get_collection_dependents(parent):
     )
 
 
-def get_dependents(parent):
+def get_unique_dependents(parent):
     """Given a parent collection version, return a list of collection versions that depend on it."""
     key = f"{parent.namespace}.{parent.name}"
+
+    this_version = semantic_version.Version(parent.version)
+
+    # Other versions contain a set of all versions of this collection aside from the version
+    # that is being deleted.
+    other_versions = []
+    for v in parent.collection.versions.exclude(version=parent.version):
+        other_versions.append(semantic_version.Version(v.version))
+
     dependents = []
     for child in CollectionVersion.objects.filter(dependencies__has_key=key):
         spec = semantic_version.SimpleSpec(child.dependencies[key])
-        if spec.match(semantic_version.Version(parent.version)):
+
+        # If this collection matches the parent collections version and there are no other
+        # collection versions that can satisfy the requirement, add it to the list of dependants.
+        if spec.match(this_version) and not spec.select(other_versions):
             dependents.append(child)
+
     return dependents
 
 
@@ -629,7 +642,7 @@ class CollectionVersionViewSet(
         collection_version = self.get_object()
 
         # dependency check
-        dependents = get_dependents(collection_version)
+        dependents = get_unique_dependents(collection_version)
         if dependents:
             return Response(
                 {
