@@ -94,8 +94,10 @@ jobs:
           - TEST: docs
           - TEST: azure
           - TEST: s3
+          - TEST: stream
     outputs:
       deprecations-pulp: ${{ steps.deprecations.outputs.deprecations-pulp }}
+      deprecations-stream: ${{ steps.deprecations.outputs.deprecations-stream }}
       deprecations-azure: ${{ steps.deprecations.outputs.deprecations-azure }}
       deprecations-s3: ${{ steps.deprecations.outputs.deprecations-s3 }}
 
@@ -345,6 +347,7 @@ jobs:
       - name: Fail on deprecations
         run: |
           test -z "${{ needs.test.outputs.deprecations-pulp }}"
+          test -z "${{ needs.test.outputs.deprecations-stream }}"
           test -z "${{ needs.test.outputs.deprecations-azure }}"
           test -z "${{ needs.test.outputs.deprecations-s3 }}"
           test -z "${{ needs.test.outputs.deprecations-upgrade }}"
@@ -352,6 +355,7 @@ jobs:
         if: failure()
         run: |
           echo "${{ needs.test.outputs.deprecations-pulp }}" | base64 -d
+          echo "${{ needs.test.outputs.deprecations-stream }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-azure }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-s3 }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-upgrade }}" | base64 -d

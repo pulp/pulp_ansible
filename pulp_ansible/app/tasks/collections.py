@@ -1,27 +1,30 @@
 import asyncio
-from collections import defaultdict
-from gettext import gettext as _
 import hashlib
 import json
 import logging
 import tarfile
-import yaml
+from collections import defaultdict
+from gettext import gettext as _
 from operator import attrgetter
 from urllib.parse import urljoin
+from uuid import uuid4
 
+import yaml
 from aiohttp.client_exceptions import ClientResponseError
+from asgiref.sync import sync_to_async
 from async_lru import alru_cache
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
+from django.db.utils import IntegrityError
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
-from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
+from galaxy_importer.collection import import_collection as process_collection
+from galaxy_importer.collection import sync_collection
 from galaxy_importer.exceptions import ImporterError
+from git import GitCommandError, Repo
 from pkg_resources import Requirement
-from rest_framework.serializers import ValidationError
-
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -39,12 +42,13 @@ from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
     DeclarativeVersion,
+    QueryExistingArtifacts,
+    QueryExistingContents,
     RemoteArtifactSaver,
     ResolveContentFutures,
     Stage,
-    QueryExistingArtifacts,
-    QueryExistingContents,
 )
+from rest_framework.serializers import ValidationError
 from semantic_version import Version
 
 from pulp_ansible.app.constants import PAGE_SIZE
@@ -58,22 +62,13 @@ from pulp_ansible.app.models import (
     CollectionVersionSignature,
     Tag,
 )
-from pulp_ansible.app.serializers import CollectionVersionSerializer, CollectionRemoteSerializer
+from pulp_ansible.app.serializers import CollectionRemoteSerializer, CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
-    get_file_obj_from_tarball,
-    parse_metadata,
-    parse_collections_requirements_file,
     RequirementsFileEntry,
+    get_file_obj_from_tarball,
+    parse_collections_requirements_file,
+    parse_metadata,
 )
-from asgiref.sync import sync_to_async
-
-from django.db.utils import IntegrityError
-from galaxy_importer.collection import sync_collection
-from git import GitCommandError, Repo
-
-
-from uuid import uuid4
-
 
 log = logging.getLogger(__name__)
 
@@ -310,6 +305,7 @@ def import_collection(
                     get_file_obj_from_tarball(tar, "FILES.json", temp_file.file.name)
                 )
             url = _get_backend_storage_url(artifact_file)
+            artifact_file.seek(0)
             importer_result = process_collection(
                 artifact_file, filename=filename, file_url=url, logger=user_facing_logger
             )
@@ -397,7 +393,10 @@ def create_collection_from_importer(importer_result, metadata_only=False):
 
 def _get_backend_storage_url(artifact_file):
     """Get artifact url from pulp backend storage."""
-    if settings.DEFAULT_FILE_STORAGE == "pulpcore.app.models.storage.FileSystem":
+    if (
+        settings.DEFAULT_FILE_STORAGE == "pulpcore.app.models.storage.FileSystem"
+        or not settings.REDIRECT_TO_OBJECT_STORAGE
+    ):
         url = None
     elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
         parameters = {"ResponseContentDisposition": "attachment%3Bfilename=archive.tar.gz"}
