@@ -53,11 +53,6 @@ plugins:
     source:  "${PLUGIN_NAME}"
   - name: galaxy-importer
     source: galaxy-importer
-services:
-  - name: pulp
-    image: "pulp:${TAG}"
-    volumes:
-      - ./settings:/etc/pulp
 VARSYAML
 else
   cat >> vars/main.yaml << VARSYAML
@@ -71,13 +66,17 @@ plugins:
     source: $GALAXY_IMPORTER
   - name: pulpcore
     source: ./pulpcore
+VARSYAML
+fi
+
+cat >> vars/main.yaml << VARSYAML
 services:
   - name: pulp
     image: "pulp:${TAG}"
     volumes:
       - ./settings:/etc/pulp
+      - ./ssh:/keys/
 VARSYAML
-fi
 
 cat >> vars/main.yaml << VARSYAML
 pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "https://pulp:443", "ansible_content_hostname": "https://pulp:443/pulp/content"}
@@ -137,7 +136,7 @@ sudo docker cp pulp:/etc/pulp/certs/pulp_webserver.crt /usr/local/share/ca-certi
 # Hack: adding pulp CA to certifi.where()
 CERTIFI=$(python -c 'import certifi; print(certifi.where())')
 cat /usr/local/share/ca-certificates/pulp_webserver.crt | sudo tee -a "$CERTIFI" > /dev/null
-if [ "$TEST" = "azure" ]; then
+if [[ "$TEST" = "azure" ]]; then
   cat /usr/local/share/ca-certificates/azcert.crt | sudo tee -a "$CERTIFI" > /dev/null
 fi
 
@@ -149,7 +148,7 @@ cat "$CERTIFI" | sudo tee -a "$CERT" > /dev/null
 sudo update-ca-certificates
 echo ::endgroup::
 
-if [ "$TEST" = "azure" ]; then
+if [[ "$TEST" = "azure" ]]; then
   AZCERTIFI=$(/opt/az/bin/python3 -c 'import certifi; print(certifi.where())')
   cat /usr/local/share/ca-certificates/azcert.crt >> $AZCERTIFI
   cat /usr/local/share/ca-certificates/azcert.crt | cmd_stdin_prefix tee -a /usr/local/lib/python3.8/site-packages/certifi/cacert.pem > /dev/null
