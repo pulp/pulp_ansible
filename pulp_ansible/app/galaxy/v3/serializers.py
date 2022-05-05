@@ -95,6 +95,21 @@ class CollectionSerializer(serializers.ModelSerializer):
         return {"href": href, "version": version}
 
 
+class CollectionDownloadLogSerializer(serializers.ModelSerializer):
+    """A serializer for a CollectionDownloadLog."""
+
+    class Meta:
+        fields = (
+            "collection_version",
+            "user",
+            "ip",
+            "org_id",
+            "user_agent",
+            "repository",
+        )
+        model = models.CollectionDownloadLog
+
+
 class CollectionVersionListSerializer(serializers.ModelSerializer):
     """A serializer for a CollectionVersion list item."""
 

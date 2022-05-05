@@ -38,6 +38,7 @@ from .models import (
     AnsibleRepository,
     Collection,
     CollectionVersion,
+    CollectionDownloadLog,
     CollectionVersionSignature,
     CollectionRemote,
     Role,
@@ -209,6 +210,26 @@ class CollectionVersionViewSet(SingleArtifactContentUploadViewSet, UploadGalaxyC
         async_result = self._dispatch_import_collection_task(temp_file_pk, repository, **kwargs)
 
         return OperationPostponedResponse(async_result, request)
+
+
+class CollectionDownloadLogFilter(BaseFilterSet):
+    """
+    FilterSet for CollectionDownloadLog.
+    """
+
+    class Meta:
+        model = CollectionDownloadLog
+        fields = (
+            "collection_version",
+            "collection_version__namespace",
+            "collection_version__collection__name",
+            "user",
+            "ip",
+            "org_id",
+            "user_agent",
+            "repository",
+            "repository__name",
+        )
 
 
 class SignatureFilter(ContentFilter):

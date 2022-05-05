@@ -198,6 +198,11 @@ v3_plugin_urls = [
         views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
         name="collection-imports-detail",
     ),
+    path(
+        "collection-download",
+        views_v3.CollectionDownloadLogViewSet.as_view({"get": "list"}),
+        name="collection-download",
+    ),
 ]
 
 v3_urls = [

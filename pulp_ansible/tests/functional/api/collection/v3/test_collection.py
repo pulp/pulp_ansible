@@ -288,7 +288,7 @@ def test_collection_version(artifact, pulp_client, collection_detail):
     #     #             'tags': ['collectiontest']},
 
 
-@pytest.mark.skip("Blocked by open ticket: https://pulp.plan.io/issues/5647")
+@pytest.mark.skip("Blocked by open ticket: https://github.com/pulp/pulp_ansible/issues/698")
 def test_collection_download(artifact, pulp_client, collection_detail):
     """Test collection download URL.
 

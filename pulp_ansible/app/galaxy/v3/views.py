@@ -2,7 +2,9 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
+from django.core.exceptions import ObjectDoesNotExist
 from django.contrib.postgres.aggregates import ArrayAgg
+from django.contrib.auth import get_user_model
 from django.db import DatabaseError
 from django.db.models import F, Q
 from django.db.models.expressions import Window
@@ -38,6 +40,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSerializer,
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
+    CollectionDownloadLogSerializer,
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
 )
@@ -48,6 +51,7 @@ from pulp_ansible.app.models import (
     CollectionVersion,
     CollectionVersionSignature,
     CollectionImport,
+    CollectionDownloadLog,
 )
 from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
@@ -56,7 +60,10 @@ from pulp_ansible.app.serializers import (
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
-from pulp_ansible.app.viewsets import CollectionVersionFilter
+from pulp_ansible.app.viewsets import (
+    CollectionVersionFilter,
+    CollectionDownloadLogFilter,
+)
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
@@ -550,6 +557,61 @@ class CollectionArtifactDownloadView(views.APIView):
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
 
+    @staticmethod
+    def log_download(request, filename, distro_base_path):
+        """Log the download of the collection version."""
+
+        def _get_identity(request):
+            if not isinstance(request.auth, dict):
+                return None
+
+            x_rh_identity = request.auth.get("rh_identity")
+            if not x_rh_identity:
+                return None
+
+            return x_rh_identity["identity"]
+
+        def _get_user(request):
+            identity = _get_identity(request)
+            if (not identity) or (not identity.get("user")):
+                return None
+
+            try:
+                return get_user_model().objects.get(id=identity["user"]["user_id"])
+            except ObjectDoesNotExist:
+                return None
+
+        def _get_org_id(request):
+            identity = _get_identity(request)
+            if (not identity) or (not identity.get("internal")):
+                return None
+
+            return identity["internal"]["org_id"]
+
+        # Gettung user IP
+        ip = None
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        ip = x_forwarded_for.split(",")[0] if x_forwarded_for else request.META.get("REMOTE_ADDR")
+
+        user_agent = request.headers.get("user-agent", "unknown")
+
+        # Getting collection version
+        ns, name, version = filename.split("-", maxsplit=3)
+        # Get off the ending .tar.gz
+        version = ".".join(version.split(".")[:3])
+        collection = get_object_or_404(CollectionVersion, namespace=ns, name=name, version=version)
+
+        repo = get_object_or_404(AnsibleDistribution, base_path=distro_base_path).repository
+
+        CollectionDownloadLog.objects.create(
+            collection_version=collection,
+            user=_get_user(request),
+            ip=ip,
+            org_id=_get_org_id(request),
+            user_agent=user_agent,
+            repository=repo,
+        )
+
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
         return "pulp_ansible/v3/collections/download"
@@ -571,7 +633,20 @@ class CollectionArtifactDownloadView(views.APIView):
             if guard.TYPE == "content_redirect":
                 return redirect(guard.preauthenticate_url(url))
 
+        CollectionArtifactDownloadView.log_download(
+            request, self.kwargs["filename"], distro_base_path
+        )
+
         return redirect(url)
+
+
+class CollectionDownloadLogViewSet(viewsets.ReadOnlyModelViewSet):
+    """Collection download viewset."""
+
+    model = CollectionDownloadLog
+    serializer_class = CollectionDownloadLogSerializer
+    filterset_class = CollectionDownloadLogFilter
+    queryset = CollectionDownloadLog.objects.all()
 
 
 class CollectionVersionViewSet(

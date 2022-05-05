@@ -8,6 +8,7 @@ from pulpcore.client.pulp_ansible import (
     RepositoriesAnsibleApi,
     AnsibleRepositorySyncURL,
     RemotesCollectionApi,
+    PulpAnsibleDefaultApiV3PluginAnsibleCollectionDownloadApi,
 )
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
@@ -38,6 +39,7 @@ class InstallCollectionTestCase(PulpTestCase):
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
+        cls.download_api = PulpAnsibleDefaultApiV3PluginAnsibleCollectionDownloadApi(cls.client)
 
     def create_install_scenario(self, body):
         """Create Install scenario."""
@@ -88,6 +90,19 @@ class InstallCollectionTestCase(PulpTestCase):
         body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
         distribution = self.create_install_scenario(body)
         self.perform_install_test(ANSIBLE_DEMO_COLLECTION, distribution)
+
+    def test_install_collection_log(self):
+        """Thest wheter ansible-galaxy install creates a log when installing a collection."""
+        body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)
+        distribution = self.create_install_scenario(body)
+        self.perform_install_test(ANSIBLE_DEMO_COLLECTION, distribution)
+
+        response = self.download_api.list()
+        assert response.count == 1
+
+        self.perform_install_test(ANSIBLE_DEMO_COLLECTION, distribution)
+        response = self.download_api.list()
+        assert response.count == 2
 
     def test_signature_collection_install(self):
         """Test whether ansible-galaxy can install a Collection w/ a signature hosted by Pulp."""

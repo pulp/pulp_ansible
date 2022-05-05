@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
 from django.db.models import UniqueConstraint, Q
+from django.conf import settings
 
 from pulpcore.plugin.models import (
     BaseModel,
@@ -209,6 +210,28 @@ class CollectionVersionSignature(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("pubkey_fingerprint", "signed_collection")
+
+
+class CollectionDownloadLog(BaseModel):
+    """
+    A download log for collection versions by user, IP and org_id.
+    """
+
+    collection_version = models.ForeignKey(
+        CollectionVersion, on_delete=models.CASCADE, related_name="download_logs"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="download_logs",
+    )
+    ip = models.GenericIPAddressField()
+    org_id = models.CharField(max_length=64, null=True)
+    user_agent = models.TextField()
+    repository = models.ForeignKey(
+        Repository, on_delete=models.CASCADE, related_name="download_logs"
+    )
 
 
 class RoleRemote(Remote):
