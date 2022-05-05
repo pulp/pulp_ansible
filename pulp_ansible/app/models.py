@@ -1,20 +1,23 @@
 from logging import getLogger
 
+from django.conf import settings
 from django.db import models
+from django.db.models import UniqueConstraint, Q
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
-from django.db.models import UniqueConstraint, Q
 
 from pulpcore.plugin.models import (
     BaseModel,
     Content,
     Remote,
     Repository,
+    RepositoryVersion,
     Distribution,
     SigningService,
     Task,
 )
 from .downloaders import AnsibleDownloaderFactory
+
 
 log = getLogger(__name__)
 
@@ -47,6 +50,10 @@ class Collection(BaseModel):
 
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
+
+    def __str__(self):
+        """Return a representation."""
+        return f"<{self.__class__.__name__}: {self.namespace}.{self.name}>"
 
     class Meta:
         unique_together = ("namespace", "name")
@@ -167,6 +174,10 @@ class CollectionVersion(Content):
             namespace=self.namespace, name=self.name, version=self.version
         )
 
+    def __str__(self):
+        """Return a representation."""
+        return f"<{self.__class__.__name__}: {self.namespace}.{self.name} {self.version}>"
+
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("namespace", "name", "version")
@@ -209,6 +220,31 @@ class CollectionVersionSignature(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("pubkey_fingerprint", "signed_collection")
+
+
+class DownloadLog(BaseModel):
+    """
+    A download log for content units by user, IP and org_id.
+    """
+
+    content_unit = models.ForeignKey(
+        Content, on_delete=models.CASCADE, related_name="download_logs"
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        related_name="download_logs",
+    )
+    ip = models.GenericIPAddressField()
+    extra_data = models.JSONField(null=True)
+    user_agent = models.TextField()
+    repository = models.ForeignKey(
+        Repository, on_delete=models.CASCADE, related_name="download_logs"
+    )
+    repository_version = models.ForeignKey(
+        RepositoryVersion, null=True, on_delete=models.SET_NULL, related_name="download_logs"
+    )
 
 
 class RoleRemote(Remote):

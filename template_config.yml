@@ -54,6 +54,7 @@ pulp_settings:
   allowed_export_paths: /tmp
   allowed_import_paths: /tmp
   ansible_api_hostname: https://pulp:443
+  ansible_collect_download_log: true
   ansible_content_hostname: https://pulp:443/pulp/content
   ansible_signature_require_verification: false
 pulpcore_branch: main

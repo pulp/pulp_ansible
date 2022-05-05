@@ -48,6 +48,7 @@ from pulp_ansible.app.models import (
     CollectionVersion,
     CollectionVersionSignature,
     CollectionImport,
+    DownloadLog,
 )
 from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
@@ -56,7 +57,9 @@ from pulp_ansible.app.serializers import (
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
-from pulp_ansible.app.viewsets import CollectionVersionFilter
+from pulp_ansible.app.viewsets import (
+    CollectionVersionFilter,
+)
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
@@ -550,6 +553,57 @@ class CollectionArtifactDownloadView(views.APIView):
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
 
+    @staticmethod
+    def log_download(request, filename, distro_base_path):
+        """Log the download of the collection version."""
+
+        def _get_org_id(request):
+            if not isinstance(request.auth, dict):
+                return None
+
+            x_rh_identity = request.auth.get("rh_identity")
+            if not x_rh_identity:
+                return None
+
+            identity = x_rh_identity["identity"]
+
+            if (not identity) or (not identity.get("internal")):
+                return None
+
+            return identity["internal"]["org_id"]
+
+        # Gettung user IP
+        x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
+        ip = x_forwarded_for.split(",")[0] if x_forwarded_for else request.META.get("REMOTE_ADDR")
+
+        user_agent = request.headers.get("user-agent", "unknown")
+
+        distribution = get_object_or_404(AnsibleDistribution, base_path=distro_base_path)
+        repository_version = (
+            distribution.repository_version or distribution.repository.latest_version()
+        )
+
+        # Getting collection version
+        ns, name, version = filename.split("-", maxsplit=2)
+        # Get off the ending .tar.gz
+        version = ".".join(version.split(".")[:3])
+        collection_version = get_object_or_404(
+            CollectionVersion.objects.filter(pk__in=repository_version.content),
+            namespace=ns,
+            name=name,
+            version=version,
+        )
+
+        DownloadLog.objects.create(
+            content_unit=collection_version,
+            user=request.user,
+            ip=ip,
+            extra_data={"org_id": _get_org_id(request)},
+            user_agent=user_agent,
+            repository=repository_version.repository,
+            repository_version=repository_version,
+        )
+
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
         return "pulp_ansible/v3/collections/download"
@@ -566,12 +620,17 @@ class CollectionArtifactDownloadView(views.APIView):
             filename=self.kwargs["filename"],
         )
 
+        if settings.ANSIBLE_COLLECT_DOWNLOAD_LOG:
+            CollectionArtifactDownloadView.log_download(
+                request, self.kwargs["filename"], distro_base_path
+            )
+
         if (
             distribution.content_guard
             and distribution.content_guard.pulp_type == "core.content_redirect"
         ):
             guard = distribution.content_guard.cast()
-            return redirect(guard.preauthenticate_url(url))
+            url = guard.preauthenticate_url(url)
 
         return redirect(url)
 
