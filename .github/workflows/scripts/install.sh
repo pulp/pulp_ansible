@@ -84,7 +84,7 @@ services:
 VARSYAML
 
 cat >> vars/main.yaml << VARSYAML
-pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "https://pulp:443", "ansible_content_hostname": "https://pulp:443/pulp/content", "ansible_signature_require_verification": false}
+pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "https://pulp:443", "ansible_collect_download_log": true, "ansible_content_hostname": "https://pulp:443/pulp/content", "ansible_signature_require_verification": false}
 pulp_scheme: https
 
 pulp_container_tag: https

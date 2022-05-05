@@ -69,3 +69,10 @@ ANSIBLE_URL_NAMESPACE
    The Django URL namespace to be used when generating URLs that are returned by the galaxy
    APIs. Setting this allows for the galaxy APIs to redirect requests to django URLs in other apps.
    This defaults to the pulp ansible URL router.
+
+
+ANSIBLE_COLLECT_DOWNLOAD_LOG
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   A flag to activate collecting download logs about collections consumed. You can dump the
+   collected information using ``pulpcore-manager download-log``.

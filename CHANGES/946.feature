@@ -1,0 +1,1 @@
+Added CollectionDownloadLog table and logger.

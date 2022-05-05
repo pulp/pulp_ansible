@@ -1,4 +1,5 @@
 """Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
+import json
 from os import path
 import subprocess
 import pytest
@@ -8,6 +9,7 @@ from pulp_smash.pulp3.bindings import monitor_task
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION,
+    ANSIBLE_DEMO_COLLECTION_VERSION,
     ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
     GALAXY_ANSIBLE_BASE_URL,
 )
@@ -40,6 +42,7 @@ def install_scenario_distribution(
 def test_install_collection(tmp_path, install_scenario_distribution):
     """Test that the collection can be installed from Pulp."""
     collection_name = ANSIBLE_DEMO_COLLECTION
+    collection_version = ANSIBLE_DEMO_COLLECTION_VERSION
 
     temp_dir = str(tmp_path)
     cmd = [
@@ -59,6 +62,12 @@ def test_install_collection(tmp_path, install_scenario_distribution):
     assert not path.exists(directory), "Directory {} already exists".format(directory)
     subprocess.run(cmd)
     assert path.exists(directory), "Could not find directory {}".format(directory)
+    dl_log_dump = subprocess.check_output(["pulpcore-manager", "download-log"])
+    dl_log = json.loads(dl_log_dump)
+    assert (
+        dl_log[-1]["content_unit"] == f"<CollectionVersion: {collection_name} {collection_version}>"
+    )
+    assert dl_log[-1]["user"] == "admin"
 
 
 def test_install_signed_collection(
