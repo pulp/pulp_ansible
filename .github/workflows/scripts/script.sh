@@ -29,15 +29,14 @@ export PULP_SETTINGS=$PWD/.ci/ansible/settings/settings.py
 export PULP_URL="http://pulp"
 
 if [[ "$TEST" = "docs" ]]; then
+  if [[ "$GITHUB_WORKFLOW" == "Ansible CI" ]]; then
+    pip install towncrier==19.9.0
+    towncrier --yes --version 4.0.0.ci
+  fi
   cd docs
   make PULP_URL="$PULP_URL" diagrams html
   tar -cvf docs.tar ./_build
   cd ..
-
-  echo "Validating OpenAPI schema..."
-  cat $PWD/.ci/scripts/schema.py | cmd_stdin_prefix bash -c "cat > /tmp/schema.py"
-  cmd_prefix bash -c "python3 /tmp/schema.py"
-  cmd_prefix bash -c "pulpcore-manager spectacular --file pulp_schema.yml --validate"
 
   if [ -f $POST_DOCS_TEST ]; then
     source $POST_DOCS_TEST
@@ -93,12 +92,11 @@ cmd_prefix bash -c "django-admin makemigrations --check --dry-run"
 
 if [[ "$TEST" != "upgrade" ]]; then
   # Run unit tests.
-  cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres django-admin test --noinput /usr/local/lib/python3.8/site-packages/pulp_ansible/tests/unit/"
+  cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes -p no:pulpcore --pyargs pulp_ansible.tests.unit"
 fi
 
 # Run functional tests
 export PYTHONPATH=$REPO_ROOT/../galaxy-importer${PYTHONPATH:+:${PYTHONPATH}}
-export PYTHONPATH=$REPO_ROOT/../pulpcore${PYTHONPATH:+:${PYTHONPATH}}
 export PYTHONPATH=$REPO_ROOT${PYTHONPATH:+:${PYTHONPATH}}
 
 
@@ -129,6 +127,10 @@ if [[ "$TEST" == "upgrade" ]]; then
   echo "Restarting in 60 seconds"
   sleep 60
 
+  # Let's reinstall pulpcore so we can ensure we have the correct dependencies
+  cd ../pulpcore
+  git checkout -f ci_upgrade_test
+  pip install --upgrade --force-reinstall . ../pulp-cli ../pulp-smash
   # CLI commands to display plugin versions and content data
   pulp status
   pulp content list
@@ -169,9 +171,19 @@ else
     if [[ "$GITHUB_WORKFLOW" == "Ansible Nightly CI/CD" ]]; then
         pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8
         pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel"
+
+    
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and parallel" -n  8
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and not parallel"
+    
     else
         pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m "parallel and not nightly" -n 8
         pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel and not nightly"
+
+    
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and not nightly and parallel" -n  8
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulpcore.tests.functional -m "from_pulpcore_for_all_plugins and not nightly and not parallel"
+    
     fi
 
 fi
