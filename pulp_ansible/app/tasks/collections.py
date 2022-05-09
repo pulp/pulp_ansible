@@ -400,7 +400,7 @@ def _get_backend_storage_url(artifact_file):
     if settings.DEFAULT_FILE_STORAGE == "pulpcore.app.models.storage.FileSystem":
         url = None
     elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
-        parameters = {"ResponseContentDisposition": "attachment;filename=archive.tar.gz"}
+        parameters = {"ResponseContentDisposition": "attachment%3Bfilename=archive.tar.gz"}
         url = artifact_file.storage.url(artifact_file.name, parameters=parameters)
     elif settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
         url = artifact_file.storage.url(artifact_file.name)
