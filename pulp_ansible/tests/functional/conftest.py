@@ -5,45 +5,44 @@ import pytest
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 
 from pulpcore.client.pulp_ansible import (
+    ApiClient,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
 )
 
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_client,
-)
-
 
 # Bindings API Fixtures
 
 
-@pytest.fixture(scope="session")
-def ansible_bindings_client():
+@pytest.fixture
+def ansible_bindings_client(cid, bindings_cfg):
     """Provides the Ansible bindings client object."""
-    return gen_ansible_client()
+    api_client = ApiClient(bindings_cfg)
+    api_client.default_headers["Correlation-ID"] = cid
+    return api_client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def ansible_repo_api_client(ansible_bindings_client):
     """Provides the Ansible Repository API client object."""
     return RepositoriesAnsibleApi(ansible_bindings_client)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def ansible_distro_api_client(ansible_bindings_client):
     """Provides the Ansible Distribution API client object."""
     return DistributionsAnsibleApi(ansible_bindings_client)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def ansible_collection_version_api_client(ansible_bindings_client):
     """Provides the Ansible Content Collection Version API client object."""
     return ContentCollectionVersionsApi(ansible_bindings_client)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture
 def ansible_remote_collection_api_client(ansible_bindings_client):
     """Provides the Ansible Collection Remotes API client object."""
     return RemotesCollectionApi(ansible_bindings_client)
