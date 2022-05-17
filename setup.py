@@ -44,5 +44,8 @@ setup(
         "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ),
-    entry_points={"pulpcore.plugin": ["pulp_ansible = pulp_ansible:default_app_config"]},
+    entry_points={
+        "pulpcore.plugin": ["pulp_ansible = pulp_ansible:default_app_config"],
+        "pytest11": ["pulp_ansible = pulp_ansible.tests.functional"],
+    },
 )
