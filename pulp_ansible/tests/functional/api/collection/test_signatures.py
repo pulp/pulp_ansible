@@ -1,6 +1,5 @@
 """Tests functionality around Collection-Version Signatures."""
 import tarfile
-import unittest
 
 import pytest
 
@@ -68,7 +67,6 @@ def test_upload_then_sign_then_try_to_upload_duplicate_signature(
         monitor_task(task.task)
 
 
-@unittest.skip("Temporary skip.")
 @pytest.mark.pulp_on_localhost
 def test_sign_locally_then_upload_signature(
     build_and_upload_collection,
@@ -78,6 +76,10 @@ def test_sign_locally_then_upload_signature(
     ansible_collection_signatures_client,
 ):
     """Test uploading a locally produced Collection Signature."""
+    # NOTE: This test relies on the server global gpg keyring containing the Pulp QE key.
+    # This is carried out by the post_before_script.sh. Please remove that script (or parts of it)
+    # once this functionality has been rewritten to use keys read from the database.
+
     collection, collection_url = build_and_upload_collection()
 
     # Extract MANIFEST.json
