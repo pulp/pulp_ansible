@@ -5,7 +5,6 @@ import json
 import logging
 import tarfile
 import yaml
-from operator import attrgetter
 from urllib.parse import urljoin
 
 from aiohttp.client_exceptions import ClientResponseError
@@ -104,7 +103,7 @@ def update_collection_remote(remote_pk, *args, **kwargs):
         serializer.save()
 
 
-def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
+def sync(remote_pk, repository_pk, mirror, optimize):
     """
     Sync Collections with ``remote_pk``, and save a new RepositoryVersion for ``repository_pk``.
 
@@ -113,7 +112,6 @@ def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
         repository_pk (str): The repository PK.
         mirror (bool): True for mirror mode, False for additive.
         optimize (boolean): Whether to optimize sync or not.
-        excludes (str): Requirements file string of collections to exclude from the sync
 
     Raises:
         ValueError: If the remote does not specify a URL to sync.
@@ -126,10 +124,7 @@ def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
-    if excludes is not None:
-        excludes = parse_collections_requirements_file(excludes)
-
-    first_stage = CollectionSyncFirstStage(remote, repository, optimize, excludes or [])
+    first_stage = CollectionSyncFirstStage(remote, repository, optimize)
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     d_version.create()
 
@@ -156,25 +151,6 @@ def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
         repository_version=repo_version,
         collection__pk__in=non_deprecated_qs,
     ).delete()
-
-
-def parse_requirements_entry(requirements_entry):
-    """Parses a `RequirementsFileEntry` and returns a `Requirement` object."""
-    if requirements_entry.version == "*":
-        requirement_version = Requirement.parse(requirements_entry.name)
-    else:
-        # We need specifiers to enforce Requirement object criteria
-        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
-        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
-        # If requirements_entry.version is a valid version, adds == specifier to the requirement
-        try:
-            Version(requirements_entry.version)
-            req_to_parse = f"{requirements_entry.name}=={requirements_entry.version}"
-        except ValueError:
-            req_to_parse = f"{requirements_entry.name}{requirements_entry.version}"
-
-        requirement_version = Requirement.parse(req_to_parse)
-    return requirement_version
 
 
 def import_collection(
@@ -366,7 +342,7 @@ class CollectionSyncFirstStage(Stage):
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote, repository, optimize, excludes):
+    def __init__(self, remote, repository, optimize):
         """
         The first stage of a pulp_ansible sync pipeline.
 
@@ -374,7 +350,6 @@ class CollectionSyncFirstStage(Stage):
             remote (CollectionRemote): The remote data to be used when syncing
             repository (AnsibleRepository): The repository being syncedself.
             optimize (boolean): Whether to optimize sync or not.
-            excludes (List[RequirementsFileEntry]): Collections to exclude from the sync
 
         """
         super().__init__()
@@ -384,7 +359,6 @@ class CollectionSyncFirstStage(Stage):
         self.repository = repository
         self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
-        self.exclude_info = {req.name: req for req in map(parse_requirements_entry, excludes)}
         self.deprecations = Q()
 
         self._unpaginated_collection_metadata = None
@@ -454,10 +428,6 @@ class CollectionSyncFirstStage(Stage):
             name=metadata["collection"]["name"],
             version=metadata["version"],
         )
-        cv_unique = attrgetter("namespace", "name", "version")(collection_version)
-        fullname = ".".join(cv_unique[:2])
-        if fullname in self.exclude_info and cv_unique[2] in self.exclude_info[fullname]:
-            return
 
         info = metadata["metadata"]
 
@@ -562,7 +532,20 @@ class CollectionSyncFirstStage(Stage):
         await asyncio.gather(*tasks)
 
     async def _fetch_collection_metadata(self, requirements_entry):
-        requirement_version = parse_requirements_entry(requirements_entry)
+        if requirements_entry.version == "*":
+            requirement_version = Requirement.parse("collection")
+        else:
+            # We need specifiers to enforce Requirement object criteria
+            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
+            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
+            # If requirements_entry.version is a valid version, adds == specifier to the requirement
+            try:
+                Version(requirements_entry.version)
+                req_to_parse = f"collection=={requirements_entry.version}"
+            except ValueError:
+                req_to_parse = f"collection{requirements_entry.version}"
+
+            requirement_version = Requirement.parse(req_to_parse)
 
         namespace, name = requirements_entry.name.split(".")
 
