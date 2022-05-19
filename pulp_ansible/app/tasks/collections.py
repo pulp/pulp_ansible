@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 
 from aiohttp.client_exceptions import ClientResponseError
 from async_lru import alru_cache
+from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.urls import reverse
@@ -18,8 +19,6 @@ from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.exceptions import ImporterError
 from pkg_resources import Requirement
-from rq.job import get_current_job
-from rest_framework.serializers import ValidationError
 
 from pulpcore.plugin.constants import TASK_STATES
 from pulpcore.plugin.models import (
@@ -29,6 +28,7 @@ from pulpcore.plugin.models import (
     ProgressReport,
     PulpTemporaryFile,
     Remote,
+    Task,
 )
 from pulpcore.plugin.stages import (
     ArtifactDownloader,
@@ -105,7 +105,7 @@ def update_collection_remote(remote_pk, *args, **kwargs):
         serializer.save()
 
 
-def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
+def sync(remote_pk, repository_pk, mirror, optimize):
     """
     Sync Collections with ``remote_pk``, and save a new RepositoryVersion for ``repository_pk``.
 
@@ -114,7 +114,6 @@ def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
         repository_pk (str): The repository PK.
         mirror (bool): True for mirror mode, False for additive.
         optimize (boolean): Whether to optimize sync or not.
-        excludes (str): Requirements file string of collections to exclude from the sync
 
     Raises:
         ValueError: If the remote does not specify a URL to sync.
@@ -122,20 +121,19 @@ def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
     """
     remote = CollectionRemote.objects.get(pk=remote_pk)
     repository = AnsibleRepository.objects.get(pk=repository_pk)
-    latest_version_before_sync = repository.latest_version()
 
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
-    if excludes is not None:
-        excludes = parse_collections_requirements_file(excludes)
+    first_stage = CollectionSyncFirstStage(remote, repository, optimize)
+    if first_stage.should_sync is False:
+        log.debug(_("no-op: remote wasn't updated since last sync."))
+        return
 
-    first_stage = CollectionSyncFirstStage(remote, repository, optimize, excludes or [])
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
-    d_version.create()
+    repo_version = d_version.create()
 
-    repo_version = repository.latest_version()
-    if repo_version.number == latest_version_before_sync.number:
+    if not repo_version:
         return
 
     if first_stage.last_synced_metadata_time:
@@ -157,25 +155,6 @@ def sync(remote_pk, repository_pk, mirror, optimize, excludes=None):
         repository_version=repo_version,
         collection__pk__in=non_deprecated_qs,
     ).delete()
-
-
-def parse_requirements_entry(requirements_entry):
-    """Parses a `RequirementsFileEntry` and returns a `Requirement` object."""
-    if requirements_entry.version == "*":
-        requirement_version = Requirement.parse(requirements_entry.name)
-    else:
-        # We need specifiers to enforce Requirement object criteria
-        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
-        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
-        # If requirements_entry.version is a valid version, adds == specifier to the requirement
-        try:
-            Version(requirements_entry.version)
-            req_to_parse = f"{requirements_entry.name}=={requirements_entry.version}"
-        except ValueError:
-            req_to_parse = f"{requirements_entry.name}{requirements_entry.version}"
-
-        requirement_version = Requirement.parse(req_to_parse)
-    return requirement_version
 
 
 def import_collection(
@@ -214,7 +193,7 @@ def import_collection(
             match the metadata in the tarball.
 
     """
-    CollectionImport.objects.get_or_create(task_id=get_current_job().id)
+    CollectionImport.objects.get_or_create(task_id=Task.current().pulp_id)
 
     temp_file = PulpTemporaryFile.objects.get(pk=temp_file_pk)
     filename = CollectionFilename(expected_namespace, expected_name, expected_version)
@@ -223,8 +202,9 @@ def import_collection(
 
     try:
         with temp_file.file.open() as artifact_file:
+            url = _get_backend_storage_url(artifact_file)
             importer_result = process_collection(
-                artifact_file, filename=filename, logger=user_facing_logger
+                artifact_file, filename=filename, file_url=url, logger=user_facing_logger
             )
             artifact = Artifact.from_pulp_temporary_file(temp_file)
             importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
@@ -304,6 +284,23 @@ def create_collection_from_importer(importer_result):
     return collection_version
 
 
+def _get_backend_storage_url(artifact_file):
+    """Get artifact url from pulp backend storage."""
+    if settings.DEFAULT_FILE_STORAGE == "pulpcore.app.models.storage.FileSystem":
+        url = None
+    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+        parameters = {"ResponseContentDisposition": "attachment;filename=archive.tar.gz"}
+        url = artifact_file.storage.url(artifact_file.name, parameters=parameters)
+    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
+        url = artifact_file.storage.url(artifact_file.name)
+    else:
+        raise NotImplementedError(
+            f"The value settings.DEFAULT_FILE_STORAGE={settings.DEFAULT_FILE_STORAGE} "
+            "was not expected"
+        )
+    return url
+
+
 def _update_highest_version(collection_version):
     """
     Checks if this version is greater than the most highest one.
@@ -367,7 +364,7 @@ class CollectionSyncFirstStage(Stage):
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote, repository, optimize, excludes):
+    def __init__(self, remote, repository, optimize):
         """
         The first stage of a pulp_ansible sync pipeline.
 
@@ -375,18 +372,14 @@ class CollectionSyncFirstStage(Stage):
             remote (CollectionRemote): The remote data to be used when syncing
             repository (AnsibleRepository): The repository being syncedself.
             optimize (boolean): Whether to optimize sync or not.
-            excludes (List[RequirementsFileEntry]): Collections to exclude from the sync
 
         """
         super().__init__()
-        msg = _("Parsing CollectionVersion Metadata")
-        self.parsing_metadata_progress_bar = ProgressReport(message=msg, code="parsing.metadata")
         self.remote = remote
         self.repository = repository
-        self.optimize = optimize
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
-        self.exclude_info = {req.name: req for req in map(parse_requirements_entry, excludes)}
         self.deprecations = Q()
+        self.add_dependents = self.collection_info and self.remote.sync_dependencies
         self.already_synced = set()
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
@@ -394,6 +387,11 @@ class CollectionSyncFirstStage(Stage):
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
+
+        # Check if we should sync
+        self.should_sync = not optimize or asyncio.get_event_loop().run_until_complete(
+            self._should_we_sync()
+        )
 
     @alru_cache(maxsize=128)
     async def _get_root_api(self, root):
@@ -449,20 +447,30 @@ class CollectionSyncFirstStage(Stage):
     async def _add_collection_version(self, api_version, collection_version_url, metadata):
         """Add CollectionVersion to the sync pipeline."""
         url = metadata["download_url"]
-
         collection_version = CollectionVersion(
             namespace=metadata["namespace"]["name"],
             name=metadata["collection"]["name"],
             version=metadata["version"],
         )
         cv_unique = attrgetter("namespace", "name", "version")(collection_version)
-        fullname, version = f"{cv_unique[0]}.{cv_unique[1]}", cv_unique[2]
-        if fullname in self.exclude_info and version in self.exclude_info[fullname]:
-            return
         if cv_unique in self.already_synced:
             return
+        self.already_synced.add(cv_unique)
 
         info = metadata["metadata"]
+
+        if self.add_dependents:
+            dependencies = info["dependencies"]
+            tasks = []
+            loop = asyncio.get_event_loop()
+            for full_name, version in dependencies.items():
+                namespace, name = full_name.split(".")
+                req = (namespace, name, version)
+                new_req = RequirementsFileEntry(full_name, version=version, source=None)
+                if not any([req in self.already_synced, new_req in self.collection_info]):
+                    self.collection_info.append(new_req)
+                    tasks.append(loop.create_task(self._fetch_collection_metadata(new_req)))
+            await asyncio.gather(*tasks)
 
         info.pop("tags")
         for attr_name, attr_value in info.items():
@@ -565,7 +573,20 @@ class CollectionSyncFirstStage(Stage):
         await asyncio.gather(*tasks)
 
     async def _fetch_collection_metadata(self, requirements_entry):
-        requirement_version = parse_requirements_entry(requirements_entry)
+        if requirements_entry.version == "*":
+            requirement_version = Requirement.parse("collection")
+        else:
+            # We need specifiers to enforce Requirement object criteria
+            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
+            # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
+            # If requirements_entry.version is a valid version, adds == specifier to the requirement
+            try:
+                Version(requirements_entry.version)
+                req_to_parse = f"collection=={requirements_entry.version}"
+            except ValueError:
+                req_to_parse = f"collection{requirements_entry.version}"
+
+            requirement_version = Requirement.parse(req_to_parse)
 
         namespace, name = requirements_entry.name.split(".")
 
@@ -595,32 +616,15 @@ class CollectionSyncFirstStage(Stage):
         root_endpoint, api_version = await self._get_root_api(self.remote.url)
         self._api_version = api_version
         if api_version > 2:
-            loop = asyncio.get_event_loop()
-
             collection_endpoint = f"{root_endpoint}/collections/all/"
-            excludes_endpoint = f"{root_endpoint}/excludes/"
-            col_downloader = self.remote.get_downloader(
+            downloader = self.remote.get_downloader(
                 url=collection_endpoint, silence_errors_for_response_status_codes={404}
             )
-            exc_downloader = self.remote.get_downloader(
-                url=excludes_endpoint, silence_errors_for_response_status_codes={404}
-            )
-            tasks = [loop.create_task(col_downloader.run()), loop.create_task(exc_downloader.run())]
-            col_results, exc_results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            if not isinstance(exc_results, FileNotFoundError):
-                excludes_response = parse_metadata(exc_results)
-                if excludes_response:
-                    try:
-                        excludes_list = parse_collections_requirements_file(excludes_response)
-                    except ValidationError:
-                        pass
-                    else:
-                        excludes = {r.name: parse_requirements_entry(r) for r in excludes_list}
-                        self.exclude_info.update(excludes)
-
-            if not isinstance(col_results, FileNotFoundError):
-                collection_metadata_list = parse_metadata(col_results)
+            try:
+                collection_metadata_list = parse_metadata(await downloader.run())
+            except FileNotFoundError:
+                pass
+            else:
                 self._unpaginated_collection_metadata = defaultdict(dict)
                 for collection in collection_metadata_list:
                     namespace = collection["namespace"]
@@ -711,8 +715,8 @@ class CollectionSyncFirstStage(Stage):
 
     async def _should_we_sync(self):
         """Check last synced metadata time."""
-        msg = _("no-op: Checking if remote changed since last sync.")
-        noop = ProgressReport(message=msg, code="noop")
+        msg = _("no_change: Checking if remote changed since last sync.")
+        noop = ProgressReport(message=msg, code="sync.no_change")
         noop.state = TASK_STATES.COMPLETED
         noop.save()
 
@@ -759,25 +763,22 @@ class CollectionSyncFirstStage(Stage):
         """
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
-        if self.optimize:
-            should_we_sync = await self._should_we_sync()
-            if should_we_sync is False:
-                log.debug(_("no-op: remote wasn't updated since last sync."))
-                return
-
         tasks = []
         loop = asyncio.get_event_loop()
 
-        await self._download_unpaginated_metadata()
+        msg = _("Parsing CollectionVersion Metadata")
+        with ProgressReport(message=msg, code="sync.parsing.metadata") as pb:
+            self.parsing_metadata_progress_bar = pb
+            await self._download_unpaginated_metadata()
 
-        if self.collection_info:
-            for requirement_entry in self.collection_info:
-                tasks.append(loop.create_task(self._fetch_collection_metadata(requirement_entry)))
-        else:
-            tasks.append(loop.create_task(self._find_all_collections()))
-        await asyncio.gather(*tasks)
-        self.parsing_metadata_progress_bar.state = TASK_STATES.COMPLETED
-        self.parsing_metadata_progress_bar.save()
+            if self.collection_info:
+                for requirement_entry in self.collection_info:
+                    tasks.append(
+                        loop.create_task(self._fetch_collection_metadata(requirement_entry))
+                    )
+            else:
+                tasks.append(loop.create_task(self._find_all_collections()))
+            await asyncio.gather(*tasks)
 
 
 class DocsBlobDownloader(ArtifactDownloader):
@@ -883,10 +884,7 @@ class CollectionContentSaver(ContentSaver):
                     )
                     if runtime_metadata:
                         runtime_yaml = yaml.safe_load(runtime_metadata)
-                        if runtime_yaml:
-                            collection_version.requires_ansible = runtime_yaml.get(
-                                "requires_ansible"
-                            )
+                        collection_version.requires_ansible = runtime_yaml.get("requires_ansible")
                     manifest_data = json.load(
                         get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
                     )

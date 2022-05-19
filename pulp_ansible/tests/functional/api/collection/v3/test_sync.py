@@ -6,10 +6,11 @@ from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
-    PulpAnsibleGalaxyApiCollectionsApi,
+    PulpAnsibleApiV3CollectionsApi,
     RepositoriesAnsibleApi,
     RemotesCollectionApi,
 )
+from pulp_smash.pulp3.bindings import PulpTaskError
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_client,
@@ -36,6 +37,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         self.remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, self.remote.pulp_href)
@@ -48,6 +50,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_body = gen_ansible_remote(
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
@@ -66,6 +69,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -109,6 +113,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         second_body = gen_ansible_remote(
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         second_remote = self.remote_collection_api.create(second_body)
         self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
@@ -131,11 +136,41 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         messages = [r.message for r in task.progress_reports]
         self.assertIn(msg, str(messages))
 
+    def test_noop_resync_with_mirror_from_pulp(self):
+        """Test whether no-op sync with mirror=True doesn't remove repository content."""
+        second_body = gen_ansible_remote(
+            url=self.distribution.client_url,
+            requirements_file=self.requirements_file,
+            sync_dependencies=False,
+        )
+        second_remote = self.remote_collection_api.create(second_body)
+        self.addCleanup(self.remote_collection_api.delete, second_remote.pulp_href)
+
+        second_repo = self._create_repo_and_sync_with_remote(second_remote)
+
+        second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
+        self.assertGreaterEqual(len(second_content.results), 1)
+
+        # Resync
+        repository_sync_data = AnsibleRepositorySyncURL(
+            remote=second_remote.pulp_href, optimize=True, mirror=True
+        )
+        sync_response = self.repo_api.sync(second_repo.pulp_href, repository_sync_data)
+        monitor_task(sync_response.task)
+        second_repo = self.repo_api.read(second_repo.pulp_href)
+        self.assertEqual(int(second_repo.latest_version_href[-2]), 1)
+        task = tasks.read(sync_response.task)
+
+        msg = "no-op: {url} did not change since last sync".format(url=second_remote.url)
+        messages = [r.message for r in task.progress_reports]
+        self.assertIn(msg, str(messages))
+
     def test_update_requirements_file(self):
         """Test requirements_file update."""
         body = gen_ansible_remote(
             url=self.distribution.client_url,
             requirements_file=self.requirements_file,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -166,50 +201,16 @@ class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
-        cls.collections_api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
+        cls.collections_api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
-        cls.url = "https://cloud.redhat.com/api/automation-hub/"
-        cls.aurl = (
-            "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
-        )
 
     def test_sync_with_token_from_automation_hub(self):
         """Test whether we can sync with an auth token from Automation Hub."""
+        aurl = "https://sso.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
         body = gen_ansible_remote(
-            url=self.url,
+            url="https://cloud.redhat.com/api/automation-hub/",
             requirements_file="collections:\n  - ansible.posix",
-            auth_url=self.aurl,
-            token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
-            rate_limit=10,
-            tls_validation=False,
-        )
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
-
-        repo = self._create_repo_and_sync_with_remote(remote)
-
-        # Check content of both repos.
-        original_content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        self.assertTrue(len(original_content.results) >= 3)  # check that we have at least 3 results
-
-    @unittest.skip("Skipping until synclist no longer creates new repository")
-    def test_syncing_with_excludes_list_from_automation_hub(self):
-        """Test if syncing collections know to be on the synclist will be mirrored."""
-        namespace = "autohubtest2"
-        # Collections are randomly generated, in case of failure, please change the names below:
-        name = "collection_dep_a_zzduuntr"
-        excluded = "collection_dep_a_tworzgsx"
-        excluded_version = "awcrosby.collection_test==2.1.0"
-        requirements = f"""
-        collections:
-          - {namespace}.{name}
-          - {namespace}.{excluded}
-          - {excluded_version}
-        """
-        body = gen_ansible_remote(
-            url=self.url,
-            requirements_file=requirements,
-            auth_url=self.aurl,
+            auth_url=aurl,
             token=os.environ["AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
@@ -220,20 +221,14 @@ class AutomationHubV3SyncCase(unittest.TestCase, SyncHelpersMixin):
 
         repo = self._create_repo_and_sync_with_remote(remote)
 
-        # Assert that at least one CollectionVersion was downloaded
-        repo_ver = f"{repo.pulp_href}versions/1/"
-        content = self.cv_api.list(repository_version=repo_ver)
-        self.assertTrue(content.count >= 1)
-
-        # Assert that excluded collection was not synced
-        exclude_content = self.cv_api.list(repository_version=repo_ver, name=excluded)
-        self.assertTrue(exclude_content.count == 0)
+        # Check content of both repos.
+        original_content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
+        self.assertTrue(len(original_content.results) >= 3)  # check that we have at least 3 results
 
 
-# TODO QA-AH has been deprecated, remove/replace tests
 @unittest.skipUnless(
-    "CI_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
-    "'CI_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
+    "QA_AUTOMATION_HUB_TOKEN_AUTH" in os.environ,
+    "'QA_AUTOMATION_HUB_TOKEN_AUTH' env var is not defined",
 )
 class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
     """Test syncing from Pulp to Pulp."""
@@ -245,8 +240,9 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
         cls.repo_api = RepositoriesAnsibleApi(cls.client)
         cls.remote_collection_api = RemotesCollectionApi(cls.client)
         cls.distributions_api = DistributionsAnsibleApi(cls.client)
-        cls.collections_api = PulpAnsibleGalaxyApiCollectionsApi(cls.client)
+        cls.collections_api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
+        cls.url = "https://qa.cloud.redhat.com/api/automation-hub/"
         cls.aurl = (
             "https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token"
         )
@@ -254,11 +250,12 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
     def test_mirror_from_automation_hub_ci_with_auth_token(self):
         """Test whether we can mirror from Automation Hub CI with an auth token."""
         body = gen_ansible_remote(
-            url="https://ci.cloud.redhat.com/api/automation-hub/content/synctest/",
+            url=self.url,
             auth_url=self.aurl,
-            token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            token=os.environ["QA_AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -271,15 +268,17 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
 
     def test_sync_from_automation_hub_ci_with_auth_token_and_requirements_file(self):
         """Test sync from Automation Hub CI with an auth token and requirements file."""
-        name = "collection_dep_a_fdqqyxou"
         namespace = "autohubtest2"
+        # Collections are randomly generated, in case of failure, please change the name below:
+        name = "collection_dep_a_zzduuntr"
         body = gen_ansible_remote(
-            url="https://ci.cloud.redhat.com/api/automation-hub/",
+            url=self.url,
             requirements_file=f"collections:\n  - {namespace}.{name}",
             auth_url=self.aurl,
-            token=os.environ["CI_AUTOMATION_HUB_TOKEN_AUTH"],
+            token=os.environ["QA_AUTOMATION_HUB_TOKEN_AUTH"],
             rate_limit=10,
             tls_validation=False,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
@@ -293,15 +292,23 @@ class AutomationHubCIV3SyncCase(unittest.TestCase, SyncHelpersMixin):
     def test_install_collection_with_invalid_token_from_automation_hub_ci(self):
         """Test whether we can mirror from Automation Hub CI with an invalid auth token."""
         body = gen_ansible_remote(
-            url="https://ci.cloud.redhat.com/api/automation-hub/content/synctest/",
+            url=self.url,
             auth_url=self.aurl,
             token="invalid token string",
             tls_validation=False,
+            sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
-        repo = self._create_repo_and_sync_with_remote(remote)
+        with self.assertRaises(PulpTaskError) as cm:
+            self._create_repo_and_sync_with_remote(remote)
 
-        # Assert that the sync did not produce a new repository version
-        self.assertEqual(repo.latest_version_href, f"{repo.pulp_href}versions/0/")
+        task_result = cm.exception.task.to_dict()
+        msg = (
+            "400, message='Bad Request', url=URL("
+            "'https://sso.qa.redhat.com/auth/realms/redhat-external/protocol/openid-connect/token')"
+        )
+        self.assertEqual(
+            msg, task_result["error"]["description"], task_result["error"]["description"]
+        )
