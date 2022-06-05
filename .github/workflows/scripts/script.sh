@@ -113,13 +113,13 @@ if [ -f $FUNC_TEST_SCRIPT ]; then
 else
 
     if [[ "$GITHUB_WORKFLOW" == "Ansible Nightly CI/CD" ]]; then
-        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8
-        pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel"
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8  --nightly
+        pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel"  --nightly
 
     
     else
-        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m "parallel and not nightly" -n 8
-        pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel and not nightly"
+        pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8
+        pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m "not parallel"
 
     
     fi
