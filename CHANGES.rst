@@ -147,6 +147,19 @@ Bugfixes
 ----
 
 
+0.10.3 (2022-06-07)
+===================
+
+Bugfixes
+--------
+
+- Syncing now excludes collection versions found at ``/excludes/`` endpoint of remote.
+  `#960 <https://github.com/pulp/pulp_ansible/issues/960>`__
+
+
+----
+
+
 0.10.2 (2022-01-31)
 ===================
 
@@ -353,6 +366,21 @@ Misc
 ----
 
 - `#8589 <https://pulp.plan.io/issues/8589>`_
+
+
+----
+
+
+0.7.6 (2022-06-07)
+==================
+
+Bugfixes
+--------
+
+- Syncing now excludes collection versions found at ``/excludes/`` endpoint of remote.
+  `#959 <https://github.com/pulp/pulp_ansible/issues/959>`__
+- Fixed optimized mirror syncs erroneously removing all content in the repository.
+  `#974 <https://github.com/pulp/pulp_ansible/issues/974>`__
 
 
 ----
