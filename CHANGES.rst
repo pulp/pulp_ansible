@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.7.6 (2022-06-07)
+==================
+
+Bugfixes
+--------
+
+- Syncing now excludes collection versions found at ``/excludes/`` endpoint of remote.
+  `#959 <https://github.com/pulp/pulp_ansible/issues/959>`__
+- Fixed optimized mirror syncs erroneously removing all content in the repository.
+  `#974 <https://github.com/pulp/pulp_ansible/issues/974>`__
+
+
+----
+
+
 0.7.5 (2022-01-31)
 ==================
 
