@@ -1,7 +1,7 @@
-async_lru
-galaxy_importer
-jsonschema>=3.0
-packaging
+async_lru~=1.0
+galaxy_importer~=0.4
+jsonschema<4.0
+packaging~=21.3
 pulpcore>=3.10,<3.13
-PyYAML
-semantic_version
+PyYAML<6.0
+semantic_version~=2.10
