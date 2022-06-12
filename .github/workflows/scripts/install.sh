@@ -15,22 +15,25 @@ set -euv
 
 source .github/workflows/scripts/utils.sh
 
+export PULP_API_ROOT="/pulp/"
+
 if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
   pip install -r ../pulpcore/doc_requirements.txt
   pip install -r doc_requirements.txt
 fi
 
+pip install -e ../pulpcore -e ../galaxy-importer
 pip install -r functest_requirements.txt
 
 cd .ci/ansible/
 
 TAG=ci_build
-
 if [ -e $REPO_ROOT/../galaxy-importer ]; then
   GALAXY_IMPORTER=./galaxy-importer
 else
   GALAXY_IMPORTER=git+https://github.com/ansible/galaxy-importer.git@master
 fi
+PULPCORE=./pulpcore
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   PLUGIN_NAME=pulp_ansible
 elif [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
@@ -52,11 +55,6 @@ plugins:
     source:  "${PLUGIN_NAME}"
   - name: galaxy-importer
     source: galaxy-importer
-services:
-  - name: pulp
-    image: "pulp:${TAG}"
-    volumes:
-      - ./settings:/etc/pulp
 VARSYAML
 else
   cat >> vars/main.yaml << VARSYAML
@@ -69,14 +67,18 @@ plugins:
   - name: galaxy-importer
     source: $GALAXY_IMPORTER
   - name: pulpcore
-    source: ./pulpcore
+    source: "${PULPCORE}"
+VARSYAML
+fi
+
+cat >> vars/main.yaml << VARSYAML
 services:
   - name: pulp
     image: "pulp:${TAG}"
     volumes:
       - ./settings:/etc/pulp
+      - ./ssh:/keys/
 VARSYAML
-fi
 
 cat >> vars/main.yaml << VARSYAML
 pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "http://pulp:80", "ansible_content_hostname": "http://pulp:80/pulp/content"}
@@ -105,6 +107,8 @@ minio_access_key: "'$MINIO_ACCESS_KEY'"\
 minio_secret_key: "'$MINIO_SECRET_KEY'"' vars/main.yaml
 fi
 
+echo "PULP_API_ROOT=${PULP_API_ROOT}" >> "$GITHUB_ENV"
+
 if [ "${PULP_API_ROOT:-}" ]; then
   sed -i -e '$a api_root: "'"$PULP_API_ROOT"'"' vars/main.yaml
 fi
@@ -112,7 +116,7 @@ fi
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
 
-if [ "$TEST" = "azure" ]; then
+if [[ "$TEST" = "azure" ]]; then
   AZURE_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ci-azurite:10000/devstoreaccount1;'
   az storage container create --name pulp-test --connection-string $AZURE_STORAGE_CONNECTION_STRING
 fi
