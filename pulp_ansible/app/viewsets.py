@@ -12,7 +12,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.serializers import ValidationError as DRFValidationError
 
-from pulpcore.plugin.actions import ModifyRepositoryActionMixin
+from pulpcore.plugin.actions import ModifyRepositoryActionMixin, raise_for_unknown_content_units
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
@@ -357,7 +357,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
                 content_units[NamedModelViewSet.extract_pk(url)] = url
             content_units_pks = list(content_units.keys())
             existing_content_units = CollectionVersion.objects.filter(pk__in=content_units_pks)
-            self.verify_content_units(existing_content_units, content_units)
+            raise_for_unknown_content_units(existing_content_units, content_units)
 
         result = dispatch(
             sign,
