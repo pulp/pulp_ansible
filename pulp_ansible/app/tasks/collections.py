@@ -310,6 +310,7 @@ def import_collection(
                 artifact_file, filename=filename, file_url=url, logger=user_facing_logger
             )
             artifact = Artifact.from_pulp_temporary_file(temp_file)
+            temp_file = None
             importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
             collection_version = create_collection_from_importer(importer_result)
             collection_version.manifest = manifest_data
@@ -318,11 +319,13 @@ def import_collection(
 
     except ImporterError as exc:
         log.info(f"Collection processing was not successful: {exc}")
-        temp_file.delete()
+        if temp_file:
+            temp_file.delete()
         raise
     except Exception as exc:
         user_facing_logger.error(f"Collection processing was not successful: {exc}")
-        temp_file.delete()
+        if temp_file:
+            temp_file.delete()
         raise
 
     ContentArtifact.objects.create(
