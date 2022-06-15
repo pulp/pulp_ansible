@@ -278,7 +278,7 @@ class CollectionViewSet(
         paginator = self.paginator
         # Making sure COUNT a lighter query (before append_context)
         paginator.count = paginator.get_count(
-            queryset.distinct("versions__collection_id").only("pk")
+            queryset.model.objects.filter(pk__in=queryset).distinct("versions__collection_id")
         )
         paginator.limit = paginator.get_limit(self.request)
         if paginator.limit is None:

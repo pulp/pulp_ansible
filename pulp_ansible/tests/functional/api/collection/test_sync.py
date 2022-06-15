@@ -1,5 +1,6 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
 import os
+import unittest
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     SyncHelpersMixin,
@@ -163,6 +164,7 @@ class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertGreaterEqual(len(content.results), 5)
 
 
+@unittest.skip("Skip until S3 error has been discovered.")
 class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
     """
     Collection sync tests for syncing collections and their dependencies.

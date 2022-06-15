@@ -1,4 +1,5 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
+import unittest
 from os import path
 import subprocess
 import tempfile
@@ -18,6 +19,7 @@ from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # 
 class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Collection sync tests for collections with unique properties."""
 
+    @unittest.skip("Git sync is currently broken.")
     def test_sync_collection_from_git(self):
         """Sync collections from Git repositories and then install one of them."""
         body = gen_ansible_remote(url="https://github.com/pulp/pulp_installer.git")

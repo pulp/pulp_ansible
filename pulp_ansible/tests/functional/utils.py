@@ -2,12 +2,10 @@
 from dynaconf import Dynaconf
 from functools import partial
 from time import sleep
-import json
 import os
-import subprocess
 import unittest
 
-from pulp_smash import api, cli, config, selectors, utils
+from pulp_smash import api, config, selectors
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import (
     gen_distribution,
@@ -343,88 +341,3 @@ def get_psql_smash_cmd(sql_statement):
     password = settings.DATABASES["default"]["PASSWORD"]
     dbname = settings.DATABASES["default"]["NAME"]
     return ("psql", "-c", sql_statement, f"postgresql://{user}:{password}@{host}/{dbname}")
-
-
-def run_signing_script(filename):
-    """
-    Runs the test signing script manually on test calling machine.
-
-    Returns the signature file produced.
-    """
-    file = os.path.realpath(f"{__file__}/../../assets/sign-metadata.sh")
-    script = os.environ.get("TEST_PULP_SIGNING_SCRIPT", file)
-    key_id = os.environ.get("TEST_PULP_SIGNING_KEY_ID", "Pulp QE")
-    env = {"PULP_SIGNING_KEY_FINGERPRINT": key_id}
-    completed_process = subprocess.run(
-        [script, filename],
-        env=env,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    if completed_process.returncode != 0:
-        raise RuntimeError(str(completed_process.stderr))
-
-    try:
-        return_value = json.loads(completed_process.stdout)
-    except json.JSONDecodeError:
-        raise RuntimeError("The signing script did not return valid JSON!")
-
-    return return_value
-
-
-def create_signing_service():
-    """
-    Generates an AsciiArmoredSigningService using the signing script in /assets.
-
-    The signing script requires a GPG key and environment variables to be set in order to work.
-    TEST_PULP_SIGNING_SCRIPT - Where the signing script exists
-    TEST_PULP_SIGNING_KEY_ID - The signing key id used by the signing script
-    """
-    cli_client = cli.Client(cfg)
-    name = utils.uuid4()
-    script = os.environ.get("TEST_PULP_SIGNING_SCRIPT", "/var/lib/pulp/sign-metadata.sh")
-    key_id = os.environ.get("TEST_PULP_SIGNING_KEY_ID", "Pulp QE")
-    cmd = (
-        "pulpcore-manager",
-        "add-signing-service",
-        name,
-        script,
-        key_id,
-    )
-    stdout = cli_client.run(cmd).stdout
-    if "Successfully added signing service" not in stdout:
-        raise Exception("Failed to create a signing service")
-    results = signing.list(name=name)
-    return results.results[0]
-
-
-def delete_signing_service(name):
-    """
-    Deletes a signing service on the test machine.
-    """
-    python_cmd = (
-        "from pulpcore.app.models import SigningService",
-        f"SigningService.objects.get(name='{name}').delete()",
-    )
-    cli_client = cli.Client(cfg)
-    utils.execute_pulpcore_python(cli_client, "\n".join(python_cmd))
-
-
-def get_client_keyring():
-    """
-    Finds the GPG keyring for the client used in the tests.
-
-    Uses the environment variables to change the default keyring
-    TEST_PULP_CLIENT_KEYRING - The location for the GPG keyring
-    TEST_PULP_SIGNING_KEY_ID - The signing key id used by the signing script
-    """
-    keyring = os.environ.get("TEST_PULP_CLIENT_KEYRING", "~/.gnupg/pubring.kbx")
-    key_id = os.environ.get("TEST_PULP_SIGNING_KEY_ID", "Pulp QE")
-
-    # Check that key_id is in the keyring
-    cmd = ("gpg", "--list-keys", "--keyring", keyring, "--no-default-keyring")
-    stdout = subprocess.run(cmd, capture_output=True, check=True).stdout
-    if key_id not in stdout.decode():
-        raise Exception(f"Key ID: {key_id} not found in keyring: {keyring}")
-
-    return keyring
