@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.13.1 (2022-06-15)
+===================
+
+Bugfixes
+--------
+
+- Allow deleting collection versions when another version of the collection satisfies requirements.
+  `#933 <https://github.com/pulp/pulp_ansible/issues/933>`__
+- Fixed improper type ``KeyringEnum`` being generated in client bindings.
+  `#973 <https://github.com/pulp/pulp_ansible/issues/973>`__
+
+
+----
+
+
 0.13.0 (2022-04-11)
 ===================
 
