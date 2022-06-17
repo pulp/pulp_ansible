@@ -79,7 +79,7 @@ class CollectionContentGuardDownloadTestCase(TestCaseUsingBindings, SyncHelpersM
         r1 = c1.list(self.distribution.base_path, self.distribution.base_path)
         r2 = c2.list(self.distribution.base_path)
 
-        assert r1 == r2
+        assert sorted(r1) == sorted(r2)
 
     def _verify_read(self, new_api, old_api, version=None):
         c1 = new_api(self.client)
