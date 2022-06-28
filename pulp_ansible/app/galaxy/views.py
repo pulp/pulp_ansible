@@ -10,6 +10,7 @@ from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.models import AnsibleDistribution, Collection, CollectionVersion, Role
+from pulp_ansible.app.galaxy.v1.constants import LEGACY_DISTRIBUTION_PATH
 
 from .serializers import (
     GalaxyCollectionSerializer,
@@ -60,7 +61,9 @@ class RoleList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
+        distro = get_object_or_404(
+            AnsibleDistribution, base_path=self.kwargs.get("path", LEGACY_DISTRIBUTION_PATH)
+        )
 
         if distro.repository_version:
             distro_content = distro.repository_version.content
@@ -92,14 +95,18 @@ class RoleVersionList(generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
+        # distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
+        distro = get_object_or_404(AnsibleDistribution, base_path="legacy")
 
         if distro.repository_version:
             distro_content = distro.repository_version.content
         else:
             distro_content = distro.repository.latest_version().content
+
+        print(f"KWARGS: {self.kwargs}")
         namespace, name = re.split(r"\.", self.kwargs["role_pk"])
         versions = Role.objects.filter(pk__in=distro_content, name=name, namespace=namespace)
+        print(f"VERSIONS: {versions}")
         for version in versions:
             version.distro_path = distro.base_path
         return versions

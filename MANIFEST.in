@@ -10,3 +10,4 @@ include test_requirements.txt
 include unittest_requirements.txt
 include pyproject.toml
 include pulp_ansible/app/schema/*
+include pulp_ansible/app/galaxy/v1/*.py

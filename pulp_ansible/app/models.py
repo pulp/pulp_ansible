@@ -35,6 +35,8 @@ class Role(Content):
         """
         Return the relative path of the ContentArtifact.
         """
+        print(f"self.contentartifact_set: {self.contentartifact_set}")
+        print(f"self.contentartifact_set.get(): {self.contentartifact_set.get()}")
         return self.contentartifact_set.get().relative_path
 
     class Meta:

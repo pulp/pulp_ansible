@@ -9,6 +9,8 @@ from rest_framework import serializers
 from pulp_ansible.app.models import Collection, CollectionVersion, Role
 from pulp_ansible.app.galaxy.v3.serializers import CollectionMetadataSerializer
 
+from pulp_ansible.app.galaxy.v1.constants import LEGACY_DISTRIBUTION_PATH
+
 
 class GalaxyRoleSerializer(serializers.ModelSerializer):
     """
@@ -36,20 +38,30 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
     """
 
     name = serializers.CharField(source="version")
-
     source = serializers.SerializerMethodField(read_only=True)
+    download_url = serializers.SerializerMethodField(read_only=True)
 
     def get_source(self, obj) -> str:
         """
         Get source.
         """
-        distro_base = self.context["request"].parser_context["kwargs"]["path"]
+        distro_base = (
+            self.context["request"].parser_context["kwargs"].get("path", LEGACY_DISTRIBUTION_PATH)
+        )
         distro_path = "".join([settings.CONTENT_ORIGIN, settings.CONTENT_PATH_PREFIX, distro_base])
 
         return "".join([distro_path, "/", obj.relative_path])
 
+    def get_download_url(self, obj) -> str:
+        """
+        Assemble a download url.
+        """
+        url = f"https://github.com/{obj.namespace}/"
+        url += f"ansible-role-{obj.name}/archive/{obj.version}.tar.gz"
+        return url
+
     class Meta:
-        fields = ("name", "source")
+        fields = ("name", "source", "download_url")
         model = Role
 
 
