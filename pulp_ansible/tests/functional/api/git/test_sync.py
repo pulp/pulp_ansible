@@ -2,6 +2,7 @@
 from os import path
 import subprocess
 import tempfile
+import unittest
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
@@ -18,6 +19,7 @@ from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # 
 class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Collection sync tests for collections with unique properties."""
 
+    @unittest.skip("https://github.com/pulp/pulp_ansible/issues/1065")
     def test_sync_collection_from_git(self):
         """Sync collections from Git repositories and then install one of them."""
         body = gen_ansible_remote(url="https://github.com/pulp/pulp_installer.git")
