@@ -2,6 +2,7 @@
 from os import path
 import subprocess
 import tempfile
+import unittest
 
 from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
@@ -89,6 +90,7 @@ class InstallCollectionTestCase(PulpTestCase):
         distribution = self.create_install_scenario(body)
         self.perform_install_test(ANSIBLE_DEMO_COLLECTION, distribution)
 
+    @unittest.skip("needs to use signing fixtures from pulpcore")
     def test_signature_collection_install(self):
         """Test whether ansible-galaxy can install a Collection w/ a signature hosted by Pulp."""
         body = gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=DEMO_REQUIREMENTS)

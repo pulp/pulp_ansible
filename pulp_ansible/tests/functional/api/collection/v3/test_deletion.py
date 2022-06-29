@@ -1,3 +1,5 @@
+import unittest
+
 from pulp_ansible.tests.functional.utils import (
     gen_collection_in_distribution,
     SyncHelpersMixin,
@@ -201,6 +203,7 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         assert len(latest_version.content_summary.present) == 0
 
+    @unittest.skip("needs to use signing fixtures from pulpcore")
     def test_delete_signed_content(self):
         """Test that signature content is removed correctly."""
         sign_service = create_signing_service()

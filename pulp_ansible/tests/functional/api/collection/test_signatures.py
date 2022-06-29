@@ -1,6 +1,9 @@
 """Tests functionality around Collection-Version Signatures."""
 import tarfile
+import unittest
+
 from tempfile import TemporaryDirectory
+
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTaskError
 from pulp_ansible.tests.functional.utils import (
     create_signing_service,
@@ -20,6 +23,7 @@ from pulpcore.client.pulp_ansible import AnsibleCollectionsApi, ContentCollectio
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
+@unittest.skip("needs to use signing fixtures from pulpcore")
 class CRUDCollectionVersionSignatures(TestCaseUsingBindings, SyncHelpersMixin):
     """
     CRUD CollectionVersionSignatures.
@@ -160,6 +164,7 @@ class CRUDCollectionVersionSignatures(TestCaseUsingBindings, SyncHelpersMixin):
             monitor_task(task.task)
 
 
+@unittest.skip("needs to use signing fixtures from pulpcore")
 class CollectionSignatureSyncing(TestCaseUsingBindings, SyncHelpersMixin):
     """
     Tests for syncing Collections Signatures.
