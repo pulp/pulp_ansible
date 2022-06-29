@@ -39,7 +39,7 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
 
     name = serializers.CharField(source="version")
     source = serializers.SerializerMethodField(read_only=True)
-    download_url = serializers.SerializerMethodField(read_only=True)
+    # download_url = serializers.SerializerMethodField(read_only=True)
 
     def get_source(self, obj) -> str:
         """
@@ -61,7 +61,8 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         return url
 
     class Meta:
-        fields = ("name", "source", "download_url")
+        # fields = ("name", "source", "download_url")
+        fields = ("name", "source")
         model = Role
 
 
