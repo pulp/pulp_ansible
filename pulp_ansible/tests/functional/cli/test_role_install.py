@@ -58,6 +58,7 @@ class InstallRoleTestCase(PulpTestCase):
 
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
+        # checking to see if this actually works.
         with tempfile.TemporaryDirectory() as temp_dir:
             cmd = "ansible-galaxy role install {} -c -s {} -p {}".format(
                 ANSIBLE_ELASTIC_ROLE, distribution.client_url, temp_dir
