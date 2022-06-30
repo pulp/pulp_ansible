@@ -38,26 +38,34 @@ class ImportRoleTestCase(PulpTestCase):
 
     def test_import_role(self):
 
-        # repo = self.repo_api.create(gen_repo())
-        repo = self.repo_api.create({'name': 'legacy'})
+        # Create the legacy repo if needed
+        legacy_repo_check = self.repo_api.list(name='legacy')
+        if legacy_repo_check.count == 1:
+            repo = legacy_repo_check.results[0]
+        else:
+            repo = self.repo_api.create({'name': 'legacy'})
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
 
-        # Create a distribution.
-        body = {
-            'name': 'legacy',
-            'base_path': 'legacy',
-        }
-        body["repository"] = repo.pulp_href
-        distribution_create = self.distributions_api.create(body)
-        created_resources = monitor_task(distribution_create.task).created_resources
-        distribution = self.distributions_api.read(created_resources[0])
+        # Create the legacy distribution if needed
+        legacy_dist_check = self.distributions_api.list(name='legacy')
+        if legacy_dist_check.count == 1:
+            distribution = legacy_dist_check.results[0]
+        else:
+            body = {
+                'name': 'legacy',
+                'base_path': 'legacy',
+            }
+            body["repository"] = repo.pulp_href
+            distribution_create = self.distributions_api.create(body)
+            created_resources = monitor_task(distribution_create.task).created_resources
+            distribution = self.distributions_api.read(created_resources[0])
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
 
-        # self.client.configuration.host = https://pulp:443
-        # self.client.configuration.username = admin
-        # self.client.configuration.password = password
-        #server_url = 'https://pulp:443/pulp_ansible/galaxy/legacy/'
-        server_url = 'https://pulp:443/'
+        # We expect the http[s]://<host>:<port>/api/v1 endpoint to be available,
+        # so no special distribution based url will be used. The import view
+        # should take care of defaulting to the "legacy" distribution.
+        server_url = self.client.configuration.host.rstrip('/') + '/'
+
         cmd = [
             "ansible-galaxy",
             "role",
@@ -68,8 +76,6 @@ class ImportRoleTestCase(PulpTestCase):
             "-c",
             "-s",
             server_url,
-            #distribution.client_url
         ]
         pid = subprocess.run(cmd)
-        import epdb; epdb.st()
         assert pid.returncode == 0
