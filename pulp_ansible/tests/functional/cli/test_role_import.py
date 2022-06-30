@@ -18,6 +18,7 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DOCKER_ROLE_NAMESPACE_NAME,
     ANSIBLE_DOCKER_ROLE_NAMESPACE,
     ANSIBLE_DOCKER_ROLE_NAME,
+    ANSIBLE_DOCKER_ROLE_REPO,
     ANSIBLE_DOCKER_ROLE,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
@@ -63,7 +64,7 @@ class ImportRoleTestCase(PulpTestCase):
             "import",
             "-vvvv",
             ANSIBLE_DOCKER_ROLE_NAMESPACE,
-            ANSIBLE_DOCKER_ROLE_NAME,
+            ANSIBLE_DOCKER_ROLE_REPO,
             "-c",
             "-s",
             server_url,
