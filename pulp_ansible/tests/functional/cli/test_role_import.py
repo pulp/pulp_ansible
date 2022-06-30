@@ -64,7 +64,7 @@ class ImportRoleTestCase(PulpTestCase):
             "role",
             "import",
             "-vvvv",
-            ANSIBLE_DOCKER_ROLE_NAMESPACE
+            ANSIBLE_DOCKER_ROLE_NAMESPACE,
             ANSIBLE_DOCKER_NAME,
             "-c",
             "-s",
