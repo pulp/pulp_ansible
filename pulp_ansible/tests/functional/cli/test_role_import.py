@@ -65,7 +65,7 @@ class ImportRoleTestCase(PulpTestCase):
             "import",
             "-vvvv",
             ANSIBLE_DOCKER_ROLE_NAMESPACE
-            ANSIBLE_DOCKER_NAME},
+            ANSIBLE_DOCKER_NAME,
             "-c",
             "-s",
             distribution.client_url
