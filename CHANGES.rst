@@ -13,6 +13,38 @@ Changelog
 
 .. towncrier release notes start
 
+0.14.0 (2022-06-30)
+===================
+
+Features
+--------
+
+- Enable support for the pulpcore setting ``REDIRECT_TO_OBJECT_STORAGE=False``.
+  `#943 <https://github.com/pulp/pulp_ansible/issues/943>`__
+
+
+Bugfixes
+--------
+
+- Fixed 500 error when accessing Galaxy APIs when distribution is not pointing to a repository.
+  `#909 <https://github.com/pulp/pulp_ansible/issues/909>`__
+- Allow deleting collection versions when another version of the collection satisfies requirements.
+  `#933 <https://github.com/pulp/pulp_ansible/issues/933>`__
+- Fixed generation of the redirect url to the object storage
+  `#956 <https://github.com/pulp/pulp_ansible/issues/956>`__
+- Fixed improper type ``KeyringEnum`` being generated in client bindings.
+  `#973 <https://github.com/pulp/pulp_ansible/issues/973>`__
+
+
+Misc
+----
+
+- `#1035 <https://github.com/pulp/pulp_ansible/issues/1035>`__
+
+
+----
+
+
 0.13.2 (2022-06-17)
 ===================
 

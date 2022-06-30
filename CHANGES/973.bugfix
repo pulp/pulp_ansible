@@ -1,1 +1,0 @@
-Fixed improper type ``KeyringEnum`` being generated in client bindings.

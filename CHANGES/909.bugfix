@@ -1,1 +1,0 @@
-Fixed 500 error when accessing Galaxy APIs when distribution is not pointing to a repository.
