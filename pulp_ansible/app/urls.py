@@ -208,6 +208,9 @@ v3_urls = [
 ]
 
 urlpatterns = [
+    # Ansible cli can not traverse the api versions without this page.
+    path("api", GalaxyVersionView.as_view()),
+    path("api/", GalaxyVersionView.as_view()),
     path("api/v1/roles", RoleList.as_view()),
     path("api/v1/roles/", RoleList.as_view()),
     path("api/v1/roles/<str:role_pk>/versions", RoleVersionList.as_view()),
