@@ -27,6 +27,7 @@ def legacy_role_import(*args, **kwargs):
     """
     Import a legacy role given the github user, repo and or name.
     """
+    print(kwargs)
     github_user = kwargs.get("github_user")
     github_repo = kwargs.get("github_repo")
 
@@ -49,7 +50,9 @@ def legacy_role_import(*args, **kwargs):
 
         # Clone the repo into the checkout path
         clone_url = f"https://github.com/{github_user}/{github_repo}"
+        print(clone_url)
         cmd = f"git clone {clone_url} {checkout_path}"
+        print(cmd)
         pid = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         if pid.returncode != 0:
             raise Exception(pid.stdout.decode("utf-8"))
