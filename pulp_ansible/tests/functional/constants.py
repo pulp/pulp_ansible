@@ -47,7 +47,7 @@ ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME = "elastic.elasticsearch"
 
 ANSIBLE_ELASTIC_ROLE = "elastic.elasticsearch,6.6.0"
 
-ANSIBLE_DOCKER_ROLE_NAMESPACE = "geerlingguy.docker"
+ANSIBLE_DOCKER_ROLE_NAMESPACE = "geerlingguy"
 
 ANSIBLE_DOCKER_ROLE_NAME = "docker"
 
