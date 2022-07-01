@@ -7,14 +7,14 @@ how to add signature support.
 
 Setup
 -----
-In order to verify signature validity on uploads you will need to store your trusted keyring on
-your Pulp system and set the ``pulp_ansible`` setting ``ANSIBLE_CERTS_DIR`` to the folder of that
-keyring. By default it is set to ``/etc/pulp/certs/`` if you want an easy place to store your
-keyring.
+In order to verify signature validity on uploads you will need to store your trusted key on the
+repositories ``gpgkey`` attribute.
 
 .. note::
-    You can upload signatures without supplying Pulp your keyring, but ``pulp_ansible`` will not
-    perform validity checks on the uploaded signature.
+   You can upload signatures without supplying Pulp any key, but ``pulp_ansible`` will not
+   perform validity checks on the uploaded signature. You will also have to configure the
+   ``ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION`` setting to ``False``. By default and once a key is
+   provided, all signatures impossible to verify are rejected.
 
 In order to have ``pulp_ansible`` sign collections stored in your repositories you will need to set
 up a signing service. First, create/import the key you intend to sign your collections with onto

@@ -1,0 +1,1 @@
+Add a `gpgkey` field to the ansible repository to ease verification of collection signatures.

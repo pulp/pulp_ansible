@@ -1,8 +1,9 @@
 import aiofiles
 import asyncio
-import gnupg
 import hashlib
+import logging
 import tarfile
+import tempfile
 from gettext import gettext as _
 
 from pulpcore.plugin.stages import (
@@ -22,8 +23,13 @@ from django.conf import settings
 from django.core.files.storage import default_storage as storage
 from pulpcore.plugin.models import SigningService, ProgressReport
 from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
+from pulpcore.plugin.util import gpg_verify
+from pulpcore.plugin.exceptions import InvalidSignatureError
 from pulp_ansible.app.tasks.utils import get_file_obj_from_tarball
 from rest_framework import serializers
+
+
+log = logging.getLogger(__name__)
 
 
 def verify_signature_upload(data):
@@ -32,24 +38,33 @@ def verify_signature_upload(data):
     sig_data = file.read()
     file.seek(0)
     collection = data["signed_collection"]
-    keyring = None
-    if (repository := data.get("repository")) and repository.keyring:
-        keyring = repository.keyring
-    gpg = gnupg.GPG(keyring=keyring)
+    repository = data.get("repository")
+    gpgkey = repository and repository.gpgkey or ""
+
     artifact = collection.contentartifact_set.select_related("artifact").first().artifact.file.name
     artifact_file = storage.open(artifact)
     with tarfile.open(fileobj=artifact_file, mode="r") as tar:
         manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact_file)
-        with open("MANIFEST.json", mode="wb") as m:
-            m.write(manifest.read())
-        verified = gpg.verify_file(file, m.name)
-
-    if verified.trust_level is None or verified.trust_level < verified.TRUST_FULLY:
-        # Skip verification if repository isn't specified, or it doesn't have a keyring attached
-        if verified.fingerprint is None or keyring is not None:
-            raise serializers.ValidationError(
-                _("Signature verification failed: {}").format(verified.status)
-            )
+        with tempfile.NamedTemporaryFile(dir=".") as manifest_file:
+            manifest_file.write(manifest.read())
+            manifest_file.flush()
+            try:
+                verified = gpg_verify(gpgkey, file, manifest_file.name)
+            except InvalidSignatureError as e:
+                if gpgkey:
+                    raise serializers.ValidationError(
+                        _("Signature verification failed: {}").format(e.verified.status)
+                    )
+                elif settings.ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION:
+                    raise serializers.ValidationError(
+                        _("Signature verification failed: No key available.")
+                    )
+                else:
+                    # We have no key configured. So we simply accept the signature as is
+                    verified = e.verified
+                    log.warn(
+                        "Collection Signature was accepted without verification. No key available."
+                    )
 
     data["data"] = sig_data
     data["digest"] = file.hashers["sha256"].hexdigest()
