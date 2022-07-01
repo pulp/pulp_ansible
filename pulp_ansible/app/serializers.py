@@ -1,7 +1,6 @@
 from gettext import gettext as _
 
 from django.conf import settings
-from drf_spectacular.utils import extend_schema_field
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 
@@ -116,13 +115,6 @@ class GitRemoteSerializer(RemoteSerializer):
         )
 
 
-@extend_schema_field(str)
-class FilePathField(serializers.FilePathField):
-    """
-    Remove enum model in client generation, see https://github.com/pulp/pulp_ansible/issues/973.
-    """
-
-
 class AnsibleRepositorySerializer(RepositorySerializer):
     """
     Serializer for Ansible Repositories.
@@ -131,16 +123,17 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     last_synced_metadata_time = serializers.DateTimeField(
         help_text=_("Last synced metadata time."), allow_null=True, required=False
     )
-    keyring = FilePathField(
-        path=settings.ANSIBLE_CERTS_DIR,
-        help_text=_("Location of keyring used to verify signatures uploaded to this repository"),
-        allow_blank=True,
-        default="",
+    gpgkey = serializers.CharField(
+        help_text="Gpg public key to verify collection signatures against",
         required=False,
+        allow_null=True,
     )
 
     class Meta:
-        fields = RepositorySerializer.Meta.fields + ("last_synced_metadata_time", "keyring")
+        fields = RepositorySerializer.Meta.fields + (
+            "last_synced_metadata_time",
+            "gpgkey",
+        )
         model = AnsibleRepository
 
 

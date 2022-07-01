@@ -74,12 +74,12 @@ def test_sign_locally_then_upload_signature(
     tmp_path,
     ansible_collections_api_client,
     ansible_collection_signatures_client,
+    ansible_repo_factory,
+    pulp_trusted_public_key_fingerprint,
+    pulp_trusted_public_key,
 ):
     """Test uploading a locally produced Collection Signature."""
-    # NOTE: This test relies on the server global gpg keyring containing the Pulp QE key.
-    # This is carried out by the post_before_script.sh. Please remove that script (or parts of it)
-    # once this functionality has been rewritten to use keys read from the database.
-
+    repository = ansible_repo_factory(gpgkey=pulp_trusted_public_key)
     collection, collection_url = build_and_upload_collection()
 
     # Extract MANIFEST.json
@@ -89,14 +89,22 @@ def test_sign_locally_then_upload_signature(
 
     # Locally sign the collection
     signing_script_response = sign_with_ascii_armored_detached_signing_service(filename)
-    signature = signing_script_response["signature"]
+    signature_file = signing_script_response["signature"]
 
     # Signature upload
     task = ansible_collection_signatures_client.create(
-        signed_collection=collection_url, file=signature
+        signed_collection=collection_url, file=signature_file, repository=repository.pulp_href
     )
-    sig = monitor_task(task.task).created_resources[0]
-    assert "content/ansible/collection_signatures/" in sig
+    signature_href = next(
+        (
+            item
+            for item in monitor_task(task.task).created_resources
+            if "content/ansible/collection_signatures/" in item
+        )
+    )
+    assert signature_href is not None
+    signature = ansible_collection_signatures_client.read(signature_href)
+    assert signature.pubkey_fingerprint == pulp_trusted_public_key_fingerprint
 
     # Upload another collection that won't be signed
     another_collection, another_collection_url = build_and_upload_collection()
@@ -104,7 +112,9 @@ def test_sign_locally_then_upload_signature(
     # Check that invalid signatures can't be uploaded
     with pytest.raises(Exception):
         task = ansible_collection_signatures_client.create(
-            signed_collection=another_collection_url, file=signature
+            signed_collection=another_collection_url,
+            file=signature,
+            repository=repository.pulp_href,
         )
         monitor_task(task.task)
 

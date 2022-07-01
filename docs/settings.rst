@@ -26,6 +26,15 @@ ANSIBLE_CONTENT_HOSTNAME
    CONTENT_ORIGIN, this would default to "https://example.com/pulp/content".
 
 
+ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   By default, ``pulp_ansible`` rejects uploaded signatures if they cannot be verified against a
+   public key specified on the repository. Setting this to false will allow accepting signatures
+   if no key was specified. A repository with a configured key will always reject invalid
+   signatures.
+
+
 ANSIBLE_SIGNING_TASK_LIMITER
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
