@@ -77,12 +77,14 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
     """Returns a DeclarativeContent for the Collection in a Git repository."""
     if git_ref:
         try:
-            gitrepo = Repo.clone_from(url, uuid4(), depth=1, branch=git_ref)
+            gitrepo = Repo.clone_from(
+                url, uuid4(), depth=1, branch=git_ref, multi_options=["--recurse-submodules"]
+            )
         except GitCommandError:
-            gitrepo = Repo.clone_from(url, uuid4())
+            gitrepo = Repo.clone_from(url, uuid4(), multi_options=["--recurse-submodules"])
             gitrepo.git.checkout(git_ref)
     else:
-        gitrepo = Repo.clone_from(url, uuid4(), depth=1)
+        gitrepo = Repo.clone_from(url, uuid4(), depth=1, multi_options=["--recurse-submodules"])
     commit_sha = gitrepo.head.commit.hexsha
     metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
     if not metadata_only:
