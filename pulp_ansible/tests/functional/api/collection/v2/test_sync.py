@@ -147,7 +147,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(content.results), 1)
 
-    @pytest.mark.nightly
+    @pytest.mark.skip("Only mirror galaxy on main branch")
     def test_mirror_galaxy(self):
         """Mirror Galaxy."""
         body = gen_ansible_remote(url="https://galaxy.ansible.com")
