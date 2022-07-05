@@ -247,7 +247,11 @@ class SyncHelpersMixin:
 
 
 settings = Dynaconf(
-    settings_files=["pulp_ansible/tests/assets/func_test_settings.py", "/etc/pulp/settings.py"]
+    settings_files=[
+        "pulp_ansible/tests/assets/func_test_settings.py",
+        "/pulp_ansible/pulp_ansible/tests/assets/func_test_settings.py",
+        "/etc/pulp/settings.py",
+    ]
 )
 
 
