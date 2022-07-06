@@ -10,6 +10,7 @@ from pulpcore.plugin.tasking import dispatch
 
 from pulp_ansible.app.models import AnsibleDistribution, AnsibleRepository, Role
 from pulp_ansible.app.galaxy.serializers import GalaxyRoleSerializer
+from pulp_ansible.app.galaxy.v1.constants import LEGACY_DISTRIBUTION_PATH
 from pulp_ansible.app.galaxy.v1.constants import LEGACY_REPOSITORY_NAME
 from pulp_ansible.app.galaxy.v1.tasks import legacy_role_import
 
@@ -35,7 +36,7 @@ class LegacyImportView(viewsets.ModelViewSet):
         Get the list of items for this view.
         """
         # distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
-        distro = get_object_or_404(AnsibleDistribution, base_path="legacy")
+        distro = get_object_or_404(AnsibleDistribution, base_path=LEGACY_DISTRIBUTION_PATH)
 
         if distro.repository_version:
             distro_content = distro.repository_version.content
