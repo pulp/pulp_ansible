@@ -179,6 +179,6 @@ def legacy_role_import(*args, **kwargs):
 
         # Add the role to the legacy repository via a new version.
         legacy = AnsibleRepository.objects.get(pulp_id=ansible_repo_id)
-        add_and_remove(int(legacy.pk), [role.pk], [])
+        add_and_remove(legacy.pk, [role.pk], [])
 
     return True
