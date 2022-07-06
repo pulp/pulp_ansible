@@ -13,7 +13,6 @@ import yaml
 from aiohttp.client_exceptions import ClientResponseError
 from asgiref.sync import sync_to_async
 from async_lru import alru_cache
-from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.db.utils import IntegrityError
@@ -48,6 +47,7 @@ from pulpcore.plugin.stages import (
     ResolveContentFutures,
     Stage,
 )
+from pulpcore.plugin.util import get_backend_storage_url
 from rest_framework.serializers import ValidationError
 from semantic_version import Version
 
@@ -306,7 +306,7 @@ def import_collection(
                 files_data = json.load(
                     get_file_obj_from_tarball(tar, "FILES.json", temp_file.file.name)
                 )
-            url = _get_backend_storage_url(artifact_file)
+            url = get_backend_storage_url(artifact_file)
             artifact_file.seek(0)
             importer_result = process_collection(
                 artifact_file, filename=filename, file_url=url, logger=user_facing_logger
@@ -394,26 +394,6 @@ def create_collection_from_importer(importer_result, metadata_only=False):
 
         collection_version.save()  # Save the FK updates
     return collection_version
-
-
-def _get_backend_storage_url(artifact_file):
-    """Get artifact url from pulp backend storage."""
-    if (
-        settings.DEFAULT_FILE_STORAGE == "pulpcore.app.models.storage.FileSystem"
-        or not settings.REDIRECT_TO_OBJECT_STORAGE
-    ):
-        url = None
-    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
-        parameters = {"ResponseContentDisposition": "attachment%3Bfilename=archive.tar.gz"}
-        url = artifact_file.storage.url(artifact_file.name, parameters=parameters)
-    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
-        url = artifact_file.storage.url(artifact_file.name)
-    else:
-        raise NotImplementedError(
-            f"The value settings.DEFAULT_FILE_STORAGE={settings.DEFAULT_FILE_STORAGE} "
-            "was not expected"
-        )
-    return url
 
 
 def _update_highest_version(collection_version):
