@@ -2,6 +2,7 @@ import datetime
 
 from rest_framework import viewsets
 
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 
@@ -10,8 +11,6 @@ from pulpcore.plugin.tasking import dispatch
 
 from pulp_ansible.app.models import AnsibleDistribution, AnsibleRepository, Role
 from pulp_ansible.app.galaxy.serializers import GalaxyRoleSerializer
-from pulp_ansible.app.galaxy.v1.constants import LEGACY_DISTRIBUTION_PATH
-from pulp_ansible.app.galaxy.v1.constants import LEGACY_REPOSITORY_NAME
 from pulp_ansible.app.galaxy.v1.tasks import legacy_role_import
 
 
@@ -36,7 +35,9 @@ class LegacyImportView(viewsets.ModelViewSet):
         Get the list of items for this view.
         """
         # distro = get_object_or_404(AnsibleDistribution, base_path=self.kwargs["path"])
-        distro = get_object_or_404(AnsibleDistribution, base_path=LEGACY_DISTRIBUTION_PATH)
+        distro = get_object_or_404(
+            AnsibleDistribution, base_path=settings.ANSIBLE_LEGACY_DISTRIBUTION_PATH
+        )
 
         if distro.repository_version:
             distro_content = distro.repository_version.content
@@ -108,7 +109,9 @@ class LegacyImportView(viewsets.ModelViewSet):
         """
         Start a legacy role import task.
         """
-        legacy_repo = AnsibleRepository.objects.filter(name=LEGACY_REPOSITORY_NAME).first()
+        legacy_repo = AnsibleRepository.objects.filter(
+            name=settings.ANSIBLE_LEGACY_REPOSITORY_NAME
+        ).first()
         kwargs = {
             "ansible_repository": legacy_repo.pulp_id,
             "github_user": request.data.get("github_user"),

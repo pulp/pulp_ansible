@@ -60,3 +60,15 @@ ANSIBLE_URL_NAMESPACE
    The Django URL namespace to be used when generating URLs that are returned by the galaxy
    APIs. Setting this allows for the galaxy APIs to redirect requests to django URLs in other apps.
    This defaults to the pulp ansible URL router.
+
+
+ANSIBLE_LEGACY_DISTRIBUTION_PATH
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  The default path to use for the distribution that will host all of the v1 legacy roles.
+
+
+ANSIBLE_LEGACY_REPOSITORY_NAME
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  The default name to use for the repository that will host all of the v1 legacy roles.

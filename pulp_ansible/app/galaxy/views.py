@@ -9,7 +9,6 @@ from pulpcore.plugin.viewsets import OperationPostponedResponse
 from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
-from pulp_ansible.app.galaxy.v1.constants import LEGACY_DISTRIBUTION_PATH
 from pulp_ansible.app.models import AnsibleDistribution, Collection, CollectionVersion, Role
 
 from .serializers import (
@@ -29,7 +28,7 @@ class DistributionMixin:
     @property
     def _repository_version(self):
         """Returns repository version."""
-        path = self.kwargs.get("path", LEGACY_DISTRIBUTION_PATH)
+        path = self.kwargs.get("path", settings.ANSIBLE_LEGACY_DISTRIBUTION_PATH)
 
         context = getattr(self, "pulp_context", None)
         if context and context.get(path, None):
