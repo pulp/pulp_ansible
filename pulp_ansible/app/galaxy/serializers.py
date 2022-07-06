@@ -6,6 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
 from rest_framework import serializers
 
+from pulp_ansible.app.galaxy.v1.constants import LEGACY_DISTRIBUTION_PATH
 from pulp_ansible.app.models import Collection, CollectionVersion, Role
 from pulp_ansible.app.galaxy.v3.serializers import CollectionMetadataSerializer
 
@@ -43,7 +44,7 @@ class GalaxyRoleVersionSerializer(serializers.Serializer):
         """
         Get source.
         """
-        distro_base = self.context["path"]
+        distro_base = self.context.get("path", LEGACY_DISTRIBUTION_PATH)
         distro_path = "".join([settings.CONTENT_ORIGIN, settings.CONTENT_PATH_PREFIX, distro_base])
 
         return "".join([distro_path, "/", obj.relative_path])

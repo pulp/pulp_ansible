@@ -34,7 +34,9 @@ from pulpcore.client.pulpcore import (
 )
 from pulpcore.client.pulp_ansible import (
     ApiClient as AnsibleApiClient,
+    ApiRolesApi,
     ContentCollectionVersionsApi,
+    ContentRolesApi,
     DistributionsAnsibleApi,
     PulpAnsibleApiV3CollectionsApi,
     PulpAnsibleApiV3CollectionsVersionsApi,
@@ -228,6 +230,10 @@ class TestCaseUsingBindings(PulpTestCase):
         cls.cv_api = ContentCollectionVersionsApi(cls.client)
         cls.collections_v3api = PulpAnsibleApiV3CollectionsApi(cls.client)
         cls.collections_versions_v3api = PulpAnsibleApiV3CollectionsVersionsApi(cls.client)
+        cls.cfg = config.get_config()
+        cls.api_client = api.Client(cls.cfg, api.json_handler)
+        cls.galaxy_roles_api = ApiRolesApi(cls.client)
+        cls.content_roles_api = ContentRolesApi(cls.client)
 
     @classmethod
     def tearDownClass(cls):

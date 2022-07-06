@@ -11,6 +11,7 @@ from pulp_ansible.app.galaxy.views import (
     RoleList,
     RoleVersionList,
 )
+from pulp_ansible.app.galaxy.v1.views import LegacyImportView
 from pulp_ansible.app.galaxy.v3 import views as views_v3
 
 from pulp_ansible.app.viewsets import CopyViewSet, CollectionUploadViewSet
@@ -21,6 +22,7 @@ GALAXY_API_ROOT = getattr(settings, "GALAXY_API_ROOT", "pulp_ansible/galaxy/<pat
 
 
 v1_urls = [
+    path("imports/", LegacyImportView.as_view({"get": "get", "post": "post"})),
     path("roles/", RoleList.as_view()),
     path("roles/<str:role_pk>/versions/", RoleVersionList.as_view()),
 ]
@@ -207,6 +209,14 @@ v3_urls = [
 ]
 
 urlpatterns = [
+    path("api", GalaxyVersionView.as_view()),
+    path("api/", GalaxyVersionView.as_view()),
+    path("api/v1/roles", RoleList.as_view()),
+    path("api/v1/roles/", RoleList.as_view()),
+    path("api/v1/roles/<str:role_pk>/versions", RoleVersionList.as_view()),
+    path("api/v1/roles/<str:role_pk>/versions/", RoleVersionList.as_view()),
+    path("api/v1/imports", LegacyImportView.as_view({"get": "get", "post": "post"})),
+    path("api/v1/imports/", LegacyImportView.as_view({"get": "get", "post": "post"})),
     path("ansible/collections/", CollectionUploadViewSet.as_view({"post": "create"})),
     path(GALAXY_API_ROOT.split("<path:path>")[0] + "default/api/v3/", include(v3_urls)),
     path(
