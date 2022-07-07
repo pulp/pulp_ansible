@@ -3,6 +3,8 @@ import shutil
 import subprocess
 import tempfile
 
+from django.db import transaction
+
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.models import ContentArtifact
 from pulpcore.plugin.tasking import add_and_remove
@@ -134,16 +136,10 @@ def legacy_role_import(*args, **kwargs):
             "role_version": github_reference,
         }
 
-        # pulp_ansible's Roles are actuallly Role Versions
-        # The roles list viewset aggregates the versions together
-        # by using a {namespace}.{name} as the primary key.
-        role = Role(
-            version=metadata["role_version"],
-            name=metadata["name"],
-            namespace=metadata["namespace"],
-        )
-        role.save()
-
+        # This is a pulp'ism for the source url
+        # but we will generate the download_url in the
+        # serializer so this wouldn't ever be
+        # used ... ?
         relative_path = "%s/%s/%s.tar.gz" % (
             metadata["github_user"],
             metadata["role_name"],
@@ -157,19 +153,20 @@ def legacy_role_import(*args, **kwargs):
         pid = subprocess.run(cmd, shell=True)
         assert pid.returncode == 0
 
+        """
+        # pulp_ansible's Roles are actuallly Role Versions
+        # The roles list viewset aggregates the versions together
+        # by using a {namespace}.{name} as the primary key.
+        role = Role(
+            version=metadata["role_version"],
+            name=metadata["name"],
+            namespace=metadata["namespace"],
+        )
+        role.save()
+
         # Create a real artifact
         artifact = Artifact.init_and_validate(tarfn)
         artifact.save()
-
-        # This is a pulp'ism for the source url
-        # but we will generate the download_url in the
-        # serializer so this wouldn't ever be
-        # used ... ?
-        relative_path = "%s/%s/%s.tar.gz" % (
-            metadata["github_user"],
-            metadata["role_name"],
-            metadata["role_version"],
-        )
 
         # Use Content to tie the role and artifact together
         ca1 = ContentArtifact.objects.create(
@@ -180,5 +177,37 @@ def legacy_role_import(*args, **kwargs):
         # Add the role to the legacy repository via a new version.
         legacy = AnsibleRepository.objects.get(pulp_id=ansible_repo_id)
         add_and_remove(legacy.pk, [role.pk], [])
+        """
 
-    return True
+        _create_role_and_add_to_repo_with_transaction(metadata, relative_path, tarfn, ansible_repo_id)
+
+
+@transaction.atomic
+def _create_role_and_add_to_repo_with_transaction(role_metadata, relative_path, tarfn, ansible_repo_id):
+    """
+    Encapsulate database writes with a transaction.
+    """
+    # pulp_ansible's Roles are actuallly Role Versions
+    # The roles list viewset aggregates the versions together
+    # by using a {namespace}.{name} as the primary key.
+    role = Role(
+        version=role_metadata["role_version"],
+        name=role_metadata["name"],
+        namespace=role_metadata["namespace"],
+    )
+    role.save()
+
+    # Create a real artifact
+    artifact = Artifact.init_and_validate(tarfn)
+    artifact.save()
+
+    # Use Content to tie the role and artifact together
+    ca1 = ContentArtifact.objects.create(
+        artifact=artifact, content=role, relative_path=relative_path
+    )
+    ca1.save()
+
+    # Add the role to the legacy repository via a new version.
+    legacy = AnsibleRepository.objects.get(pulp_id=ansible_repo_id)
+    add_and_remove(legacy.pk, [role.pk], [])
+
