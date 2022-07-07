@@ -183,15 +183,18 @@ def legacy_role_import(*args, **kwargs):
         artifact = Artifact.init_and_validate(tarfn)
         artifact.save()
 
-        _create_role_and_add_to_repo_with_transaction(
-            metadata, relative_path, artifact, ansible_repo_id
+        # Create the role and bind with the artifact as a "content artifact"
+        role, content_artifact = _create_role_and_content_artifact(
+            metadata, relative_path, artifact
         )
+
+        # Add the role to the legacy repository via a new version.
+        legacy = AnsibleRepository.objects.get(pulp_id=ansible_repo_id)
+        add_and_remove(legacy.pk, [role.pk], [])
 
 
 @transaction.atomic
-def _create_role_and_add_to_repo_with_transaction(
-    role_metadata, relative_path, artifact, ansible_repo_id
-):
+def _create_role_and_content_artifact(role_metadata, relative_path, artifact):
     """
     Encapsulate database writes with a transaction.
     """
@@ -217,6 +220,10 @@ def _create_role_and_add_to_repo_with_transaction(
     )
     ca1.save()
 
+    """
     # Add the role to the legacy repository via a new version.
     legacy = AnsibleRepository.objects.get(pulp_id=ansible_repo_id)
     add_and_remove(legacy.pk, [role.pk], [])
+    """
+
+    return role, ca1
