@@ -179,11 +179,15 @@ def legacy_role_import(*args, **kwargs):
         add_and_remove(legacy.pk, [role.pk], [])
         """
 
-        _create_role_and_add_to_repo_with_transaction(metadata, relative_path, tarfn, ansible_repo_id)
+        _create_role_and_add_to_repo_with_transaction(
+            metadata, relative_path, tarfn, ansible_repo_id
+        )
 
 
 @transaction.atomic
-def _create_role_and_add_to_repo_with_transaction(role_metadata, relative_path, tarfn, ansible_repo_id):
+def _create_role_and_add_to_repo_with_transaction(
+    role_metadata, relative_path, tarfn, ansible_repo_id
+):
     """
     Encapsulate database writes with a transaction.
     """
@@ -210,4 +214,3 @@ def _create_role_and_add_to_repo_with_transaction(role_metadata, relative_path, 
     # Add the role to the legacy repository via a new version.
     legacy = AnsibleRepository.objects.get(pulp_id=ansible_repo_id)
     add_and_remove(legacy.pk, [role.pk], [])
-
