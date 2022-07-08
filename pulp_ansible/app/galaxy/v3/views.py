@@ -510,7 +510,7 @@ class CollectionUploadViewSet(
         if serializer.validated_data["expected_version"]:
             kwargs["expected_version"] = serializer.validated_data["expected_version"]
 
-        async_result = self._dispatch_import_collection_task(
+        task_group, async_result = self._dispatch_import_collection_task_lockless(
             temp_file.pk, distro.repository, **kwargs
         )
         CollectionImport.objects.create(task_id=async_result.pk)

@@ -34,6 +34,7 @@ from pulpcore.plugin.models import (
     Remote,
     RepositoryContent,
     Task,
+    TaskGroup,
 )
 from pulpcore.plugin.stages import (
     ArtifactDownloader,
@@ -48,6 +49,7 @@ from pulpcore.plugin.stages import (
     ResolveContentFutures,
     Stage,
 )
+from pulpcore.plugin.tasking import add_and_remove, dispatch
 from rest_framework.serializers import ValidationError
 from semantic_version import Version
 
@@ -260,6 +262,7 @@ def import_collection(
     expected_namespace=None,
     expected_name=None,
     expected_version=None,
+    lockless=False,
 ):
     """
     Create a Collection from an uploaded artifact and optionally validate its expected metadata.
@@ -284,6 +287,8 @@ def import_collection(
             Collection's metadata. If it does not match a ImporterError is raised.
         expected_version (str): Optional. The version is validated against the version specified in
             the Collection's metadata. If it does not match a ImporterError is raised.
+        lockless (bool): Optional. Whether this task has the lock on the repository already to add
+            the newly imported Collection. If True, then a separate task with lock is dispatched.
 
     Raises:
         ImporterError: If the `expected_namespace`, `expected_name`, or `expected_version` do not
@@ -338,11 +343,22 @@ def import_collection(
     CreatedResource.objects.create(content_object=collection_version)
 
     if repository_pk:
-        repository = AnsibleRepository.objects.get(pk=repository_pk)
-        content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
-        with repository.new_version() as new_version:
-            new_version.add_content(content_q)
-        CreatedResource.objects.create(content_object=repository)
+        if not lockless:
+            repository = AnsibleRepository.objects.get(pk=repository_pk)
+            content_q = CollectionVersion.objects.filter(pk=collection_version.pk)
+            with repository.new_version() as new_version:
+                new_version.add_content(content_q)
+            CreatedResource.objects.create(content_object=repository)
+        else:
+            task_group = TaskGroup.current()
+            args = (repository_pk, [collection_version.pk], [])
+            dispatch(
+                add_and_remove,
+                exclusive_resources=[repository_pk],
+                args=args,
+                task_group=task_group,
+            )
+            task_group.finish()
 
 
 def create_collection_from_importer(importer_result, metadata_only=False):
