@@ -9,6 +9,7 @@ from pulp_smash.pulp3.bindings import monitor_task
 from pulpcore.client.pulp_ansible import (
     AnsibleCollectionsApi,
     ApiClient,
+    ApiRolesApi,
     ContentCollectionSignaturesApi,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
@@ -29,6 +30,11 @@ def ansible_bindings_client(cid, bindings_cfg):
 
 
 @pytest.fixture
+def ansible_galaxy_roles_api_client(ansible_bindings_client):
+    return ApiRolesApi(ansible_bindings_client)
+
+
+@pytest.fixture
 def ansible_collections_api_client(ansible_bindings_client):
     """Provides the Ansible Collections API client object."""
     return AnsibleCollectionsApi(ansible_bindings_client)
@@ -38,6 +44,12 @@ def ansible_collections_api_client(ansible_bindings_client):
 def ansible_collection_signatures_client(ansible_bindings_client):
     """Provides the Ansible Collection Signatures API client object."""
     return ContentCollectionSignaturesApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def ansible_distributions_api_client(ansible_bindings_client):
+    """Provides the Ansible Distributions API client object."""
+    return DistributionsAnsibleApi(ansible_bindings_client)
 
 
 @pytest.fixture
