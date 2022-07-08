@@ -1,18 +1,13 @@
 """Tests that Roles hosted by Pulp can be installed by ansible-galaxy."""
 
 import json
-import pytest
 import subprocess
 
-from pulp_smash.pulp3.bindings import monitor_task
-
-from pulp_ansible.tests.functional.utils import TestCaseUsingBindings
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DOCKER_ROLE_NAMESPACE,
     ANSIBLE_DOCKER_ROLE_NAME,
     ANSIBLE_DOCKER_ROLE_REPO,
 )
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 # @pytest.mark.parallel
@@ -22,7 +17,7 @@ def test_role_import(
     ansible_galaxy_roles_api_client,
     ansible_repo_api_client,
     ansible_distributions_api_client,
-    gen_object_with_cleanup
+    gen_object_with_cleanup,
 ):
     """
     Verifies the api/v1/imports view is functional.
@@ -36,7 +31,7 @@ def test_role_import(
         "base_path": "legacy",
     }
     body["repository"] = repo.pulp_href
-    distribution = gen_object_with_cleanup(ansible_distributions_api_client, body)
+    gen_object_with_cleanup(ansible_distributions_api_client, body)
 
     # We expect the http[s]://<host>:<port>/api/v1 endpoint to be available,
     # so no special distribution based url will be used. The import view
@@ -80,7 +75,7 @@ def test_role_import(
     # import epdb; epdb.st()
     # vpage1 = client.get(v_url)
     # vpage1 = client.call_api(v_url, 'GET')
-    resp = ansible_bindings_client.rest_client.GET(server_url.rstrip('/') + v_url)
+    resp = ansible_bindings_client.rest_client.GET(server_url.rstrip("/") + v_url)
     vpage1 = json.loads(resp.data)
     # import epdb; epdb.st()
     assert vpage1["count"] >= 1

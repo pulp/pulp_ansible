@@ -31,6 +31,7 @@ def ansible_bindings_client(cid, bindings_cfg):
 
 @pytest.fixture
 def ansible_galaxy_roles_api_client(ansible_bindings_client):
+    """Provides the Ansible Roles API client object."""
     return ApiRolesApi(ansible_bindings_client)
 
 

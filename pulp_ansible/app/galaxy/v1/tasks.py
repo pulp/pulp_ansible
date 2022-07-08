@@ -20,7 +20,7 @@ from pulp_ansible.app.galaxy.v1.utils import (
 
 # from pulp_ansible.app.galaxy.v1.constants import LEGACY_REPOSITORY_NAME
 
-from pulp_ansible.app.models import AnsibleRepository, Role
+from pulp_ansible.app.models import Role
 
 # from pulp_ansible.app.tasks.roles import GITHUB_URL
 
