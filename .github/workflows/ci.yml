@@ -82,6 +82,9 @@ jobs:
       - name: Check for gettext problems
         run: sh .ci/scripts/check_gettext.sh
 
+      - name: Verify upper bound requirements
+        run: python .ci/scripts/upper_bound.py
+
   test:
     runs-on: ubuntu-latest
     # run only after lint finishes
@@ -152,11 +155,6 @@ jobs:
       - name: Install Python client
         
         run: .github/workflows/scripts/install_python_client.sh
-        shell: bash
-
-      - name: Install Ruby client
-        if: ${{ env.TEST == 'bindings' }}
-        run: .github/workflows/scripts/install_ruby_client.sh
         shell: bash
 
       - name: Before Script
