@@ -1,8 +1,8 @@
-async_lru~=1.0
-galaxy_importer>=0.4.1
-GitPython>=3.1.24
-jsonschema>=3.0
-packaging
+async_lru>=1.0,<1.1
+galaxy_importer>=0.4.5,<0.5
+GitPython>=3.1.24,<3.2
+jsonschema>=4.4,<4.7
+packaging>=21,<22
 pulpcore>=3.16,<3.20
-PyYAML
-semantic_version
+PyYAML<6.0
+semantic_version>=2.9,<2.11
