@@ -143,16 +143,6 @@ fi
 
 cd ..
 
-
-if [[ "$TEST" == "upgrade" ]]; then
-  cd pulpcore
-  git checkout -b ci_upgrade_test
-  git fetch --depth=1 origin heads/$FROM_PULPCORE_BRANCH:$FROM_PULPCORE_BRANCH
-  git checkout $FROM_PULPCORE_BRANCH
-  cd ..
-fi
-
-
 # Intall requirements for ansible playbooks
 pip install docker netaddr boto3 ansible
 

@@ -1,3 +1,4 @@
 plantuml
 sphinx<1.8.0
 towncrier
+Jinja2<3.1
