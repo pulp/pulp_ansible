@@ -566,10 +566,12 @@ class CollectionArtifactDownloadView(views.APIView):
             filename=self.kwargs["filename"],
         )
 
-        if distribution.content_guard:
+        if (
+            distribution.content_guard
+            and distribution.content_guard.pulp_type == "core.content_redirect"
+        ):
             guard = distribution.content_guard.cast()
-            if guard.TYPE == "content_redirect":
-                return redirect(guard.preauthenticate_url(url))
+            return redirect(guard.preauthenticate_url(url))
 
         return redirect(url)
 
