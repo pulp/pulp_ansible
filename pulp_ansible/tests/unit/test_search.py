@@ -43,8 +43,9 @@ class TestSearchUtil(TestCase):
             self.collections[spec]["col"] = col
 
             # make the collection version
-            cv = CollectionVersion(collection=col, namespace=spec[0], name=spec[1], version=spec[2])
-            cv.save()
+            cv = CollectionVersion.objects.create(
+                collection=col, sha256=str(ids), namespace=spec[0], name=spec[1], version=spec[2]
+            )
             self.collections[spec]["cv"] = cv
 
             # add tags ...
