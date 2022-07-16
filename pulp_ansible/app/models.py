@@ -162,6 +162,7 @@ class CollectionVersion(Content):
     """
 
     TYPE = "collection_version"
+    repo_key_fields = ("name", "namespace", "version")
 
     # Data Fields
     authors = psql_fields.ArrayField(models.CharField(max_length=64), default=list, editable=False)
@@ -179,6 +180,7 @@ class CollectionVersion(Content):
     namespace = models.CharField(max_length=64, editable=False)
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     requires_ansible = models.CharField(null=True, max_length=255)
+    sha256 = models.CharField(max_length=64, null=True, blank=False)
 
     version = models.CharField(max_length=128, db_collation="pulp_ansible_semver")
     version_major = models.IntegerField()
@@ -205,6 +207,11 @@ class CollectionVersion(Content):
     #   search_vector is built.
     search_vector = psql_search.SearchVectorField(default="")
 
+    @classmethod
+    def natural_key_fields(cls):
+        # This method should be removed when the uniqueness is properly switched to sha256.
+        return cls._meta.unique_together[0]
+
     @hook(BEFORE_SAVE)
     def calculate_version_parts(self):
         v = Version(self.version)
@@ -229,7 +236,7 @@ class CollectionVersion(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("namespace", "name", "version")
+        unique_together = (("namespace", "name", "version"), ("sha256",))
         constraints = [
             UniqueConstraint(
                 fields=("collection", "is_highest"),
@@ -535,6 +542,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
 
     def finalize_new_version(self, new_version):
         """Finalize repo version."""
+        remove_duplicates(new_version)
         removed_collection_versions = new_version.removed(
             base_version=new_version.base_version
         ).filter(pulp_type=CollectionVersion.get_pulp_type())

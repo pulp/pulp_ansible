@@ -46,6 +46,7 @@ def process_collection_artifact(artifact, namespace, name, version):
 
     # Set CollectionVersion metadata
     collection_info = importer_result["metadata"]
+    collection_info["sha256"] = artifact.sha256
 
     with transaction.atomic():
         collection, created = Collection.objects.get_or_create(
