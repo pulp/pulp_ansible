@@ -45,28 +45,26 @@ def build_cvs_from_specs(specs, build_artifacts=True):
     """Make CVs from a list of [namespace, name, version] specs."""
     collection_versions = []
     for spec in specs:
+        with make_cv_tarball(spec[0], spec[1], spec[2]) as tarfn:
+            with open(tarfn, "rb") as fp:
+                rawbin = fp.read()
+            artifact = Artifact.objects.create(
+                size=os.path.getsize(tarfn),
+                file=SimpleUploadedFile(tarfn, rawbin),
+                **{
+                    algorithm: hashlib.new(algorithm, rawbin).hexdigest()
+                    for algorithm in Artifact.DIGEST_FIELDS
+                },
+            )
+
         col, _ = Collection.objects.get_or_create(name=spec[0])
-        col.save()
-        cv = CollectionVersion(collection=col, namespace=spec[0], name=spec[1], version=spec[2])
-        cv.save()
+        cv = CollectionVersion.objects.create(
+            collection=col, sha256=artifact.sha256, namespace=spec[0], name=spec[1], version=spec[2]
+        )
         collection_versions.append(cv)
 
-        if build_artifacts:
-            with make_cv_tarball(spec[0], spec[1], spec[2]) as tarfn:
-                rawbin = open(tarfn, "rb").read()
-                artifact = Artifact.objects.create(
-                    size=os.path.getsize(tarfn),
-                    file=SimpleUploadedFile(tarfn, rawbin),
-                    **{
-                        algorithm: hashlib.new(algorithm, rawbin).hexdigest()
-                        for algorithm in Artifact.DIGEST_FIELDS
-                    },
-                )
-                artifact.save()
-
-            ca = ContentArtifact.objects.create(
-                artifact=artifact, content=cv, relative_path=cv.relative_path
-            )
-            ca.save()
+        ContentArtifact.objects.create(
+            artifact=artifact, content=cv, relative_path=cv.relative_path
+        )
 
     return collection_versions
