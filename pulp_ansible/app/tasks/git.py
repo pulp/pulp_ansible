@@ -7,9 +7,16 @@ from pulpcore.plugin.models import ProgressReport
 from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
+    QueryExistingArtifacts,
+    QueryExistingContents,
+    ArtifactSaver,
+    RemoteArtifactSaver,
 )
 from pulp_ansible.app.models import AnsibleRepository, GitRemote
-from pulp_ansible.app.tasks.collections import declarative_content_from_git_repo
+from pulp_ansible.app.tasks.collections import (
+    declarative_content_from_git_repo,
+    AnsibleContentSaver,
+)
 
 log = logging.getLogger(__name__)
 
@@ -39,8 +46,28 @@ def synchronize(remote_pk, repository_pk, mirror=False):
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}
     )
     first_stage = GitFirstStage(remote)
-    d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
+    d_version = GitDeclarativeVersion(first_stage, repository, mirror=mirror)
     return d_version.create()
+
+
+class GitDeclarativeVersion(DeclarativeVersion):
+    """
+    Subclassed Declarative version creates a custom pipeline for Git sync.
+    """
+
+    def pipeline_stages(self, new_version):
+        """
+        Build a list of stages feeding into the ContentUnitAssociation stage.
+        """
+        return [
+            self.first_stage,
+            QueryExistingArtifacts(),
+            ArtifactSaver(),
+            QueryExistingContents(),
+            # TODO: Use DocsBlobDownloader stage for Docs Blob support?
+            AnsibleContentSaver(new_version),
+            RemoteArtifactSaver(),
+        ]
 
 
 class GitFirstStage(Stage):
