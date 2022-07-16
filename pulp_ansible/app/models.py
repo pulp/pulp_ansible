@@ -14,6 +14,7 @@ from pulpcore.plugin.models import (
     SigningService,
     Task,
 )
+from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 from .downloaders import AnsibleDownloaderFactory
 
 log = getLogger(__name__)
@@ -128,6 +129,7 @@ class CollectionVersion(Content):
     """
 
     TYPE = "collection_version"
+    repo_key_fields = ("name", "namespace", "version")
 
     # Data Fields
     authors = psql_fields.ArrayField(models.CharField(max_length=64), default=list, editable=False)
@@ -146,6 +148,7 @@ class CollectionVersion(Content):
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     version = models.CharField(max_length=128, editable=False)
     requires_ansible = models.CharField(null=True, max_length=255)
+    sha256 = models.CharField(max_length=64, db_index=True, null=False)
 
     is_highest = models.BooleanField(editable=False, default=False)
 
@@ -169,7 +172,7 @@ class CollectionVersion(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("namespace", "name", "version")
+        unique_together = ("sha256",)
         constraints = [
             UniqueConstraint(
                 fields=("collection", "is_highest"),
@@ -317,6 +320,7 @@ class AnsibleRepository(Repository):
 
     def finalize_new_version(self, new_version):
         """Finalize repo version."""
+        remove_duplicates(new_version)
         removed_collection_versions = new_version.removed(
             base_version=new_version.base_version
         ).filter(pulp_type=CollectionVersion.get_pulp_type())
@@ -346,6 +350,7 @@ class AnsibleRepository(Repository):
                 )
 
                 new_version.remove_content(deprecations)
+        validate_repo_version(new_version)
 
 
 class AnsibleDistribution(Distribution):

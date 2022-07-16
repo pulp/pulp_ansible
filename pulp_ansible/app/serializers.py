@@ -4,7 +4,7 @@ from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 
-from pulpcore.plugin.models import Artifact, PulpTemporaryFile, SigningService
+from pulpcore.plugin.models import PulpTemporaryFile, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
@@ -381,9 +381,9 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
             data = self.deferred_validate(data)
 
         sha256 = data["file"].hashers["sha256"].hexdigest()
-        artifact = Artifact.objects.filter(sha256=sha256).first()
-        if artifact:
-            ValidationError(_("Artifact already exists"))
+        cv = CollectionVersion.objects.filter(sha256=sha256).first()
+        if cv:
+            raise ValidationError(_("Collection Version already exists"))
         temp_file = PulpTemporaryFile.init_and_validate(data.pop("file"))
         temp_file.save()
         data["temp_file_pk"] = str(temp_file.pk)

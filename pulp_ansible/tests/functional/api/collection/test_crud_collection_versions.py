@@ -175,6 +175,4 @@ class ContentUnitTestCase(PulpTestCase):
         attrs = dict(namespace="pulp", name="squeezer", version="0.0.9")
         with self.assertRaises(ApiException) as ctx:
             self.upload_collection(**attrs)
-        self.assertIn(
-            "The fields namespace, name, version must make a unique set.", ctx.exception.body
-        )
+        self.assertIn("Collection Version already exists", ctx.exception.body)
