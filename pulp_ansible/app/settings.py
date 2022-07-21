@@ -1,7 +1,5 @@
 import socket
 
-from dynaconf import settings
-
 LOGGING = {
     "loggers": {
         "pulp_ansible.app.tasks.collection.import_collection": {
@@ -21,7 +19,7 @@ LOGGING = {
 }
 
 ANSIBLE_API_HOSTNAME = "https://" + socket.getfqdn()
-ANSIBLE_CONTENT_HOSTNAME = settings.CONTENT_ORIGIN + "/pulp/content"
+ANSIBLE_CONTENT_HOSTNAME = "@format {this.CONTENT_ORIGIN}/pulp/content"
 ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION = True
 ANSIBLE_SIGNING_TASK_LIMITER = 10
 ANSIBLE_DEFAULT_DISTRIBUTION_PATH = None
