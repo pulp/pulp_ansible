@@ -121,10 +121,6 @@ else
     fi
 
 fi
-pushd ../pulp-cli
-pip install -r test_requirements.txt
-pytest -v -m pulp_ansible
-popd
 
 if [ -f $POST_SCRIPT ]; then
   source $POST_SCRIPT
