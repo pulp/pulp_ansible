@@ -40,11 +40,12 @@ ignore = [
     "doc_requirements.txt",
     "docs/**",
     "pulp_ansible/tests/assets/**",
-    "flake8.cfg",
     "template_config.yml",
     ".travis/**",
     ".travis.yml",
     ".pep8speaks.yml",
     ".ci/**",
-    ".github/**"
+    ".github/**",
+    "lint_requirements.txt",
+    ".flake8",
 ]
