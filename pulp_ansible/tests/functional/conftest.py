@@ -8,13 +8,17 @@ from pulp_smash.pulp3.bindings import monitor_task
 
 from pulpcore.client.pulp_ansible import (
     AnsibleCollectionsApi,
+    AnsibleRepositorySyncURL,
     ApiClient,
     ContentCollectionSignaturesApi,
     ContentCollectionVersionsApi,
+    ContentRolesApi,
     DistributionsAnsibleApi,
+    PulpAnsibleApiV3CollectionsVersionsApi,
     RepositoriesAnsibleApi,
     RepositoriesAnsibleVersionsApi,
     RemotesCollectionApi,
+    RemotesGitApi,
     RemotesRoleApi,
 )
 
@@ -67,6 +71,12 @@ def ansible_collection_version_api_client(ansible_bindings_client):
 
 
 @pytest.fixture
+def ansible_role_api_client(ansible_bindings_client):
+    """Provides the Ansible Content Role API client object."""
+    return ContentRolesApi(ansible_bindings_client)
+
+
+@pytest.fixture
 def ansible_remote_collection_api_client(ansible_bindings_client):
     """Provides the Ansible Collection Remotes API client object."""
     return RemotesCollectionApi(ansible_bindings_client)
@@ -76,6 +86,18 @@ def ansible_remote_collection_api_client(ansible_bindings_client):
 def ansible_remote_role_api_client(ansible_bindings_client):
     """Provides the Ansible Role Remotes API client object."""
     return RemotesRoleApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def ansible_remote_git_api_client(ansible_bindings_client):
+    """Provides the Ansible Git Remotes API client object."""
+    return RemotesGitApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_collection_versions_api_client(ansible_bindings_client):
+    """Provides the Galaxy V3 Collection Versions API client object."""
+    return PulpAnsibleApiV3CollectionsVersionsApi(ansible_bindings_client)
 
 
 # Object Generation Fixtures
@@ -100,6 +122,18 @@ def ansible_repo_factory(ansible_repo_api_client, gen_object_with_cleanup):
 
 
 @pytest.fixture
+def sync_repo_factory(ansible_repo_api_client):
+    """A factory to perform a sync on an Ansible Repository and return its updated data."""
+
+    def _sync(ansible_repo, **kwargs):
+        body = AnsibleRepositorySyncURL(**kwargs)
+        monitor_task(ansible_repo_api_client.sync(ansible_repo.pulp_href, body).task)
+        return ansible_repo_api_client.read(ansible_repo.pulp_href)
+
+    yield _sync
+
+
+@pytest.fixture
 def ansible_distribution_factory(ansible_distro_api_client, gen_object_with_cleanup):
     """A factory to generate an Ansible Distribution with auto-cleanup."""
 
@@ -117,10 +151,32 @@ def ansible_collection_remote_factory(
     """A factory to generate an Ansible Collection Remote with auto-cleanup."""
 
     def _ansible_collection_remote_factory(**kwargs):
-        kwargs.update({"name": str(uuid.uuid4())})
+        kwargs.setdefault("name", str(uuid.uuid4()))
         return gen_object_with_cleanup(ansible_remote_collection_api_client, kwargs)
 
     yield _ansible_collection_remote_factory
+
+
+@pytest.fixture
+def ansible_git_remote_factory(ansible_remote_git_api_client, gen_object_with_cleanup):
+    """A factory to generate an Ansible Git Remote with auto-cleanup."""
+
+    def _ansible_git_remote_factory(**kwargs):
+        kwargs.setdefault("name", str(uuid.uuid4()))
+        return gen_object_with_cleanup(ansible_remote_git_api_client, kwargs)
+
+    yield _ansible_git_remote_factory
+
+
+@pytest.fixture
+def ansible_role_remote_factory(ansible_remote_role_api_client, gen_object_with_cleanup):
+    """A factory to generate an Ansible Role Remote with auto-cleanup."""
+
+    def _ansible_role_remote_factory(**kwargs):
+        kwargs.setdefault("name", str(uuid.uuid4()))
+        return gen_object_with_cleanup(ansible_remote_role_api_client, kwargs)
+
+    yield _ansible_role_remote_factory
 
 
 @pytest.fixture
@@ -134,3 +190,44 @@ def build_and_upload_collection(ansible_collections_api_client):
         return collection, task.created_resources[0]
 
     return _build_and_upload_collection
+
+
+@pytest.fixture
+def sync_and_count_factory(
+    ansible_collection_remote_factory,
+    ansible_git_remote_factory,
+    ansible_role_remote_factory,
+    ansible_repo_factory,
+    sync_repo_factory,
+    ansible_collection_version_api_client,
+    ansible_role_api_client,
+):
+    """A fixture to build a helper fixture to perform a sync and check the count of Collections."""
+
+    def _sync_and_count_builder(remote_type):
+        # This could be made even more generic to apply to all plugins
+        content_client = ansible_collection_version_api_client
+        if remote_type == "collection":
+            remote_factory = ansible_collection_remote_factory
+        elif remote_type == "git":
+            remote_factory = ansible_git_remote_factory
+        elif remote_type == "role":
+            remote_factory = ansible_role_remote_factory
+            content_client = ansible_role_api_client
+        else:
+            raise NotImplementedError
+
+        def _sync_and_count(remote_body, repo=None, **sync_kwargs):
+            if repo is None:
+                repo = ansible_repo_factory()
+            previous_latest = repo.latest_version_href
+            remote = remote_factory(**remote_body)
+            sync_kwargs.update({"remote": remote.pulp_href})
+            repo = sync_repo_factory(repo, **sync_kwargs)
+            assert repo.latest_version_href != previous_latest
+            c = content_client.list(repository_version=repo.latest_version_href)
+            return c.count
+
+        return _sync_and_count
+
+    yield _sync_and_count_builder
