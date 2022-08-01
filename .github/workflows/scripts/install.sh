@@ -82,10 +82,6 @@ pulp_container_tag: python36
 
 VARSYAML
 
-if [ "$TEST" = "upgrade" ]; then
-  sed -i "/^pulp_container_tag:.*/s//pulp_container_tag: upgrade/" vars/main.yaml
-fi
-
 if [ "$TEST" = "s3" ]; then
   export MINIO_ACCESS_KEY=AKIAIT2Z5TDYPX3ARJBA
   export MINIO_SECRET_KEY=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
