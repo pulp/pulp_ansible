@@ -27,3 +27,4 @@ curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-PRIVATE-KEY-
 curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-KEY-pulp-qe | cat > /tmp/GPG-KEY-pulp-qe
 echo "$KEY_FINGERPRINT:$TRUST_LEVEL:" | gpg --import-ownertrust
 export TEST_PULP_SIGNING_SCRIPT="$GITHUB_WORKSPACE"/pulp_ansible/tests/assets/sign-metadata.sh
+cmd_prefix bash -c "ln -s /pulp_ansible/pulp_ansible/tests/assets/sign-metadata.sh /usr/local/lib/python3.8/site-packages/pulp_ansible/tests/assets/sign-metadata.sh"
