@@ -20,7 +20,6 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL,
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_REPO_PATH,
-    COLLECTION_METADATA,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 from pulp_smash.pulp3.bindings import delete_orphans
@@ -61,7 +60,7 @@ def get_galaxy_url(base, path):
 
 
 @pytest.fixture(scope="session")
-def artifact():
+def collection_artifact():
     """Generate a randomized collection for testing."""
     # build_collection will only store one collection, so copy to new location and delete later
     artifact = build_collection("skeleton")
@@ -71,7 +70,7 @@ def artifact():
 
 
 @pytest.fixture(scope="session")
-def artifact2():
+def collection_artifact2():
     """
     Generate a second randomized collection for testing.
 
@@ -89,39 +88,40 @@ def get_metadata_published(pulp_client, pulp_dist):
     return datetime.strptime(metadata["published"], "%Y-%m-%dT%H:%M:%S.%fZ")
 
 
+def upload_collection(client, filename, base_path):
+    """Helper to upload collections to pulp_ansible/galaxy."""
+    UPLOAD_PATH = get_galaxy_url(base_path, "/v3/artifacts/collections/")
+    collection = {"file": (open(filename, "rb"))}
+
+    return client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
+
+
 @pytest.fixture(scope="session")
-def collection_upload(pulp_client, artifact, pulp_dist):
+def collection_upload(pulp_client, collection_artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
-    UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
     published_before_upload = get_metadata_published(pulp_client, pulp_dist)
-    logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
-    collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, open(artifact.filename, "rb"))}
-
-    response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
+    response = upload_collection(pulp_client, collection_artifact.filename, pulp_dist["base_path"])
     published_after_upload = get_metadata_published(pulp_client, pulp_dist)
     assert published_after_upload > published_before_upload
     return response
 
 
 @pytest.fixture(scope="session")
-def collection_upload2(pulp_client, artifact2, pulp_dist):
+def collection_upload2(pulp_client, collection_artifact2, pulp_dist):
     """Publish the second new collection and return the processed response data."""
-    UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
     published_before_upload = get_metadata_published(pulp_client, pulp_dist)
-    logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
-    collection = {"file": (open(artifact2.filename, "rb"))}
-
-    response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
+    response = upload_collection(pulp_client, collection_artifact2.filename, pulp_dist["base_path"])
     published_after_upload = get_metadata_published(pulp_client, pulp_dist)
     assert published_after_upload > published_before_upload
     return response
 
 
 @pytest.fixture(scope="session")
-def collection_detail(collection_upload, pulp_client, pulp_dist, artifact):
+def collection_detail(collection_upload, pulp_client, pulp_dist, collection_artifact):
     """Fetch and parse a collection details response from an uploaded collection."""
     url = get_galaxy_url(
-        pulp_dist["base_path"], f"/v3/collections/{artifact.namespace}/{artifact.name}/"
+        pulp_dist["base_path"],
+        f"/v3/collections/{collection_artifact.namespace}/{collection_artifact.name}/",
     )
     response = pulp_client.using_handler(api.json_handler).get(url)
     return response
@@ -198,13 +198,19 @@ def test_collection_upload(collection_upload):
     assert "finished_at" in collection_upload
     assert "messages" in collection_upload
 
-    for key, value in collection_upload.items():
-        if key in COLLECTION_METADATA.keys():
-            assert COLLECTION_METADATA[key] == value, collection_upload
+    # TODO: Add this back when namespace, name, and version are apart of the CollectionImport
+    # for key, value in collection_upload.items():
+    #     if key in COLLECTION_METADATA.keys():
+    #         assert COLLECTION_METADATA[key] == value, collection_upload
 
 
 def test_collection_list(
-    artifact, artifact2, collection_upload, collection_upload2, pulp_client, pulp_dist
+    collection_artifact,
+    collection_artifact2,
+    collection_upload,
+    collection_upload2,
+    pulp_client,
+    pulp_dist,
 ):
     """Tests the collection list endpoint after uploading both collections."""
     url = get_galaxy_url(pulp_dist["base_path"], "v3/collections/")
@@ -213,20 +219,20 @@ def test_collection_list(
     assert response["meta"]["count"] >= 2
     present_collections = {c["href"].split("collections/")[1] for c in response["data"]}
     uploaded_collections = {
-        f"index/{artifact.namespace}/{artifact.name}/",
-        f"index/{artifact2.namespace}/{artifact2.name}/",
+        f"index/{collection_artifact.namespace}/{collection_artifact.name}/",
+        f"index/{collection_artifact2.namespace}/{collection_artifact2.name}/",
     }
     assert uploaded_collections.issubset(present_collections)
 
 
-def test_collection_detail(artifact, collection_detail, pulp_dist):
+def test_collection_detail(collection_artifact, collection_detail, pulp_dist):
     """Test collection detail resulting from a successful upload of one version.
 
     Includes information of the most current version.
     """
     url = (
         f"plugin/ansible/content/{pulp_dist['base_path']}"
-        f"/collections/index/{artifact.namespace}/{artifact.name}/"
+        f"/collections/index/{collection_artifact.namespace}/{collection_artifact.name}/"
     )
 
     assert not collection_detail["deprecated"]
@@ -234,12 +240,14 @@ def test_collection_detail(artifact, collection_detail, pulp_dist):
     # Check that the URL ends with the correct path so that this test doesn't fail
     # when galaxy_ng is installed
     assert collection_detail["href"].endswith(url)
-    assert collection_detail["namespace"] == artifact.namespace
-    assert collection_detail["name"] == artifact.name
+    assert collection_detail["namespace"] == collection_artifact.namespace
+    assert collection_detail["name"] == collection_artifact.name
     assert collection_detail["highest_version"]["version"] == "1.0.0"
 
 
-def test_collection_version_list(artifact, pulp_client, collection_detail, collection_upload2):
+def test_collection_version_list(
+    collection_artifact, pulp_client, collection_detail, collection_upload2
+):
     """Test the versions endpoint, listing the available versions of a given collection."""
     # Version List Endpoint
     versions = pulp_client.using_handler(api.json_handler).get(collection_detail["versions_url"])
@@ -258,9 +266,9 @@ def test_collection_version_filter_by_q(
     def publish(new_artifact):
         body = {
             "file": new_artifact.filename,
-            "namespace": new_artifact.namespace,
-            "name": new_artifact.name,
-            "version": new_artifact.version,
+            "expected_namespace": new_artifact.namespace,
+            "expected_name": new_artifact.name,
+            "expected_version": new_artifact.version,
         }
         resp = ansible_collection_version_api_client.create(**body)
         monitor_task(resp.task)
@@ -292,7 +300,7 @@ def test_collection_version_filter_by_q(
         assert resp.results[0].name == spec[2]
 
 
-def test_collection_version(artifact, pulp_client, collection_detail):
+def test_collection_version(collection_artifact, pulp_client, collection_detail):
     """Test collection version endpoint.
 
     Each collection version details a specific uploaded artifact for the collection.
@@ -302,15 +310,15 @@ def test_collection_version(artifact, pulp_client, collection_detail):
         collection_detail["highest_version"]["href"]
     )
 
-    assert version["name"] == artifact.name
-    assert version["namespace"] == {"name": artifact.namespace}
+    assert version["name"] == collection_artifact.name
+    assert version["namespace"] == {"name": collection_artifact.namespace}
     assert version["version"] == "1.0.0"
 
-    tarball = open(artifact.filename, "rb").read()
+    tarball = open(collection_artifact.filename, "rb").read()
     assert version["artifact"]["sha256"] == hashlib.sha256(tarball).hexdigest()
     assert version["artifact"]["size"] == len(tarball)
 
-    # assert version['artifact']['filename'] == artifact.filename
+    assert version["artifact"]["filename"] == collection_artifact.filename.strip("/tmp/")
 
     assert "updated_at" in version
     assert "created_at" in version
@@ -333,7 +341,7 @@ def test_collection_version(artifact, pulp_client, collection_detail):
 
 
 @pytest.mark.skip("Blocked by open ticket: https://github.com/pulp/pulp_ansible/issues/698")
-def test_collection_download(artifact, pulp_client, collection_detail):
+def test_collection_download(collection_artifact, pulp_client, collection_detail):
     """Test collection download URL.
 
     Should require authentication and redirect to a download location.
@@ -345,7 +353,7 @@ def test_collection_download(artifact, pulp_client, collection_detail):
     # Artifact Download Endoint
     url = version["download_url"]
 
-    tarball = open(artifact.filename, "rb").read()
+    tarball = open(collection_artifact.filename, "rb").read()
 
     c = pulp_client.using_handler(api.echo_handler)
     f = c.get(url)
@@ -353,27 +361,17 @@ def test_collection_download(artifact, pulp_client, collection_detail):
     assert f.content == tarball
 
 
-def test_collection_upload_repeat(pulp_client, known_collection, pulp_dist):
+def test_collection_upload_repeat(pulp_client, collection_artifact, pulp_dist, collection_upload):
     """Upload a duplicate collection.
 
     Should fail, because of the conflict of collection name and version.
     """
-    cfg = config.get_config()
-    url = urljoin(cfg.get_base_url(), f"api/{pulp_dist['base_path']}/v3/artifacts/collections/")
-
     with pytest.raises(HTTPError) as ctx:
-        response = pulp_client.post(url, files=known_collection)
+        upload_collection(pulp_client, collection_artifact.filename, pulp_dist["base_path"])
 
-        assert ctx.exception.response.json()["errors"][0] == {
-            "status": "400",
-            "code": "invalid",
-            "title": "Invalid input.",
-            "detail": "Artifact already exists.",
-        }
-
-        for key, value in collection_upload.items():
-            if key in COLLECTION_METADATA.keys():
-                assert COLLECTION_METADATA[key] == value, response
-
-        collection_sha256 = hashlib.sha256(known_collection["files"][1]).hexdigest()
-        assert response["sha256"] == collection_sha256, response
+    assert ctx.value.response.json()["errors"][0] == {
+        "status": "400",
+        "code": "invalid",
+        "title": "Invalid input.",
+        "detail": "Artifact already exists",
+    }

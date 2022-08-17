@@ -6,6 +6,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
 from rest_framework import serializers
 
+from pulpcore.plugin.models import Artifact
 from pulp_ansible.app.models import Collection, CollectionVersion, Role
 from pulp_ansible.app.galaxy.v3.serializers import CollectionMetadataSerializer
 
@@ -187,3 +188,10 @@ class GalaxyCollectionUploadSerializer(serializers.Serializer):
     file = serializers.FileField(
         help_text=_("The file containing the Artifact binary data."), required=True
     )
+
+    def validate(self, data):
+        """Ensure duplicate artifact isn't uploaded."""
+        sha256 = data["file"].hashers["sha256"].hexdigest()
+        artifact = Artifact.objects.filter(sha256=sha256).first()
+        if artifact:
+            raise serializers.ValidationError(_("Artifact already exists"))

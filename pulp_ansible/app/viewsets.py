@@ -54,7 +54,6 @@ from .serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionSignatureSerializer,
-    CollectionVersionUploadSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
     CopySerializer,
@@ -174,7 +173,7 @@ class CollectionVersionFilter(ContentFilter):
         fields = ["namespace", "name", "version", "q", "is_highest", "tags"]
 
 
-class CollectionVersionViewSet(SingleArtifactContentUploadViewSet, UploadGalaxyCollectionMixin):
+class CollectionVersionViewSet(UploadGalaxyCollectionMixin, SingleArtifactContentUploadViewSet):
     """
     ViewSet for Ansible Collection.
     """
@@ -184,33 +183,6 @@ class CollectionVersionViewSet(SingleArtifactContentUploadViewSet, UploadGalaxyC
     serializer_class = CollectionVersionSerializer
     filterset_class = CollectionVersionFilter
     ordering_fields = ("pulp_created", "name", "version", "namespace")
-
-    @extend_schema(
-        description="Trigger an asynchronous task to create content,"
-        "optionally create new repository version.",
-        request=CollectionVersionUploadSerializer,
-        responses={202: AsyncOperationResponseSerializer},
-    )
-    def create(self, request):
-        """Create a content unit."""
-        serializer = CollectionVersionUploadSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        kwargs = {}
-        if serializer.validated_data["namespace"]:
-            kwargs["expected_namespace"] = serializer.validated_data["namespace"]
-
-        if serializer.validated_data["name"]:
-            kwargs["expected_name"] = serializer.validated_data["name"]
-
-        if serializer.validated_data["version"]:
-            kwargs["expected_version"] = serializer.validated_data["version"]
-
-        temp_file_pk = serializer.validated_data["temp_file_pk"]
-        repository = serializer.validated_data.get("repository")
-        async_result = self._dispatch_import_collection_task(temp_file_pk, repository, **kwargs)
-
-        return OperationPostponedResponse(async_result, request)
 
 
 class SignatureFilter(ContentFilter):
@@ -466,6 +438,7 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
         operation_id="upload_collection",
         request=CollectionOneShotSerializer,
         responses={202: AsyncOperationResponseSerializer},
+        deprecated=True,
     )
     def create(self, request):
         """

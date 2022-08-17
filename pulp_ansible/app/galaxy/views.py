@@ -2,6 +2,7 @@ import re
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404, HttpResponse
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics, pagination, response, views
 
 from pulpcore.plugin.models import PulpTemporaryFile
@@ -167,6 +168,7 @@ class GalaxyCollectionView(DistributionMixin, UploadGalaxyCollectionMixin, gener
         """
         return Collection.objects.filter(versions__pk__in=self._distro_content).distinct()
 
+    @extend_schema(deprecated=True)
     def post(self, request, path):
         """
         Queues a task that creates a new Collection from an uploaded artifact.

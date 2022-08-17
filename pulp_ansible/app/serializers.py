@@ -4,7 +4,7 @@ from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 
-from pulpcore.plugin.models import Artifact, PulpTemporaryFile, SigningService
+from pulpcore.plugin.models import Artifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
@@ -16,7 +16,6 @@ from pulpcore.plugin.serializers import (
     RepositorySyncURLSerializer,
     SingleArtifactContentSerializer,
     SingleArtifactContentUploadSerializer,
-    SingleContentArtifactField,
     DistributionSerializer,
     RepositoryVersionRelatedField,
     validate_unknown_fields,
@@ -37,8 +36,12 @@ from .models import (
     Tag,
 )
 from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
-from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
+from pulp_ansible.app.tasks.utils import (
+    parse_collections_requirements_file,
+    parse_collection_filename,
+)
 from pulp_ansible.app.tasks.signature import verify_signature_upload
+from pulp_ansible.app.tasks.upload import process_collection_artifact, finish_collection_upload
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -303,6 +306,15 @@ class CollectionOneShotSerializer(serializers.Serializer):
         default=None,
     )
 
+    def validate(self, data):
+        """Ensure duplicate artifact isn't uploaded."""
+        data = super().validate(data)
+        sha256 = data["file"].hashers["sha256"].hexdigest()
+        artifact = Artifact.objects.filter(sha256=sha256).first()
+        if artifact:
+            raise ValidationError(_("Artifact already exists"))
+        return data
+
 
 class AnsibleDistributionSerializer(DistributionSerializer):
     """
@@ -379,116 +391,221 @@ class CollectionSerializer(ModelSerializer):
 
 class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
     """
-    A serializer for CollectionVersion Content.
+    A serializer with the logic necessary to upload a CollectionVersion.
+
+    Used in ``.viewsets.CollectionVersionViewSet`` and ``.galaxy.v3.views.CollectionUploadViewSet``
+    to perform the creation and validation of a CollectionVersion and add to repository if
+    necessary. This serializer is meant to be compliant with
+    ``pulpcore.plugin.viewsets.SingleArtifactContentUploadViewSet`` and thus follows these steps on
+    creation:
+
+    1. ``SingleArtifactContentUploadViewSet.create()`` calls ``validate()`` with request in context
+    2. Task payload is created, converting uploaded-file (if present) to an artifact
+    3. ``pulpcore.plugin.tasks.general_create`` is dispatched with this serializer, the task payload
+        and a deferred context determine by the viewset (default an empty context).
+    4. ``general_create`` calls ``validate()`` again with deferred context now.
+        ``deferred_validate()`` is now called and the upload object (if present) is converted to an
+        artifact.
+    5. ``general_create`` calls ``save()`` which will call ``create()``. ``create`` uses the
+        validated data to create and save the CollectionVersion. If repository is specified the
+        CollectionVersion is then added to the repository.
     """
 
-    name = serializers.CharField(help_text=_("The name of the collection."), max_length=64)
-
-    namespace = serializers.CharField(
-        help_text=_("The namespace of the collection."), max_length=64
+    sha256 = serializers.CharField(
+        help_text=_("An optional sha256 checksum of the uploaded file."),
+        required=False,
+        write_only=True,
     )
 
-    version = serializers.CharField(help_text=_("The version of the collection."), max_length=128)
+    expected_name = serializers.CharField(
+        help_text=_("The name of the collection."),
+        max_length=64,
+        required=False,
+        write_only=True,
+    )
+
+    expected_namespace = serializers.CharField(
+        help_text=_("The namespace of the collection."),
+        max_length=64,
+        required=False,
+        write_only=True,
+    )
+
+    expected_version = serializers.CharField(
+        help_text=_("The version of the collection."),
+        max_length=128,
+        required=False,
+        write_only=True,
+    )
 
     def validate(self, data):
-        """Validate that we have a file or can create one."""
-        if "artifact" in data:
-            raise serializers.ValidationError(_("Only 'file' may be specified."))
+        """Check and set the namespace, name & version."""
+        fields = ("namespace", "name", "version")
+        if not all((f"expected_{x}" in data for x in fields)):
+            if not ("file" in data or "filename" in self.context):
+                raise ValidationError(
+                    _(
+                        "expected_namespace, expected_name, and expected_version must be "
+                        "specified when using artifact or upload objects"
+                    )
+                )
+            filename = self.context.get("filename") or data["file"].name
+            try:
+                collection = parse_collection_filename(filename)
+            except ValueError:
+                raise ValidationError(
+                    _("Failed to parse Collection file upload '{}'").format(filename)
+                )
+            data["expected_namespace"] = collection.namespace
+            data["expected_name"] = collection.name
+            data["expected_version"] = collection.version
 
-        if "request" not in self.context:
-            data = self.deferred_validate(data)
+        if CollectionVersion.objects.filter(**{f: data[f"expected_{f}"] for f in fields}).exists():
+            raise ValidationError(
+                _("Collection {}.{}-{} already exists").format(
+                    data["expected_namespace"], data["expected_name"], data["expected_version"]
+                )
+            )
 
-        sha256 = data["file"].hashers["sha256"].hexdigest()
-        artifact = Artifact.objects.filter(sha256=sha256).first()
-        if artifact:
-            ValidationError(_("Artifact already exists"))
-        temp_file = PulpTemporaryFile.init_and_validate(data.pop("file"))
-        temp_file.save()
-        data["temp_file_pk"] = str(temp_file.pk)
+        # Super will call deferred_validate on second call in task context
+        return super().validate(data)
+
+    def deferred_validate(self, data):
+        """Import the CollectionVersion extracting the metadata from its artifact."""
+        # Call super to ensure that data contains artifact
+        data = super().deferred_validate(data)
+        artifact = data.get("artifact")
+        if (sha256 := data.pop("sha256", None)) and sha256 != artifact.sha256:
+            raise ValidationError(_("Expected sha256 did not match uploaded artifact's sha256"))
+
+        collection_info = process_collection_artifact(
+            artifact=artifact,
+            namespace=data.pop("expected_namespace"),
+            name=data.pop("expected_name"),
+            version=data.pop("expected_version"),
+        )
+        # repository field clashes
+        collection_info["origin_repository"] = collection_info.pop("repository", None)
+        data.update(collection_info)
 
         return data
 
+    def create(self, validated_data):
+        """Final step in creating the CollectionVersion."""
+        tags = validated_data.pop("tags")
+        origin_repository = validated_data.pop("origin_repository")
+        # Create CollectionVersion from its metadata and adds to repository if specified
+        content = super().create(validated_data)
+
+        # Now add tags and update latest CollectionVersion
+        finish_collection_upload(content, tags=tags, origin_repository=origin_repository)
+
+        return content
+
     class Meta:
         fields = tuple(
-            set(SingleArtifactContentUploadSerializer.Meta.fields) - {"artifact", "relative_path"}
+            set(SingleArtifactContentUploadSerializer.Meta.fields) - {"relative_path"}
         ) + (
-            "name",
-            "namespace",
-            "version",
+            "sha256",
+            "expected_name",
+            "expected_namespace",
+            "expected_version",
         )
         model = CollectionVersion
 
 
-class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecksumSerializer):
+class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUploadSerializer):
     """
     A serializer for CollectionVersion Content.
     """
 
-    artifact = SingleContentArtifactField(
-        help_text=_("Artifact file representing the physical content"),
-        required=False,
-    )
-
-    id = serializers.UUIDField(source="pk", help_text="A collection identifier.")
+    id = serializers.UUIDField(source="pk", help_text="A collection identifier.", read_only=True)
 
     authors = serializers.ListField(
         help_text=_("A list of the CollectionVersion content's authors."),
         child=serializers.CharField(max_length=64),
+        read_only=True,
     )
 
-    contents = serializers.JSONField(help_text=_("A JSON field with data about the contents."))
+    contents = serializers.JSONField(
+        help_text=_("A JSON field with data about the contents."), read_only=True
+    )
 
     dependencies = serializers.JSONField(
         help_text=_(
             "A dict declaring Collections that this collection requires to be installed for it to "
             "be usable."
-        )
+        ),
+        read_only=True,
     )
 
     description = serializers.CharField(
-        help_text=_("A short summary description of the collection."), allow_blank=True
+        help_text=_("A short summary description of the collection."),
+        allow_blank=True,
+        read_only=True,
     )
 
     docs_blob = serializers.JSONField(
-        help_text=_("A JSON field holding the various documentation blobs in the collection.")
+        help_text=_("A JSON field holding the various documentation blobs in the collection."),
+        read_only=True,
     )
 
-    manifest = serializers.JSONField(help_text=_("A JSON field holding MANIFEST.json data."))
+    manifest = serializers.JSONField(
+        help_text=_("A JSON field holding MANIFEST.json data."), read_only=True
+    )
 
-    files = serializers.JSONField(help_text=_("A JSON field holding FILES.json data."))
+    files = serializers.JSONField(
+        help_text=_("A JSON field holding FILES.json data."), read_only=True
+    )
 
     documentation = serializers.CharField(
-        help_text=_("The URL to any online docs."), allow_blank=True, max_length=2000
+        help_text=_("The URL to any online docs."),
+        allow_blank=True,
+        max_length=2000,
+        read_only=True,
     )
 
     homepage = serializers.CharField(
         help_text=_("The URL to the homepage of the collection/project."),
         allow_blank=True,
         max_length=2000,
+        read_only=True,
     )
 
     issues = serializers.CharField(
-        help_text=_("The URL to the collection issue tracker."), allow_blank=True, max_length=2000
+        help_text=_("The URL to the collection issue tracker."),
+        allow_blank=True,
+        max_length=2000,
+        read_only=True,
     )
 
     license = serializers.ListField(
         help_text=_("A list of licenses for content inside of a collection."),
         child=serializers.CharField(max_length=32),
+        read_only=True,
     )
 
-    name = serializers.CharField(help_text=_("The name of the collection."), max_length=64)
+    name = serializers.CharField(
+        help_text=_("The name of the collection."), max_length=64, read_only=True
+    )
 
     namespace = serializers.CharField(
-        help_text=_("The namespace of the collection."), max_length=64
+        help_text=_("The namespace of the collection."), max_length=64, read_only=True
     )
 
-    repository = serializers.CharField(
-        help_text=_("The URL of the originating SCM repository."), allow_blank=True, max_length=2000
+    origin_repository = serializers.CharField(
+        help_text=_("The URL of the originating SCM repository."),
+        source="repository",
+        allow_blank=True,
+        max_length=2000,
+        read_only=True,
     )
 
     tags = TagNestedSerializer(many=True, read_only=True)
 
-    version = serializers.CharField(help_text=_("The version of the collection."), max_length=128)
+    version = serializers.CharField(
+        help_text=_("The version of the collection."), max_length=128, read_only=True
+    )
 
     requires_ansible = serializers.CharField(
         help_text=_(
@@ -496,34 +613,76 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
             "Multiple versions can be separated with a comma."
         ),
         allow_null=True,
-        required=False,
+        read_only=True,
         max_length=255,
     )
 
+    creating = True
+
+    def validate(self, data):
+        """Run super() validate if creating, else return data."""
+        # This validation is for creating CollectionVersions
+        if not self.creating or self.instance:
+            return data
+        return super().validate(data)
+
+    def is_valid(self, raise_exception=False):
+        """
+        Allow this serializer to be used for validating before saving a model.
+
+        See Validating Models:
+            https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/concepts/index.html
+        """
+        write_fields = set(CollectionVersionUploadSerializer.Meta.fields) - {"pulp_created"}
+        if hasattr(self, "initial_data"):
+            if any((x in self.initial_data for x in self.Meta.read_fields)):
+                # Pop shared fields: artifact & repository
+                artifact = self.initial_data.pop("artifact", None)
+                repository = self.initial_data.pop("repository", None)
+                if any((x in self.initial_data for x in write_fields)):
+                    if raise_exception:
+                        raise ValidationError(
+                            _("Read and write fields can not be used at the same time")
+                        )
+                    return False
+                # Only read fields set, change each one from read_only so they are validated
+                for name, field in self.fields.items():
+                    if name in self.Meta.read_fields:
+                        field.read_only = False
+                # Put back in shared fields
+                if artifact is not None:
+                    self.initial_data["artifact"] = artifact
+                if repository is not None:
+                    self.initial_data["origin_repository"] = repository
+                self.creating = False
+
+        return super().is_valid(raise_exception=raise_exception)
+
     class Meta:
+        read_fields = (
+            "id",
+            "authors",
+            "contents",
+            "dependencies",
+            "description",
+            "docs_blob",
+            "manifest",
+            "files",
+            "documentation",
+            "homepage",
+            "issues",
+            "license",
+            "name",
+            "namespace",
+            "origin_repository",
+            "tags",
+            "version",
+            "requires_ansible",
+        )
         fields = (
-            tuple(set(SingleArtifactContentSerializer.Meta.fields) - {"relative_path"})
+            CollectionVersionUploadSerializer.Meta.fields
             + ContentChecksumSerializer.Meta.fields
-            + (
-                "id",
-                "authors",
-                "contents",
-                "dependencies",
-                "description",
-                "docs_blob",
-                "manifest",
-                "files",
-                "documentation",
-                "homepage",
-                "issues",
-                "license",
-                "name",
-                "namespace",
-                "repository",
-                "tags",
-                "version",
-                "requires_ansible",
-            )
+            + read_fields
         )
         model = CollectionVersion
 
