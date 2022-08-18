@@ -1,0 +1,1 @@
+Fixed a bug where updating a CollectionRemote did not reset all repositories sync timestamp.

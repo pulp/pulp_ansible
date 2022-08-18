@@ -181,13 +181,11 @@ class CollectionRemoteSerializer(RemoteSerializer):
 
     sync_dependencies = serializers.BooleanField(
         help_text=_("Sync dependencies for collections specified via requirements file"),
-        allow_null=True,
         default=True,
     )
 
     signed_only = serializers.BooleanField(
         help_text=_("Sync only collections that have a signature"),
-        allow_null=True,
         default=False,
     )
 

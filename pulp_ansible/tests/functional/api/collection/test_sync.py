@@ -1,5 +1,8 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
+import datetime
 import os
+
+import pytest
 import unittest
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
@@ -280,3 +283,72 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
 
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/", name="posix")
         self.assertNotEqual(content.count, 0)
+
+
+@pytest.mark.skip("Skipped until fixture metadata has a published date")
+@pytest.mark.parallel
+def test_optimized_sync(
+    ansible_repo_api_client,
+    ansible_remote_collection_api_client,
+    ansible_repo_factory,
+    ansible_collection_remote_factory,
+):
+    # TODO this test is incomplete and may not work
+    remote1 = ansible_collection_remote_factory(
+        url="https://galaxy.ansible.com",
+        requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+        sync_dependencies=False,
+        signed_only=False,
+    )
+    remote2 = ansible_collection_remote_factory(
+        url="https://galaxy.ansible.com",
+        requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+        sync_dependencies=False,
+        signed_only=False,
+    )
+    repository = ansible_repo_factory(remote=remote1.pulp_href)
+    monitor_task(ansible_repo_api_client.sync(repository.pulp_href, {}).task)
+    repository = ansible_repo_api_client.read(repository.pulp_href)
+    assert repository.last_synced_metadata_time is not None
+    monitor_task(ansible_repo_api_client.sync(repository.pulp_href, {"optimize": True}).task)
+    # TODO CHECK IF SYNC WAS OPTIMIZED
+    monitor_task(
+        ansible_repo_api_client.sync(
+            repository.pulp_href, {"remote": remote2.pulp_href, "optimize": True}
+        ).task
+    )
+    repository = ansible_repo_api_client.read(repository.pulp_href)
+    assert repository.last_synced_metadata_time is None
+    # TODO CHECK IF SYNC WAS NOT OPTIMIZED
+
+
+@pytest.mark.parallel
+def test_last_synced_metadata_time(
+    ansible_repo_api_client,
+    ansible_remote_collection_api_client,
+    ansible_repo_factory,
+    ansible_collection_remote_factory,
+):
+    remote1 = ansible_collection_remote_factory(
+        url="https://galaxy.ansible.com",
+        requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+        sync_dependencies=False,
+        signed_only=False,
+    )
+    repository = ansible_repo_factory(remote=remote1.pulp_href)
+    monitor_task(
+        ansible_repo_api_client.partial_update(
+            repository.pulp_href, {"last_synced_metadata_time": "2000-01-01 00:00"}
+        ).task
+    )
+    repository = ansible_repo_api_client.read(repository.pulp_href)
+    assert repository.last_synced_metadata_time == datetime.datetime(
+        2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc
+    )
+    monitor_task(
+        ansible_remote_collection_api_client.partial_update(
+            remote1.pulp_href, {"signed_only": True}
+        ).task
+    )
+    repository = ansible_repo_api_client.read(repository.pulp_href)
+    assert repository.last_synced_metadata_time is None

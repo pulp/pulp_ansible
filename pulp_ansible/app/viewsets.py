@@ -60,7 +60,7 @@ from .serializers import (
     RoleSerializer,
     TagSerializer,
 )
-from .tasks.collections import update_collection_remote, sync as collection_sync
+from .tasks.collections import sync as collection_sync
 from .tasks.copy import copy_content
 from .tasks.roles import synchronize as role_sync
 from .tasks.git import synchronize as git_sync
@@ -385,25 +385,15 @@ class CollectionRemoteViewSet(RemoteViewSet):
     queryset = CollectionRemote.objects.all()
     serializer_class = CollectionRemoteSerializer
 
-    @extend_schema(
-        description="Trigger an asynchronous update task",
-        responses={202: AsyncOperationResponseSerializer},
-    )
-    def update(self, request, pk, **kwargs):
-        """Update remote."""
-        partial = kwargs.pop("partial", False)
-        lock = [self.get_object()]
+    def async_reserved_resources(self, instance):
+        if instance is None:
+            return []
+        lock = [instance]
         repos = AnsibleRepository.objects.filter(
-            remote_id=pk, last_synced_metadata_time__isnull=False
-        ).all()
-        lock.extend(repos)
-        async_result = dispatch(
-            update_collection_remote,
-            exclusive_resources=lock,
-            args=(pk,),
-            kwargs={"data": request.data, "partial": partial},
+            remote_id=instance.pk, last_synced_metadata_time__isnull=False
         )
-        return OperationPostponedResponse(async_result, request)
+        lock.extend(repos)
+        return lock
 
 
 class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
