@@ -1,40 +1,49 @@
-# coding=utf-8
 """Tests that CRUD remotes."""
+import pytest
 from pulp_smash.pulp3.bindings import monitor_task
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
-    TestCaseUsingBindings,
 )
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulpcore.client.pulp_ansible import ApiException
 
 
-class CRUDAnsibleGitRemotesTestCase(TestCaseUsingBindings):
-    """CRUD Ansible Git remotes."""
+@pytest.mark.parallel
+def test_crud_git_remote(ansible_remote_git_api_client, gen_object_with_cleanup):
+    """Create, Read, Partial Update, and Delete an Ansible Git remote."""
+    # Create Git remote
+    body = gen_ansible_remote(url="https://github.com/geerlingguy/ansible-role-adminer.git")
+    remote = gen_object_with_cleanup(ansible_remote_git_api_client, body)
 
-    def test_01_crud_remote(self):
-        """Create, Read, Partial Update, and Delete an Ansible Git remote."""
-        body = gen_ansible_remote(url="https://github.com/geerlingguy/ansible-role-adminer.git")
-        remote = self.remote_git_api.create(body)
-        self.addCleanup(self.remote_git_api.delete, remote.pulp_href)
-        remote = self.remote_git_api.read(remote.pulp_href)
-        for k, v in body.items():
-            self.assertEquals(body[k], getattr(remote, k))
-        update_body = {"url": "https://github.com/geerlingguy/ansible-role-ansible.git"}
-        remote_update = self.remote_git_api.partial_update(remote.pulp_href, update_body)
-        monitor_task(remote_update.task)
-        remote = self.remote_git_api.read(remote.pulp_href)
-        self.assertEqual(remote.url, update_body["url"])
-        self.assertEqual(remote.metadata_only, False)
-        with self.assertRaises(AttributeError):
-            getattr(remote, "policy")
+    # Read Git remote
+    remote = ansible_remote_git_api_client.read(remote.pulp_href)
+    for k, v in body.items():
+        assert body[k] == getattr(remote, k)
 
-    def test_02_metadata_only_remote(self):
-        """Create a remote where `metadata_only` is set to True."""
-        body = gen_ansible_remote(
-            url="https://github.com/geerlingguy/ansible-role-adminer.git", metadata_only=True
-        )
-        remote = self.remote_git_api.create(body)
-        self.addCleanup(self.remote_git_api.delete, remote.pulp_href)
-        for k, v in body.items():
-            self.assertEqual(body[k], getattr(remote, k))
+    # Update Git remote
+    update_body = {"url": "https://github.com/geerlingguy/ansible-role-ansible.git"}
+    remote_update = ansible_remote_git_api_client.partial_update(remote.pulp_href, update_body)
+    monitor_task(remote_update.task)
+    remote = ansible_remote_git_api_client.read(remote.pulp_href)
+    assert remote.url == update_body["url"]
+    assert remote.metadata_only is False
+
+    # Ensure Git remote doesn't have a download policy
+    assert not hasattr(remote, "policy")
+
+    # Delete Git remote
+    remote_delete = ansible_remote_git_api_client.delete(remote.pulp_href)
+    monitor_task(remote_delete.task)
+    with pytest.raises(ApiException):
+        ansible_remote_git_api_client.read(remote.pulp_href)
+
+
+@pytest.mark.parallel
+def test_git_metadata_only_remote(ansible_git_remote_factory):
+    """Create a remote where `metadata_only` is set to True."""
+    body = gen_ansible_remote(
+        url="https://github.com/geerlingguy/ansible-role-adminer.git", metadata_only=True
+    )
+    remote = ansible_git_remote_factory(**body)
+    for k, v in body.items():
+        assert body[k] == getattr(remote, k)
