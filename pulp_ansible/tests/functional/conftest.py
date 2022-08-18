@@ -8,13 +8,16 @@ from pulp_smash.pulp3.bindings import monitor_task
 
 from pulpcore.client.pulp_ansible import (
     AnsibleCollectionsApi,
+    AnsibleRepositorySyncURL,
     ApiClient,
     ContentCollectionSignaturesApi,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
+    PulpAnsibleApiV3CollectionsVersionsApi,
     RepositoriesAnsibleApi,
     RepositoriesAnsibleVersionsApi,
     RemotesCollectionApi,
+    RemotesGitApi,
     RemotesRoleApi,
 )
 
@@ -78,6 +81,18 @@ def ansible_remote_role_api_client(ansible_bindings_client):
     return RemotesRoleApi(ansible_bindings_client)
 
 
+@pytest.fixture
+def ansible_remote_git_api_client(ansible_bindings_client):
+    """Provides the Ansible Git Remotes API client object."""
+    return RemotesGitApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_collection_versions_api_client(ansible_bindings_client):
+    """Provides the Galaxy V3 Collection Versions API client object."""
+    return PulpAnsibleApiV3CollectionsVersionsApi(ansible_bindings_client)
+
+
 # Object Generation Fixtures
 
 
@@ -100,6 +115,20 @@ def ansible_repo_factory(ansible_repo_api_client, gen_object_with_cleanup):
 
 
 @pytest.fixture
+def ansible_sync_factory(ansible_repo_api_client, ansible_repo_factory):
+    """A factory to perform a sync on an Ansible Repository and return its updated data."""
+
+    def _sync(ansible_repo=None, **kwargs):
+        body = AnsibleRepositorySyncURL(**kwargs)
+        if ansible_repo is None:
+            ansible_repo = ansible_repo_factory()
+        monitor_task(ansible_repo_api_client.sync(ansible_repo.pulp_href, body).task)
+        return ansible_repo_api_client.read(ansible_repo.pulp_href)
+
+    return _sync
+
+
+@pytest.fixture
 def ansible_distribution_factory(ansible_distro_api_client, gen_object_with_cleanup):
     """A factory to generate an Ansible Distribution with auto-cleanup."""
 
@@ -107,7 +136,7 @@ def ansible_distribution_factory(ansible_distro_api_client, gen_object_with_clea
         distro_data = gen_distribution(repository=ansible_repo.pulp_href)
         return gen_object_with_cleanup(ansible_distro_api_client, distro_data)
 
-    yield _ansible_distribution_factory
+    return _ansible_distribution_factory
 
 
 @pytest.fixture
@@ -117,10 +146,21 @@ def ansible_collection_remote_factory(
     """A factory to generate an Ansible Collection Remote with auto-cleanup."""
 
     def _ansible_collection_remote_factory(**kwargs):
-        kwargs.update({"name": str(uuid.uuid4())})
+        kwargs.setdefault("name", str(uuid.uuid4()))
         return gen_object_with_cleanup(ansible_remote_collection_api_client, kwargs)
 
-    yield _ansible_collection_remote_factory
+    return _ansible_collection_remote_factory
+
+
+@pytest.fixture
+def ansible_git_remote_factory(ansible_remote_git_api_client, gen_object_with_cleanup):
+    """A factory to generate an Ansible Git Remote with auto-cleanup."""
+
+    def _ansible_git_remote_factory(**kwargs):
+        kwargs.setdefault("name", str(uuid.uuid4()))
+        return gen_object_with_cleanup(ansible_remote_git_api_client, kwargs)
+
+    return _ansible_git_remote_factory
 
 
 @pytest.fixture
