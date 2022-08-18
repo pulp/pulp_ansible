@@ -62,7 +62,7 @@ from pulp_ansible.app.models import (
     CollectionVersionSignature,
     Tag,
 )
-from pulp_ansible.app.serializers import CollectionRemoteSerializer, CollectionVersionSerializer
+from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
     RequirementsFileEntry,
     get_file_obj_from_tarball,
@@ -139,44 +139,6 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
     return d_content
 
 
-def update_collection_remote(remote_pk, *args, **kwargs):
-    """
-    Update a CollectionRemote.
-
-    Update `AnsibleRepository.last_synced_metadata_time` when URL or requirements file are updated.
-
-    Args:
-        remote_pk (str): the id of the CollectionRemote
-        data (dict): dictionary whose keys represent the fields of the model and their corresponding
-            values.
-        partial (bool): When true, only the fields specified in the data dictionary are updated.
-            When false, any fields missing from the data dictionary are assumed to be None and
-            their values are updated as such.
-
-    Raises:
-        :class:`rest_framework.exceptions.ValidationError`: When serializer instance can't be saved
-            due to validation error. This theoretically should never occur since validation is
-            performed before the task is dispatched.
-    """
-    data = kwargs.pop("data", None)
-    partial = kwargs.pop("partial", False)
-    with transaction.atomic():
-        if "url" in data or "requirements_file" in data:
-            repos = list(
-                AnsibleRepository.objects.filter(
-                    remote_id=remote_pk, last_synced_metadata_time__isnull=False
-                ).all()
-            )
-            for repo in repos:
-                repo.last_synced_metadata_time = None
-            AnsibleRepository.objects.bulk_update(repos, ["last_synced_metadata_time"])
-
-        instance = CollectionRemote.objects.get(pk=remote_pk)
-        serializer = CollectionRemoteSerializer(instance, data=data, partial=partial)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-
 def sync(remote_pk, repository_pk, mirror, optimize):
     """
     Sync Collections with ``remote_pk``, and save a new RepositoryVersion for ``repository_pk``.
@@ -219,9 +181,8 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     if not repo_version:
         return
 
-    if first_stage.last_synced_metadata_time:
-        repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
-        repository.save()
+    repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
+    repository.save(update_fields=["last_synced_metadata_time"])
 
     to_undeprecate = Q()
     undeprecated = deprecation_before_sync.difference(first_stage.deprecation_after_sync)
@@ -494,7 +455,6 @@ class CollectionSyncFirstStage(Stage):
         super().__init__()
         self.remote = remote
         self.repository = repository
-        self.is_repo_remote = is_repo_remote
         self.deprecation_before_sync = deprecation_before_sync
         self.deprecation_after_sync = set()
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
@@ -504,13 +464,14 @@ class CollectionSyncFirstStage(Stage):
         self.already_synced = set()
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
+        self.optimize = optimize
         self.last_synced_metadata_time = None
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
 
         # Check if we should sync
-        self.should_sync = not optimize or asyncio.get_event_loop().run_until_complete(
+        self.should_sync = not is_repo_remote or asyncio.get_event_loop().run_until_complete(
             self._should_we_sync()
         )
 
@@ -901,9 +862,6 @@ class CollectionSyncFirstStage(Stage):
         """Check last synced metadata time."""
         msg = _("no_change: Checking if remote changed since last sync.")
         async with ProgressReport(message=msg, code="sync.no_change") as noop:
-            if not self.is_repo_remote:
-                return True
-
             root, api_version = await self._get_root_api(self.remote.url)
             if api_version == 3:
                 downloader = self.remote.get_downloader(
@@ -917,6 +875,9 @@ class CollectionSyncFirstStage(Stage):
                 try:
                     self.last_synced_metadata_time = parse_datetime(metadata["published"])
                 except KeyError:
+                    return True
+
+                if not self.optimize:
                     return True
 
                 sources = set()

@@ -5,6 +5,7 @@ from django.db import models
 from django.db.models import UniqueConstraint, Q
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
+from django_lifecycle import AFTER_UPDATE, BEFORE_UPDATE, hook
 
 from pulpcore.plugin.models import (
     BaseModel,
@@ -293,6 +294,16 @@ class CollectionRemote(Remote):
             self._download_factory = AnsibleDownloaderFactory(self)
             return self._download_factory
 
+    @hook(
+        AFTER_UPDATE,
+        when_any=["url", "requirements_file", "sync_dependencies", "signed_only"],
+        has_changed=True,
+    )
+    def _reset_repository_last_synced_metadata_time(self):
+        AnsibleRepository.objects.filter(
+            remote_id=self.pk, last_synced_metadata_time__isnull=False
+        ).update(last_synced_metadata_time=None)
+
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
@@ -383,6 +394,10 @@ class AnsibleRepository(Repository):
                 )
 
                 new_version.remove_content(deprecations)
+
+    @hook(BEFORE_UPDATE, when="remote", has_changed=True)
+    def _reset_repository_last_synced_metadata_time(self):
+        self.last_synced_metadata_time = None
 
 
 class AnsibleDistribution(Distribution):
