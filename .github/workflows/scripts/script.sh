@@ -33,10 +33,8 @@ if [[ "$TEST" = "docs" ]]; then
     pip install towncrier==19.9.0
     towncrier --yes --version 4.0.0.ci
   fi
-  cd docs
-  make PULP_URL="$PULP_URL" diagrams html
-  tar -cvf docs.tar ./_build
-  cd ..
+  cmd_prefix bash -c "cd pulp_ansible/docs; make diagrams html; tar -cvf docs.tar ./_build"
+  docker cp pulp:/pulp_ansible//docs/docs.tar docs.tar
 
   if [ -f $POST_DOCS_TEST ]; then
     source $POST_DOCS_TEST
@@ -89,10 +87,8 @@ cmd_prefix bash -c "cat /etc/pulp/certs/pulp_webserver.crt  | tee -a "$CERTIFI" 
 echo "Checking for uncommitted migrations..."
 cmd_prefix bash -c "django-admin makemigrations --check --dry-run"
 
-if [[ "$TEST" != "upgrade" ]]; then
-  # Run unit tests.
-  cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes -p no:pulpcore --pyargs pulp_ansible.tests.unit"
-fi
+# Run unit tests.
+cmd_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes -p no:pulpcore --pyargs pulp_ansible.tests.unit"
 
 # Run functional tests
 if [[ "$TEST" == "performance" ]]; then
