@@ -30,17 +30,6 @@ fi
 COMMIT_MSG=$(git log --format=%B --no-merges -1)
 export COMMIT_MSG
 
-if [[ "$TEST" == "upgrade" ]]; then
-  pip install -r functest_requirements.txt
-  git checkout -b ci_upgrade_test
-  cp -R .github /tmp/.github
-  cp -R .ci /tmp/.ci
-  git checkout $FROM_PULP_ANSIBLE_BRANCH
-  rm -rf .ci .github
-  cp -R /tmp/.github .
-  cp -R /tmp/.ci .
-fi
-
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ansible/json | jq -r '.info.version')
 else
@@ -115,7 +104,7 @@ if [ -n "$PULP_CLI_PR_NUMBER" ]; then
 fi
 
 cd pulp-cli
-pip install -e .
+pip install .
 pulp config create --base-url https://pulp --location tests/cli.toml 
 mkdir ~/.config/pulp
 cp tests/cli.toml ~/.config/pulp/cli.toml
