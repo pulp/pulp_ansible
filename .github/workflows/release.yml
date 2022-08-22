@@ -103,10 +103,8 @@ jobs:
         run: |
           shopt -s dotglob
           tar -xf pulp_ansible.tar
-          cd home/runner/work/pulp_ansible/pulp_ansible/dist
-          ls -al
-          tar -xf pulp-ansible-${{ github.event.inputs.release }}.tar.gz
-          ls -al
+          mv home/runner/work/pulp_ansible/pulp_ansible/* ./
+          tar -xf dist/pulp-ansible-${{ github.event.inputs.release }}.tar.gz
 
       # update to the branch's latest ci files rather than the ones from the release tag. this is
       # helpful when there was a problem with the ci files during the release which needs to be
