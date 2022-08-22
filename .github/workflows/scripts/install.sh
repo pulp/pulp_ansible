@@ -29,7 +29,7 @@ PULPCORE=./pulpcore
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   PLUGIN_NAME=pulp_ansible
 elif [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  PLUGIN_NAME=./pulp_ansible/pulp-ansible-$PLUGIN_VERSION
+  PLUGIN_NAME=./pulp_ansible/pulp-ansible
 else
   PLUGIN_NAME=./pulp_ansible
 fi
@@ -130,7 +130,7 @@ ansible-playbook start_container.yaml
 if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
   if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
     cmd_prefix bash -c "pip install -r https://raw.githubusercontent.com/pulp/pulpcore/3.19/doc_requirements.txt"
-    cmd_prefix bash -c "ls -al; cd pulp_ansible; ls -al; cd pulp_ansible"
+    cmd_prefix bash -c "cd pulp_ansible/pulp_ansible; pip install -r doc_requirements.txt"
   else
     cmd_prefix bash -c "cd pulpcore; pip install -r doc_requirements.txt"
   fi
