@@ -126,7 +126,11 @@ ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
 
 if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
-  cmd_prefix bash -c "cd pulpcore; pip install -r doc_requirements.txt"
+  if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
+    cmd_prefix bash -c "pip install -r https://raw.githubusercontent.com/pulp/pulpcore/3.19/doc_requirements.txt"
+  else
+    cmd_prefix bash -c "cd pulpcore; pip install -r doc_requirements.txt"
+  fi
   cmd_prefix bash -c "cd pulp_ansible; pip install -r doc_requirements.txt"
 fi
 echo ::group::SSL
