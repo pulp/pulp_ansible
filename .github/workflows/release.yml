@@ -52,7 +52,7 @@ jobs:
           git config --global user.email 'pulp-infra@redhat.com'
 
       - name: Setting secrets
-        
+
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -95,7 +95,7 @@ jobs:
         with:
           python-version: "3.8"
       - uses: ruby/setup-ruby@v1
-        
+
         with:
           ruby-version: "2.6"
 
@@ -103,7 +103,10 @@ jobs:
         run: |
           shopt -s dotglob
           tar -xf pulp_ansible.tar
+          ls -al home/runner/work/pulp_ansible/pulp_ansible
           mv home/runner/work/pulp_ansible/pulp_ansible/* ./
+          pwd
+          ls -al
 
       # update to the branch's latest ci files rather than the ones from the release tag. this is
       # helpful when there was a problem with the ci files during the release which needs to be
@@ -125,7 +128,7 @@ jobs:
           echo "TEST=${{ matrix.env.TEST }}" >> $GITHUB_ENV
 
       - name: Before Install
-        
+
         run: .github/workflows/scripts/before_install.sh
         shell: bash
         env:
@@ -154,7 +157,7 @@ jobs:
         shell: bash
 
       - name: Before Script
-        
+
         run: .github/workflows/scripts/before_script.sh
         shell: bash
         env:
@@ -169,13 +172,13 @@ jobs:
           REDIS_DISABLED: ${{ contains('', matrix.env.TEST) }}
 
       - name: Setting secrets
-        
+
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
       - name: Install Python client
-        
+
         run: .github/workflows/scripts/install_python_client.sh
         shell: bash
 
@@ -260,7 +263,7 @@ jobs:
           python-version: "3.8"
 
       - uses: ruby/setup-ruby@v1
-        
+
         with:
           ruby-version: "2.6"
 
@@ -284,7 +287,7 @@ jobs:
           git checkout "origin/${GITHUB_REF##*/}" -- .github
 
       - name: Setting secrets
-        
+
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
@@ -334,7 +337,7 @@ jobs:
       - name: Publish client to rubygems
         run: bash .github/workflows/scripts/publish_client_gem.sh
 
-      
+
 
       - name: Update GitHub
         continue-on-error: true
