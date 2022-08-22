@@ -104,7 +104,7 @@ jobs:
           shopt -s dotglob
           tar -xf pulp_ansible.tar
           ls -al home/runner/work/pulp_ansible/pulp_ansible
-          mv home/runner/work/pulp_ansible/pulp_ansible/* ./
+          mv home/runner/work/pulp_ansible/pulp_ansible/* ./..
           pwd
           ls -al
 
