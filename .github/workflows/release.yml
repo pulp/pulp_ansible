@@ -103,10 +103,7 @@ jobs:
         run: |
           shopt -s dotglob
           tar -xf pulp_ansible.tar
-          ls -al home/runner/work/pulp_ansible/pulp_ansible
-          mv home/runner/work/pulp_ansible/pulp_ansible/* ./..
-          pwd
-          ls -al
+          mv home/runner/work/pulp_ansible/pulp_ansible/* ./
 
       # update to the branch's latest ci files rather than the ones from the release tag. this is
       # helpful when there was a problem with the ci files during the release which needs to be
