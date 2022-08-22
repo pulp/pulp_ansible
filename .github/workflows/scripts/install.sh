@@ -29,7 +29,6 @@ PULPCORE=./pulpcore
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   PLUGIN_NAME=pulp_ansible
 elif [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  ls -al ./pulp_ansible/dist/
   PLUGIN_NAME=./pulp_ansible/dist/pulp-ansible-$PLUGIN_VERSION.tar.gz
 else
   PLUGIN_NAME=./pulp_ansible
