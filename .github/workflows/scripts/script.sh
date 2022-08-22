@@ -33,13 +33,8 @@ if [[ "$TEST" = "docs" ]]; then
     pip install towncrier==19.9.0
     towncrier --yes --version 4.0.0.ci
   fi
-  if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-    cmd_prefix bash -c "cd pulp_ansible/pulp-ansible/docs; make diagrams html; tar -cvf docs.tar ./_build"
-    docker cp pulp:/pulp_ansible/pulp-ansible/docs/docs.tar docs.tar
-  else
-    cmd_prefix bash -c "cd pulp_ansible/docs; make diagrams html; tar -cvf docs.tar ./_build"
-    docker cp pulp:/pulp_ansible/docs/docs.tar docs.tar
-  fi
+  cmd_prefix bash -c "cd pulp_ansible/docs; make diagrams html; tar -cvf docs.tar ./_build"
+  docker cp pulp:/pulp_ansible//docs/docs.tar docs.tar
 
   if [ -f $POST_DOCS_TEST ]; then
     source $POST_DOCS_TEST
@@ -113,12 +108,12 @@ else
         cmd_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8 --nightly"
         cmd_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m 'not parallel' --nightly"
 
-
+    
     else
         cmd_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8"
         cmd_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m 'not parallel'"
 
-
+    
     fi
 
 fi
