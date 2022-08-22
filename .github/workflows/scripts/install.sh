@@ -31,7 +31,7 @@ if [[ "$TEST" == "plugin-from-pypi" ]]; then
 elif [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
 echo Copying $REPO_ROOT/doc_requirements.txt
 cp $REPO_ROOT/doc_requirements.txt $REPO_ROOT/pulp_ansible/doc_requirements.txt
-  PLUGIN_NAME=./pulp_ansible/dist/pulp_ansible-$PLUGIN_VERSION-py3-none-any.whl
+  PLUGIN_NAME=./pulp_ansible/dist/pulp-ansible-$PLUGIN_VERSION
 else
   PLUGIN_NAME=./pulp_ansible
 fi
