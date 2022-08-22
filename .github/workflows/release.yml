@@ -106,9 +106,8 @@ jobs:
           mv home/runner/work/pulp_ansible/pulp_ansible/* ./
           tar -xf dist/pulp-ansible-${{ github.event.inputs.release }}.tar.gz
           mv pulp-ansible-${{ github.event.inputs.release }} pulp-ansible
-          mkdir -p pulp-ansible/docs
           cp -R docs ./pulp-ansible/docs
-          ls -al pulp-ansible/docs
+          ls -al ./pulp-ansible/docs/
 
       # update to the branch's latest ci files rather than the ones from the release tag. this is
       # helpful when there was a problem with the ci files during the release which needs to be
