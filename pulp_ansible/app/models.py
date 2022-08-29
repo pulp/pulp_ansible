@@ -13,6 +13,7 @@ from pulpcore.plugin.models import (
     Distribution,
     SigningService,
     Task,
+    EncryptedTextField,
 )
 from .downloaders import AnsibleDownloaderFactory
 
@@ -231,7 +232,7 @@ class CollectionRemote(Remote):
 
     requirements_file = models.TextField(null=True)
     auth_url = models.CharField(null=True, max_length=255)
-    token = models.TextField(null=True, max_length=2000)
+    token = EncryptedTextField(null=True)
     sync_dependencies = models.BooleanField(default=True)
     signed_only = models.BooleanField(default=False)
 
