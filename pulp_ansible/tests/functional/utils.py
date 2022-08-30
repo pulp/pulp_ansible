@@ -5,6 +5,7 @@ from time import sleep
 import json
 import os
 import subprocess
+import site
 import unittest
 
 from pulp_smash import api, cli, config, selectors, utils
@@ -323,13 +324,12 @@ class SyncHelpersMixin:
         return repo, self._create_distribution_from_repo(repo, cleanup=cleanup)
 
 
-settings = Dynaconf(
-    settings_files=[
-        "pulp_ansible/tests/assets/func_test_settings.py",
-        "/pulp_ansible/pulp_ansible/tests/assets/func_test_settings.py",
-        "/etc/pulp/settings.py",
-    ]
-)
+settings_files = ["pulp_ansible/tests/assets/func_test_settings.py", "/etc/pulp/settings.py"]
+
+for path in site.getsitepackages():
+    settings_files.append(f"{path}/pulp_ansible/tests/assets/func_test_settings.py")
+
+settings = Dynaconf(settings_files=settings_files)
 
 
 def get_psql_smash_cmd(sql_statement):
