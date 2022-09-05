@@ -77,7 +77,6 @@ class CollectionDownloadTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         collection = requests.get(content_app_url)
         assert collection.status_code == 200
-        assert collection.headers["content-type"] == "application/x-tar"
 
     def test_download_with_content_guard(self):
         """Test that downloads with content guards work correctly."""
@@ -108,7 +107,6 @@ class CollectionDownloadTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         collection = requests.get(content_app_url)
         assert collection.status_code == 200
-        assert collection.headers["content-type"] == "application/x-tar"
 
         # make an unauthenticated call to the content app and verify that it gets
         # rejected
