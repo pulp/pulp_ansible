@@ -198,6 +198,11 @@ v3_plugin_urls = [
         views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
         name="collection-imports-detail",
     ),
+    path(
+        "client-configuration/",
+        views_v3.ClientConfigurationView.as_view(),
+        name="client-configuration-viewset",
+    ),
 ]
 
 v3_urls = [

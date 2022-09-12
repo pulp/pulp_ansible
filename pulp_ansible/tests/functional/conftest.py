@@ -19,6 +19,8 @@ from pulpcore.client.pulp_ansible import (
     RemotesCollectionApi,
     RemotesGitApi,
     RemotesRoleApi,
+    PulpAnsibleApiV3PluginAnsibleClientConfigurationApi,
+    PulpAnsibleDefaultApiV3PluginAnsibleClientConfigurationApi,
 )
 
 
@@ -37,6 +39,18 @@ def ansible_bindings_client(cid, bindings_cfg):
 def ansible_collections_api_client(ansible_bindings_client):
     """Provides the Ansible Collections API client object."""
     return AnsibleCollectionsApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def ansible_client_configuration_api_client(ansible_bindings_client):
+    """Provides the Ansible Collections API client object."""
+    return PulpAnsibleApiV3PluginAnsibleClientConfigurationApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def ansible_client_default_configuration_api_client(ansible_bindings_client):
+    """Provides the Ansible Collections API client object."""
+    return PulpAnsibleDefaultApiV3PluginAnsibleClientConfigurationApi(ansible_bindings_client)
 
 
 @pytest.fixture
