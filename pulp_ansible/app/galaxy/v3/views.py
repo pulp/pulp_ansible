@@ -40,6 +40,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionListSerializer,
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
+    ClientConfigurationSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -922,3 +923,23 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
             return self._get(request, *args, **kwargs)
 
     return GeneratedRedirectView.as_view(actions, url=url)
+
+
+class ClientConfigurationView(views.APIView):
+    """Return configurations for the ansible-galaxy client."""
+
+    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+
+    @extend_schema(responses=ClientConfigurationSerializer)
+    def get(self, request, *args, **kwargs):
+        """Get the client configs."""
+
+        data = ClientConfigurationSerializer(
+            {
+                "default_distribution_path": self.kwargs.get(
+                    "path", settings.ANSIBLE_DEFAULT_DISTRIBUTION_PATH
+                )
+            }
+        )
+
+        return Response(data.data)

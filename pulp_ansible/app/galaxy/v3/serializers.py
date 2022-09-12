@@ -327,3 +327,9 @@ class RepoMetadataSerializer(serializers.ModelSerializer):
     class Meta:
         fields = ("published",)
         model = RepositoryVersion
+
+
+class ClientConfigurationSerializer(serializers.Serializer):
+    """Configuration settings for the ansible-galaxy client."""
+
+    default_distribution_path = serializers.CharField(allow_null=True)
