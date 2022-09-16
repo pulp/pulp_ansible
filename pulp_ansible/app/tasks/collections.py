@@ -591,11 +591,11 @@ class CollectionSyncFirstStage(Stage):
         if signatures:
             collection_version = await d_content.resolution()
             for signature in signatures:
-                sig = signature["signature"].encode("utf8")
+                sig = signature["signature"]
                 cv_signature = CollectionVersionSignature(
                     signed_collection=collection_version,
                     data=sig,
-                    digest=hashlib.sha256(sig).hexdigest(),
+                    digest=hashlib.sha256(sig.encode("utf-8")).hexdigest(),
                     pubkey_fingerprint=signature["pubkey_fingerprint"],
                 )
                 await self.put(DeclarativeContent(content=cv_signature))
