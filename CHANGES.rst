@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.14.2 (2022-09-15)
+===================
+
+Bugfixes
+--------
+
+- Update the jsonschema requirements to not conflict with ansible-lint. Currently ansible-lint requires at least 4.9, so match that.
+  `#1202 <https://github.com/pulp/pulp_ansible/issues/1202>`__
+
+
+----
+
+
 0.14.1 (2022-09-09)
 ===================
 
