@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-167-ga2a8251
+# generated with plugin_template@2021.08.26-170-g40698bb
 
 additional_repos:
 - bindings: false
@@ -58,6 +58,9 @@ pulp_settings:
   allowed_import_paths: /tmp
   ansible_api_hostname: http://pulp:80
   ansible_content_hostname: http://pulp:80/pulp/content
+pulp_settings_azure: null
+pulp_settings_s6: null
+pulp_settings_stream: null
 pulpcore_branch: '3.14'
 pulpcore_pip_version_specifier: <3.15
 pulpcore_revision: null
