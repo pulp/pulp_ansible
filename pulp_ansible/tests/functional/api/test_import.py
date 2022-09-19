@@ -4,6 +4,7 @@ Tests PulpImporter and PulpImport functionality.
 NOTE: assumes ALLOWED_EXPORT_PATHS and ALLOWED_IMPORT_PATHS settings contain "/tmp" - all tests
 will fail if this is not the case.
 """
+import unittest
 
 from pulp_smash import cli
 from pulp_smash.utils import uuid4
@@ -106,6 +107,7 @@ class BaseImport(BaseExport):
         return task_group
 
 
+@unittest.skip("Helper methods need to be adjusted for running inside container.")
 class PulpImportTestCase(BaseImport):
     """
     Basic tests for PulpImporter and PulpImport.
