@@ -8,6 +8,7 @@ from pulp_ansible.tests.functional.utils import (
     TestCaseUsingBindings,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulp_smash.pulp3.bindings import monitor_task
 
 
 class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
@@ -252,3 +253,48 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertGreaterEqual(len(content.results), 1)
+
+    def test_sync_and_rebuild(self):
+        """Sync with simple requirements file, expected to download one CollectionVersion."""
+        # /pulp/api/v3/repositories/ansible/ansible/<pk>/rebuild_metadata/
+        #    pulp_ansible.app.viewsets.AnsibleRepositoryViewSet
+        #    repositories-ansible/ansible-rebuild-metadata
+        # /pulp/api/v3/repositories/ansible/ansible/<pk>/rebuild_metadata\.<format>/
+        #     pulp_ansible.app.viewsets.AnsibleRepositoryViewSet
+        #     repositories-ansible/ansible-rebuild-metadata
+
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: community.docker\n    version: 3.0.0",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        # this will make the repo and sync the collection from upstream into it
+        # when the builtin repo cleanup is called, the collection will be
+        # orphaned and testcaseusebindings will delete it via orphan_cleanup
+        # in the teardown method
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        # get the before data
+        before = self.cv_api.list(repository_version=repo.latest_version_href)
+        before = before.results[0].to_dict()
+        assert before["docs_blob"] == {}
+
+        # pass in the namespace/name/version just to verify kwargs are allowed
+        rebuild_task = self.repo_api.rebuild_metadata(
+            repo.pulp_href, {"namespace": "community", "name": "docker", "version": "3.0.0"}
+        )
+        res = monitor_task(rebuild_task.task)
+        assert res.state == "completed"
+
+        # get the after data
+        after = self.cv_api.list(repository_version=repo.latest_version_href)
+        after = after.results[0].to_dict()
+
+        assert after["docs_blob"]["collection_readme"]["name"] == "README.md"
+        assert (
+            "<h1>Docker Community Collection</h1>"
+            in after["docs_blob"]["collection_readme"]["html"]
+        )
