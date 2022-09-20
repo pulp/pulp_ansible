@@ -49,6 +49,7 @@ from .serializers import (
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
     AnsibleRepositorySyncURLSerializer,
+    AnsibleRepositoryRebuildSerializer,
     AnsibleRepositorySignatureSerializer,
     CollectionSerializer,
     CollectionVersionSerializer,
@@ -61,6 +62,7 @@ from .serializers import (
     TagSerializer,
 )
 from .tasks.collections import sync as collection_sync
+from .tasks.collections import rebuild_repository_collection_versions_metadata
 from .tasks.copy import copy_content
 from .tasks.roles import synchronize as role_sync
 from .tasks.git import synchronize as git_sync
@@ -324,6 +326,30 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             exclusive_resources=[repository],
             shared_resources=[remote],
             kwargs=sync_kwargs,
+        )
+        return OperationPostponedResponse(result, request)
+
+    @extend_schema(
+        description="Trigger an asynchronous task to rebuild Ansible content meta.",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=AnsibleRepositoryRebuildSerializer)
+    def rebuild_metadata(self, request, pk):
+        """
+        Dispatches a collection version rebuild task.
+        """
+        repository = self.get_object()
+        serializer = AnsibleRepositoryRebuildSerializer(
+            data=request.data, context={"request": request, "repository_pk": repository.pk}
+        )
+        serializer.is_valid(raise_exception=True)
+
+        result = dispatch(
+            rebuild_repository_collection_versions_metadata,
+            exclusive_resources=[],
+            shared_resources=[repository],
+            args=[repository.pulp_id],
+            kwargs=serializer.data,
         )
         return OperationPostponedResponse(result, request)
 

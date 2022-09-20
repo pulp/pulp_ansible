@@ -151,6 +151,25 @@ class AnsibleRepositorySyncURLSerializer(RepositorySyncURLSerializer):
         model = AnsibleRepository
 
 
+class AnsibleRepositoryRebuildSerializer(serializers.Serializer):
+    """
+    Serializer for Ansible Repository Rebuild.
+    """
+
+    namespace = serializers.CharField(
+        required=False,
+        allow_null=True,
+    )
+    name = serializers.CharField(
+        required=False,
+        allow_null=True,
+    )
+    version = serializers.CharField(
+        required=False,
+        allow_null=True,
+    )
+
+
 class CollectionRemoteSerializer(RemoteSerializer):
     """
     A serializer for Collection Remotes.
