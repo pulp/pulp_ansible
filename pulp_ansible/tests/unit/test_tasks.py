@@ -14,7 +14,7 @@ from pulp_ansible.app.models import CollectionVersion
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.models import ContentArtifact
 
-from pulp_ansible.app.tasks.collections import rebuild_collection_version_meta
+from pulp_ansible.app.tasks.collections import _rebuild_collection_version_meta
 from pulp_ansible.app.tasks.collections import rebuild_repository_collection_versions_metadata
 
 
@@ -91,56 +91,55 @@ class TestCollectionReImport(TestCase):
     def test_reimport_single_cv_adds_docs(self):
         """Test that rebuild_collection adds docs to the collection."""
         this_cv = self.collection_versions[0]
-        rebuild_collection_version_meta(this_cv.pk)
+        _rebuild_collection_version_meta(this_cv)
         cv = CollectionVersion.objects.get(pulp_id=this_cv.pk)
         assert cv.docs_blob["collection_readme"]["html"] == "<h1>title</h1>\n<p>collection docs</p>"
 
-    def test_reimport_repository_rebuilds_all_collections(self):
+    @mock.patch("pulp_ansible.app.tasks.collections._rebuild_collection_version_meta")
+    @mock.patch("pulp_ansible.app.tasks.collections.ProgressReport")
+    def test_reimport_repository_rebuilds_all_collections(
+        self, mock_progress_report, mock_rebuild_cv
+    ):
         """Make sure each CV in the repo is rebuilt."""
-        fpath = "pulp_ansible.app.tasks.collections.rebuild_collection_version_meta"
-        with mock.patch(fpath) as mocked_rebuild_cv:
-            rebuild_repository_collection_versions_metadata(self.repo.pulp_id)
+        rebuild_repository_collection_versions_metadata(self.repo.latest_version().pk)
 
-            # ensure the function was called once for each cv
-            assert mocked_rebuild_cv.call_count == len(self.collection_versions)
+        # ensure the function was called once for each cv
+        expected_cvs = self.collection_versions
+        assert mock_rebuild_cv.call_count == len(self.collection_versions)
 
-            # ensure the appropriate pks were used
-            call_pks = [x.args[0] for x in mocked_rebuild_cv.mock_calls]
-            call_pks = sorted(call_pks)
-            expected_pks = [str(x.pulp_id) for x in self.collection_versions]
-            expected_pks = sorted(expected_pks)
-            assert call_pks == expected_pks
+        # ensure the appropriate pks were used
+        call_pks = sorted([str(x.args[0].pk) for x in mock_rebuild_cv.mock_calls])
+        expected_pks = sorted([str(x.pk) for x in expected_cvs])
+        assert call_pks == expected_pks
 
-    def test_reimport_repository_rebuilds_namespace(self):
+    @mock.patch("pulp_ansible.app.tasks.collections._rebuild_collection_version_meta")
+    @mock.patch("pulp_ansible.app.tasks.collections.ProgressReport")
+    def test_reimport_repository_rebuilds_namespace(self, mock_progress_report, mock_rebuild_cv):
         """Make sure only the namespace CVs in the repo are rebuilt."""
-        fpath = "pulp_ansible.app.tasks.collections.rebuild_collection_version_meta"
-        with mock.patch(fpath) as mocked_rebuild_cv:
-            rebuild_repository_collection_versions_metadata(self.repo.pulp_id, namespace="foo")
+        rebuild_repository_collection_versions_metadata(
+            self.repo.latest_version().pk, namespace="foo"
+        )
 
-            # ensure the function was called once for each namespace cv
-            expected_cvs = [x for x in self.collection_versions if x.namespace == "foo"]
-            assert mocked_rebuild_cv.call_count == len(expected_cvs)
+        # ensure the function was called once for each namespace cv
+        expected_cvs = [x for x in self.collection_versions if x.namespace == "foo"]
+        assert mock_rebuild_cv.call_count == len(expected_cvs)
 
-            # ensure the appropriate pks were used
-            call_pks = [x.args[0] for x in mocked_rebuild_cv.mock_calls]
-            call_pks = sorted(call_pks)
-            expected_pks = [str(x.pulp_id) for x in expected_cvs]
-            expected_pks = sorted(expected_pks)
-            assert call_pks == expected_pks
+        # ensure the appropriate pks were used
+        call_pks = sorted([str(x.args[0].pk) for x in mock_rebuild_cv.mock_calls])
+        expected_pks = sorted([str(x.pk) for x in expected_cvs])
+        assert call_pks == expected_pks
 
-    def test_reimport_repository_rebuilds_name(self):
+    @mock.patch("pulp_ansible.app.tasks.collections._rebuild_collection_version_meta")
+    @mock.patch("pulp_ansible.app.tasks.collections.ProgressReport")
+    def test_reimport_repository_rebuilds_name(self, mock_progress_report, mock_rebuild_cv):
         """Make sure only the named CVs in the repo are rebuilt."""
-        fpath = "pulp_ansible.app.tasks.collections.rebuild_collection_version_meta"
-        with mock.patch(fpath) as mocked_rebuild_cv:
-            rebuild_repository_collection_versions_metadata(self.repo.pulp_id, name="baz")
+        rebuild_repository_collection_versions_metadata(self.repo.latest_version().pk, name="baz")
 
-            # ensure the function was called once for each namespace cv
-            expected_cvs = [x for x in self.collection_versions if x.name == "baz"]
-            assert mocked_rebuild_cv.call_count == len(expected_cvs)
+        # ensure the function was called once for each namespace cv
+        expected_cvs = [x for x in self.collection_versions if x.name == "baz"]
+        assert mock_rebuild_cv.call_count == len(expected_cvs)
 
-            # ensure the appropriate pks were used
-            call_pks = [x.args[0] for x in mocked_rebuild_cv.mock_calls]
-            call_pks = sorted(call_pks)
-            expected_pks = [str(x.pulp_id) for x in expected_cvs]
-            expected_pks = sorted(expected_pks)
-            assert call_pks == expected_pks
+        # ensure the appropriate pks were used
+        call_pks = sorted([str(x.args[0].pk) for x in mock_rebuild_cv.mock_calls])
+        expected_pks = sorted([str(x.pk) for x in expected_cvs])
+        assert call_pks == expected_pks

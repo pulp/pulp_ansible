@@ -33,6 +33,7 @@ from pulpcore.plugin.models import (
     PulpTemporaryFile,
     Remote,
     RepositoryContent,
+    RepositoryVersion,
     Task,
 )
 from pulpcore.plugin.stages import (
@@ -358,11 +359,10 @@ def create_collection_from_importer(importer_result, metadata_only=False):
 
 
 def rebuild_repository_collection_versions_metadata(
-    repository_pk, namespace=None, name=None, version=None
+    repository_version_pk, namespace=None, name=None, version=None
 ):
     """Rebuild metadata for all collection versions in a repo."""
-    repo = AnsibleRepository.objects.get(pulp_id=repository_pk)
-    repov = repo.latest_version()
+    repov = RepositoryVersion.objects.get(pk=repository_version_pk)
 
     qs = None
     if namespace or name or version:
@@ -375,21 +375,27 @@ def rebuild_repository_collection_versions_metadata(
             qkwargs["version"] = version
         qs = CollectionVersion.objects.filter(**qkwargs)
 
-    for cv in repov.get_content(content_qs=qs):
-        try:
-            rebuild_collection_version_meta(str(cv.pulp_id))
-        except Exception as e:
-            log.exception(e)
+    qs = repov.get_content(content_qs=qs)
+    with ProgressReport(
+        message=_("Rebuild collection version metadata (total)"),
+        code="rebuild_metadata.total",
+        total=qs.count(),
+    ) as ptotal, ProgressReport(
+        message=_("Rebuild collection version metadata (failed)"), code="rebuild_metadata.failed"
+    ) as pfailed:
+        for cv in qs:
+            try:
+                _rebuild_collection_version_meta(cv)
+            except Exception as e:
+                pfailed.increment()
+                log.exception(e)
+            ptotal.increment()
 
 
-def rebuild_collection_version_meta(collection_version_pk):
+def _rebuild_collection_version_meta(collection_version):
     """Rebuild metadata for a single collection version."""
-    # find the collection version
-    collection_version = CollectionVersion.objects.get(pulp_id=collection_version_pk)
-
     # where is the artifact?
-    ca = ContentArtifact.objects.filter(content_id=collection_version.content_ptr_id).first()
-    artifact = ca.artifact
+    artifact = collection_version._artifacts.first()
 
     # call the importer to re-generate meta
     importer_result = process_collection(
@@ -397,11 +403,10 @@ def rebuild_collection_version_meta(collection_version_pk):
     )
 
     # set the new info and save
-    with transaction.atomic():
-        collection_version.requires_ansible = importer_result["requires_ansible"]
-        collection_version.docs_blob = importer_result["docs_blob"]
-        collection_version.contents = importer_result["contents"]
-        collection_version.save()
+    collection_version.requires_ansible = importer_result["requires_ansible"]
+    collection_version.docs_blob = importer_result["docs_blob"]
+    collection_version.contents = importer_result["contents"]
+    collection_version.save()
 
 
 def _get_backend_storage_url(artifact_file):

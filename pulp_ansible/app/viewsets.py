@@ -348,7 +348,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             rebuild_repository_collection_versions_metadata,
             exclusive_resources=[],
             shared_resources=[repository],
-            args=[repository.pulp_id],
+            args=[repository.latest_version().pk],
             kwargs=serializer.data,
         )
         return OperationPostponedResponse(result, request)
@@ -400,6 +400,31 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
     """
 
     parent_viewset = AnsibleRepositoryViewSet
+
+    @extend_schema(
+        description="Trigger an asynchronous task to rebuild Ansible content meta.",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=AnsibleRepositoryRebuildSerializer)
+    def rebuild_metadata(self, request, pk):
+        """
+        Dispatches a collection version rebuild task.
+        """
+        repository_version = self.get_object()
+        serializer = AnsibleRepositoryRebuildSerializer(
+            data=request.data,
+            context={"request": request, "repository_version_pk": repository_version.pk},
+        )
+        serializer.is_valid(raise_exception=True)
+
+        result = dispatch(
+            rebuild_repository_collection_versions_metadata,
+            exclusive_resources=[],
+            shared_resources=[repository_version.repository],
+            args=[repository_version.pk],
+            kwargs=serializer.data,
+        )
+        return OperationPostponedResponse(result, request)
 
 
 class CollectionRemoteViewSet(RemoteViewSet):
