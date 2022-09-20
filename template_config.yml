@@ -72,7 +72,7 @@ redmine_project: ansible_plugin
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
 run_pulpcore_tests_for_plugins: true
-single_commit_check: true
+single_commit_check: false
 stable_branch: null
 stalebot: true
 stalebot_days_until_close: 30
