@@ -1,2 +1,0 @@
-Switched the attribute `token` on `CollectionRemotes` to be encrypted in the database and not to
-be exposed in the API.

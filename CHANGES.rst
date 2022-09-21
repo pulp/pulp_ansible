@@ -13,6 +13,56 @@ Changelog
 
 .. towncrier release notes start
 
+0.15.0 (2022-09-21)
+===================
+
+Features
+--------
+
+- Implement v3/plugin/client-configuration/ endpoint to communicate to the ansible galaxy client
+  which distribution to use.
+  `#740 <https://github.com/pulp/pulp_ansible/issues/740>`__
+- Added modelresources for Pulp import/export of collection version signatures.
+  `#844 <https://github.com/pulp/pulp_ansible/issues/844>`__
+- Added CollectionDownloadLog table and logger.
+  `#946 <https://github.com/pulp/pulp_ansible/issues/946>`__
+- Added ``rebuild_metadata`` endpoint to ansible repositories and repository versions.
+  `#1106 <https://github.com/pulp/pulp_ansible/issues/1106>`__
+
+
+Bugfixes
+--------
+
+- Fixed bug where Git Remote failed to clone git submodules when syncing a collection from a git
+  repository.
+  `#1065 <https://github.com/pulp/pulp_ansible/issues/1065>`__
+- Add a `gpgkey` field to the ansible repository to ease verification of collection signatures.
+  `#1086 <https://github.com/pulp/pulp_ansible/issues/1086>`__
+- Fixed a bug where updating a CollectionRemote did not reset all repositories sync timestamp.
+  `#1177 <https://github.com/pulp/pulp_ansible/issues/1177>`__
+- Update the jsonschema requirements to not conflict with ansible-lint. Currently ansible-lint requires at least 4.9, so match that.
+  `#1202 <https://github.com/pulp/pulp_ansible/issues/1202>`__
+- Switched the attribute `token` on `CollectionRemotes` to be encrypted in the database and not to
+  be exposed in the API.
+  `#1221 <https://github.com/pulp/pulp_ansible/issues/1221>`__
+
+
+Deprecations and Removals
+-------------------------
+
+- Removed ``keyring`` attribute from repositories in favor of ``gpgkey``.
+  `#1086 <https://github.com/pulp/pulp_ansible/issues/1086>`__
+
+
+Misc
+----
+
+- `#1230 <https://github.com/pulp/pulp_ansible/issues/1230>`__, `#1245 <https://github.com/pulp/pulp_ansible/issues/1245>`__
+
+
+----
+
+
 0.14.2 (2022-09-15)
 ===================
 
