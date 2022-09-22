@@ -1,1 +1,0 @@
-``CollectionVersionSignature`` data is now stored as plain text instead of bytes.
