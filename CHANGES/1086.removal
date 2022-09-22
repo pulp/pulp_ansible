@@ -1,1 +1,0 @@
-Removed ``keyring`` attribute from repositories in favor of ``gpgkey``.

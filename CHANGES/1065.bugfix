@@ -1,2 +1,0 @@
-Fixed bug where Git Remote failed to clone git submodules when syncing a collection from a git
-repository.
