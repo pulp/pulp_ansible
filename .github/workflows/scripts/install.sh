@@ -17,6 +17,11 @@ source .github/workflows/scripts/utils.sh
 
 export PULP_API_ROOT="/pulp/"
 
+if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
+  pip install -r ../pulpcore/doc_requirements.txt
+  pip install -r doc_requirements.txt
+fi
+
 cd .ci/ansible/
 
 TAG=ci_build
@@ -76,6 +81,8 @@ services:
       - ./ssh:/keys/
       - ~/.config:/root/.config
       - ../../../pulp-openapi-generator:/root/pulp-openapi-generator
+    env:
+      PULP_WORKERS: "4"
 VARSYAML
 
 cat >> vars/main.yaml << VARSYAML
@@ -98,7 +105,9 @@ if [ "$TEST" = "s3" ]; then
     command: "server /data"' vars/main.yaml
   sed -i -e '$a s3_test: true\
 minio_access_key: "'$MINIO_ACCESS_KEY'"\
-minio_secret_key: "'$MINIO_SECRET_KEY'"' vars/main.yaml
+minio_secret_key: "'$MINIO_SECRET_KEY'"\
+pulp_scenario_settings: null\
+' vars/main.yaml
 fi
 
 echo "PULP_API_ROOT=${PULP_API_ROOT}" >> "$GITHUB_ENV"
@@ -109,11 +118,6 @@ fi
 
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
-
-if [[ "$TEST" = "docs" || "$TEST" = "publish" ]]; then
-  cmd_prefix bash -c "cd pulpcore; pip install -r doc_requirements.txt"
-  cmd_prefix bash -c "cd pulp_ansible; pip install -r doc_requirements.txt"
-fi
 
 if [[ "$TEST" = "azure" ]]; then
   AZURE_STORAGE_CONNECTION_STRING='DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://ci-azurite:10000/devstoreaccount1;'
