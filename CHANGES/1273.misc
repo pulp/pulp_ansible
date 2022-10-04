@@ -1,0 +1,1 @@
+Fix the tests `test_download` and `test_download_with_content_guard` failing due to the URL containing `&validate_token` rather than `?validate_token`.
