@@ -73,7 +73,7 @@ class CollectionDownloadTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         content_app_url = response.headers["Location"]
 
         # verify that the collection can be downloaded without authentication
-        assert "?validate_token" not in content_app_url
+        assert "validate_token" not in content_app_url
 
         collection = requests.get(content_app_url)
         assert collection.status_code == 200
@@ -103,7 +103,7 @@ class CollectionDownloadTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         content_app_url = response.headers["Location"]
 
         # verify that token is present
-        assert "?validate_token" in content_app_url
+        assert "validate_token" in content_app_url
 
         collection = requests.get(content_app_url)
         assert collection.status_code == 200
