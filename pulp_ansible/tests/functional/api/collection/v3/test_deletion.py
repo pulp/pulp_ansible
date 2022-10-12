@@ -36,7 +36,8 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             name=self.collection_name,
             namespace=self.collection_namespace,
         )
-        monitor_task(resp.task)
+        task = monitor_task(resp.task)
+        assert len(task.created_resources) == 1
 
         collections = self.collections_v3api.list(self.distribution.base_path)
         assert collections.meta.count == 0

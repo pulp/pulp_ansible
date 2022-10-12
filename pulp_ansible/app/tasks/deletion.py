@@ -14,6 +14,7 @@ Pulp's orphan_cleanup task deletes any Content not part of a RepositoryVersion.
 """
 
 import logging
+from collections import defaultdict
 
 from pulp_ansible.app.models import Collection, CollectionVersion
 from pulpcore.plugin.tasking import add_and_remove, orphan_cleanup
@@ -27,10 +28,14 @@ def _cleanup_old_versions(repo):
         version.delete()
 
 
-def _remove_collection_version_from_repos(collection_version):
-    """Remove CollectionVersion from latest RepositoryVersion of each repo."""
-    for repo in collection_version.repositories.all():
-        add_and_remove(repo.pk, add_content_units=[], remove_content_units=[collection_version.pk])
+def _remove_collection_version_from_repos(collection_versions):
+    """Remove CollectionVersions from latest RepositoryVersion of each repo."""
+    repos_with_collections_to_delete = defaultdict(list)
+    for collection_version in collection_versions:
+        for repo in collection_version.repositories.all():
+            repos_with_collections_to_delete[repo].append(collection_version.pk)
+    for repo, collections in repos_with_collections_to_delete.items():
+        add_and_remove(repo.pk, add_content_units=[], remove_content_units=collections)
         _cleanup_old_versions(repo)
 
 
@@ -45,7 +50,7 @@ def delete_collection_version(collection_version_pk):
     collection_version = CollectionVersion.objects.get(pk=collection_version_pk)
     collection = collection_version.collection
 
-    _remove_collection_version_from_repos(collection_version)
+    _remove_collection_version_from_repos([collection_version])
 
     log.info("Running orphan_cleanup to delete CollectionVersion object and artifact")
     # Running orphan_protection_time=0 should be safe since we're specifying the content
@@ -67,10 +72,9 @@ def delete_collection(collection_pk):
     3. Delete Collection
     """
     collection = Collection.objects.get(pk=collection_pk)
-    version_pks = []
-    for version in collection.versions.all():
-        _remove_collection_version_from_repos(version)
-        version_pks.append(version.pk)
+    versions = collection.versions.all()
+    _remove_collection_version_from_repos(versions)
+    version_pks = versions.values_list("pk", flat=True)
 
     log.info("Running orphan_cleanup to delete CollectionVersion objects and artifacts")
     # Running orphan_protection_time=0 should be safe since we're specifying the content
