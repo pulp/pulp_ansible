@@ -20,4 +20,3 @@ def make_cv_tarball(namespace, name, version):
     )
     tarfn = build_pid.stdout.decode("utf-8").strip().split()[-1]
     return tarfn
-
