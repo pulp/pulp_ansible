@@ -94,7 +94,7 @@ class TestSearchUtil(TestCase):
         # check the search vector on each collectionversion ...
         for ckey, cdata in self.collections.items():
             search_vector = rmap[ckey]
-            assert search_vector is not '', 'search vector was not built'
+            assert search_vector != "", "search vector was not built"
 
             # ensure the right tags got in the vector
             good_matches = [x for x in cdata["tags"] if x in search_vector]

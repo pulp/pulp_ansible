@@ -23,6 +23,7 @@ from pulp_ansible.tests.functional.constants import (
     COLLECTION_METADATA,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulp_smash.pulp3.bindings import delete_orphans
 
 from orionutils.generator import build_collection
 
@@ -246,6 +247,51 @@ def test_collection_version_list(artifact, pulp_client, collection_detail, colle
 
     assert version["version"] == "1.0.0"
     assert version["href"] == collection_detail["highest_version"]["href"]
+
+
+def test_collection_version_filter_by_q(pulp_client, pulp_dist):
+    """Verify successive imports do not aggregate tags into search vectors."""
+
+    def publish(new_artifact):
+        UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
+        published_before_upload = get_metadata_published(pulp_client, pulp_dist)
+        logging.info(f"Uploading collection to '{UPLOAD_PATH}'...")
+        collection = {
+            "file": (os.path.basename(new_artifact.filename), open(new_artifact.filename, "rb"))
+        }
+        response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
+        published_after_upload = get_metadata_published(pulp_client, pulp_dist)
+        assert published_after_upload > published_before_upload
+        return response
+
+    # required for sequential runs to get around constraint errors
+    delete_orphans()
+
+    # make&publish 2 collections with each having unique tags
+    specs = [("tag1", "ns1", "col1"), ("tag2", "ns1", "col2")]
+    for spec in specs:
+        cfg = {
+            "namespace": spec[1],
+            "name": spec[2],
+            "description": "",
+            "repository": f"https://github.com/{spec[1]}/{spec[2]}",
+            "authors": ["jimbob"],
+            "version": "1.0.0",
+            "tags": [spec[0]],
+        }
+        this_artifact = build_collection("skeleton", config=cfg)
+        publish(this_artifact)
+
+    base_url = "/pulp/api/v3/content/ansible/collection_versions/"
+    for spec in specs:
+        # invoke the filter_by_q function on the tag name
+        query_url = base_url + "?q=" + spec[0]
+        resp = pulp_client.using_handler(upload_handler).get(query_url)
+
+        # should only get the 1 cv as a result ...
+        assert resp["count"] == 1
+        assert resp["results"][0]["namespace"] == spec[1]
+        assert resp["results"][0]["name"] == spec[2]
 
 
 def test_collection_version(artifact, pulp_client, collection_detail):
