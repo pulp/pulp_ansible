@@ -23,6 +23,8 @@ from pulp_ansible.tests.functional.constants import (
     COLLECTION_METADATA,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
+from pulp_smash.pulp3.bindings import delete_orphans
+from pulp_smash.pulp3.bindings import monitor_task
 
 from orionutils.generator import build_collection
 
@@ -246,6 +248,48 @@ def test_collection_version_list(artifact, pulp_client, collection_detail, colle
 
     assert version["version"] == "1.0.0"
     assert version["href"] == collection_detail["highest_version"]["href"]
+
+
+def test_collection_version_filter_by_q(
+    pulp_client, pulp_dist, ansible_collection_version_api_client
+):
+    """Verify successive imports do not aggregate tags into search vectors."""
+
+    def publish(new_artifact):
+        body = {
+            "file": new_artifact.filename,
+            "namespace": new_artifact.namespace,
+            "name": new_artifact.name,
+            "version": new_artifact.version,
+        }
+        resp = ansible_collection_version_api_client.create(**body)
+        monitor_task(resp.task)
+
+    # required for sequential runs to get around constraint errors
+    delete_orphans()
+
+    # make&publish 2 collections with each having unique tags
+    specs = [("tag1", "ns1", "col1"), ("tag2", "ns1", "col2")]
+    for spec in specs:
+        cfg = {
+            "namespace": spec[1],
+            "name": spec[2],
+            "description": "",
+            "repository": f"https://github.com/{spec[1]}/{spec[2]}",
+            "authors": ["jimbob"],
+            "version": "1.0.0",
+            "tags": [spec[0]],
+        }
+        this_artifact = build_collection("skeleton", config=cfg)
+        publish(this_artifact)
+
+    for spec in specs:
+        resp = ansible_collection_version_api_client.list(q=spec[0])
+
+        # should only get the 1 cv as a result ...
+        assert resp.count == 1
+        assert resp.results[0].namespace == spec[1]
+        assert resp.results[0].name == spec[2]
 
 
 def test_collection_version(artifact, pulp_client, collection_detail):

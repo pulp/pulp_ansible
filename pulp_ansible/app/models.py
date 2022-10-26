@@ -128,7 +128,8 @@ class CollectionVersion(Content):
         version (models.CharField): The version of the collection.
         requires_ansible (models.CharField): The version of Ansible required to use the collection.
         is_highest (models.BooleanField): Indicates that the version is the highest one
-            in the collection.
+            in the collection. Import and sync workflows update this field, which then
+            triggers the database to [re]build the search_vector.
 
     Relations:
 
@@ -165,6 +166,13 @@ class CollectionVersion(Content):
     tags = models.ManyToManyField(Tag, editable=False)
 
     # Search Fields
+    #   This field is populated by a trigger setup in the database by
+    #   a migration file. The trigger only runs when the table is
+    #   updated. CollectionVersions are INSERT'ed into the table, so
+    #   the search_vector does not get populated at initial creation
+    #   time. In the import or sync workflows, is_highest gets toggled
+    #   back and forth, which causes an UPDATE operation and then the
+    #   search_vector is built.
     search_vector = psql_search.SearchVectorField(default="")
 
     @property
