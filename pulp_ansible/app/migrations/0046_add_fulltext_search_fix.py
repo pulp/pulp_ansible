@@ -34,14 +34,10 @@ TS_VECTOR_SELECT = '''
     || setweight(to_tsvector(coalesce(description, '')), 'D')
 '''
 
-# Generates search vector for existing CollectionVersion objects in the database.
-POPULATE_COLLECTIONS_TS_VECTOR = f'''
-UPDATE ansible_collectionversion AS c
-SET search_vector = (
-    SELECT {TS_VECTOR_SELECT}
-    FROM ansible_collectionversion cv
-    WHERE c.content_ptr_id = cv.content_ptr_id
-)
+# Forces the trigger to rebuild all search_vector values
+REBUILD_COLLECTIONS_TS_VECTOR = f'''
+UPDATE ansible_collectionversion SET is_highest = False where is_highest = False;
+UPDATE ansible_collectionversion SET is_highest = True where is_highest = True;
 '''
 
 
@@ -72,6 +68,7 @@ CREATE TRIGGER update_ts_vector
 EXECUTE PROCEDURE update_collection_ts_vector();
 '''
 
+
 DROP_COLLECTIONS_TS_VECTOR_TRIGGER = '''
 DROP TRIGGER IF EXISTS update_ts_vector ON ansible_collectionversion;
 DROP FUNCTION IF EXISTS update_collection_ts_vector();
@@ -86,11 +83,11 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql=POPULATE_COLLECTIONS_TS_VECTOR,
-            reverse_sql=migrations.RunSQL.noop,
-        ),
-        migrations.RunSQL(
             sql=CREATE_COLLECTIONS_TS_VECTOR_TRIGGER,
             reverse_sql=DROP_COLLECTIONS_TS_VECTOR_TRIGGER,
+        ),
+        migrations.RunSQL(
+            sql=REBUILD_COLLECTIONS_TS_VECTOR,
+            reverse_sql=migrations.RunSQL.noop,
         )
     ]
