@@ -88,5 +88,6 @@ class Migration(migrations.Migration):
         ),
         migrations.RunSQL(
             sql=REBUILD_COLLECTIONS_TS_VECTOR,
+            reverse_sql=migrations.RunSQL.noop,
         )
     ]
