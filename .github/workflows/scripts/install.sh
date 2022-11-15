@@ -79,8 +79,10 @@ services:
     volumes:
       - ./settings:/etc/pulp
       - ./ssh:/keys/
-      - ~/.config:/root/.config
+      - ~/.config:/var/lib/pulp/.config
       - ../../../pulp-openapi-generator:/root/pulp-openapi-generator
+    env:
+      PULP_WORKERS: "4"
 VARSYAML
 
 cat >> vars/main.yaml << VARSYAML
@@ -103,7 +105,9 @@ if [ "$TEST" = "s3" ]; then
     command: "server /data"' vars/main.yaml
   sed -i -e '$a s3_test: true\
 minio_access_key: "'$MINIO_ACCESS_KEY'"\
-minio_secret_key: "'$MINIO_SECRET_KEY'"' vars/main.yaml
+minio_secret_key: "'$MINIO_SECRET_KEY'"\
+pulp_scenario_settings: null\
+' vars/main.yaml
 fi
 
 if [ "$TEST" = "azure" ]; then
@@ -119,7 +123,9 @@ if [ "$TEST" = "azure" ]; then
     volumes:\
       - ./azurite:/etc/pulp\
     command: "azurite-blob --blobHost 0.0.0.0 --cert /etc/pulp/azcert.pem --key /etc/pulp/azkey.pem"' vars/main.yaml
-  sed -i -e '$a azure_test: true' vars/main.yaml
+  sed -i -e '$a azure_test: true\
+pulp_scenario_settings: null\
+' vars/main.yaml
 fi
 
 echo "PULP_API_ROOT=${PULP_API_ROOT}" >> "$GITHUB_ENV"
@@ -130,6 +136,15 @@ fi
 
 ansible-playbook build_container.yaml
 ansible-playbook start_container.yaml
+
+# .config needs to be accessible by the pulp user in the container, but some
+# files will likely be modified on the host by post/pre scripts.
+chmod 777 ~/.config/pulp_smash/
+chmod 666 ~/.config/pulp_smash/settings.json
+sudo chown -R 700:700 ~runner/.config
+# Plugins often write to ~/.config/pulp/cli.toml from the host
+sudo chmod 777 ~runner/.config/pulp
+sudo chmod 666 ~runner/.config/pulp/cli.toml
 echo ::group::SSL
 # Copy pulp CA
 sudo docker cp pulp:/etc/pulp/certs/pulp_webserver.crt /usr/local/share/ca-certificates/pulp_webserver.crt
