@@ -29,13 +29,14 @@ class CollectionRemoteCase(TestCaseUsingBindings):
             auth_url="https://example.com",
         )
         remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+        assert not hasattr(remote, "token")
         response = self.remote_collection_api.partial_update(remote.pulp_href, {"auth_url": None})
         monitor_task(response.task)
         response = self.remote_collection_api.partial_update(
             remote.pulp_href, {"auth_url": "https://example.com"}
         )
         monitor_task(response.task)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
     def test_auth_url_requires_token(self):
         """Assert that a `CollectionRemote` with `auth_url` and no `token` can't be created."""
