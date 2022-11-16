@@ -136,6 +136,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
         allow_null=True,
         required=False,
         max_length=2000,
+        write_only=True,
     )
 
     sync_dependencies = serializers.BooleanField(
