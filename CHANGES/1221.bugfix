@@ -1,1 +1,0 @@
-Switched the attribute `token` on `CollectionRemotes` not to be exposed in the API.
