@@ -120,6 +120,25 @@ Misc
 ----
 
 
+0.13.5 (2022-11-16)
+===================
+
+Bugfixes
+--------
+
+- Switched the attribute `token` on `CollectionRemotes` not to be exposed in the API.
+  `#1221 <https://github.com/pulp/pulp_ansible/issues/1221>`__
+
+
+Misc
+----
+
+- `#1218 <https://github.com/pulp/pulp_ansible/issues/1218>`__
+
+
+----
+
+
 0.13.4 (2022-08-23)
 ===================
 
