@@ -59,14 +59,12 @@ then
   export PULP_SMASH_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-smash\/pull\/(\d+)' | awk -F'/' '{print $7}')
   export PULP_OPENAPI_GENERATOR_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-openapi-generator\/pull\/(\d+)' | awk -F'/' '{print $7}')
   export PULP_CLI_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/pulp\/pulp-cli\/pull\/(\d+)' | awk -F'/' '{print $7}')
-  export GALAXY_IMPORTER_PR_NUMBER=$(echo $COMMIT_MSG | grep -oP 'Required\ PR:\ https\:\/\/github\.com\/ansible\/galaxy-importer\/pull\/(\d+)' | awk -F'/' '{print $7}')
   echo $COMMIT_MSG | sed -n -e 's/.*CI Base Image:\s*\([-_/[:alnum:]]*:[-_[:alnum:]]*\).*/ci_base: "\1"/p' >> .ci/ansible/vars/main.yaml
 else
   export PULPCORE_PR_NUMBER=
   export PULP_SMASH_PR_NUMBER=
   export PULP_OPENAPI_GENERATOR_PR_NUMBER=
   export PULP_CLI_PR_NUMBER=
-  export GALAXY_IMPORTER_PR_NUMBER=
   export CI_BASE_IMAGE=
 fi
 
@@ -105,7 +103,7 @@ fi
 
 cd pulp-cli
 pip install .
-pulp config create --base-url https://pulp --location tests/cli.toml 
+pulp config create --base-url https://pulp  --location tests/cli.toml
 mkdir ~/.config/pulp
 cp tests/cli.toml ~/.config/pulp/cli.toml
 cd ..
@@ -122,16 +120,6 @@ fi
 cd ..
 
 
-git clone --depth=1 https://github.com/ansible/galaxy-importer.git --branch master
-cd galaxy-importer
-
-if [ -n "$GALAXY_IMPORTER_PR_NUMBER" ]; then
-  git fetch --depth=1 origin pull/$GALAXY_IMPORTER_PR_NUMBER/head:$GALAXY_IMPORTER_PR_NUMBER
-  git checkout $GALAXY_IMPORTER_PR_NUMBER
-fi
-
-cd ..
-
 # Intall requirements for ansible playbooks
 pip install docker netaddr boto3 ansible
 
@@ -146,6 +134,11 @@ then
 fi
 
 cd pulp_ansible
+
+if [[ "$TEST" = "lowerbounds" ]]; then
+  python3 .ci/scripts/calc_deps_lowerbounds.py > lowerbounds_requirements.txt
+  mv lowerbounds_requirements.txt requirements.txt
+fi
 
 if [ -f $POST_BEFORE_INSTALL ]; then
   source $POST_BEFORE_INSTALL

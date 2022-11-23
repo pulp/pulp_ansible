@@ -3,11 +3,7 @@
 
 # generated with plugin_template@2021.08.26-174-g56e0727
 
-additional_repos:
-- bindings: false
-  branch: master
-  name: galaxy-importer
-  org: ansible
+additional_repos: []
 api_root: /pulp/
 black: true
 check_commit_message: true
@@ -26,7 +22,8 @@ deploy_client_to_rubygems: true
 deploy_daily_client_to_pypi: true
 deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
-disabled_redis_runners: []
+disabled_redis_runners:
+  - s3
 docker_fixtures: false
 docs_test: true
 flake8: true
