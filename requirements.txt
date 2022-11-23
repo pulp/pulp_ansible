@@ -6,3 +6,4 @@ packaging>=21.3,<22
 pulpcore>=3.21.dev,<3.25
 PyYAML<6.0
 semantic_version>=2.9,<2.11
+ansible-lint>=6.2.2<6.8.7
