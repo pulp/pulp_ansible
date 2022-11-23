@@ -1,1 +1,1 @@
-Fix ansible-lint jsonschema incompatible version
+Fix jsonschema incompatible version (>=4.17.0) caused by ansible-lint v6.8.7 via galaxy_importer
