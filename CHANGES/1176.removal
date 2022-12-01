@@ -1,5 +1,0 @@
-Renamed CollectionVersion upload fields [namespace, name, version] to expected_[namespace, name, version].
-
-Deprecated /ansible/collections/ upload endpoint. Use /pulp/api/v3/content/ansible/collection_versions/ instead.
-
-Deprecated Galaxy V2 Collection upload endpoint. Use Galaxy V3 Collection Artifact upload endpoint instead.
