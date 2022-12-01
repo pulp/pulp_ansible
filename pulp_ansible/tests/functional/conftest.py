@@ -178,12 +178,12 @@ def ansible_git_remote_factory(ansible_remote_git_api_client, gen_object_with_cl
 
 
 @pytest.fixture
-def build_and_upload_collection(ansible_collections_api_client):
+def build_and_upload_collection(ansible_collection_version_api_client):
     """A factory to locally create, build, and upload a collection."""
 
     def _build_and_upload_collection():
         collection = build_collection("skeleton")
-        response = ansible_collections_api_client.upload_collection(collection.filename)
+        response = ansible_collection_version_api_client.create(file=collection.filename)
         task = monitor_task(response.task)
         return collection, task.created_resources[0]
 

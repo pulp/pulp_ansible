@@ -1,30 +1,44 @@
 import unittest
 
 from pulp_ansible.tests.functional.utils import (
-    gen_collection_in_distribution,
     SyncHelpersMixin,
     TestCaseUsingBindings,
 )
 
 from pulpcore.client.pulp_ansible.exceptions import ApiException
 from pulp_smash.pulp3.bindings import monitor_task
+from orionutils.generator import build_collection, randstr
 
 
 class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Test collection deletion."""
+
+    def upload_to_distro(self, collection_config=None, distro=None):
+        """Helper method to upload a collection to the distribution."""
+        distro = distro or self.distribution
+        repo = distro.repository
+
+        collection_config = collection_config or {}
+        config = {"namespace": randstr(), "name": randstr(), "version": "1.0.0"}
+        config.update(collection_config)
+
+        col = build_collection("skeleton", config=config)
+        response = self.cv_api.create(file=col.filename, repository=repo)
+        monitor_task(response.task)
+        return {"namespace": col.namespace, "name": col.name, "version": col.version}
 
     def setUp(self):
         """Set up the collection deletion tests."""
         (self.repo, self.distribution) = self._create_empty_repo_and_distribution()
 
         self.collection_versions = ["1.0.0", "1.0.1"]
+        self.collection_name = randstr()
+        self.collection_namespace = randstr()
+        config = {"namespace": self.collection_namespace, "name": self.collection_name}
 
-        collection = gen_collection_in_distribution(
-            self.distribution.base_path, versions=self.collection_versions
-        )
-
-        self.collection_name = collection["name"]
-        self.collection_namespace = collection["namespace"]
+        for version in self.collection_versions:
+            config["version"] = version
+            self.upload_to_distro(collection_config=config)
 
     def test_collection_deletion(self):
         """Test deleting an entire collection."""
@@ -57,7 +71,7 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
                 namespace=self.collection_namespace,
             )
 
-            assert e.status == 404
+        assert e.exception.status == 404
 
     def test_collection_version_deletion(self):
         """Test deleting a specific collection version."""
@@ -133,14 +147,17 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
                 name=self.collection_name,
                 namespace=self.collection_namespace,
             )
-            assert e.status == 404
+        assert e.exception.status == 404
 
     def test_invalid_deletion(self):
         """Test deleting collections that are dependencies for other collections."""
         dependent_version = self.collection_versions.pop()
-        dependent_collection = gen_collection_in_distribution(
-            self.distribution.base_path,
-            dependencies={f"{self.collection_namespace}.{self.collection_name}": dependent_version},
+        dependent_collection = self.upload_to_distro(
+            collection_config={
+                "dependencies": {
+                    f"{self.collection_namespace}.{self.collection_name}": dependent_version
+                }
+            },
         )
 
         err_msg = f"{dependent_collection['namespace']}.{dependent_collection['name']} 1.0.0"
@@ -153,8 +170,8 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
                 namespace=self.collection_namespace,
             )
 
-            # check error message includes collection that's blocking delete
-            assert err_msg in e.body
+        # check error message includes collection that's blocking delete
+        assert err_msg in e.exception.body
 
         # Verify specific version that's used can't be deleted
         with self.assertRaises(ApiException) as e:
@@ -164,10 +181,10 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
                 namespace=self.collection_namespace,
                 version=dependent_version,
             )
-            assert e.status == 400
+        assert e.exception.status == 400
 
-            # check error message includes collection that's blocking delete
-            assert err_msg in e.body
+        # check error message includes collection that's blocking delete
+        assert err_msg in e.exception.body
 
         # Verify non dependent version can be deleted.
         resp = self.collections_versions_v3api.delete(
@@ -235,9 +252,10 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_version_deletion_with_range_of_versions(self):
         """Verify collections can be deleted when another version satisfies requirements."""
         # Create a collection that depends on any version of an existing collection
-        gen_collection_in_distribution(
-            self.distribution.base_path,
-            dependencies={f"{self.collection_namespace}.{self.collection_name}": "*"},
+        self.upload_to_distro(
+            collection_config={
+                "dependencies": {f"{self.collection_namespace}.{self.collection_name}": "*"}
+            },
         )
 
         to_delete = self.collection_versions.pop()
@@ -263,4 +281,4 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
                 version=self.collection_versions[0],
             )
 
-            assert e.status == 400
+        assert e.exception.status == 400

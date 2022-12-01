@@ -19,3 +19,9 @@ class UploadGalaxyCollectionMixin:
             kwargs["repository_pk"] = repository.pk
 
         return dispatch(import_collection, exclusive_resources=locks, kwargs=kwargs)
+
+    def get_deferred_context(self, request):
+        context = {}
+        if "file" in request.data:
+            context["filename"] = request.data["file"].name
+        return context

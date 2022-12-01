@@ -2,10 +2,14 @@
 import hashlib
 from tempfile import NamedTemporaryFile
 
-from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase, PulpTaskError
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.utils import http_get
 
-from pulpcore.client.pulp_ansible import AnsibleCollectionsApi, ContentCollectionVersionsApi
+from pulpcore.client.pulp_ansible import (
+    AnsibleCollectionsApi,
+    ContentCollectionVersionsApi,
+    ApiException,
+)
 
 from pulp_ansible.tests.functional.utils import gen_ansible_client
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -51,13 +55,10 @@ class UploadCollectionTestCase(PulpTestCase):
 
         self.assertEqual(response.sha256, self.collection_sha256, response)
 
-        with self.assertRaises(PulpTaskError) as exc:
+        with self.assertRaises(ApiException) as exc:
             self.upload_collection()
 
-        task_result = exc.exception.task.to_dict()
-        self.assertEqual(task_result["state"], "failed")
-        error = task_result["error"]
-        for key in ("artifact", "already", "exists"):
-            self.assertIn(key, task_result["error"]["description"].lower(), error)
+        assert exc.exception.status == 400
+        assert "Artifact already exists" in exc.exception.body
 
         delete_orphans()

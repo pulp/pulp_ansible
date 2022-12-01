@@ -101,7 +101,10 @@ class ContentUnitTestCase(PulpTestCase):
         with NamedTemporaryFile() as temp_file:
             temp_file.write(collection_content)
             return self.cv_content_api.create(
-                file=temp_file.name, namespace=namespace, name=name, version=version
+                file=temp_file.name,
+                expected_namespace=namespace,
+                expected_name=name,
+                expected_version=version,
             )
 
     def test_01_create_content_unit(self):
@@ -175,6 +178,4 @@ class ContentUnitTestCase(PulpTestCase):
         attrs = dict(namespace="pulp", name="squeezer", version="0.0.9")
         with self.assertRaises(ApiException) as ctx:
             self.upload_collection(**attrs)
-        self.assertIn(
-            "The fields namespace, name, version must make a unique set.", ctx.exception.body
-        )
+        self.assertIn("Collection pulp.squeezer-0.0.9 already exists", ctx.exception.body)

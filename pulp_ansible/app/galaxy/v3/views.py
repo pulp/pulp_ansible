@@ -26,11 +26,14 @@ from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import PulpTemporaryFile, Content
+from pulpcore.plugin.models import Content
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
-from pulpcore.plugin.viewsets import BaseFilterSet, OperationPostponedResponse
-from pulpcore.plugin.tasking import add_and_remove, dispatch
+from pulpcore.plugin.viewsets import (
+    BaseFilterSet,
+    OperationPostponedResponse,
+    SingleArtifactContentUploadViewSet,
+)
+from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -52,8 +55,9 @@ from pulp_ansible.app.models import (
     DownloadLog,
 )
 from pulp_ansible.app.serializers import (
-    CollectionOneShotSerializer,
     CollectionImportDetailSerializer,
+    CollectionOneShotSerializer,
+    CollectionVersionUploadSerializer,
 )
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
@@ -458,13 +462,15 @@ class UnpaginatedCollectionViewSet(CollectionViewSet):
 
 
 class CollectionUploadViewSet(
-    ExceptionHandlerMixin, viewsets.GenericViewSet, UploadGalaxyCollectionMixin
+    ExceptionHandlerMixin, UploadGalaxyCollectionMixin, SingleArtifactContentUploadViewSet
 ):
     """
     ViewSet for Collection Uploads.
     """
 
-    serializer_class = CollectionOneShotSerializer
+    queryset = None
+    endpoint_pieces = None
+    serializer_class = CollectionVersionUploadSerializer
     pulp_tag_name = "Pulp_Ansible: Artifacts Collections V3"
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
@@ -472,6 +478,16 @@ class CollectionUploadViewSet(
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
         return "pulp_ansible/v3/collections/upload"
+
+    def _dispatch_upload_collection_task(self, args=None, kwargs=None, repository=None):
+        """
+        Dispatch an Upload Collection creation task.
+        """
+        locks = []
+        if repository:
+            locks.append(repository)
+
+        return dispatch(general_create, exclusive_resources=locks, args=args, kwargs=kwargs)
 
     @extend_schema(
         description="Create an artifact and trigger an asynchronous task to create "
@@ -485,44 +501,40 @@ class CollectionUploadViewSet(
         Dispatch a Collection creation task.
         """
         distro = get_object_or_404(AnsibleDistribution, base_path=distro_base_path)
-        serializer = self.get_serializer(data=request.data, context={"request": request})
+        repo = distro.repository
+        if repo is None:
+            if distro.repository_version is None:
+                raise serializers.ValidationError(
+                    _("Distribution must have either repository or repository_version set")
+                )
+            repo = distro.repository_version.repository
+        # Check that invalid fields were not specified
+        serializer = CollectionOneShotSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        expected_digests = {}
-        if serializer.validated_data["sha256"]:
-            expected_digests["sha256"] = serializer.validated_data["sha256"]
-        try:
-            temp_file = PulpTemporaryFile.init_and_validate(
-                serializer.validated_data["file"],
-                expected_digests=expected_digests,
-            )
-        except DigestValidationError:
-            raise serializers.ValidationError(
-                _("The provided sha256 value does not match the sha256 of the uploaded file.")
-            )
-
-        temp_file.save()
-
-        kwargs = {}
-
-        if serializer.validated_data["expected_namespace"]:
-            kwargs["expected_namespace"] = serializer.validated_data["expected_namespace"]
-
-        if serializer.validated_data["expected_name"]:
-            kwargs["expected_name"] = serializer.validated_data["expected_name"]
-
-        if serializer.validated_data["expected_version"]:
-            kwargs["expected_version"] = serializer.validated_data["expected_version"]
-
-        async_result = self._dispatch_import_collection_task(
-            temp_file.pk, distro.repository, **kwargs
+        # Check that namespace, name and version can be extracted
+        request.data["repository"] = reverse("repositories-ansible/ansible-detail", args=[repo.pk])
+        serializer = CollectionVersionUploadSerializer(
+            data=request.data, context=self.get_serializer_context()
         )
-        CollectionImport.objects.create(task_id=async_result.pk)
-
+        serializer.is_valid(raise_exception=True)
+        # Convert file to an artifact
+        task_payload = self.init_content_data(serializer, request)
+        # Dispatch create task
+        task = self._dispatch_upload_collection_task(
+            repository=serializer.validated_data["repository"],
+            args=(CollectionVersion._meta.app_label, serializer.__class__.__name__),
+            kwargs={
+                "data": task_payload,
+                "context": self.get_deferred_context(request),
+            },
+        )
+        # Create CollectionImport and response
+        CollectionImport.objects.create(task_id=task.pk)
         data = {
             "task": reverse(
                 settings.ANSIBLE_URL_NAMESPACE + "collection-imports-detail",
-                kwargs={"pk": async_result.pk},
+                kwargs={"pk": task.pk},
                 request=None,
             )
         }

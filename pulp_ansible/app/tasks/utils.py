@@ -8,9 +8,65 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
+from galaxy_importer.schema import MAX_LENGTH_NAME, MAX_LENGTH_VERSION
 from pulp_ansible.app.constants import PAGE_SIZE
 
 log = logging.getLogger(__name__)
+
+CollectionFilename = namedtuple("CollectionFilename", ["namespace", "name", "version"])
+FILENAME_REGEXP = re.compile(
+    r"^(?P<namespace>\w+)-(?P<name>\w+)-" r"(?P<version>[0-9a-zA-Z.+-]+)\.tar\.gz$"
+)
+VERSION_REGEXP = re.compile(
+    r"""
+^
+(?P<major>0|[1-9][0-9]*)
+\.
+(?P<minor>0|[1-9][0-9]*)
+\.
+(?P<patch>0|[1-9][0-9]*)
+(?:
+    -(?P<pre>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)
+)?
+(?:
+    \+(?P<build>[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)
+)?
+$
+""",
+    re.VERBOSE | re.ASCII,
+)
+
+
+def parse_collection_filename(filename):
+    """
+    Parses collection filename. (Copied from GalaxyNG)
+    Parses and validates collection filename. Returns CollectionFilename named tuple.
+    Raises ValueError if filename is not a valid collection filename.
+    """
+    match = FILENAME_REGEXP.match(filename)
+
+    if not match:
+        msg = _("Invalid filename {filename}. Expected format: namespace-name-version.tar.gz")
+        raise ValueError(msg.format(filename=filename))
+
+    namespace, name, version = match.groups()
+
+    match = VERSION_REGEXP.match(version)
+    if not match:
+        msg = _(
+            "Invalid version string {version} from filename {filename}. "
+            "Expected semantic version format."
+        )
+        raise ValueError(msg.format(version=version, filename=filename))
+
+    if len(namespace) > MAX_LENGTH_NAME:
+        raise ValueError(_("Expected namespace to be max length of %s") % MAX_LENGTH_NAME)
+    if len(name) > MAX_LENGTH_NAME:
+        raise ValueError(_("Expected name to be max length of %s") % MAX_LENGTH_NAME)
+    if len(version) > MAX_LENGTH_VERSION:
+        raise ValueError(_("Expected version to be max length of %s") % MAX_LENGTH_VERSION)
+
+    return CollectionFilename(namespace, name, version)
 
 
 def get_api_version(url):
