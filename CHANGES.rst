@@ -13,6 +13,47 @@ Changelog
 
 .. towncrier release notes start
 
+0.16.0 (2022-12-01)
+===================
+
+Features
+--------
+
+- An existing artifact or upload object can now be used to create a Collection.
+  `#1175 <https://github.com/pulp/pulp_ansible/issues/1175>`__
+
+
+Bugfixes
+--------
+
+- Properly return 400 error when trying to create/upload a duplicate Collection.
+  `#1175 <https://github.com/pulp/pulp_ansible/issues/1175>`__
+- Fixed unnecessary creation of intermediate repository versions when performing a collection delete.
+  `#1274 <https://github.com/pulp/pulp_ansible/issues/1274>`__
+- Limit search_vector to only tags for the collectionversion instead of all collectionversions.
+  `#1278 <https://github.com/pulp/pulp_ansible/issues/1278>`__
+
+
+Deprecations and Removals
+-------------------------
+
+- Renamed CollectionVersion upload fields [namespace, name, version] to expected_[namespace, name, version].
+
+  Deprecated /ansible/collections/ upload endpoint. Use /pulp/api/v3/content/ansible/collection_versions/ instead.
+
+  Deprecated Galaxy V2 Collection upload endpoint. Use Galaxy V3 Collection Artifact upload endpoint instead.
+  `#1176 <https://github.com/pulp/pulp_ansible/issues/1176>`__
+
+
+Misc
+----
+
+- `#1273 <https://github.com/pulp/pulp_ansible/issues/1273>`__
+
+
+----
+
+
 0.15.0 (2022-09-21)
 ===================
 
