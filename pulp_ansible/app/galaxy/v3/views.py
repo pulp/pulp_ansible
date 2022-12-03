@@ -48,6 +48,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
+    AnsibleNamespace,
     Collection,
     CollectionVersion,
     CollectionVersionSignature,
@@ -55,6 +56,7 @@ from pulp_ansible.app.models import (
     DownloadLog,
 )
 from pulp_ansible.app.serializers import (
+    AnsibleNamespaceSerializer,
     CollectionImportDetailSerializer,
     CollectionOneShotSerializer,
     CollectionVersionUploadSerializer,
@@ -116,6 +118,7 @@ class AnsibleDistributionMixin:
 
         distro_content = self._distro_content
         context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
+        context["namespaces"] = AnsibleNamespace.objects.filter(pk__in=distro_content)
         context["distro_base_path"] = self.kwargs["distro_base_path"]
         return context
 
@@ -646,6 +649,19 @@ class CollectionArtifactDownloadView(views.APIView):
             url = guard.preauthenticate_url(url)
 
         return redirect(url)
+
+
+class AnsibleNamespaceViewSet(ExceptionHandlerMixin, AnsibleDistributionMixin, mixins.ListModelMixin,
+    mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+
+    serializer_class = AnsibleNamespaceSerializer
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            # drf_spectacular get filter from get_queryset().model
+            # and it fails when "path" is not on self.kwargs
+            return AnsibleNamespace.objects.none()
+        return self._distro_content.filter(pulp_type=AnsibleNamespace.get_pulp_type())
 
 
 class CollectionVersionViewSet(

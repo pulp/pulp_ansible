@@ -6,6 +6,7 @@ from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
 from pulp_ansible.app import models
+from pulp_ansible.app.serializers import AnsibleNamespaceSerializer
 from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
 
 
@@ -28,6 +29,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     versions_url = serializers.SerializerMethodField()
     highest_version = serializers.SerializerMethodField()
+    namespace = serializers.SerializerMethodField()
 
     class Meta:
         fields = (
@@ -93,6 +95,16 @@ class CollectionSerializer(serializers.ModelSerializer):
             },
         )
         return {"href": href, "version": version}
+
+    def get_namespace(self, obj):
+        """Shows namespace object if it exists in the Repository."""
+        # Don't use this field for syncing, see CollectionVersionSerializer
+        name = obj.namespace
+        namespace = self.context["namespaces"].filter(name=name)
+        if namespace.exists():
+            return AnsibleNamespaceSerializer(instance=namespace.get()).data
+        else:
+            return name
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
@@ -184,6 +196,17 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     """
 
     name = serializers.CharField(source="namespace")
+    metadata_sha256 = serializers.SerializerMethodField()
+
+    def _namespace(self, obj):
+        if "namespace" not in self.context:
+            namespace = self.context["namespaces"].filter(name=obj.namespace)
+            self.context["namespace"] = namespace.get() if namespace.exists() else None
+        return self.context["namespace"]
+
+    def get_metadata_sha256(self, obj):
+        """Retrieve the Namespace Metadata digest if it exists."""
+        return getattr(self._namespace(obj), "metadata_sha256", None)
 
 
 class CollectionVersionSignatureSerializer(serializers.ModelSerializer):

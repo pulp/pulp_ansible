@@ -55,6 +55,7 @@ from semantic_version.base import Always
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
+    AnsibleNamespace,
     AnsibleRepository,
     Collection,
     CollectionImport,
@@ -507,6 +508,7 @@ class CollectionSyncFirstStage(Stage):
         self._unpaginated_collection_version_metadata = None
         self.optimize = optimize
         self.last_synced_metadata_time = None
+        self.namespaces_seen = {}
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -640,6 +642,45 @@ class CollectionSyncFirstStage(Stage):
                     pubkey_fingerprint=signature["pubkey_fingerprint"],
                 )
                 await self.put(DeclarativeContent(content=cv_signature))
+
+        # Process syncing CV Namespace Metadata if present
+        namespace = metadata["namespace"]["name"]
+        if namespace_sha256 := metadata["namespace"].get("metadata_sha256"):
+            if namespace in self.namespaces_seen:
+                # TODO Raise proper error
+                assert namespace_sha256 == self.namespaces_seen[namespace]
+            else:
+                if await self._add_namespace(namespace):
+                    self.namespaces_seen[namespace] = namespace_sha256
+
+    async def _add_namespace(self, namespace):
+        """Adds A Namespace metadata content to the pipeline."""
+        endpoint, api_version = await self._get_root_api(self.remote.url)
+        if api_version == 3:
+            # TODO: Look into moving this into _download_unpaginated_metadata
+            # TODO: When can we change from old V3 endpoints?
+            namespace_url = f"{endpoint}namespaces/{namespace}/"
+            downloader = self.remote.get_downloader(url=namespace_url, silence_errors_for_response_status_codes={404})
+            try:
+                result = await downloader.run()
+            except FileNotFoundError:
+                pass
+            else:
+                metadata = parse_metadata(result)
+                url = metadata.pop("avatar_url", None)
+                da = [DeclarativeArtifact(
+                    Artifact(sha256=metadata["avatar_sha256"]),
+                    url=url,
+                    remote=self.remote,
+                    relative_path=f"{namespace}-logo",
+                    deferred_download=False,
+                )] if url else None
+                namespace = AnsibleNamespace(**metadata)
+                dc = DeclarativeContent(namespace, d_artifacts=da)
+                await self.put(dc)
+                return True
+
+        return False
 
     async def _add_collection_version_from_git(self, url, gitref, metadata_only):
         d_content = await declarative_content_from_git_repo(

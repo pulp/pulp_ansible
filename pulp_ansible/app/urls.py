@@ -119,6 +119,24 @@ legacy_v3_collection_urls = [
         ),
         name="legacy-v3-metadata-collection-versions-list",
     ),
+    path(
+        "namespaces/",
+        views_v3.redirect_view_generator(
+            {"get": "list"},
+            url="ansible-namespaces-list",
+            viewset=views_v3.AnsibleNamespaceViewSet,
+        ),
+        name="legacy-v3-ansible-namespaces-list"
+    ),
+    path(
+        "namespaces/<str:name>",
+        views_v3.redirect_view_generator(
+            {"get": "retrieve"},
+            url="ansible-namespaces-detail",
+            viewset=views_v3.AnsibleNamespaceViewSet,
+        ),
+        name="legacy-v3-ansible-namespaces-detail"
+    ),
     # the ansible-galaxy client doesn't play well with redirects for POST operations, so these
     # views don't redirect
     path(
@@ -202,6 +220,16 @@ v3_plugin_urls = [
         "client-configuration/",
         views_v3.ClientConfigurationView.as_view(),
         name="client-configuration-viewset",
+    ),
+    path(
+        "namespaces/",
+        views_v3.AnsibleNamespaceViewSet.as_view({"get": "list"}),
+        name="ansible-namespaces-list"
+    ),
+    path(
+        "namespaces/<str:name>/",
+        views_v3.AnsibleNamespaceViewSet.as_view({"get": "retrieve"}),
+        name="ansible-namespaces-detail"
     ),
 ]
 

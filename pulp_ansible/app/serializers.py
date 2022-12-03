@@ -27,6 +27,7 @@ from .models import (
     AnsibleDistribution,
     GitRemote,
     RoleRemote,
+    AnsibleNamespace,
     AnsibleRepository,
     Collection,
     CollectionImport,
@@ -738,6 +739,30 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
             "signed_collection",
             "pubkey_fingerprint",
             "signing_service",
+        )
+
+
+class AnsibleNamespaceSerializer(ModelSerializer):
+    """
+    A serializer for Namespaces.
+    """
+
+    name = serializers.SlugField(min_length=3, max_length=64, allow_blank=False)
+    company = serializers.CharField(max_length=64, allow_blank=True)
+    email = serializers.CharField(max_length=256, allow_blank=True)
+    description = serializers.CharField(max_length=256, allow_blank=True)
+    resources = serializers.CharField(allow_blank=True)
+    links = serializers.DictField(child=serializers.URLField(max_length=256), default=dict)
+    avatar_sha256 = serializers.CharField(max_length=64, allow_blank=True)
+    avatar_url = serializers.URLField(read_only=True)
+    metadata_sha256 = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = AnsibleNamespace
+        fields = (
+            "pulp_href", "name", "company", "email",
+            "description", "resources", "links",
+            "avatar_sha256", "avatar_url", "metadata_sha256",
         )
 
 
