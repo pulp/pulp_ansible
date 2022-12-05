@@ -50,7 +50,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
     ClientConfigurationSerializer,
-    CollectionVersionSearchResultsSerializer
+    CollectionVersionSearchResultsSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -78,7 +78,7 @@ from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_co
 
 class CollectionVersionSearchViewSetPagination(PageNumberPagination):
     page_size = 100
-    page_size_query_param = 'page_size'
+    page_size_query_param = "page_size"
     max_page_size = 1000
 
 
@@ -99,15 +99,9 @@ class CollectionVersionSearchFilter(CollectionVersionFilter):
         method="filter_by_distribution",
     )
 
-    dependency = filters.CharFilter(
-        field_name="dependencies",
-        method="filter_by_dependency"
-    )
+    dependency = filters.CharFilter(field_name="dependencies", method="filter_by_dependency")
 
-    deprecated = filters.CharFilter(
-        field_name="deprecated",
-        method="filter_by_deprecated"
-    )
+    deprecated = filters.CharFilter(field_name="deprecated", method="filter_by_deprecated")
 
     def filter_by_distribution(self, qs, name, value):
         for distro_name in value.split(","):
@@ -141,20 +135,21 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
         qs = CollectionVersion.objects.all()
 
         # add a field for the namespace.name ...
-        qs = qs.annotate(fqn=Concat(F('namespace'), Value("."), F('name'), output_field=CharField()))
+        qs = qs.annotate(
+            fqn=Concat(F("namespace"), Value("."), F("name"), output_field=CharField())
+        )
 
         # make a queryable list of deprecated collections
         deprecation_qs = AnsibleCollectionDeprecated.objects.all()
         deprecation_qs = deprecation_qs.annotate(
-            fqn=Concat(F('namespace'), Value("."), F('name'), output_field=CharField())
+            fqn=Concat(F("namespace"), Value("."), F("name"), output_field=CharField())
         )
-        deprecations=[x.fqn for x in deprecation_qs]
+        deprecations = [x.fqn for x in deprecation_qs]
 
         # add a field to indicate deprecation ...
         kwargs = {
             "is_deprecated": Case(
-                When(fqn__in=deprecations, then=Value(True)),
-                default=Value(False)
+                When(fqn__in=deprecations, then=Value(True)), default=Value(False)
             )
         }
         qs = qs.annotate(**kwargs)
@@ -164,7 +159,7 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
             kwargs = {
                 f"in_distro_{distro.name}": Case(
                     When(pulp_id__in=distro.repository.latest_version().content, then=Value(True)),
-                    default=Value(False)
+                    default=Value(False),
                 )
             }
             qs = qs.annotate(**kwargs)
