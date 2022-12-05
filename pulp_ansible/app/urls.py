@@ -206,11 +206,11 @@ v3_plugin_urls = [
     ),
     path(
         "search/collection-versions/",
-        #views_v3.CollectionVersionSearchViewSet.as_view({"get": "list"}),
-        #views_v3.CollectionVersionSearchViewSet.as_view(),
+        # views_v3.CollectionVersionSearchViewSet.as_view({"get": "list"}),
+        # views_v3.CollectionVersionSearchViewSet.as_view(),
         viewsets_v3.CollectionVersionSearchViewSet.as_view({"get": "list"}),
         name="collection-versions-search",
-    )
+    ),
 ]
 
 v3_urls = [

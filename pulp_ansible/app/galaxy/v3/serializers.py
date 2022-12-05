@@ -151,7 +151,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             "requires_ansible",
             "dependencies",
             "distributions",
-            "tags"
+            "tags",
         )
         model = models.CollectionVersion
 
@@ -162,9 +162,9 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
         return ""
 
     def get_distributions(self, obj):
-        dnames = [x for x in dir(obj) if x.startswith('in_distro_')]
+        dnames = [x for x in dir(obj) if x.startswith("in_distro_")]
         dnames = [x for x in dnames if getattr(obj, x) == True]
-        dnames = [x.replace('in_distro_', '') for x in dnames]
+        dnames = [x.replace("in_distro_", "") for x in dnames]
         return dnames
 
     def get_is_deprecated(self, obj):

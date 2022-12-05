@@ -48,7 +48,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
     ClientConfigurationSerializer,
-    CollectionVersionSearchResultsSerializer
+    CollectionVersionSearchResultsSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
