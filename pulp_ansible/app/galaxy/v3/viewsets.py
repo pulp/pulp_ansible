@@ -1,79 +1,28 @@
-from pprint import pprint
-from django.db.models import Exists, OuterRef, Q, Value, F, Func, CharField
+from django.db.models import Value, F, CharField
 from django.db.models import When, Case
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models.functions import Concat
-
-from datetime import datetime
-from gettext import gettext as _
-import semantic_version
-
-from django.contrib.postgres.aggregates import ArrayAgg
-from django.contrib.postgres.search import SearchQuery
-from django.db import DatabaseError
-from django.db.models import F, Q
-from django.db.models.expressions import Window
-from django.db.models.functions.window import FirstValue
-from django.http import StreamingHttpResponse, HttpResponseNotFound
-from django.shortcuts import get_object_or_404, redirect
-from django.utils.dateparse import parse_datetime
 from django_filters import filters
-from django.views.generic.base import RedirectView
-from django.conf import settings
+from rest_framework import viewsets
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
-from jinja2 import Template
-from rest_framework import mixins
-from rest_framework.response import Response
-from rest_framework.request import Request
-from rest_framework.reverse import reverse, reverse_lazy
-from rest_framework import serializers
-from rest_framework import status as http_status
-from rest_framework import viewsets, views
-from rest_framework.exceptions import NotFound
-from rest_framework import status
-
-from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.models import PulpTemporaryFile, Content
-from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
-from pulpcore.plugin.viewsets import BaseFilterSet, OperationPostponedResponse
-from pulpcore.plugin.tasking import add_and_remove, dispatch
-
-from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
-    CollectionSerializer,
-    CollectionVersionSerializer,
-    CollectionVersionDocsSerializer,
-    CollectionVersionListSerializer,
+    # CollectionSerializer,
+    # CollectionVersionSerializer,
+    # CollectionVersionDocsSerializer,
     CollectionVersionSearchListSerializer,
-    RepoMetadataSerializer,
-    UnpaginatedCollectionVersionSerializer,
-    ClientConfigurationSerializer,
-    CollectionVersionSearchResultsSerializer,
+    # RepoMetadataSerializer,
+    # CollectionVersionSearchResultsSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
-    AnsibleRepository,
-    Collection,
     CollectionVersion,
-    CollectionVersionSignature,
-    CollectionImport,
-    DownloadLog,
-)
-from pulp_ansible.app.serializers import (
-    CollectionOneShotSerializer,
-    CollectionImportDetailSerializer,
 )
 
-from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
-from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import (
     CollectionVersionFilter,
 )
-
-from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
 
 class CollectionVersionSearchViewSetPagination(PageNumberPagination):
