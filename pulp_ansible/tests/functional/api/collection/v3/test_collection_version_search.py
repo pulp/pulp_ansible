@@ -1,0 +1,301 @@
+import copy
+import logging
+import tarfile
+import shutil
+import os
+import random
+import string
+from urllib.parse import urljoin
+
+import pytest
+
+from orionutils.generator import build_collection
+
+from pulp_smash import api, config
+from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
+from pulp_smash.pulp3.utils import get_content_summary
+from pulp_smash.pulp3.bindings import delete_orphans
+
+from pulp_ansible.tests.functional.utils import (
+    gen_ansible_remote,
+    gen_distribution,
+    get_content,
+    gen_repo
+)
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+
+from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_DISTRIBUTION_PATH,
+    ANSIBLE_REPO_PATH,
+    GALAXY_ANSIBLE_BASE_URL
+)
+
+
+logger = logging.getLogger(__name__)
+
+
+@pytest.fixture(scope="session")
+def pulp_client():
+    cfg = config.get_config()
+    client = api.Client(cfg)
+    headers = cfg.custom.get("headers", None)
+    if headers:
+        client.request_kwargs.setdefault("headers", {}).update(headers)
+    return client
+
+def upload_handler(client, response):
+    response.raise_for_status()
+    logger.debug("response status: %s", response.status_code)
+    if response.status_code == 204:
+        return response
+    #import epdb; epdb.st()
+    #api._handle_202(client._cfg, response, client.pulp_host)
+    if response.request.method == "POST":
+        #import epdb; epdb.st()
+        task_url = response.json()["task"]
+        task = client.get(task_url)
+        while task.get('finished_at') is None:
+            #print(task['state'])
+            task = client.get(task_url)
+        #print(task['state'])
+        return task
+    else:
+        return response.json()
+
+
+def get_galaxy_url(base, path):
+    cfg = config.get_config()
+    path = path.lstrip("/")
+    GALAXY_API_ROOT = cfg.custom.get(
+        "galaxy_api_root", "/pulp_ansible/galaxy/%(base_path)s/api/"
+    ) % {"base_path": base}
+    return urljoin(GALAXY_API_ROOT, path)
+
+
+#@pytest.mark.pulp_on_localhost
+#@pytest.fixture(scope="session")
+@pytest.fixture()
+def search_specs(
+    pulp_client,
+    tmp_path,
+):
+
+    def get_collection_versions():
+        cversions = pulp_client.get('/pulp/api/v3/content/ansible/collection_versions/')
+        return dict(((x['namespace'], x['name'], x['version']), x) for x in cversions)
+
+    #delete_orphans()
+
+    # make a place to store artifacts in between runs ...
+    #artifact_cache = os.path.join(tmp_path, "artifacts")
+    artifact_cache = os.path.join("/tmp", "artifacts")
+    if not os.path.exists(artifact_cache):
+        os.makedirs(artifact_cache)
+
+    # map out existing distros
+    dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH)
+    dists = dict((x['name'], x) for x in dists)
+
+    # map out existing repos
+    repos = pulp_client.get(ANSIBLE_REPO_PATH)
+    repos = dict((x['name'], x) for x in repos)
+
+    # /pulp_ansible/galaxy/<path:path>/api/v3/plugin/ansible/search/collection-versions/
+    # /pulp/api/v3/content/ansible/collection_versions/
+    cversions = get_collection_versions()
+
+    specs = [
+        {
+            "namespace": "foo",
+            "name": "bar",
+            "version": "1.0.1",
+            "tags": ["a", "b", "c"],
+            "repository_name": "automation-hub-1"
+        },
+        {
+            "namespace": "foo",
+            "name": "baz",
+            "version": "1.0.1",
+            "tags": ["d", "e", "f"],
+            "dependencies": {"foo.bar": ">=1.0.0"},
+            "repository_name": "automation-hub-2"
+        },
+        {
+            "namespace": "jingle",
+            "name": "bellz",
+            "version": "12.25.0",
+            "tags": ["trees", "sleighs", "gifts"],
+            "repository_name": "automation-hub-1"
+        },
+        {
+            "namespace": "jingle",
+            "name": "bellz",
+            "version": "12.25.0",
+            "tags": ["trees", "sleighs", "gifts"],
+            "repository_name": "automation-hub-3"
+        },
+        {
+            "namespace": "jingle",
+            "name": "bellz",
+            "version": "12.25.1",
+            "dependencies": {"foo.bar": ">=1.0.0"},
+            "tags": ["trees", "sleighs", "gifts"],
+            "repository_name": "automation-hub-2"
+        },
+    ]
+
+    # cleanup ...
+    for rname in sorted(set(x['repository_name'] for x in specs)):
+
+        # clean the dist
+        try:
+            #rname = spec["repository_name"]
+            if rname in dists:
+                pulp_client.delete(dists[rname]["pulp_href"])
+        except Exception as e:
+            pass
+
+        # clean the repo
+        try:
+            #rname = spec["repository_name"]
+            if rname in repos:
+                pulp_client.delete(repos[rname]["pulp_href"])
+        except Exception as e:
+            pass
+
+
+    # cv's and artifacts should be orphaned if the repos are gone ...
+    delete_orphans()
+
+    created_repos = {}
+    created_dists = {}
+
+    # create repo & distro ...
+    for ids, spec in enumerate(specs):
+
+        # make the repo
+        if spec["repository_name"] not in created_repos:
+            repo_data = gen_repo(name=spec["repository_name"])
+            pulp_repo = pulp_client.post(ANSIBLE_REPO_PATH, repo_data)
+            #specs[ids]['repository'] = pulp_repo
+            created_repos[spec["repository_name"]] = pulp_repo
+        #else:
+        #    specs[ids]['repository'] = created_repos[spec["repository_name"]]
+
+        # make the distribution
+        if spec["repository_name"] not in created_dists:
+            dist_data = gen_distribution(
+                name=pulp_repo["name"], base_path=pulp_repo["name"], repository=pulp_repo["pulp_href"]
+            )
+            pulp_dist = pulp_client.post(ANSIBLE_DISTRIBUTION_PATH, dist_data)
+            #specs[ids]['distribution'] = pulp_dist
+            created_dists[spec["repository_name"]] = pulp_dist
+        #else:
+        #    specs[ids]['distribution'] = created_dists[spec["repository_name"]]
+
+    uploaded_artifacts = {}
+
+    # make and upload each cv
+    for ids, spec in enumerate(specs):
+
+        ckey = (spec['namespace'], spec['name'], spec['version'])
+        spec2 = copy.deepcopy(spec)
+        spec2['repository'] = "https://github.com/foo/bar"
+        artifact = build_collection(base="skeleton", config=spec2)
+        new_fn = os.path.join(artifact_cache, os.path.basename(artifact.filename))
+        shutil.copy(artifact.filename, new_fn)
+        specs[ids]['artifact'] = new_fn
+
+        pulp_dist = created_dists[spec['repository_name']]
+
+        if ckey not in uploaded_artifacts:
+            # upload will put it in the repo automatically ...
+
+            UPLOAD_PATH = get_galaxy_url(pulp_dist["base_path"], "/v3/artifacts/collections/")
+            print(f'UPLOAD_PATH: {UPLOAD_PATH}')
+            collection = {"file": (os.path.basename(spec["artifact"]), open(spec["artifact"], "rb"))}
+            response = pulp_client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
+            assert response['state'] != 'failed', response['error']
+            uploaded_artifacts[ckey] = new_fn
+
+        else:
+            # copy to the repo ...
+            # https://docs.pulpproject.org/pulp_rpm/workflows/copy.html
+            print('Artifact already uploaded, need to copy into repo')
+            repo = created_repos[spec['repository_name']]
+            repo_href = repo['pulp_href']
+            cvs = get_collection_versions()
+            this_cv = cvs[ckey]
+            cv_href = this_cv['pulp_href']
+            payload = {'add_content_units': [cv_href]}
+            resp = pulp_client.post(repo_href + 'modify/', payload)
+            #import epdb; epdb.st()
+
+        # add to repo ...
+        #print('add cv to repo ...')
+        #import epdb; epdb.st()
+
+    yield specs
+
+
+@pytest.mark.pulp_on_localhost
+def test_collection_version_search(pulp_client, search_specs):
+
+    #search_url = '/pulp_ansible/galaxy/<path:path>/api/v3/plugin/ansible/search/collection-versions/'
+
+    # no filters ...
+    search_url = '/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/'
+    resp1 = pulp_client.get(search_url)
+    unique_cvs = sorted(set([x['namespace'] + ':' + x['name'] + ':' + x['version'] for x in search_specs]))
+    assert len(resp1) == len(unique_cvs)
+
+    # by namespace ...
+    search_url = '/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/'
+    search_url += '?namespace=foo'
+    resp2 = pulp_client.get(search_url)
+    unique_cvs = [x for x in search_specs if x['namespace'] == 'foo']
+    unique_cvs = sorted(set([x['namespace'] + ':' + x['name'] + ':' + x['version'] for x in unique_cvs]))
+    assert len(resp2) == len(unique_cvs)
+
+    # by name ...
+    search_url = '/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/'
+    search_url += '?name=bellz'
+    resp3 = pulp_client.get(search_url)
+    unique_cvs = [x for x in search_specs if x['name'] == 'bellz']
+    unique_cvs = sorted(set([x['namespace'] + ':' + x['name'] + ':' + x['version'] for x in unique_cvs]))
+    assert len(resp3) == len(unique_cvs)
+
+    # by repository ...
+    search_url = '/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/'
+    search_url += '?repository=automation-hub-3'
+    resp4 = pulp_client.get(search_url)
+    unique_cvs = [x for x in search_specs if x['repository_name'] == 'automation-hub-3']
+    unique_cvs = sorted(set([x['namespace'] + ':' + x['name'] + ':' + x['version'] for x in unique_cvs]))
+    assert len(resp4) == len(unique_cvs)
+
+    # by q ...
+    search_url = '/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/'
+    search_url += '?q=gifts'
+    resp5 = pulp_client.get(search_url)
+    unique_cvs = [x for x in search_specs if 'gifts' in x['tags']]
+    unique_cvs = sorted(set([x['namespace'] + ':' + x['name'] + ':' + x['version'] for x in unique_cvs]))
+    assert len(resp5) == len(unique_cvs)
+
+    # by dependency ...
+    search_url = '/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/'
+    search_url += '?dependency=foo.bar'
+    resp6 = pulp_client.get(search_url)
+    unique_cvs = [x for x in search_specs if 'foo.bar' in x.get('dependencies', {})]
+    unique_cvs = sorted(set([x['namespace'] + ':' + x['name'] + ':' + x['version'] for x in unique_cvs]))
+    assert len(resp6) == len(unique_cvs)
+
+    # by version ...
+    search_url = '/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/'
+    search_url += '?version=1.0.1'
+    resp7 = pulp_client.get(search_url)
+    unique_cvs = [x for x in search_specs if x['version'] == '1.0.1']
+    unique_cvs = sorted(set([x['namespace'] + ':' + x['name'] + ':' + x['version'] for x in unique_cvs]))
+    assert len(resp7) == len(unique_cvs)
+
+    # by deprecated True/true/False/false/1/0 ...
+    # TBD

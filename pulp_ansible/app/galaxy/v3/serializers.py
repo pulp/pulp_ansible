@@ -129,6 +129,51 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
         )
 
 
+class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
+
+    href = serializers.SerializerMethodField()
+    distributions = serializers.SerializerMethodField()
+    is_deprecated = serializers.SerializerMethodField()
+    fqn = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = (
+            "fqn",
+            "namespace",
+            "name",
+            "version",
+            "is_highest",
+            "is_deprecated",
+            "href",
+            "created_at",
+            "updated_at",
+            "requires_ansible",
+            "dependencies",
+            "distributions",
+            "tags"
+        )
+        model = models.CollectionVersion
+
+    def get_fqn(self, obj):
+        return obj.fqn
+
+    def get_href(self, obj) -> str:
+        return ""
+
+    def get_distributions(self, obj):
+        dnames = [x for x in dir(obj) if x.startswith('in_distro_')]
+        dnames = [x for x in dnames if getattr(obj, x) == True]
+        dnames = [x.replace('in_distro_', '') for x in dnames]
+        return dnames
+
+    def get_is_deprecated(self, obj):
+        return obj.is_deprecated
+
+    def get_tags(self, obj):
+        return [x.name for x in obj.tags.all()]
+
+
 class ArtifactRefSerializer(serializers.Serializer):
     """A serializer for an Artifact reference."""
 
@@ -333,3 +378,8 @@ class ClientConfigurationSerializer(serializers.Serializer):
     """Configuration settings for the ansible-galaxy client."""
 
     default_distribution_path = serializers.CharField(allow_null=True)
+
+
+class CollectionVersionSearchResultsSerializer(serializers.Serializer):
+
+    results = serializers.JSONField()
