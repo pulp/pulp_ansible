@@ -163,7 +163,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
 
     def get_distributions(self, obj):
         dnames = [x for x in dir(obj) if x.startswith("in_distro_")]
-        dnames = [x for x in dnames if getattr(obj, x) == True]
+        dnames = [x for x in dnames if getattr(obj, x) is True]
         dnames = [x.replace("in_distro_", "") for x in dnames]
         return dnames
 

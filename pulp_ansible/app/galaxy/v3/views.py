@@ -1,16 +1,10 @@
-from pprint import pprint
-from django.db.models import Exists, OuterRef, Q, Value, F, Func, CharField
-from django.db.models import When, Case
-from rest_framework.pagination import PageNumberPagination
-
+from django.db.models import Q, F
 from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.contrib.postgres.search import SearchQuery
 from django.db import DatabaseError
-from django.db.models import F, Q
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
 from django.http import StreamingHttpResponse, HttpResponseNotFound
@@ -44,16 +38,13 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSerializer,
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
-    CollectionVersionSearchListSerializer,
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
     ClientConfigurationSerializer,
-    CollectionVersionSearchResultsSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
-    AnsibleRepository,
     Collection,
     CollectionVersion,
     CollectionVersionSignature,
