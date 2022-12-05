@@ -1,10 +1,7 @@
 import copy
 import logging
-import tarfile
 import shutil
 import os
-import random
-import string
 from urllib.parse import urljoin
 
 import pytest
@@ -12,22 +9,17 @@ import pytest
 from orionutils.generator import build_collection
 
 from pulp_smash import api, config
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
-from pulp_smash.pulp3.utils import get_content_summary
 from pulp_smash.pulp3.bindings import delete_orphans
 
 from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
     gen_distribution,
-    get_content,
     gen_repo,
 )
-from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_REPO_PATH,
-    GALAXY_ANSIBLE_BASE_URL,
+    # GALAXY_ANSIBLE_BASE_URL,
 )
 
 
@@ -102,7 +94,7 @@ def search_specs(
 
     # /pulp_ansible/galaxy/<path:path>/api/v3/plugin/ansible/search/collection-versions/
     # /pulp/api/v3/content/ansible/collection_versions/
-    cversions = get_collection_versions()
+    # cversions = get_collection_versions()
 
     specs = [
         {
@@ -152,7 +144,7 @@ def search_specs(
             # rname = spec["repository_name"]
             if rname in dists:
                 pulp_client.delete(dists[rname]["pulp_href"])
-        except Exception as e:
+        except Exception:
             pass
 
         # clean the repo
@@ -160,7 +152,7 @@ def search_specs(
             # rname = spec["repository_name"]
             if rname in repos:
                 pulp_client.delete(repos[rname]["pulp_href"])
-        except Exception as e:
+        except Exception:
             pass
 
     # cv's and artifacts should be orphaned if the repos are gone ...
@@ -231,7 +223,8 @@ def search_specs(
             this_cv = cvs[ckey]
             cv_href = this_cv["pulp_href"]
             payload = {"add_content_units": [cv_href]}
-            resp = pulp_client.post(repo_href + "modify/", payload)
+            # resp = pulp_client.post(repo_href + "modify/", payload)
+            pulp_client.post(repo_href + "modify/", payload)
             # import epdb; epdb.st()
 
         # add to repo ...
@@ -243,8 +236,6 @@ def search_specs(
 
 @pytest.mark.pulp_on_localhost
 def test_collection_version_search(pulp_client, search_specs):
-
-    # search_url = '/pulp_ansible/galaxy/<path:path>/api/v3/plugin/ansible/search/collection-versions/'
 
     # no filters ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
