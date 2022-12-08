@@ -25,11 +25,6 @@ fi
 cd .ci/ansible/
 
 TAG=ci_build
-if [ -e $REPO_ROOT/../galaxy-importer ]; then
-  GALAXY_IMPORTER=./galaxy-importer
-else
-  GALAXY_IMPORTER=git+https://github.com/ansible/galaxy-importer.git@master
-fi
 PULPCORE=./pulpcore
 if [[ "$TEST" == "plugin-from-pypi" ]]; then
   PLUGIN_NAME=pulp_ansible
@@ -50,8 +45,6 @@ plugins:
     source: pulpcore
   - name: pulp_ansible
     source:  "${PLUGIN_NAME}"
-  - name: galaxy-importer
-    source: galaxy-importer
   - name: pulp-smash
     source: ./pulp-smash
 VARSYAML
@@ -63,8 +56,6 @@ image:
 plugins:
   - name: pulp_ansible
     source: "${PLUGIN_NAME}"
-  - name: galaxy-importer
-    source: $GALAXY_IMPORTER
   - name: pulpcore
     source: "${PULPCORE}"
   - name: pulp-smash
