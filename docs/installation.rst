@@ -17,19 +17,19 @@ Create your pulp_ansible.yml playbook to use with the installer:
 
 .. code-block:: yaml
 
-   ---
-   - hosts: all
-     vars:
-       pulp_settings:
-         secret_key: << YOUR SECRET HERE >>
-         content_origin: "http://{{ ansible_fqdn }}"
-       pulp_default_admin_password: << YOUR PASSWORD HERE >>
-       pulp_install_plugins:
-         pulp-ansible: {}
-       roles:
-         - pulp.pulp_installer.pulp_all_services
-       environment:
-       DJANGO_SETTINGS_MODULE: pulpcore.app.settings
+  ---
+  - hosts: all
+    vars:
+      pulp_settings:
+        secret_key: << YOUR SECRET HERE >>
+        content_origin: "http://{{ ansible_fqdn }}"
+      pulp_default_admin_password: << YOUR PASSWORD HERE >>
+      pulp_install_plugins:
+        pulp-ansible: {}
+    roles:
+      - role: pulp.pulp_installer.pulp_all_services
+    environment:
+      DJANGO_SETTINGS_MODULE: pulpcore.app.settings
 
 Then install it onto ``myhost`` with:
 
