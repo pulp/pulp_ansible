@@ -378,7 +378,8 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=AnsibleRepositoryRebuildSerializer)
-    def rebuild_metadata(self, request, *args, **kwargs):
+    # def rebuild_metadata(self, request, *args, **kwargs):
+    def rebuild_metadata(self, request, pk):
         """
         Dispatches a collection version rebuild task.
         """
