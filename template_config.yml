@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-174-g56e0727
+# generated with plugin_template@2021.08.26-191-g8c3448a
 
 additional_repos: []
 api_root: /pulp/
@@ -14,7 +14,10 @@ check_stray_pulpcore_imports: true
 cherry_pick_automation: false
 ci_env: {}
 ci_trigger: '{pull_request: {branches: [''*'']}}'
-ci_update_branches: ["0.10", "0.13", "0.15"]
+ci_update_branches:
+- '0.10'
+- '0.13'
+- '0.15'
 core_import_allowed: []
 coverage: false
 deploy_client_to_pypi: true
@@ -23,7 +26,7 @@ deploy_daily_client_to_pypi: true
 deploy_daily_client_to_rubygems: true
 deploy_to_pypi: true
 disabled_redis_runners:
-  - s3
+- s3
 docker_fixtures: false
 docs_test: true
 flake8: true
@@ -57,6 +60,7 @@ pulp_settings:
   ansible_content_hostname: https://pulp:443/pulp/content
   ansible_signature_require_verification: false
 pulp_settings_azure: null
+pulp_settings_gcp: null
 pulp_settings_s3: null
 pulp_settings_stream: null
 pulpcore_branch: main
@@ -81,6 +85,7 @@ tasking_allow_async_unsafe: false
 test_azure: true
 test_cli: true
 test_deprecations: true
+test_gcp: false
 test_performance: false
 test_released_plugin_with_next_pulpcore_release: false
 test_reroute: true
