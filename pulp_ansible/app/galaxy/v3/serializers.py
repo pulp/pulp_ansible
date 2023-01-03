@@ -333,3 +333,96 @@ class ClientConfigurationSerializer(serializers.Serializer):
     """Configuration settings for the ansible-galaxy client."""
 
     default_distribution_path = serializers.CharField(allow_null=True)
+
+
+
+class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
+
+    # broken ...
+    href = serializers.SerializerMethodField()
+
+    # override because RepositoryContent != CollectionVersion without a cast ...
+    pulp_id = serializers.SerializerMethodField()
+    namespace = serializers.SerializerMethodField()
+    name = serializers.SerializerMethodField()
+    version = serializers.SerializerMethodField()
+    is_highest = serializers.SerializerMethodField()
+    is_deprecated = serializers.SerializerMethodField()
+    created_at = serializers.SerializerMethodField()
+    updated_at = serializers.SerializerMethodField()
+    requires_ansible = serializers.SerializerMethodField()
+    dependencies = serializers.SerializerMethodField()
+    tags = serializers.SerializerMethodField()
+
+    repository_name = serializers.SerializerMethodField()
+
+    class Meta:
+        fields = (
+            "pulp_id",
+            "namespace",
+            "name",
+            "version",
+            "is_highest",
+            "is_deprecated",
+            "href",
+            "created_at",
+            "updated_at",
+            "requires_ansible",
+            "dependencies",
+            "repository_name",
+            "tags",
+        )
+        model = models.CollectionVersion
+
+    def get_collection_version(self, obj):
+        return obj.content.cast()
+
+    def get_pulp_id(self, obj):
+        return self.get_collection_version(obj).pulp_id
+
+    def get_namespace(self, obj):
+        return self.get_collection_version(obj).namespace
+
+    def get_name(self, obj):
+        return self.get_collection_version(obj).name
+
+    def get_version(self, obj):
+        return self.get_collection_version(obj).version
+
+    def get_created_at(self, obj):
+        return self.get_collection_version(obj).pulp_created
+
+    def get_updated_at(self, obj):
+        return self.get_collection_version(obj).pulp_last_updated
+
+    def get_is_highest(self, obj):
+        return self.get_collection_version(obj).is_highest
+
+    def get_requires_ansible(self, obj):
+        return self.get_collection_version(obj).requires_ansible
+
+    def get_dependencies(self, obj):
+        return self.get_collection_version(obj).dependencies
+
+    def get_href(self, obj) -> str:
+        """Get href."""
+
+        ctx = _get_distro_context({
+            "path": obj.repository.name,
+            "distro_base_path": obj.repository.name}
+        )
+        cv = self.get_collection_version(obj)
+        return reverse(
+            settings.ANSIBLE_URL_NAMESPACE + "collection-versions-detail",
+            kwargs={**ctx, "namespace": cv.namespace, "name": cv.name, "version": cv.version},
+        )
+
+    def get_is_deprecated(self, obj):
+        #return self.get_collection_version(obj).is_deprecated
+        return False
+
+    def get_tags(self, obj):
+        return [x.name for x in self.get_collection_version(obj).tags.all()]
+
+    def get_repository_name(self, obj):
+        return obj.repository.name
