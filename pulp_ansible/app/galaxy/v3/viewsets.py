@@ -1,6 +1,9 @@
 from django.db.models import Value, F, CharField
 from django.db.models import When, Case
 from django.db.models import Q
+from django.db.models import Prefetch
+from django.db.models import OuterRef
+from django.db.models import Subquery
 from rest_framework.pagination import PageNumberPagination
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models.functions import Concat
@@ -62,6 +65,11 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
             ).filter(
                 include_q
             )
+
+        # gerrod's suggestion ...
+        # sets the obj's collection_version property to the CV
+        cvs = Prefetch("content", queryset=CollectionVersion.objects.all(), to_attr="collection_version")
+        qs = qs.filter(content__pulp_type="ansible.collection_version").prefetch_related(cvs)
 
         print(f'COUNT: {qs.count()}')
 

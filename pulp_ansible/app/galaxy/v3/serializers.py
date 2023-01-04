@@ -375,7 +375,8 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
         model = models.CollectionVersion
 
     def get_collection_version(self, obj):
-        return obj.content.cast()
+        #return obj.content.cast()
+        return obj.collection_version
 
     def get_pulp_id(self, obj):
         return self.get_collection_version(obj).pulp_id
