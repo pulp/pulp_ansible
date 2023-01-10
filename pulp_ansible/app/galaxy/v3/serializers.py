@@ -375,11 +375,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
         model = models.CollectionVersion
 
     def get_collection_version(self, obj):
-        print(f'SERIALIZER OBJ: {obj}')
-        #return obj.content.cast()
         return obj.collection_version
-        #return obj
-        #return obj.content
 
     def get_pulp_id(self, obj):
         return self.get_collection_version(obj).pulp_id
@@ -422,8 +418,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
         )
 
     def get_is_deprecated(self, obj):
-        #return self.get_collection_version(obj).is_deprecated
-        return False
+        return obj.is_deprecated
 
     def get_tags(self, obj):
         return [x.name for x in self.get_collection_version(obj).tags.all()]

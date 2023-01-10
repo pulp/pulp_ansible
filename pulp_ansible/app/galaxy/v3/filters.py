@@ -1,6 +1,7 @@
 import datetime
 
 from django_filters import filters
+from django_filters import FilterSet
 from django.db.models import Q
 
 from pulpcore.plugin.viewsets import ContentFilter
@@ -9,43 +10,20 @@ from pulp_ansible.app.viewsets import (
 )
 
 
-'''
-        include_q = Q()
-        exclude_q = Q()
+#class CollectionVersionSearchFilter(ContentFilter):
+class CollectionVersionSearchFilter(FilterSet):
 
-        for distro in AnsibleDistribution.objects.all():
-            print(f'DISTRO: {distro} {distro.name}')
-            if not distro.repository_version and distro.repository is None:
-                continue
-            elif distro.repository_version:
-                rv = distro.repository_version.number
-            else:
-                rv = distro.repository.latest_version().number
-
-            include_q = include_q | Q(repository=distro.repository, version_added__number__lte=rv)
-            exclude_q = exclude_q | Q(repository=distro.repository, version_removed__number__lte=rv)
-
-        qs = RepositoryContent.objects.filter(
-                content__pulp_type="ansible.collection_version"
-            ).exclude(
-                exclude_q
-            ).filter(
-                include_q
-            )
-'''
-
-
-# class CollectionVersionSearchFilter(CollectionVersionFilter):
-class CollectionVersionSearchFilter(ContentFilter):
-
-    '''
     name = filters.CharFilter(
-        field_name="collection_version__name",
-        #method="filter_by_name",
+        field_name="name",
+        method="filter_by_name",
     )
-    '''
 
-    distributions = filters.CharFilter(
+    namespace = filters.CharFilter(
+        field_name="namepace",
+        method="filter_by_namespace",
+    )
+
+    distribution = filters.CharFilter(
         field_name="repository",
         method="filter_by_repository_name",
     )
@@ -72,6 +50,14 @@ class CollectionVersionSearchFilter(ContentFilter):
             include_q = include_q | Q(repository__name=rn)
         qs = qs.filter(include_q)
         return qs
+
+    def filter_by_name(self, qs, name, value):
+        print('FILTER BY NAME')
+        return qs.filter(Q(content__collection_version__name=name))
+
+    def filter_by_namespace(self, qs, name, value):
+        print('FILTER BY NAMESPACE')
+        return qs.filter(Q(content__collection_version__namespace=name))
 
     def filter_by_dependency(self, qs, name, value):
         """Return a list of collections that depend on a given collection name."""

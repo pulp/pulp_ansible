@@ -77,6 +77,39 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
         cvs = Prefetch("content", queryset=CollectionVersion.objects.all(), to_attr="collection_version")
         qs = qs.filter(content__pulp_type="ansible.collection_version").prefetch_related(cvs)
 
+		#################################
+		# Annotations
+		#################################
+
+        # add a field for the fqn:<namespace>.<name> ...
+        qs = qs.annotate(
+            fqn=Concat(
+                F("content__ansible_collectionversion__namespace"),
+                Value("."),
+                F("content__ansible_collectionversion__name"),
+                output_field=CharField()
+            )
+        )
+
+        # make a queryable list of deprecated collections
+        deprecation_qs = AnsibleCollectionDeprecated.objects.all()
+        deprecation_qs = deprecation_qs.annotate(
+            fqn=Concat(F("namespace"), Value("."), F("name"), output_field=CharField())
+        )
+        deprecations = [x.fqn for x in deprecation_qs]
+
+        # Annotate deprecation ...
+        kwargs = {
+            "is_deprecated": Case(
+                When(fqn__in=deprecations, then=Value(True)), default=Value(False)
+            )
+        }
+        qs = qs.annotate(**kwargs)
+
+		#################################
+		# Filtering
+		#################################
+
         # prefetch_related is a python level join. setting a filterset_class on a viewset
         # causes some sort of validation on the columns at the database level which then
         # causes a traceback on a missing field.

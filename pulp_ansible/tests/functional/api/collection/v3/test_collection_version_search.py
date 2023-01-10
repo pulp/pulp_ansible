@@ -237,53 +237,49 @@ def search_specs(
 @pytest.mark.pulp_on_localhost
 def test_collection_version_search(pulp_client, search_specs):
 
+    def keys_from_specs(specs):
+        keys = sorted([
+            x['repository_name'] + ':' + x["namespace"] + ":" + x["name"] + ":" + x["version"]
+            for x in specs
+        ])
+        return keys
+
     # no filters ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     resp1 = pulp_client.get(search_url)
-    unique_cvs = sorted(
-        set([x["namespace"] + ":" + x["name"] + ":" + x["version"] for x in search_specs])
-    )
-    assert len(resp1) == len(unique_cvs)
+    assert len(resp1) == len(keys_from_specs(search_specs))
 
     # by namespace ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?namespace=foo"
     resp2 = pulp_client.get(search_url)
-    unique_cvs = [x for x in search_specs if x["namespace"] == "foo"]
-    unique_cvs = sorted(
-        set([x["namespace"] + ":" + x["name"] + ":" + x["version"] for x in unique_cvs])
-    )
-    assert len(resp2) == len(unique_cvs)
+    keys = [x for x in search_specs if x["namespace"] == "foo"]
+    keys = keys_from_specs(keys)
+    assert len(resp2) == len(keys)
 
     # by name ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?name=bellz"
     resp3 = pulp_client.get(search_url)
-    unique_cvs = [x for x in search_specs if x["name"] == "bellz"]
-    unique_cvs = sorted(
-        set([x["namespace"] + ":" + x["name"] + ":" + x["version"] for x in unique_cvs])
-    )
-    assert len(resp3) == len(unique_cvs)
+    keys = [x for x in search_specs if x["name"] == "bellz"]
+    keys = keys_from_specs(keys)
+    assert len(resp3) == len(keys)
 
     # by repository ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?repository=automation-hub-3"
     resp4 = pulp_client.get(search_url)
-    unique_cvs = [x for x in search_specs if x["repository_name"] == "automation-hub-3"]
-    unique_cvs = sorted(
-        set([x["namespace"] + ":" + x["name"] + ":" + x["version"] for x in unique_cvs])
-    )
-    assert len(resp4) == len(unique_cvs)
+    keys = [x for x in search_specs if x["repository_name"] == "automation-hub-3"]
+    keys = keys_from_specs(keys)
+    assert len(resp4) == len(keys)
 
     # by q ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?q=gifts"
     resp5 = pulp_client.get(search_url)
-    unique_cvs = [x for x in search_specs if "gifts" in x["tags"]]
-    unique_cvs = sorted(
-        set([x["namespace"] + ":" + x["name"] + ":" + x["version"] for x in unique_cvs])
-    )
-    assert len(resp5) == len(unique_cvs)
+    keys = [x for x in search_specs if "gifts" in x["tags"]]
+    keys = keys_from_specs(keys)
+    assert len(resp5) == len(keys)
 
     # by keywords
     # TBD
@@ -292,21 +288,17 @@ def test_collection_version_search(pulp_client, search_specs):
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?dependency=foo.bar"
     resp6 = pulp_client.get(search_url)
-    unique_cvs = [x for x in search_specs if "foo.bar" in x.get("dependencies", {})]
-    unique_cvs = sorted(
-        set([x["namespace"] + ":" + x["name"] + ":" + x["version"] for x in unique_cvs])
-    )
-    assert len(resp6) == len(unique_cvs)
+    keys = [x for x in search_specs if "foo.bar" in x.get("dependencies", {})]
+    keys = keys_from_specs(keys)
+    assert len(resp6) == len(keys)
 
     # by version ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?version=1.0.1"
     resp7 = pulp_client.get(search_url)
-    unique_cvs = [x for x in search_specs if x["version"] == "1.0.1"]
-    unique_cvs = sorted(
-        set([x["namespace"] + ":" + x["name"] + ":" + x["version"] for x in unique_cvs])
-    )
-    assert len(resp7) == len(unique_cvs)
+    keys = [x for x in search_specs if x["version"] == "1.0.1"]
+    keys = keys_from_specs(keys)
+    assert len(resp7) == len(keys)
 
     # by sign state
     # TBD
