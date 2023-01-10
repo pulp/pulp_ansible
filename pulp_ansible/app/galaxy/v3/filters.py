@@ -56,6 +56,7 @@ class CollectionVersionSearchFilter(FilterSet):
     is_highest = filters.BooleanFilter(field_name="is_highest")
 
     q = filters.CharFilter(field_name="q", method="filter_by_q")
+    keywords = filters.CharFilter(field_name="q", method="filter_by_q")
 
     tags = filters.CharFilter(
         field_name="tags",

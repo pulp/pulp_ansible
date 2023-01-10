@@ -282,26 +282,37 @@ def test_collection_version_search(pulp_client, search_specs):
     assert len(resp5) == len(keys)
 
     # by keywords
-    # TBD
+    search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
+    search_url += "?keywords=gifts"
+    resp6 = pulp_client.get(search_url)
+    keys = [x for x in search_specs if "gifts" in x["tags"]]
+    keys = keys_from_specs(keys)
+    assert len(resp6) == len(keys)
 
     # by dependency ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?dependency=foo.bar"
-    resp6 = pulp_client.get(search_url)
+    resp7 = pulp_client.get(search_url)
     keys = [x for x in search_specs if "foo.bar" in x.get("dependencies", {})]
     keys = keys_from_specs(keys)
-    assert len(resp6) == len(keys)
+    assert len(resp7) == len(keys)
 
     # by version ...
     search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
     search_url += "?version=1.0.1"
-    resp7 = pulp_client.get(search_url)
+    resp8 = pulp_client.get(search_url)
     keys = [x for x in search_specs if x["version"] == "1.0.1"]
     keys = keys_from_specs(keys)
-    assert len(resp7) == len(keys)
+    assert len(resp8) == len(keys)
 
     # by sign state
     # TBD
 
     # by deprecated True/true/False/false/1/0 ...
-    # TBD
+    search_url = "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
+    search_url += "?deprecated=True"
+    resp9 = pulp_client.get(search_url)
+    keys = [x for x in search_specs if x.get("deprecated") == True]
+    keys = keys_from_specs(keys)
+    assert len(resp9) == len(keys)
+
