@@ -43,7 +43,7 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
     serializer_class = CollectionVersionSearchListSerializer
     pagination_class = CollectionVersionSearchViewSetPagination
     filter_backends = (DjangoFilterBackend,)
-    # filterset_class = CollectionVersionSearchFilter
+    filterset_class = CollectionVersionSearchFilter
 
     def get_queryset(self):
 
@@ -106,13 +106,6 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
         }
         qs = qs.annotate(**kwargs)
 
-		#################################
-		# Filtering
-		#################################
-
-        # prefetch_related is a python level join. setting a filterset_class on a viewset
-        # causes some sort of validation on the columns at the database level which then
-        # causes a traceback on a missing field.
-        qs = CollectionVersionSearchFilter(request=self.request.GET, queryset=qs).qs
+        #qs = qs.annotate(search_vector=F("content__ansible_collectionversion__search_vector"))
 
         return qs
