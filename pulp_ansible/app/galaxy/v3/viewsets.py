@@ -1,3 +1,5 @@
+import datetime
+
 from django.db.models import Value, F, CharField
 from django.db.models import When, Case
 from django.db.models import Q
@@ -27,6 +29,8 @@ from pulp_ansible.app.viewsets import (
     CollectionVersionFilter,
 )
 
+from pulp_ansible.app.galaxy.v3.filters import CollectionVersionSearchFilter
+
 
 class CollectionVersionSearchViewSetPagination(PageNumberPagination):
     page_size = 100
@@ -39,15 +43,15 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
     serializer_class = CollectionVersionSearchListSerializer
     pagination_class = CollectionVersionSearchViewSetPagination
     filter_backends = (DjangoFilterBackend,)
-    filterset_class = None
+    # filterset_class = CollectionVersionSearchFilter
 
     def get_queryset(self):
 
         include_q = Q()
         exclude_q = Q()
 
+        # make a list of the latest repo versions ...
         for distro in AnsibleDistribution.objects.all():
-            print(f'DISTRO: {distro} {distro.name}')
             if not distro.repository_version and distro.repository is None:
                 continue
             elif distro.repository_version:
@@ -58,6 +62,8 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
             include_q = include_q | Q(repository=distro.repository, version_added__number__lte=rv)
             exclude_q = exclude_q | Q(repository=distro.repository, version_removed__number__lte=rv)
 
+        # reduce repository content down to collectionversions and those that are
+        # in the latest repository versions found above ...
         qs = RepositoryContent.objects.filter(
                 content__pulp_type="ansible.collection_version"
             ).exclude(
@@ -67,11 +73,13 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
             )
 
         # gerrod's suggestion ...
-        # sets the obj's collection_version property to the CV
+        # sets the obj's collection_version property to the CV (at the python level)
         cvs = Prefetch("content", queryset=CollectionVersion.objects.all(), to_attr="collection_version")
         qs = qs.filter(content__pulp_type="ansible.collection_version").prefetch_related(cvs)
 
-        print(f'COUNT: {qs.count()}')
+        # prefetch_related is a python level join. setting a filterset_class on a viewset
+        # causes some sort of validation on the columns at the database level which then
+        # causes a traceback on a missing field.
+        qs = CollectionVersionSearchFilter(request=self.request.GET, queryset=qs).qs
 
         return qs
-
