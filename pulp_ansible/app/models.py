@@ -7,6 +7,7 @@ from django.db.models import UniqueConstraint, Q
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
 from django_lifecycle import AFTER_UPDATE, BEFORE_SAVE, BEFORE_UPDATE, hook
+from hashlib import new
 
 from pulpcore.plugin.models import (
     BaseModel,
@@ -19,7 +20,6 @@ from pulpcore.plugin.models import (
     Task,
     EncryptedTextField,
 )
-from pulpcore.plugin.pulp_hashlib import new
 from pulpcore.plugin.util import get_artifact_url
 from .downloaders import AnsibleDownloaderFactory
 

@@ -651,10 +651,13 @@ class CollectionArtifactDownloadView(views.APIView):
         return redirect(url)
 
 
-class AnsibleNamespaceViewSet(ExceptionHandlerMixin, AnsibleDistributionMixin, mixins.ListModelMixin,
-    mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+class AnsibleNamespaceViewSet(
+    ExceptionHandlerMixin, AnsibleDistributionMixin, mixins.UpdateModelMixin, SingleArtifactContentUploadViewSet
+):
 
     serializer_class = AnsibleNamespaceSerializer
+    lookup_field = "name"
+    pulp_tag_name = "Pulp_Ansible: Namespaces"
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -662,6 +665,41 @@ class AnsibleNamespaceViewSet(ExceptionHandlerMixin, AnsibleDistributionMixin, m
             # and it fails when "path" is not on self.kwargs
             return AnsibleNamespace.objects.none()
         return self._distro_content.filter(pulp_type=AnsibleNamespace.get_pulp_type())
+
+    def create(self, request):
+        """Dispatch task to create and add Namespace to repository."""
+        repo = self._repository_version.repository
+        request.data["repository"] = reverse("repositories-ansible/ansible-detail", args=[repo.pk])
+        return super().create(request)
+
+    def update(self, request, *args, **kwargs):
+        """Dispatch task to update Namespace in repository."""
+        partial = kwargs.pop('partial', False)
+        namespace = self.get_object()
+        serializer = self.get_serializer(namespace, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        request.data = serializer.data
+        return self.create(request)
+
+    def destroy(self, request, *args, **kwargs):
+        """Try to remove the Namespace if no Collections under Namespace are present."""
+        namespace = self.get_object()
+
+        if self._distro_content.filter(namespace=namespace.name).exists():
+            raise serializers.ValidationError(
+                detail=_(
+                    "Namespace {name} cannot be deleted because "
+                    "there are still collections associated with it."
+                ).format(name=namespace.name)
+            )
+
+        repository = self._repository_version.repository.pk
+        async_result = dispatch(
+            add_and_remove,
+            args=(repository, [], [namespace.pk]),
+            exclusive_resources=[repository],
+        )
+        return OperationPostponedResponse(async_result, request)
 
 
 class CollectionVersionViewSet(

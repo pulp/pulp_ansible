@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.conf.urls import url
 from django.urls import include, path
+from rest_framework import routers
 
 from pulp_ansible.app.galaxy.views import (
     GalaxyCollectionVersionDetail,
@@ -205,6 +206,14 @@ v3_collection_urls = [
         views_v3.UnpaginatedCollectionVersionViewSet.as_view({"get": "list"}),
         name="metadata-collection-versions-list",
     ),
+    path(
+        "namespaces/", views_v3.AnsibleNamespaceViewSet.as_view({"get": "list", "post": "create"}),
+        name="ansible-namespaces-list",
+    ),
+    path(
+        "namespaces/<str:name>/", views_v3.AnsibleNamespaceViewSet.as_view({"get": "retrieve", "delete": "destroy", "put": "update", "patch": "partial_update"}),
+        name="ansible-namespaces-detail",
+    ),
 ]
 
 v3_plugin_urls = [
@@ -220,16 +229,6 @@ v3_plugin_urls = [
         "client-configuration/",
         views_v3.ClientConfigurationView.as_view(),
         name="client-configuration-viewset",
-    ),
-    path(
-        "namespaces/",
-        views_v3.AnsibleNamespaceViewSet.as_view({"get": "list"}),
-        name="ansible-namespaces-list"
-    ),
-    path(
-        "namespaces/<str:name>/",
-        views_v3.AnsibleNamespaceViewSet.as_view({"get": "retrieve"}),
-        name="ansible-namespaces-detail"
     ),
 ]
 

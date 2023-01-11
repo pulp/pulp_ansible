@@ -742,25 +742,34 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         )
 
 
-class AnsibleNamespaceSerializer(ModelSerializer):
+class AnsibleNamespaceSerializer(SingleArtifactContentUploadSerializer):
     """
     A serializer for Namespaces.
     """
 
+    # SlugField also allows capital letters and dashes
     name = serializers.SlugField(min_length=3, max_length=64, allow_blank=False)
     company = serializers.CharField(max_length=64, allow_blank=True)
     email = serializers.CharField(max_length=256, allow_blank=True)
     description = serializers.CharField(max_length=256, allow_blank=True)
     resources = serializers.CharField(allow_blank=True)
     links = serializers.DictField(child=serializers.URLField(max_length=256), default=dict)
-    avatar_sha256 = serializers.CharField(max_length=64, allow_blank=True)
+    avatar_sha256 = serializers.CharField(max_length=64, read_only=True)
     avatar_url = serializers.URLField(read_only=True)
     metadata_sha256 = serializers.CharField(read_only=True)
+
+    def validate(self, data):
+        """Check that avatar_sha256"""
+        if "artifact" in data:
+            if "avatar_sh256" not in data:
+                data["avatar_sha256"] = data["artifact"].sha256
+
+        return super().validate(data)
 
     class Meta:
         model = AnsibleNamespace
         fields = (
-            "pulp_href", "name", "company", "email",
+            "pulp_href", "artifact", "file", "name", "company", "email",
             "description", "resources", "links",
             "avatar_sha256", "avatar_url", "metadata_sha256",
         )
