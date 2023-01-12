@@ -1,0 +1,1 @@
+Fixed a 500 server error in the ``repositories/ansible/ansible/{repository_pk}/versions/{number}/rebuild_metadata/`` endpoint.

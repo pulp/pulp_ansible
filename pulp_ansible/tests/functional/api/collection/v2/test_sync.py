@@ -8,7 +8,7 @@ from pulp_ansible.tests.functional.utils import (
     TestCaseUsingBindings,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-from pulp_smash.pulp3.bindings import monitor_task
+from pulp_smash.pulp3.bindings import monitor_task, delete_orphans
 
 
 class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
@@ -287,6 +287,53 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             repo.pulp_href, {"namespace": "community", "name": "docker", "version": "3.0.0"}
         )
         res = monitor_task(rebuild_task.task)
+        assert res.state == "completed"
+
+        # get the after data
+        after = self.cv_api.list(repository_version=repo.latest_version_href)
+        after = after.results[0].to_dict()
+
+        assert after["docs_blob"]["collection_readme"]["name"] == "README.md"
+        assert (
+            "<h1>Docker Community Collection</h1>"
+            in after["docs_blob"]["collection_readme"]["html"]
+        )
+
+    def test_sync_and_rebuild_version(self):
+        """Sync with simple requirements file, expected to download one CollectionVersion."""
+        # pulp/api/v3/repositories/ansible/ansible/<repository_pk>/versions/<number>/rebuild_metadata/
+        # pulp_ansible.app.viewsets.AnsibleRepositoryVersionViewSet
+        # versions-rebuild-metadata
+
+        # clean up collection versions from previous test
+        delete_orphans()
+
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: community.docker\n    version: 3.0.0",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        # this will make the repo and sync the collection from upstream into it
+        # when the builtin repo cleanup is called, the collection will be
+        # orphaned and testcaseusebindings will delete it via orphan_cleanup
+        # in the teardown method
+        repo = self._create_repo_and_sync_with_remote(remote)
+
+        # get the before data
+        before = self.cv_api.list(repository_version=repo.latest_version_href)
+
+        before = before.results[0].to_dict()
+        assert before["docs_blob"] == {}
+
+        rebuild_version_task = self.repo_version_api.rebuild_metadata(
+            repo.latest_version_href,
+            {"namespace": "community", "name": "docker", "version": "3.0.0"},
+        )
+
+        res = monitor_task(rebuild_version_task.task)
         assert res.state == "completed"
 
         # get the after data
