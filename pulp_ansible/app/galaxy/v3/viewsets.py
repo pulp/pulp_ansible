@@ -1,7 +1,7 @@
 import datetime
 
 from django.db.models import Value, F, CharField
-from django.db.models import When, Case
+from django.db.models import When, Case, Count
 from django.db.models import Q
 from django.db.models import Prefetch
 from django.db.models import OuterRef
@@ -23,6 +23,7 @@ from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
     CollectionVersion,
+    CollectionVersionSignature,
 )
 
 from pulp_ansible.app.viewsets import (
@@ -106,6 +107,33 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
         }
         qs = qs.annotate(**kwargs)
 
-        # Annotate sign state ...
+        # Annotate sign state (by repository) ...
+        '''
+        distro = models.AnsibleDistribution.objects.filter(base_path=obj.repository.name).first()
+        repo_version = distro.repository.latest_version()
+        distro_content = repo_version.content.filter(pulp_type="ansible.collection_signature")
+        sigs = models.CollectionVersionSignature.objects.filter(pk__in=distro_content)
+        filtered_signatures = self.get_collection_version(obj).signatures.filter(pk__in=sigs)
+        return CollectionVersionSignatureSerializer(filtered_signatures, many=True).data
+        '''
+        '''
+        for distro in AnsibleDistribution.objects.all():
+            repo_version = distro.repository.latest_version()
+            distro_content = repo_version.content.filter(pulp_type="ansible.collection_signature")
+            sigs = CollectionVersionSignature.objects.filter(pk__in=distro_content)
+
+            kwargs = {
+                f"{distro.base_path.replace('-', '_')}_signed": Case(
+                    When(
+                        content__ansible_collectionversion__signatures__in=sigs,
+                        then=Value(True)
+                    ),
+                    default=Value(False)
+                )
+            }
+            qs = qs.annotate(**kwargs)
+        '''
+
+        qs = qs.annotate(signatures_count=Count('content__ansible_collectionversion__signatures'))
 
         return qs

@@ -53,6 +53,8 @@ class CollectionVersionSearchFilter(FilterSet):
 
     deprecated = filters.CharFilter(method="filter_by_deprecated")
 
+    signed = filters.CharFilter(method="filter_by_signed")
+
     is_highest = filters.BooleanFilter(field_name="is_highest")
 
     q = filters.CharFilter(field_name="q", method="filter_by_q")
@@ -98,6 +100,28 @@ class CollectionVersionSearchFilter(FilterSet):
         if value in [True, "True", "true", "t", 1, "1"]:
             bool_value = True
         qs = qs.filter(is_deprecated=bool_value)
+        return qs
+
+    def filter_by_signed(self, qs, name, value):
+        bool_value = False
+        if value in [True, "True", "true", "t", 1, "1"]:
+            bool_value = True
+
+        '''
+        #qs = qs.filter(is_deprecated=bool_value)
+        obj = qs.first()
+        for x in dir(obj):
+            if not x.endswith('signed'):
+                continue
+            print(x)
+            print(getattr(obj, x))
+        '''
+
+        if bool_value == True:
+            qs = qs.filter(signatures_count__gte=1)
+        else:
+            qs = qs.filter(signatures_count__lte=0)
+
         return qs
 
     def filter_by_q(self, queryset, name, value):
