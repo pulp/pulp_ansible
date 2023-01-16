@@ -137,7 +137,7 @@ def search_specs(
             "version": "12.25.0",
             "tags": ["trees", "sleighs", "gifts"],
             "repository_name": "automation-hub-3",
-            "signed": True
+            "signed": False
         },
         {
             "namespace": "jingle",
