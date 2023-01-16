@@ -1,14 +1,16 @@
 from gettext import gettext as _
 
+from django.db import transaction
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 
-from pulpcore.plugin.models import Artifact, SigningService
+from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
     ModelSerializer,
+    NoArtifactContentSerializer,
     NoArtifactContentUploadSerializer,
     RelatedField,
     RemoteSerializer,
@@ -742,36 +744,69 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         )
 
 
-class AnsibleNamespaceSerializer(SingleArtifactContentUploadSerializer):
+class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
     """
     A serializer for Namespaces.
     """
 
     # SlugField also allows capital letters and dashes
     name = serializers.SlugField(min_length=3, max_length=64, allow_blank=False)
-    company = serializers.CharField(max_length=64, allow_blank=True)
-    email = serializers.CharField(max_length=256, allow_blank=True)
-    description = serializers.CharField(max_length=256, allow_blank=True)
-    resources = serializers.CharField(allow_blank=True)
+    company = serializers.CharField(max_length=64, allow_blank=True, required=False)
+    email = serializers.CharField(max_length=256, allow_blank=True, required=False)
+    description = serializers.CharField(max_length=256, allow_blank=True, required=False)
+    resources = serializers.CharField(allow_blank=True, required=False)
     links = serializers.DictField(child=serializers.URLField(max_length=256), default=dict)
+    avatar = serializers.ImageField(write_only=True, required=False, help_text=_("Optional avatar image for Namespace"))
     avatar_sha256 = serializers.CharField(max_length=64, read_only=True)
     avatar_url = serializers.URLField(read_only=True)
     metadata_sha256 = serializers.CharField(read_only=True)
 
     def validate(self, data):
-        """Check that avatar_sha256"""
-        if "artifact" in data:
+        """Check that avatar_sha256 is set if avatar was present in upload."""
+        if self.instance:
+            if (name := data.get("name", None)) and name != self.instance.name:
+                raise serializers.ValidationError(_("Name can not be changed in an update"))
+
+        if "artifact" in self.context:
             if "avatar_sh256" not in data:
-                data["avatar_sha256"] = data["artifact"].sha256
+                avatar_artifact = Artifact.objects.get(pk=self.context["artifact"])
+                data["avatar_sha256"] = avatar_artifact.sha256
 
         return super().validate(data)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        """Create the Namespace and add it to the Repository if present."""
+        namespace = AnsibleNamespace(**validated_data)
+        namespace.calculate_metadata_sha256()
+        content = AnsibleNamespace.objects.filter(metadata_sha256=namespace.metadata_sha256).first()
+        if content:
+            content.touch()
+        else:
+            namespace.save()
+            content = namespace
+            if namespace.avatar_sha256:
+                ContentArtifact.objects.create(
+                    artifact=self.context["artifact"],
+                    content=content,
+                    relative_path=f"{namespace.name}-avatar",
+                )
+
+        repository = self.context.pop("repository", None)
+        if repository:
+            repository = AnsibleRepository.objects.get(pk=repository)
+            content_to_add = AnsibleNamespace.objects.filter(pk=content.pk)
+
+            with repository.new_version() as new_version:
+                new_version.add_content(content_to_add)
+        return content
 
     class Meta:
         model = AnsibleNamespace
         fields = (
-            "pulp_href", "artifact", "file", "name", "company", "email",
-            "description", "resources", "links",
-            "avatar_sha256", "avatar_url", "metadata_sha256",
+            "pulp_href", "name", "company", "email",
+            "description", "resources", "links", "avatar",
+            "avatar_sha256", "avatar_url", "metadata_sha256"
         )
 
 

@@ -34,6 +34,7 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
+    AnsibleNamespace,
     GitRemote,
     RoleRemote,
     AnsibleRepository,
@@ -46,6 +47,7 @@ from .models import (
 )
 from .serializers import (
     AnsibleDistributionSerializer,
+    AnsibleNamespaceSerializer,
     GitRemoteSerializer,
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
@@ -234,6 +236,16 @@ class CollectionDeprecatedViewSet(ContentViewSet):
     endpoint_name = "collection_deprecations"
     queryset = AnsibleCollectionDeprecated.objects.all()
     serializer_class = CollectionSerializer
+
+
+class AnsibleNamespace(ContentViewSet):
+    """
+    ViewSet for AnsibleNamespace.
+    """
+
+    endpoint_name = "namespaces"
+    queryset = AnsibleNamespace.objects.all()
+    serializer_class = AnsibleNamespaceSerializer
 
 
 class RoleRemoteViewSet(RemoteViewSet):

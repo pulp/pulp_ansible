@@ -660,7 +660,9 @@ class CollectionSyncFirstStage(Stage):
             # TODO: Look into moving this into _download_unpaginated_metadata
             # TODO: When can we change from old V3 endpoints?
             namespace_url = f"{endpoint}namespaces/{namespace}/"
-            downloader = self.remote.get_downloader(url=namespace_url, silence_errors_for_response_status_codes={404})
+            downloader = self.remote.get_downloader(
+                url=namespace_url, silence_errors_for_response_status_codes={404}
+            )
             try:
                 result = await downloader.run()
             except FileNotFoundError:

@@ -21,6 +21,7 @@ from pulpcore.plugin.models import (
     EncryptedTextField,
 )
 from pulpcore.plugin.util import get_artifact_url
+from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 from .downloaders import AnsibleDownloaderFactory
 
 
@@ -247,13 +248,13 @@ class AnsibleNamespace(Content):
     repo_key_fields = ("name",)
     # fields on the existing model in galaxy_ng
     name = models.CharField(max_length=64, blank=False)
-    company = models.CharField(max_length=64, blank=True)
-    email = models.CharField(max_length=256, blank=True)
-    description = models.CharField(max_length=256, blank=True)
-    resources = models.TextField(blank=True)
+    company = models.CharField(max_length=64, blank=True, default="")
+    email = models.CharField(max_length=256, blank=True, default="")
+    description = models.CharField(max_length=256, blank=True, default="")
+    resources = models.TextField(blank=True, default="")
 
     links = models.JSONField(default=dict)
-    avatar_sha5256 = models.CharField(max_length=64, blank=True)
+    avatar_sha256 = models.CharField(max_length=64, null=True)
 
     # Hash of the values of all the fields mentioned above.
     # Content uniqueness constraint.
@@ -262,8 +263,8 @@ class AnsibleNamespace(Content):
     @property
     def avatar_url(self):
         """Return the avatar url link."""
-        if not self.avatar_sha5256:
-            return ""
+        if not self.avatar_sha256:
+            return None
         avatar_artifact = self._artifacts.get()
         return get_artifact_url(avatar_artifact)
 
@@ -278,9 +279,9 @@ class AnsibleNamespace(Content):
             "description": self.description,
             "resources": self.resources,
             "links": self.links,
-            "avatar_sha256": self.avatar_sha5256
+            "avatar_sha256": self.avatar_sha256
         }
-        metadata_json = json.dumps(metadata, sort_keys=True)
+        metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
         hasher.update(metadata_json)
         self.metadata_sha256 = hasher.hexdigest()
 
@@ -477,6 +478,8 @@ class AnsibleRepository(Repository):
 
                 new_version.remove_content(deprecations)
                 new_version.remove_content(namespace)
+        remove_duplicates(new_version)
+        validate_repo_version(new_version)
 
     @hook(BEFORE_UPDATE, when="remote", has_changed=True)
     def _reset_repository_last_synced_metadata_time(self):
