@@ -4,6 +4,8 @@ from django.contrib.postgres.search import SearchQuery
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters
+from django_guid import set_guid
+from django_guid.utils import generate_guid
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
@@ -292,6 +294,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             sync_kwargs["optimize"] = serializer.validated_data["optimize"]
         elif isinstance(remote, GitRemote):
             sync_func = git_sync
+
+        set_guid(generate_guid())
 
         result = dispatch(
             sync_func,
