@@ -106,6 +106,6 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
         }
         qs = qs.annotate(**kwargs)
 
-        #qs = qs.annotate(search_vector=F("content__ansible_collectionversion__search_vector"))
+        # Annotate sign state ...
 
         return qs

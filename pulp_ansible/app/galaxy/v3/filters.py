@@ -88,8 +88,9 @@ class CollectionVersionSearchFilter(FilterSet):
 
     def filter_by_dependency(self, qs, name, value):
         """Return a list of collections that depend on a given collection name."""
-        kwargs = {f"content__ansible_collectionversion__dependencies__{value}__isnull": False}
-        qs = qs.filter(**kwargs)
+        #kwargs = {f"content__ansible_collectionversion__dependencies__{value}__isnull": False}
+        #qs = qs.filter(**kwargs)
+        qs = qs.filter(content__ansible_collectionversion__dependencies__has_key=value)
         return qs
 
     def filter_by_deprecated(self, qs, name, value):
