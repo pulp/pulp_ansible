@@ -435,7 +435,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
 
         distro = models.AnsibleDistribution.objects.filter(base_path=obj.repository.name).first()
         repo_version = distro.repository.latest_version()
-        distro_content = repo_version.content
+        distro_content = repo_version.content.filter(pulp_type="ansible.collection_signature")
         sigs = models.CollectionVersionSignature.objects.filter(pk__in=distro_content)
         filtered_signatures = self.get_collection_version(obj).signatures.filter(pk__in=sigs)
         return CollectionVersionSignatureSerializer(filtered_signatures, many=True).data
