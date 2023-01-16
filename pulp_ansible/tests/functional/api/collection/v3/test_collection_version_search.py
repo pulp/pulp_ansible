@@ -10,6 +10,7 @@ from orionutils.generator import build_collection
 
 from pulp_smash import api, config
 from pulp_smash.pulp3.bindings import delete_orphans
+from pulp_smash.pulp3.bindings import monitor_task
 
 from pulp_ansible.tests.functional.utils import (
     gen_distribution,
@@ -71,10 +72,18 @@ def get_galaxy_url(base, path):
 def search_specs(
     pulp_client,
     tmp_path,
+    ansible_repo_api_client,
+    signing_gpg_homedir_path,
+    ascii_armored_detached_signing_service,
 ):
     def get_collection_versions():
         cversions = pulp_client.get("/pulp/api/v3/content/ansible/collection_versions/")
         return dict(((x["namespace"], x["name"], x["version"]), x) for x in cversions)
+
+
+    # define signing service
+    signing_service = ascii_armored_detached_signing_service
+    signing_body = {"signing_service": signing_service.pulp_href, "content_units": ["*"]}
 
     # delete_orphans()
 
@@ -103,6 +112,7 @@ def search_specs(
             "version": "1.0.1",
             "tags": ["a", "b", "c"],
             "repository_name": "automation-hub-1",
+            "signed": True
         },
         {
             "namespace": "foo",
@@ -111,6 +121,7 @@ def search_specs(
             "tags": ["d", "e", "f"],
             "dependencies": {"foo.bar": ">=1.0.0"},
             "repository_name": "automation-hub-2",
+            "signed": True
         },
         {
             "namespace": "jingle",
@@ -118,6 +129,7 @@ def search_specs(
             "version": "12.25.0",
             "tags": ["trees", "sleighs", "gifts"],
             "repository_name": "automation-hub-1",
+            "signed": True
         },
         {
             "namespace": "jingle",
@@ -125,6 +137,7 @@ def search_specs(
             "version": "12.25.0",
             "tags": ["trees", "sleighs", "gifts"],
             "repository_name": "automation-hub-3",
+            "signed": True
         },
         {
             "namespace": "jingle",
@@ -133,6 +146,7 @@ def search_specs(
             "dependencies": {"foo.bar": ">=1.0.0"},
             "tags": ["trees", "sleighs", "gifts"],
             "repository_name": "automation-hub-2",
+            "signed": True
         },
     ]
 
@@ -168,10 +182,12 @@ def search_specs(
         if spec["repository_name"] not in created_repos:
             repo_data = gen_repo(name=spec["repository_name"])
             pulp_repo = pulp_client.post(ANSIBLE_REPO_PATH, repo_data)
-            # specs[ids]['repository'] = pulp_repo
             created_repos[spec["repository_name"]] = pulp_repo
-        # else:
-        #    specs[ids]['repository'] = created_repos[spec["repository_name"]]
+
+            # sign the repo?
+            repository_href = pulp_repo['pulp_href']
+            res = monitor_task(ansible_repo_api_client.sign(repository_href, signing_body).task)
+            assert res.state == 'completed'
 
         # make the distribution
         if spec["repository_name"] not in created_dists:
@@ -181,10 +197,7 @@ def search_specs(
                 repository=pulp_repo["pulp_href"],
             )
             pulp_dist = pulp_client.post(ANSIBLE_DISTRIBUTION_PATH, dist_data)
-            # specs[ids]['distribution'] = pulp_dist
             created_dists[spec["repository_name"]] = pulp_dist
-        # else:
-        #    specs[ids]['distribution'] = created_dists[spec["repository_name"]]
 
     uploaded_artifacts = {}
 
@@ -227,9 +240,19 @@ def search_specs(
             pulp_client.post(repo_href + "modify/", payload)
             # import epdb; epdb.st()
 
-        # add to repo ...
-        # print('add cv to repo ...')
-        # import epdb; epdb.st()
+        # sign it ...
+        if spec['signed']:
+            cvs = get_collection_versions()
+            ckey = (spec['namespace'], spec['name'], spec['version'])
+            cv = cvs[ckey]
+            collection_url = cv['pulp_href']
+            repo = created_repos[spec['repository_name']]
+            body = {
+                "content_units": [collection_url],
+                "signing_service": ascii_armored_detached_signing_service.pulp_href
+            }
+            res = monitor_task(ansible_repo_api_client.sign(repo['pulp_href'], body).task)
+            assert res.state == 'completed'
 
     yield specs
 

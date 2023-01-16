@@ -353,6 +353,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
     requires_ansible = serializers.SerializerMethodField()
     dependencies = serializers.SerializerMethodField()
     tags = serializers.SerializerMethodField()
+    signatures = serializers.SerializerMethodField()
 
     repository_name = serializers.SerializerMethodField()
 
@@ -371,6 +372,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             "dependencies",
             "repository_name",
             "tags",
+            "signatures"
         )
         model = models.CollectionVersion
 
@@ -425,3 +427,15 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
 
     def get_repository_name(self, obj):
         return obj.repository.name
+
+    def get_signatures(self, obj):
+        """
+        Get the signatures.
+        """
+
+        distro = models.AnsibleDistribution.objects.filter(base_path=obj.repository.name).first()
+        repo_version = distro.repository.latest_version()
+        distro_content = repo_version.content
+        sigs = models.CollectionVersionSignature.objects.filter(pk__in=distro_content)
+        filtered_signatures = self.get_collection_version(obj).signatures.filter(pk__in=sigs)
+        return CollectionVersionSignatureSerializer(filtered_signatures, many=True).data
