@@ -212,6 +212,28 @@ class CollectionVersion(Content):
         ]
 
 
+class CollectionVersionMark(Content):
+    """
+    A content type representing a mark that is attached to a content unit.
+
+    Fields:
+        value (models.CharField): The value of the mark.
+        marked_collection (models.ForeignKey): Reference to a CollectionVersion.
+    """
+
+    PROTECTED_FROM_RECLAIM = False
+    TYPE = "collection_mark"
+
+    value = models.SlugField()
+    marked_collection = models.ForeignKey(
+        CollectionVersion, null=False, on_delete=models.CASCADE, related_name="marks"
+    )
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("value", "marked_collection")
+
+
 class CollectionVersionSignature(Content):
     """
     A content type representing a signature that is attached to a content unit.
@@ -446,6 +468,7 @@ class AnsibleRepository(Repository):
         AnsibleCollectionDeprecated,
         CollectionVersionSignature,
         AnsibleNamespaceMetadata,
+        CollectionVersionMark,
     ]
     REMOTE_TYPES = [RoleRemote, CollectionRemote, GitRemote]
 

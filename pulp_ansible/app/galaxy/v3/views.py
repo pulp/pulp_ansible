@@ -52,6 +52,7 @@ from pulp_ansible.app.models import (
     AnsibleNamespaceMetadata,
     Collection,
     CollectionVersion,
+    CollectionVersionMark,
     CollectionVersionSignature,
     CollectionImport,
     DownloadLog,
@@ -118,6 +119,7 @@ class AnsibleDistributionMixin:
             context["path"] = self.kwargs["path"]
 
         distro_content = self._distro_content
+        context["marks"] = CollectionVersionMark.objects.filter(pk__in=distro_content)
         context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
         context["namespaces"] = AnsibleNamespaceMetadata.objects.filter(pk__in=distro_content)
         context["namespaces_map"] = {
