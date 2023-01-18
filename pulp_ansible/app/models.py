@@ -260,14 +260,6 @@ class AnsibleNamespace(Content):
     # Content uniqueness constraint.
     metadata_sha256 = models.CharField(max_length=64, db_index=True, blank=False)
 
-    @property
-    def avatar_url(self):
-        """Return the avatar url link."""
-        if not self.avatar_sha256:
-            return None
-        avatar_artifact = self._artifacts.get()
-        return get_artifact_url(avatar_artifact)
-
     @hook(BEFORE_SAVE)
     def calculate_metadata_sha256(self):
         """Calculates the metadata_sha256 from the other metadata fields."""

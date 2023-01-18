@@ -670,15 +670,18 @@ class AnsibleNamespaceViewSet(
         return AnsibleNamespace.objects.filter(pk__in=self._distro_content)
 
     def create(self, request, *args, **kwargs):
+        return self._create(request, data=request.data)
+
+    def _create(self, request, data, context=None):
         """Dispatch task to create and add Namespace to repository."""
         repo = self._repository_version.repository
-        serializer = self.get_serializer(data=request.data)
+        serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        context = kwargs.pop("context", {})
+        context = context or {}
         context["repository"] = repo.pk
         # If avatar was uploaded, init into artifact
-        if avatar := serializer.validated_data.get("avatar", None):
+        if avatar := serializer.validated_data.pop("avatar", None):
             artifact = Artifact.init_and_validate(avatar)
             try:
                 artifact.save()
@@ -714,11 +717,11 @@ class AnsibleNamespaceViewSet(
 
         for name, field in serializer.fields.items():
             if not field.read_only and not field.write_only:
-                request.data.setdefault(name, serializer.data[name])
+                serializer.validated_data.setdefault(name, serializer.data[name])
         context = {}
         if "avatar" not in request.data and namespace.avatar_sha256:
             context["artifact"] = Artifact.objects.get(sha256=namespace.avatar_sha256).pk
-        return self.create(request, context=context)
+        return self._create(request, data=serializer.validated_data, context=context)
 
     def destroy(self, request, *args, **kwargs):
         """Try to remove the Namespace if no Collections under Namespace are present."""
