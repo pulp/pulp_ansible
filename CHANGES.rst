@@ -13,6 +13,25 @@ Changelog
 
 .. towncrier release notes start
 
+0.15.1 (2023-01-20)
+===================
+
+Improved Documentation
+----------------------
+
+- Fixed linebreak issues in remote workflow cli examples.
+  `#1328 <https://github.com/pulp/pulp_ansible/issues/1328>`__
+
+
+Misc
+----
+
+- `#1273 <https://github.com/pulp/pulp_ansible/issues/1273>`__
+
+
+----
+
+
 0.15.0 (2022-09-21)
 ===================
 
