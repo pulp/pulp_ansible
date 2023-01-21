@@ -327,6 +327,7 @@ class CollectionViewSet(
         if getattr(self, "available_versions_context", None):
             super_data["available_versions"] = self.available_versions_context
         super_data["deprecated_collections"] = getattr(self, "deprecated_collections_context", [])
+        super_data["available_namespaces"] = super_data["namespaces"].values_list("name", flat=True)
         return super_data
 
     @extend_schema(
@@ -668,6 +669,12 @@ class AnsibleNamespaceViewSet(
             # and it fails when "path" is not on self.kwargs
             return AnsibleNamespace.objects.none()
         return AnsibleNamespace.objects.filter(pk__in=self._distro_content)
+
+    def paginate_queryset(self, queryset):
+        if "paginate" in self.request.query_params:
+            if self.request.query_params["paginate"] == "false":
+                return None
+        return super().paginate_queryset(queryset)
 
     def create(self, request, *args, **kwargs):
         return self._create(request, data=request.data)

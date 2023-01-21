@@ -4,6 +4,7 @@ from logging import getLogger
 from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint, Q
+from django.db.utils import IntegrityError
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
 from django_lifecycle import AFTER_UPDATE, BEFORE_SAVE, BEFORE_UPDATE, hook
@@ -20,7 +21,6 @@ from pulpcore.plugin.models import (
     Task,
     EncryptedTextField,
 )
-from pulpcore.plugin.util import get_artifact_url
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 from .downloaders import AnsibleDownloaderFactory
 
@@ -275,6 +275,10 @@ class AnsibleNamespace(Content):
         }
         metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
         hasher.update(metadata_json)
+        if self.metadata_sha256:
+            # If we are creating from sync, assert that calculated hash == synced hash
+            if self.metadata_sha256 != hasher.hexdigest():
+                raise IntegrityError("Calculated digest does not equal passed in digest")
         self.metadata_sha256 = hasher.hexdigest()
 
     class Meta:
