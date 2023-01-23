@@ -1,7 +1,6 @@
 from django.conf import settings
 from django.conf.urls import url
 from django.urls import include, path
-from rest_framework import routers
 
 from pulp_ansible.app.galaxy.views import (
     GalaxyCollectionVersionDetail,
@@ -127,7 +126,7 @@ legacy_v3_collection_urls = [
             url="ansible-namespaces-list",
             viewset=views_v3.AnsibleNamespaceViewSet,
         ),
-        name="legacy-v3-ansible-namespaces-list"
+        name="legacy-v3-ansible-namespaces-list",
     ),
     path(
         "namespaces/<str:name>/",
@@ -136,7 +135,7 @@ legacy_v3_collection_urls = [
             url="ansible-namespaces-detail",
             viewset=views_v3.AnsibleNamespaceViewSet,
         ),
-        name="legacy-v3-ansible-namespaces-detail"
+        name="legacy-v3-ansible-namespaces-detail",
     ),
     # the ansible-galaxy client doesn't play well with redirects for POST operations, so these
     # views don't redirect
@@ -210,12 +209,15 @@ v3_collection_urls = [
 
 namespace_urls = [
     path(
-        "", views_v3.AnsibleNamespaceViewSet.as_view({"get": "list", "post": "create"}),
+        "",
+        views_v3.AnsibleNamespaceViewSet.as_view({"get": "list", "post": "create"}),
         name="ansible-namespaces-list",
     ),
     path(
-        "<str:name>/", views_v3.AnsibleNamespaceViewSet.as_view(
-            {"get": "retrieve", "delete": "destroy", "patch": "partial_update"}),
+        "<str:name>/",
+        views_v3.AnsibleNamespaceViewSet.as_view(
+            {"get": "retrieve", "delete": "destroy", "patch": "partial_update"}
+        ),
         name="ansible-namespaces-detail",
     ),
 ]

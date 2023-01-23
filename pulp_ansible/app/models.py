@@ -236,12 +236,21 @@ class CollectionVersionSignature(Content):
         unique_together = ("pubkey_fingerprint", "signed_collection")
 
 
-
 class AnsibleNamespace(Content):
     """
     A content type representing the Namespace metadata of a Collection.
 
-    Namespace metadata is
+    Namespace metadata can have an avatar which is stored as an associated artifact upon upload.
+
+    Fields:
+        name (models.CharField): The required name of the Namespace
+        company (models.CharField): Optional namespace owner company name.
+        email (models.CharField): Optional namespace contact email.
+        description (models.CharField): Namespace brief description.
+        resources (models.TextField): Namespace resources page in markdown format.
+        links (psql_fields.HStore): Labeled related links.
+        avatar_sha256 (models.CharField): SHA256 digest of avatar image.
+        metadata_sha256(models.CharField): SHA256 digest of all other metadata fields.
     """
 
     TYPE = "namespace"
@@ -271,7 +280,7 @@ class AnsibleNamespace(Content):
             "description": self.description,
             "resources": self.resources,
             "links": self.links,
-            "avatar_sha256": self.avatar_sha256
+            "avatar_sha256": self.avatar_sha256,
         }
         metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
         hasher.update(metadata_json)

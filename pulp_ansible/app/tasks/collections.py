@@ -656,13 +656,19 @@ class CollectionSyncFirstStage(Stage):
             if namespace := self._unpaginated_namesapce_metadata.get(name, None):
                 namespace.pop("pulp_href", None)
                 url = namespace.pop("avatar_url", None)
-                da = [DeclarativeArtifact(
-                    Artifact(sha256=namespace["avatar_sha256"]),
-                    url=url,
-                    remote=self.remote,
-                    relative_path=f"{name}-avatar",
-                    deferred_download=False,
-                )] if url else None
+                da = (
+                    [
+                        DeclarativeArtifact(
+                            Artifact(sha256=namespace["avatar_sha256"]),
+                            url=url,
+                            remote=self.remote,
+                            relative_path=f"{name}-avatar",
+                            deferred_download=False,
+                        )
+                    ]
+                    if url
+                    else None
+                )
                 namespace = AnsibleNamespace(**namespace)
                 dc = DeclarativeContent(namespace, d_artifacts=da)
                 await self.put(dc)

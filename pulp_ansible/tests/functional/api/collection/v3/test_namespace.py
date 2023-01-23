@@ -9,11 +9,14 @@ from PIL import Image
 
 
 def random_string(n=10):
+    """Create a random lower_case + digits string."""
     a = random.choice(string.ascii_lowercase)
-    return a + "".join(random.choices(string.ascii_lowercase + string.digits, k=n-1))
+    return a + "".join(random.choices(string.ascii_lowercase + string.digits, k=n - 1))
+
 
 @pytest.fixture
 def ansible_repo_and_distro_factory(ansible_repo_factory, ansible_distribution_factory):
+    """Factory to produce a repo and distro."""
 
     def _factory(repo_kwargs=None):
         repo_kwargs = repo_kwargs or {}
@@ -23,27 +26,36 @@ def ansible_repo_and_distro_factory(ansible_repo_factory, ansible_distribution_f
 
     return _factory
 
+
 @pytest.fixture
 def random_image_factory(tmp_path):
+    """Factory to produce a random 100x100 image."""
 
     def _random_image():
         imarray = np.random.rand(100, 100, 3) * 255
-        im = Image.fromarray(imarray.astype('uint8')).convert('RGBA')
-        path = tmp_path / f'{random_string()}.png'
+        im = Image.fromarray(imarray.astype("uint8")).convert("RGBA")
+        path = tmp_path / f"{random_string()}.png"
         im.save(path)
         return path
 
     return _random_image
 
 
-def test_crud_namespaces(ansible_repo_and_distro_factory, ansible_namespaces_api_client, galaxy_v3_plugin_namespaces_api_client, monitor_task):
+def test_crud_namespaces(
+    ansible_repo_and_distro_factory,
+    ansible_namespaces_api_client,
+    galaxy_v3_plugin_namespaces_api_client,
+    monitor_task,
+):
     """Test Basic Creating, Reading, Updating and 'Deleting' operations on Namespaces."""
     repo, distro = ansible_repo_and_distro_factory()
     kwargs = {"path": distro.base_path, "distro_base_path": distro.base_path}
 
     # Test Basic Creation
     name = random_string()
-    task = galaxy_v3_plugin_namespaces_api_client.create(name=name, description="hello", company="Testing Co.", **kwargs)
+    task = galaxy_v3_plugin_namespaces_api_client.create(
+        name=name, description="hello", company="Testing Co.", **kwargs
+    )
     result = monitor_task(task.task)
 
     assert len(result.created_resources) == 2
@@ -71,7 +83,9 @@ def test_crud_namespaces(ansible_repo_and_distro_factory, ansible_namespaces_api
     assert v3_list.count == 1
 
     # Test Update Namespace (Creates a new Namespace w/ updated metadata)
-    task = galaxy_v3_plugin_namespaces_api_client.partial_update(name=name, description="hey!", **kwargs)
+    task = galaxy_v3_plugin_namespaces_api_client.partial_update(
+        name=name, description="hey!", **kwargs
+    )
     result = monitor_task(task.task)
     assert len(result.created_resources) == 2
     repo_version = result.created_resources[0]
@@ -87,7 +101,9 @@ def test_crud_namespaces(ansible_repo_and_distro_factory, ansible_namespaces_api
     assert updated_namespace.metadata_sha256 != v3_namespace.metadata_sha256
 
     # Test Updating Namespace back to original description brings back original object
-    task = galaxy_v3_plugin_namespaces_api_client.partial_update(name=name, description="hello", **kwargs)
+    task = galaxy_v3_plugin_namespaces_api_client.partial_update(
+        name=name, description="hello", **kwargs
+    )
     result = monitor_task(task.task)
     assert len(result.created_resources) == 2
     repo_version = result.created_resources[0]
@@ -109,7 +125,13 @@ def test_crud_namespaces(ansible_repo_and_distro_factory, ansible_namespaces_api
     assert v3_namespaces.count == 0
 
 
-def test_namespace_avatar(ansible_repo_and_distro_factory, ansible_namespaces_api_client, galaxy_v3_plugin_namespaces_api_client, random_image_factory, monitor_task):
+def test_namespace_avatar(
+    ansible_repo_and_distro_factory,
+    ansible_namespaces_api_client,
+    galaxy_v3_plugin_namespaces_api_client,
+    random_image_factory,
+    monitor_task,
+):
     """Test creating a Namespace w/ an Avatar & downloading the image from the Galaxy API."""
     repo, distro = ansible_repo_and_distro_factory()
     kwargs = {"path": distro.base_path, "distro_base_path": distro.base_path}
@@ -140,7 +162,15 @@ def test_namespace_avatar(ansible_repo_and_distro_factory, ansible_namespaces_ap
     assert downloaded_sha256 == v3_namespace.avatar_sha256
 
 
-def test_namespace_syncing(ansible_repo_and_distro_factory, galaxy_v3_plugin_namespaces_api_client, build_and_upload_collection, random_image_factory, monitor_task, ansible_sync_factory, ansible_collection_remote_factory):
+def test_namespace_syncing(
+    ansible_repo_and_distro_factory,
+    galaxy_v3_plugin_namespaces_api_client,
+    build_and_upload_collection,
+    random_image_factory,
+    monitor_task,
+    ansible_sync_factory,
+    ansible_collection_remote_factory,
+):
     """Test syncing a Collection w/ a Namespace also syncs the Namespace."""
     # Set up first Repo to have 3 Collections and 3 Namespaces
     repo1, distro1 = ansible_repo_and_distro_factory()
@@ -152,7 +182,9 @@ def test_namespace_syncing(ansible_repo_and_distro_factory, galaxy_v3_plugin_nam
         namespace = random_string()
         collection, _ = build_and_upload_collection(repo1, config={"namespace": namespace})
         avatar_path = random_image_factory()
-        task = galaxy_v3_plugin_namespaces_api_client.create(name=namespace, avatar=avatar_path, **kwargs1)
+        task = galaxy_v3_plugin_namespaces_api_client.create(
+            name=namespace, avatar=avatar_path, **kwargs1
+        )
         result = monitor_task(task.task)
         collections.append(collection)
         namespaces[namespace] = result.created_resources[-1]
@@ -162,7 +194,9 @@ def test_namespace_syncing(ansible_repo_and_distro_factory, galaxy_v3_plugin_nam
     kwargs2 = {"path": distro2.base_path, "distro_base_path": distro2.base_path}
     collections_string = "\n  - ".join((f"{c.namespace}.{c.name}" for c in collections[0:2]))
     requirements = f"collections:\n  - {collections_string}"
-    remote = ansible_collection_remote_factory(url=distro1.client_url, requirements_file=requirements)
+    remote = ansible_collection_remote_factory(
+        url=distro1.client_url, requirements_file=requirements
+    )
 
     ansible_sync_factory(ansible_repo=repo2, remote=remote.pulp_href)
     # 2 Namespaces should have also been synced

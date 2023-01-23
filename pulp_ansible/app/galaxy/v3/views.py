@@ -327,7 +327,6 @@ class CollectionViewSet(
         if getattr(self, "available_versions_context", None):
             super_data["available_versions"] = self.available_versions_context
         super_data["deprecated_collections"] = getattr(self, "deprecated_collections_context", [])
-        super_data["available_namespaces"] = super_data["namespaces"].values_list("name", flat=True)
         return super_data
 
     @extend_schema(
@@ -728,7 +727,7 @@ class AnsibleNamespaceViewSet(
 
     def update(self, request, *args, **kwargs):
         """Dispatch task to update Namespace in repository."""
-        partial = kwargs.pop('partial', False)
+        partial = kwargs.pop("partial", False)
         namespace = self.get_object()
         serializer = self.get_serializer(namespace, data=request.data, partial=partial)
         serializer.is_valid(raise_exception=True)
@@ -747,7 +746,9 @@ class AnsibleNamespaceViewSet(
         """Try to remove the Namespace if no Collections under Namespace are present."""
         namespace = self.get_object()
 
-        if self._distro_content.filter(ansible_collectionversion__namespace=namespace.name).exists():
+        if self._distro_content.filter(
+            ansible_collectionversion__namespace=namespace.name
+        ).exists():
             raise serializers.ValidationError(
                 detail=_(
                     "Namespace {name} cannot be deleted because "

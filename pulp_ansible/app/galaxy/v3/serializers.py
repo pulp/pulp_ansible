@@ -6,7 +6,6 @@ from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
 from pulp_ansible.app import models
-from pulp_ansible.app.serializers import AnsibleNamespaceSerializer
 from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
 
 

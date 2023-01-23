@@ -240,7 +240,6 @@ class CollectionDeprecatedViewSet(ContentViewSet):
     serializer_class = CollectionSerializer
 
 
-
 class AnsibleNamespaceFilter(ContentFilter):
     """
     A filter for namespaces.

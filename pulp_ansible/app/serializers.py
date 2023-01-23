@@ -6,6 +6,7 @@ from jsonschema import Draft7Validator
 from rest_framework import serializers
 from urllib.parse import urljoin
 
+from galaxy_importer.constants import NAME_REGEXP
 from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
@@ -750,17 +751,45 @@ class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
     A serializer for Namespaces.
     """
 
-    # SlugField also allows capital letters and dashes
-    # TODO: SlugField won't work, namespaces can't have dashes, also can't begin w/ num or _
-    name = serializers.SlugField(min_length=3, max_length=64, allow_blank=False)
-    company = serializers.CharField(max_length=64, allow_blank=True, required=False)
-    email = serializers.CharField(max_length=256, allow_blank=True, required=False)
-    description = serializers.CharField(max_length=256, allow_blank=True, required=False)
-    resources = serializers.CharField(allow_blank=True, required=False)
-    links = serializers.HStoreField(child=serializers.URLField(max_length=256), required=False)
-    avatar = serializers.ImageField(write_only=True, required=False, help_text=_("Optional avatar image for Namespace"))
-    avatar_sha256 = serializers.CharField(max_length=64, read_only=True)
-    avatar_url = serializers.SerializerMethodField()
+    name = serializers.RegexField(
+        NAME_REGEXP,
+        min_length=3,
+        max_length=64,
+        allow_blank=False,
+        help_text=_("Required named, only accepts lowercase, numbers and underscores."),
+    )
+    company = serializers.CharField(
+        max_length=64,
+        allow_blank=True,
+        required=False,
+        help_text=_("Optional namespace company owner."),
+    )
+    email = serializers.CharField(
+        max_length=256,
+        allow_blank=True,
+        required=False,
+        help_text=_("Optional namespace contact email."),
+    )
+    description = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, help_text=_("Optional short description.")
+    )
+    resources = serializers.CharField(
+        allow_blank=True, required=False, help_text=_("Optional resource page in markdown format.")
+    )
+    links = serializers.HStoreField(
+        child=serializers.URLField(max_length=256),
+        required=False,
+        help_text=_("Labeled related links."),
+    )
+    avatar = serializers.ImageField(
+        write_only=True, required=False, help_text=_("Optional avatar image for Namespace")
+    )
+    avatar_sha256 = serializers.CharField(
+        max_length=64, read_only=True, help_text=_("SHA256 digest of avatar image if present.")
+    )
+    avatar_url = serializers.SerializerMethodField(
+        help_text=_("Download link for avatar image if present.")
+    )
     metadata_sha256 = serializers.CharField(read_only=True)
 
     def get_avatar_url(self, obj):
@@ -818,9 +847,17 @@ class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
     class Meta:
         model = AnsibleNamespace
         fields = (
-            "pulp_href", "name", "company", "email",
-            "description", "resources", "links", "avatar",
-            "avatar_sha256", "avatar_url", "metadata_sha256"
+            "pulp_href",
+            "name",
+            "company",
+            "email",
+            "description",
+            "resources",
+            "links",
+            "avatar",
+            "avatar_sha256",
+            "avatar_url",
+            "metadata_sha256",
         )
 
 
