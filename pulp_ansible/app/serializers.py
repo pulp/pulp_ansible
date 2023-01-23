@@ -756,7 +756,7 @@ class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
     email = serializers.CharField(max_length=256, allow_blank=True, required=False)
     description = serializers.CharField(max_length=256, allow_blank=True, required=False)
     resources = serializers.CharField(allow_blank=True, required=False)
-    links = serializers.DictField(child=serializers.URLField(max_length=256), required=False)
+    links = serializers.HStoreField(child=serializers.URLField(max_length=256), required=False)
     avatar = serializers.ImageField(write_only=True, required=False, help_text=_("Optional avatar image for Namespace"))
     avatar_sha256 = serializers.CharField(max_length=64, read_only=True)
     avatar_url = serializers.SerializerMethodField()
@@ -779,9 +779,6 @@ class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
         if self.instance:
             if (name := data.get("name", None)) and name != self.instance.name:
                 raise serializers.ValidationError(_("Name can not be changed in an update"))
-
-            if "links" in data and not data["links"]:
-                data.pop("links")
 
         if "artifact" in self.context:
             if "avatar_sh256" not in data:

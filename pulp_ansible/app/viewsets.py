@@ -23,8 +23,10 @@ from pulpcore.plugin.viewsets import (
     ContentViewSet,
     HyperlinkRelatedFilter,
     NamedModelViewSet,
+    NAME_FILTER_OPTIONS,
     NoArtifactContentUploadViewSet,
     OperationPostponedResponse,
+    ReadOnlyContentViewSet,
     RemoteViewSet,
     RepositoryViewSet,
     RepositoryVersionViewSet,
@@ -238,7 +240,7 @@ class CollectionDeprecatedViewSet(ContentViewSet):
     serializer_class = CollectionSerializer
 
 
-class AnsibleNamespace(ContentViewSet):
+class AnsibleNamespace(ReadOnlyContentViewSet):
     """
     ViewSet for AnsibleNamespace.
     """
@@ -246,6 +248,11 @@ class AnsibleNamespace(ContentViewSet):
     endpoint_name = "namespaces"
     queryset = AnsibleNamespace.objects.all()
     serializer_class = AnsibleNamespaceSerializer
+    filterset_fields = {
+        "name": NAME_FILTER_OPTIONS,
+        "company": NAME_FILTER_OPTIONS,
+        "metadata_sha256": ["exact", "in"],
+    }
 
 
 class RoleRemoteViewSet(RemoteViewSet):

@@ -253,7 +253,7 @@ class AnsibleNamespace(Content):
     description = models.CharField(max_length=256, blank=True, default="")
     resources = models.TextField(blank=True, default="")
 
-    links = models.JSONField(default=dict)
+    links = psql_fields.HStoreField(default=dict)
     avatar_sha256 = models.CharField(max_length=64, null=True)
 
     # Hash of the values of all the fields mentioned above.

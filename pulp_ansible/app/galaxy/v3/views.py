@@ -32,7 +32,7 @@ from pulpcore.plugin.viewsets import (
     BaseFilterSet,
     OperationPostponedResponse,
     SingleArtifactContentUploadViewSet,
-    ContentViewSet,
+    NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
 
@@ -657,11 +657,15 @@ class AnsibleNamespaceViewSet(
     ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.ModelViewSet
 ):
 
-    queryset = AnsibleNamespace.objects.all()
     serializer_class = AnsibleNamespaceSerializer
     lookup_field = "name"
-    pulp_tag_name = "Pulp_Ansible: Namespaces"
-    permission_classes = []
+    filterset_fields = {
+        "name": NAME_FILTER_OPTIONS,
+        "company": NAME_FILTER_OPTIONS,
+        "metadata_sha256": ["exact", "in"],
+    }
+
+    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):

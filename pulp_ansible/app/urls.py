@@ -130,7 +130,7 @@ legacy_v3_collection_urls = [
         name="legacy-v3-ansible-namespaces-list"
     ),
     path(
-        "namespaces/<str:name>",
+        "namespaces/<str:name>/",
         views_v3.redirect_view_generator(
             {"get": "retrieve"},
             url="ansible-namespaces-detail",
@@ -206,12 +206,16 @@ v3_collection_urls = [
         views_v3.UnpaginatedCollectionVersionViewSet.as_view({"get": "list"}),
         name="metadata-collection-versions-list",
     ),
+]
+
+namespace_urls = [
     path(
-        "namespaces/", views_v3.AnsibleNamespaceViewSet.as_view({"get": "list", "post": "create"}),
+        "", views_v3.AnsibleNamespaceViewSet.as_view({"get": "list", "post": "create"}),
         name="ansible-namespaces-list",
     ),
     path(
-        "namespaces/<str:name>/", views_v3.AnsibleNamespaceViewSet.as_view({"get": "retrieve", "delete": "destroy", "put": "update", "patch": "partial_update"}),
+        "<str:name>/", views_v3.AnsibleNamespaceViewSet.as_view(
+            {"get": "retrieve", "delete": "destroy", "put": "update", "patch": "partial_update"}),
         name="ansible-namespaces-detail",
     ),
 ]
@@ -220,6 +224,7 @@ v3_plugin_urls = [
     # path:var captures /, so it has to have something at the end to make it work
     # correctly.
     path("content/<path:distro_base_path>/collections/", include(v3_collection_urls)),
+    path("content/<path:distro_base_path>/namespaces/", include(namespace_urls)),
     path(
         "imports/collections/<uuid:pk>/",
         views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
