@@ -14,7 +14,7 @@ from django_filters import filters
 from django.views.generic.base import RedirectView
 from django.conf import settings
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from jinja2 import Template
 from rest_framework import mixins
 from rest_framework.response import Response
@@ -653,6 +653,10 @@ class CollectionArtifactDownloadView(views.APIView):
         return redirect(url)
 
 
+@extend_schema_view(
+    create=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+    partial_update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+)
 class AnsibleNamespaceViewSet(
     ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.ModelViewSet
 ):
@@ -667,18 +671,21 @@ class AnsibleNamespaceViewSet(
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
 
+    def initialize_request(self, request, *args, **kwargs):
+        # Wonder if there is a better way to perform this paginate hack
+        # With setting filterset_fields, any other query fields will return a 400 error
+        query_copy = request.GET.copy()
+        if query_copy.pop("paginate", None) == ["false"]:
+            self.pagination_class = None
+        request.GET = query_copy
+        return super().initialize_request(request, *args, **kwargs)
+
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs
             return AnsibleNamespace.objects.none()
         return AnsibleNamespace.objects.filter(pk__in=self._distro_content)
-
-    def paginate_queryset(self, queryset):
-        if "paginate" in self.request.query_params:
-            if self.request.query_params["paginate"] == "false":
-                return None
-        return super().paginate_queryset(queryset)
 
     def create(self, request, *args, **kwargs):
         return self._create(request, data=request.data)
@@ -734,6 +741,8 @@ class AnsibleNamespaceViewSet(
             context["artifact"] = Artifact.objects.get(sha256=namespace.avatar_sha256).pk
         return self._create(request, data=serializer.validated_data, context=context)
 
+    # Schema wouldn't update w/o it here on the method :(
+    @extend_schema(responses={202: AsyncOperationResponseSerializer})
     def destroy(self, request, *args, **kwargs):
         """Try to remove the Namespace if no Collections under Namespace are present."""
         namespace = self.get_object()

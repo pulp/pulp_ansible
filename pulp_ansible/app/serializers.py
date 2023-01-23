@@ -751,6 +751,7 @@ class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
     """
 
     # SlugField also allows capital letters and dashes
+    # TODO: SlugField won't work, namespaces can't have dashes, also can't begin w/ num or _
     name = serializers.SlugField(min_length=3, max_length=64, allow_blank=False)
     company = serializers.CharField(max_length=64, allow_blank=True, required=False)
     email = serializers.CharField(max_length=256, allow_blank=True, required=False)

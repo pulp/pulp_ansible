@@ -2,3 +2,4 @@ pulp-smash @ git+https://github.com/pulp/pulp-smash.git
 orionutils
 pytest
 dynaconf
+numpy

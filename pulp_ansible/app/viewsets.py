@@ -240,7 +240,22 @@ class CollectionDeprecatedViewSet(ContentViewSet):
     serializer_class = CollectionSerializer
 
 
-class AnsibleNamespace(ReadOnlyContentViewSet):
+
+class AnsibleNamespaceFilter(ContentFilter):
+    """
+    A filter for namespaces.
+    """
+
+    class Meta:
+        model = AnsibleNamespace
+        fields = {
+            "name": NAME_FILTER_OPTIONS,
+            "company": NAME_FILTER_OPTIONS,
+            "metadata_sha256": ["exact", "in"],
+        }
+
+
+class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
     """
     ViewSet for AnsibleNamespace.
     """
@@ -248,11 +263,7 @@ class AnsibleNamespace(ReadOnlyContentViewSet):
     endpoint_name = "namespaces"
     queryset = AnsibleNamespace.objects.all()
     serializer_class = AnsibleNamespaceSerializer
-    filterset_fields = {
-        "name": NAME_FILTER_OPTIONS,
-        "company": NAME_FILTER_OPTIONS,
-        "metadata_sha256": ["exact", "in"],
-    }
+    filterset_class = AnsibleNamespaceFilter
 
 
 class RoleRemoteViewSet(RemoteViewSet):
