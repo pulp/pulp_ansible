@@ -361,7 +361,7 @@ class AnsibleRepository(Repository):
         AnsibleCollectionDeprecated,
         CollectionVersionSignature,
     ]
-    REMOTE_TYPES = [RoleRemote, CollectionRemote]
+    REMOTE_TYPES = [RoleRemote, CollectionRemote, GitRemote]
 
     last_synced_metadata_time = models.DateTimeField(null=True)
     gpgkey = models.TextField(null=True)
