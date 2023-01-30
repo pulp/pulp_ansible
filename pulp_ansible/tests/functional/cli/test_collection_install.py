@@ -39,29 +39,33 @@ def install_scenario_distribution(
     return ansible_distribution_factory(repo)
 
 
-def test_install_collection(tmp_path, install_scenario_distribution):
+def test_install_collection(
+    install_scenario_distribution, pulp_admin_user, ansible_dir_factory
+):
     """Test that the collection can be installed from Pulp."""
-    collection_name = ANSIBLE_DEMO_COLLECTION
-    collection_version = ANSIBLE_DEMO_COLLECTION_VERSION
+    with pulp_admin_user:
+        collection_name = ANSIBLE_DEMO_COLLECTION
+        collection_version = ANSIBLE_DEMO_COLLECTION_VERSION
 
-    temp_dir = str(tmp_path)
-    cmd = [
-        "ansible-galaxy",
-        "collection",
-        "install",
-        collection_name,
-        "-c",
-        "-s",
-        install_scenario_distribution.client_url,
-        "-p",
-        temp_dir,
-    ]
+        temp_dir = str(
+            ansible_dir_factory(install_scenario_distribution.client_url, pulp_admin_user)
+        )
 
-    directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
+        cmd = [
+            "ansible-galaxy",
+            "collection",
+            "install",
+            collection_name,
+            "-c",
+            "-p",
+            temp_dir,
+        ]
 
-    assert not path.exists(directory), "Directory {} already exists".format(directory)
-    subprocess.run(cmd)
-    assert path.exists(directory), "Could not find directory {}".format(directory)
+        directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
+
+        assert not path.exists(directory), "Directory {} already exists".format(directory)
+        subprocess.run(cmd, cwd=temp_dir)
+        assert path.exists(directory), "Could not find directory {}".format(directory)
     dl_log_dump = subprocess.check_output(["pulpcore-manager", "download-log"])
     dl_log = json.loads(dl_log_dump)
     assert (
@@ -71,37 +75,39 @@ def test_install_collection(tmp_path, install_scenario_distribution):
 
 
 def test_install_signed_collection(
-    tmp_path,
     ansible_repo_api_client,
     install_scenario_distribution,
     signing_gpg_homedir_path,
     ascii_armored_detached_signing_service,
+    gen_user,
+    ansible_dir_factory,
 ):
     """Test that the collection can be installed from Pulp."""
-    collection_name = ANSIBLE_DEMO_COLLECTION
-    repository_href = install_scenario_distribution.repository
-    signing_service = ascii_armored_detached_signing_service
-    # Switch this over to signature upload in the future
-    signing_body = {"signing_service": signing_service.pulp_href, "content_units": ["*"]}
-    monitor_task(ansible_repo_api_client.sign(repository_href, signing_body).task)
+    user = gen_user(model_roles=["ansible.ansiblerepository_owner"])
+    with user:
+        collection_name = ANSIBLE_DEMO_COLLECTION
+        repository_href = install_scenario_distribution.repository
+        signing_service = ascii_armored_detached_signing_service
+        # Switch this over to signature upload in the future
+        signing_body = {"signing_service": signing_service.pulp_href, "content_units": ["*"]}
+        monitor_task(ansible_repo_api_client.sign(repository_href, signing_body).task)
 
-    temp_dir = str(tmp_path)
-    cmd = [
-        "ansible-galaxy",
-        "collection",
-        "install",
-        collection_name,
-        "-c",
-        "-s",
-        install_scenario_distribution.client_url,
-        "-p",
-        temp_dir,
-        "--keyring",
-        f"{signing_gpg_homedir_path}/pubring.kbx",
-    ]
+        temp_dir = str(ansible_dir_factory(install_scenario_distribution.client_url, user))
 
-    directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
+        cmd = [
+            "ansible-galaxy",
+            "collection",
+            "install",
+            collection_name,
+            "-c",
+            "-p",
+            temp_dir,
+            "--keyring",
+            f"{signing_gpg_homedir_path}/pubring.kbx",
+        ]
 
-    assert not path.exists(directory), "Directory {} already exists".format(directory)
-    subprocess.run(cmd)
-    assert path.exists(directory), "Could not find directory {}".format(directory)
+        directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
+
+        assert not path.exists(directory), "Directory {} already exists".format(directory)
+        subprocess.run(cmd, cwd=temp_dir)
+        assert path.exists(directory), "Could not find directory {}".format(directory)

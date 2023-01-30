@@ -7,6 +7,8 @@ from os import path
 
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 
+from pulp_smash.pulp3.utils import gen_repo
+
 
 @pytest.fixture
 def sync_and_count(
@@ -32,39 +34,61 @@ def sync_and_count(
 
 
 @pytest.mark.parallel
-def test_sync_collection_from_git(ansible_repo, sync_and_count, ansible_distribution_factory):
+def test_sync_collection_from_git(
+    ansible_repo_api_client,
+    sync_and_count,
+    ansible_distribution_factory,
+    gen_user,
+    gen_object_with_cleanup,
+    ansible_dir_factory,
+):
     """Sync collections from Git repositories and then install one of them."""
-    body = gen_ansible_remote(url="https://github.com/pulp/pulp_installer.git")
+    user = gen_user(
+        model_roles=[
+            "ansible.ansibledistribution_creator",
+            "ansible.ansiblerepository_creator",
+            "ansible.gitremote_creator",
+        ]
+    )
 
-    count = sync_and_count(body, repo=ansible_repo)
-    assert count == 1
+    with user:
+        body = gen_ansible_remote(url="https://github.com/pulp/pulp_installer.git")
 
-    body.pop("name")  # Forces a new remote to be created
-    count = sync_and_count(body, repo=ansible_repo)
-    assert count == 1
+        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        count = sync_and_count(body, repo=repo)
+        assert count == 1
 
-    body = gen_ansible_remote(url="https://github.com/pulp/squeezer.git")
+        body.pop("name")  # Forces a new remote to be created
+        count = sync_and_count(body, repo=repo)
+        assert count == 1
 
-    count = sync_and_count(body, repo=ansible_repo)
-    assert count == 2
+        body = gen_ansible_remote(url="https://github.com/pulp/squeezer.git")
 
-    # Create a distribution.
-    distribution = ansible_distribution_factory(ansible_repo)
+        count = sync_and_count(body, repo=repo)
+        assert count == 2
 
-    collection_name = "pulp.squeezer"
-    with tempfile.TemporaryDirectory() as temp_dir:
-        # The install command needs --pre so a pre-release collection versions install
-        cmd = "ansible-galaxy collection install --pre {} -c -s {} -p {}".format(
-            collection_name, distribution.client_url, temp_dir
-        )
+        # Create a distribution.
+        distribution = ansible_distribution_factory(repo)
 
-        directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
+        collection_name = "pulp.squeezer"
 
-        assert not path.exists(directory), "Directory {} already exists".format(directory)
+        temp_dir = ansible_dir_factory(distribution.client_url, user)
+        with temp_dir:
 
-        subprocess.run(cmd.split())
+            # The install command needs --pre so a pre-release collection versions install
+            cmd = "ansible-galaxy collection install --pre {} -c -p {}".format(
+                collection_name, temp_dir
+            )
 
-        assert path.exists(directory), "Could not find directory {}".format(directory)
+            directory = "{}/ansible_collections/{}".format(
+                temp_dir, collection_name.replace(".", "/")
+            )
+
+            assert not path.exists(directory), "Directory {} already exists".format(directory)
+
+            subprocess.run(cmd.split(), cwd=temp_dir)
+
+            assert path.exists(directory), "Could not find directory {}".format(directory)
 
 
 @pytest.mark.parallel

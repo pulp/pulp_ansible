@@ -170,38 +170,51 @@ def test_namespace_syncing(
     monitor_task,
     ansible_sync_factory,
     ansible_collection_remote_factory,
+    gen_user,
 ):
     """Test syncing a Collection w/ a Namespace also syncs the Namespace."""
-    # Set up first Repo to have 3 Collections and 3 Namespaces
-    repo1, distro1 = ansible_repo_and_distro_factory()
-    kwargs1 = {"path": distro1.base_path, "distro_base_path": distro1.base_path}
-
-    collections = []
-    namespaces = {}
-    for i in range(3):
-        namespace = random_string()
-        collection, _ = build_and_upload_collection(repo1, config={"namespace": namespace})
-        avatar_path = random_image_factory()
-        task = galaxy_v3_plugin_namespaces_api_client.create(
-            name=namespace, avatar=avatar_path, **kwargs1
-        )
-        result = monitor_task(task.task)
-        collections.append(collection)
-        namespaces[namespace] = result.created_resources[-1]
-
-    # Set up second Repo and sync 2 Collections from first Repo
-    repo2, distro2 = ansible_repo_and_distro_factory()
-    kwargs2 = {"path": distro2.base_path, "distro_base_path": distro2.base_path}
-    collections_string = "\n  - ".join((f"{c.namespace}.{c.name}" for c in collections[0:2]))
-    requirements = f"collections:\n  - {collections_string}"
-    remote = ansible_collection_remote_factory(
-        url=distro1.client_url, requirements_file=requirements
+    user = gen_user(
+        model_roles=[
+            "ansible.ansibledistribution_creator",
+            "ansible.ansiblerepository_creator",
+            "ansible.collectionremote_creator",
+        ]
     )
 
-    ansible_sync_factory(ansible_repo=repo2, remote=remote.pulp_href)
-    # 2 Namespaces should have also been synced
-    synced_namespaces = galaxy_v3_plugin_namespaces_api_client.list(**kwargs2)
-    assert synced_namespaces.count == 2
-    for namespace in synced_namespaces.results:
-        assert namespace.name in namespaces
-        assert namespaces[namespace.name] == namespace.pulp_href
+    with user:
+        # Set up first Repo to have 3 Collections and 3 Namespaces
+        repo1, distro1 = ansible_repo_and_distro_factory()
+        kwargs1 = {"path": distro1.base_path, "distro_base_path": distro1.base_path}
+
+        collections = []
+        namespaces = {}
+        for i in range(3):
+            namespace = random_string()
+            collection, _ = build_and_upload_collection(repo1, config={"namespace": namespace})
+            avatar_path = random_image_factory()
+            task = galaxy_v3_plugin_namespaces_api_client.create(
+                name=namespace, avatar=avatar_path, **kwargs1
+            )
+            result = monitor_task(task.task)
+            collections.append(collection)
+            namespaces[namespace] = result.created_resources[-1]
+
+        # Set up second Repo and sync 2 Collections from first Repo
+        repo2, distro2 = ansible_repo_and_distro_factory()
+        kwargs2 = {"path": distro2.base_path, "distro_base_path": distro2.base_path}
+        collections_string = "\n  - ".join((f"{c.namespace}.{c.name}" for c in collections[0:2]))
+        requirements = f"collections:\n  - {collections_string}"
+        remote = ansible_collection_remote_factory(
+            url=distro1.client_url,
+            requirements_file=requirements,
+            username=user.username,
+            password=user.password,
+        )
+
+        ansible_sync_factory(ansible_repo=repo2, remote=remote.pulp_href)
+        # 2 Namespaces should have also been synced
+        synced_namespaces = galaxy_v3_plugin_namespaces_api_client.list(**kwargs2)
+        assert synced_namespaces.count == 2
+        for namespace in synced_namespaces.results:
+            assert namespace.name in namespaces
+            assert namespaces[namespace.name] == namespace.pulp_href

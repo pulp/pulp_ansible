@@ -11,6 +11,7 @@ from django.contrib.postgres import search as psql_search
 from django_lifecycle import AFTER_UPDATE, BEFORE_SAVE, BEFORE_UPDATE, hook
 
 from pulpcore.plugin.models import (
+    AutoAddObjPermsMixin,
     BaseModel,
     Content,
     Remote,
@@ -355,7 +356,7 @@ class DownloadLog(BaseModel):
     )
 
 
-class RoleRemote(Remote):
+class RoleRemote(Remote, AutoAddObjPermsMixin):
     """
     A Remote for Ansible content.
     """
@@ -364,6 +365,7 @@ class RoleRemote(Remote):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [("manage_roles_roleremote", "Can manage roles on role remotes")]
 
 
 def _get_last_sync_task(pk):
@@ -371,7 +373,7 @@ def _get_last_sync_task(pk):
     return sync_tasks.order_by("-pulp_created").first()
 
 
-class CollectionRemote(Remote):
+class CollectionRemote(Remote, AutoAddObjPermsMixin):
     """
     A Remote for Collection content.
     """
@@ -421,9 +423,10 @@ class CollectionRemote(Remote):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = (("manage_roles_collectionremote", "Can manage roles on collection remotes"),)
 
 
-class GitRemote(Remote):
+class GitRemote(Remote, AutoAddObjPermsMixin):
     """
     A Remote for Collection content hosted in Git repositories.
     """
@@ -435,6 +438,9 @@ class GitRemote(Remote):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+        permissions = [
+            ("manage_roles_gitremote", "Can manage roles on git remotes"),
+        ]
 
 
 class AnsibleCollectionDeprecated(Content):
@@ -452,7 +458,7 @@ class AnsibleCollectionDeprecated(Content):
         unique_together = ("namespace", "name")
 
 
-class AnsibleRepository(Repository):
+class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     """
     Repository for "ansible" content.
 
@@ -482,7 +488,14 @@ class AnsibleRepository(Repository):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
 
-        permissions = (("modify_ansible_repo_content", "Can modify ansible repository content"),)
+        permissions = [
+            ("rebuild_metadata_ansiblerepository", "Can rebuild metadata on the repository"),
+            ("repair_ansiblerepository", "Can repair the repository"),
+            ("sign_ansiblerepository", "Can sign content on the repository"),
+            ("sync_ansiblerepository", "Can start a sync task on the repository"),
+            ("manage_roles_ansiblerepository", "Can manage roles on repositories"),
+            ("modify_ansible_repo_content", "Can modify repository content"),
+        ]
 
     def finalize_new_version(self, new_version):
         """Finalize repo version."""
@@ -532,7 +545,7 @@ class AnsibleRepository(Repository):
         self.last_synced_metadata_time = None
 
 
-class AnsibleDistribution(Distribution):
+class AnsibleDistribution(Distribution, AutoAddObjPermsMixin):
     """
     A Distribution for Ansible content.
     """
@@ -541,3 +554,5 @@ class AnsibleDistribution(Distribution):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+
+        permissions = [("manage_roles_ansibledistribution", "Can manage roles on distributions")]
