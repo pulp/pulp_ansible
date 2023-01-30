@@ -36,7 +36,7 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
-    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     GitRemote,
     RoleRemote,
     AnsibleRepository,
@@ -49,7 +49,7 @@ from .models import (
 )
 from .serializers import (
     AnsibleDistributionSerializer,
-    AnsibleNamespaceSerializer,
+    AnsibleNamespaceMetadataSerializer,
     GitRemoteSerializer,
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
@@ -246,7 +246,7 @@ class AnsibleNamespaceFilter(ContentFilter):
     """
 
     class Meta:
-        model = AnsibleNamespace
+        model = AnsibleNamespaceMetadata
         fields = {
             "name": NAME_FILTER_OPTIONS,
             "company": NAME_FILTER_OPTIONS,
@@ -260,8 +260,8 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
     """
 
     endpoint_name = "namespaces"
-    queryset = AnsibleNamespace.objects.all()
-    serializer_class = AnsibleNamespaceSerializer
+    queryset = AnsibleNamespaceMetadata.objects.all()
+    serializer_class = AnsibleNamespaceMetadataSerializer
     filterset_class = AnsibleNamespaceFilter
 
 

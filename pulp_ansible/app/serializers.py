@@ -31,7 +31,7 @@ from .models import (
     AnsibleDistribution,
     GitRemote,
     RoleRemote,
-    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     AnsibleRepository,
     Collection,
     CollectionImport,
@@ -746,7 +746,7 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         )
 
 
-class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
+class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     """
     A serializer for Namespaces.
     """
@@ -820,9 +820,11 @@ class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
     @transaction.atomic
     def create(self, validated_data):
         """Create the Namespace and add it to the Repository if present."""
-        namespace = AnsibleNamespace(**validated_data)
+        namespace = AnsibleNamespaceMetadata(**validated_data)
         namespace.calculate_metadata_sha256()
-        content = AnsibleNamespace.objects.filter(metadata_sha256=namespace.metadata_sha256).first()
+        content = AnsibleNamespaceMetadata.objects.filter(
+            metadata_sha256=namespace.metadata_sha256
+        ).first()
         if content:
             content.touch()
         else:
@@ -838,14 +840,14 @@ class AnsibleNamespaceSerializer(NoArtifactContentSerializer):
         repository = self.context.pop("repository", None)
         if repository:
             repository = AnsibleRepository.objects.get(pk=repository)
-            content_to_add = AnsibleNamespace.objects.filter(pk=content.pk)
+            content_to_add = AnsibleNamespaceMetadata.objects.filter(pk=content.pk)
 
             with repository.new_version() as new_version:
                 new_version.add_content(content_to_add)
         return content
 
     class Meta:
-        model = AnsibleNamespace
+        model = AnsibleNamespaceMetadata
         fields = (
             "pulp_href",
             "name",

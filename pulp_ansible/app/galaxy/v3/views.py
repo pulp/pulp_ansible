@@ -49,7 +49,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
-    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     Collection,
     CollectionVersion,
     CollectionVersionSignature,
@@ -57,7 +57,7 @@ from pulp_ansible.app.models import (
     DownloadLog,
 )
 from pulp_ansible.app.serializers import (
-    AnsibleNamespaceSerializer,
+    AnsibleNamespaceMetadataSerializer,
     CollectionImportDetailSerializer,
     CollectionOneShotSerializer,
     CollectionVersionUploadSerializer,
@@ -119,7 +119,7 @@ class AnsibleDistributionMixin:
 
         distro_content = self._distro_content
         context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
-        context["namespaces"] = AnsibleNamespace.objects.filter(pk__in=distro_content)
+        context["namespaces"] = AnsibleNamespaceMetadata.objects.filter(pk__in=distro_content)
         context["distro_base_path"] = self.kwargs["distro_base_path"]
         return context
 
@@ -660,7 +660,7 @@ class AnsibleNamespaceViewSet(
     ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.ModelViewSet
 ):
 
-    serializer_class = AnsibleNamespaceSerializer
+    serializer_class = AnsibleNamespaceMetadataSerializer
     lookup_field = "name"
     filterset_fields = {
         "name": NAME_FILTER_OPTIONS,
@@ -683,8 +683,8 @@ class AnsibleNamespaceViewSet(
         if getattr(self, "swagger_fake_view", False):
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs
-            return AnsibleNamespace.objects.none()
-        return AnsibleNamespace.objects.filter(pk__in=self._distro_content)
+            return AnsibleNamespaceMetadata.objects.none()
+        return AnsibleNamespaceMetadata.objects.filter(pk__in=self._distro_content)
 
     def create(self, request, *args, **kwargs):
         return self._create(request, data=request.data)
@@ -713,7 +713,7 @@ class AnsibleNamespaceViewSet(
             context["artifact"] = artifact.pk
 
         # Dispatch general_create task
-        app_label = AnsibleNamespace._meta.app_label
+        app_label = AnsibleNamespaceMetadata._meta.app_label
         task = dispatch(
             general_create,
             args=(app_label, serializer.__class__.__name__),

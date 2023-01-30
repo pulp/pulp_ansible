@@ -55,7 +55,7 @@ from semantic_version.base import Always
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
-    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     AnsibleRepository,
     Collection,
     CollectionImport,
@@ -509,7 +509,7 @@ class CollectionSyncFirstStage(Stage):
         self.optimize = optimize
         self.last_synced_metadata_time = None
         self.namespaces_seen = set()
-        self._unpaginated_namesapce_metadata = None
+        self._unpaginated_namespace_metadata = None
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -652,8 +652,8 @@ class CollectionSyncFirstStage(Stage):
 
     async def _add_namespace(self, name):
         """Adds A Namespace metadata content to the pipeline."""
-        if self._unpaginated_namesapce_metadata:
-            if namespace := self._unpaginated_namesapce_metadata.get(name, None):
+        if self._unpaginated_namespace_metadata:
+            if namespace := self._unpaginated_namespace_metadata.get(name, None):
                 namespace.pop("pulp_href", None)
                 url = namespace.pop("avatar_url", None)
                 da = (
@@ -669,7 +669,7 @@ class CollectionSyncFirstStage(Stage):
                     if url
                     else None
                 )
-                namespace = AnsibleNamespace(**namespace)
+                namespace = AnsibleNamespaceMetadata(**namespace)
                 dc = DeclarativeContent(namespace, d_artifacts=da)
                 await self.put(dc)
                 return True
@@ -843,7 +843,7 @@ class CollectionSyncFirstStage(Stage):
             if not isinstance(nam_results, FileNotFoundError):
                 namespaces_response = parse_metadata(nam_results)
                 if namespaces_response:
-                    self._unpaginated_namesapce_metadata = {
+                    self._unpaginated_namespace_metadata = {
                         n["name"]: n for n in namespaces_response
                     }
 

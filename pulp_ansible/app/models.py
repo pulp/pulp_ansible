@@ -1,3 +1,4 @@
+import hashlib
 import json
 from logging import getLogger
 
@@ -8,7 +9,6 @@ from django.db.utils import IntegrityError
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
 from django_lifecycle import AFTER_UPDATE, BEFORE_SAVE, BEFORE_UPDATE, hook
-from hashlib import new
 
 from pulpcore.plugin.models import (
     BaseModel,
@@ -236,7 +236,7 @@ class CollectionVersionSignature(Content):
         unique_together = ("pubkey_fingerprint", "signed_collection")
 
 
-class AnsibleNamespace(Content):
+class AnsibleNamespaceMetadata(Content):
     """
     A content type representing the Namespace metadata of a Collection.
 
@@ -272,7 +272,6 @@ class AnsibleNamespace(Content):
     @hook(BEFORE_SAVE)
     def calculate_metadata_sha256(self):
         """Calculates the metadata_sha256 from the other metadata fields."""
-        hasher = new("sha256")
         metadata = {
             "name": self.name,
             "company": self.company,
@@ -283,7 +282,7 @@ class AnsibleNamespace(Content):
             "avatar_sha256": self.avatar_sha256,
         }
         metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
-        hasher.update(metadata_json)
+        hasher = hashlib.sha256(metadata_json)
         if self.metadata_sha256:
             # If we are creating from sync, assert that calculated hash == synced hash
             if self.metadata_sha256 != hasher.hexdigest():
@@ -432,7 +431,7 @@ class AnsibleRepository(Repository):
         CollectionVersion,
         AnsibleCollectionDeprecated,
         CollectionVersionSignature,
-        AnsibleNamespace,
+        AnsibleNamespaceMetadata,
     ]
     REMOTE_TYPES = [RoleRemote, CollectionRemote, GitRemote]
 
@@ -478,7 +477,7 @@ class AnsibleRepository(Repository):
                     )
                 )
                 namespace = new_version.get_content(
-                    content_qs=AnsibleNamespace.objects.filter(name=version.namespace)
+                    content_qs=AnsibleNamespaceMetadata.objects.filter(name=version.namespace)
                 )
 
                 new_version.remove_content(deprecations)
