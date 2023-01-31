@@ -260,15 +260,15 @@ config (e.g. ``~/.ansible.cfg`` or ``/etc/ansible/ansible.cfg``):
     server_list = pulp, my_fallback_server
 
     [galaxy_server.pulp]
-    server = http://localhost/pulp_ansible/galaxy/my_content/
+    url = http://localhost/pulp_ansible/galaxy/my_content/
 
     [galaxy_server.my_fallback_server]
-    server = http://localhost/pulp_ansible/galaxy/my_other_content/
+    url = http://localhost/pulp_ansible/galaxy/my_other_content/
     username = my_user
     password = my_password
 
     [galaxy_server.deprecated]
-    server = http://localhost/pulp_ansible/galaxy/deprecated/
+    url = http://localhost/pulp_ansible/galaxy/deprecated/
     username = my_user
     password = my_password
 
