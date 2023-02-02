@@ -54,7 +54,6 @@ class GitRemoteSyncInstallTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
         collection_name = "pulp.squeezer"
         with tempfile.TemporaryDirectory() as temp_dir:
-
             # The install command needs --pre so a pre-release collection versions install
             cmd = "ansible-galaxy collection install --pre {} -c -s {} -p {}".format(
                 collection_name, distribution.client_url, temp_dir
