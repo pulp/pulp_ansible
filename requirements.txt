@@ -6,4 +6,4 @@ packaging>=21.3,<24
 pulpcore>=3.21.dev,<3.25
 PyYAML>=5.4.1,<7.0
 semantic_version>=2.9,<2.11
-setuptools>=39.2,<66.2.0
+setuptools>=39.2,<67.2.0
