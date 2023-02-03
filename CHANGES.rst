@@ -13,6 +13,27 @@ Changelog
 
 .. towncrier release notes start
 
+0.10.5 (2023-02-03)
+===================
+
+Bugfixes
+--------
+
+- Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
+  PEP-440 parsing.
+  `#1340 <https://github.com/pulp/pulp_ansible/issues/1340>`__
+
+
+Improved Documentation
+----------------------
+
+- Fixed linebreak issues in remote workflow cli examples.
+  `#1328 <https://github.com/pulp/pulp_ansible/issues/1328>`__
+
+
+----
+
+
 0.10.4 (2022-11-17)
 ===================
 
