@@ -1,0 +1,2 @@
+Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
+PEP-440 parsing.
