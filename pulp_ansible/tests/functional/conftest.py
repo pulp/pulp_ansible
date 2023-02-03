@@ -59,6 +59,18 @@ def ansible_repo(ansible_repo_api_client, gen_object_with_cleanup):
 
 
 @pytest.fixture
+def ansible_repo_factory(ansible_repo_api_client, gen_object_with_cleanup):
+    """A factory that creates an Ansible Repository and deletes it at test cleanup time."""
+
+    def _ansible_repo_factory(**kwargs):
+        body = gen_repo()
+        body.update(kwargs)
+        return gen_object_with_cleanup(ansible_repo_api_client, body)
+
+    return _ansible_repo_factory
+
+
+@pytest.fixture
 def gen_ansible_distribution(ansible_distro_api_client, gen_object_with_cleanup):
     """A factory to generate an Ansible Distribution and auto-deletes them at test cleanup time."""
 
@@ -78,3 +90,6 @@ def gen_ansible_collection_remote(ansible_remote_collection_api_client, gen_obje
         return gen_object_with_cleanup(ansible_remote_collection_api_client, kwargs)
 
     yield _gen_ansible_collection_remote
+
+
+ansible_collection_remote_factory = gen_ansible_collection_remote

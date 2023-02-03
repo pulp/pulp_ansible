@@ -1,4 +1,5 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
+import pytest
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     SyncHelpersMixin,
@@ -278,3 +279,28 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
 
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/", name="posix")
         self.assertNotEqual(content.count, 0)
+
+
+@pytest.mark.parallel
+def test_semver_sync(
+    ansible_repo_api_client,
+    ansible_collection_version_api_client,
+    ansible_repo_factory,
+    ansible_collection_remote_factory,
+):
+    remote = ansible_collection_remote_factory(
+        url="https://galaxy.ansible.com",
+        requirements_file="collections:\n  - anil_cm.terraform_provider",
+        sync_dependencies=False,
+        signed_only=False,
+    )
+    repository = ansible_repo_factory(remote=remote.pulp_href)
+    monitor_task(ansible_repo_api_client.sync(repository.pulp_href, {}).task)
+    repository = ansible_repo_api_client.read(repository.pulp_href)
+    content = ansible_collection_version_api_client.list(
+        repository_version=repository.latest_version_href
+    )
+    versions = {item.version for item in content.results}
+    # If this fails check that it is still upstream!
+    # TODO create a better local fixture to sync from.
+    assert "0.0.1-rerelease+meta" in versions
