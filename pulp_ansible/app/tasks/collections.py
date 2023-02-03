@@ -711,6 +711,8 @@ class CollectionSyncFirstStage(Stage):
                 break
             page_num = page_num + 1
 
+        self.parsing_metadata_progress_bar.total += len(tasks)
+        await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
         await asyncio.gather(*tasks)
 
     async def _read_from_downloaded_metadata(self, name, namespace, requirement):
@@ -756,6 +758,8 @@ class CollectionSyncFirstStage(Stage):
                             )
                         )
                     )
+        self.parsing_metadata_progress_bar.total += len(tasks)
+        await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
         await asyncio.gather(*tasks)
 
     async def _fetch_collection_metadata(self, requirements_entry):
@@ -867,6 +871,8 @@ class CollectionSyncFirstStage(Stage):
                         )
                     )
 
+        self.parsing_metadata_progress_bar.total = len(tasks)
+        await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
         await asyncio.gather(*tasks)
 
     async def _find_all_collections(self):
@@ -908,6 +914,8 @@ class CollectionSyncFirstStage(Stage):
                 break
             page_num = page_num + 1
 
+        self.parsing_metadata_progress_bar.total = len(tasks)
+        await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
         await asyncio.gather(*tasks)
 
     async def _should_we_sync(self):
@@ -957,7 +965,7 @@ class CollectionSyncFirstStage(Stage):
         loop = asyncio.get_event_loop()
 
         msg = _("Parsing CollectionVersion Metadata")
-        async with ProgressReport(message=msg, code="sync.parsing.metadata") as pb:
+        async with ProgressReport(message=msg, code="sync.parsing.metadata", total=0) as pb:
             self.parsing_metadata_progress_bar = pb
             await self._download_unpaginated_metadata()
 
@@ -969,6 +977,8 @@ class CollectionSyncFirstStage(Stage):
             else:
                 tasks.append(loop.create_task(self._find_all_collections()))
             await asyncio.gather(*tasks)
+            # Ensure PR 'total' is correct before stage finishes
+            pb.total = pb.done
 
 
 class DocsBlobDownloader(ArtifactDownloader):
