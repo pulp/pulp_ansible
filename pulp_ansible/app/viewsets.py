@@ -19,6 +19,7 @@ from pulpcore.plugin.viewsets import (
     DistributionViewSet,
     BaseFilterSet,
     ContentFilter,
+    RemoteFilter,
     ContentViewSet,
     HyperlinkRelatedFilter,
     NamedModelViewSet,
@@ -171,6 +172,12 @@ class CollectionVersionFilter(ContentFilter):
     class Meta:
         model = CollectionVersion
         fields = ["namespace", "name", "version", "q", "is_highest", "tags"]
+
+
+class CollectionRemoteFilter(RemoteFilter):
+    class Meta:
+        model = CollectionRemote
+        fields = {"url": ["exact", "in", "icontains", "contains"], **RemoteFilter.Meta.fields}
 
 
 class CollectionVersionViewSet(UploadGalaxyCollectionMixin, SingleArtifactContentUploadViewSet):
@@ -407,6 +414,7 @@ class CollectionRemoteViewSet(RemoteViewSet):
     endpoint_name = "collection"
     queryset = CollectionRemote.objects.all()
     serializer_class = CollectionRemoteSerializer
+    filterset_class = CollectionRemoteFilter
 
     def async_reserved_resources(self, instance):
         if instance is None:
