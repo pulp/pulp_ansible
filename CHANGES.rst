@@ -54,6 +54,20 @@ Misc
 ----
 
 
+0.15.2 (2023-02-03)
+===================
+
+Bugfixes
+--------
+
+- Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
+  PEP-440 parsing.
+  `#1340 <https://github.com/pulp/pulp_ansible/issues/1340>`__
+
+
+----
+
+
 0.15.1 (2023-01-20)
 ===================
 
@@ -175,6 +189,27 @@ Misc
 ----
 
 - `#1035 <https://github.com/pulp/pulp_ansible/issues/1035>`__
+
+
+----
+
+
+0.13.6 (2023-02-03)
+===================
+
+Bugfixes
+--------
+
+- Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
+  PEP-440 parsing.
+  `#1340 <https://github.com/pulp/pulp_ansible/issues/1340>`__
+
+
+Improved Documentation
+----------------------
+
+- Fixed linebreak issues in remote workflow cli examples.
+  `#1328 <https://github.com/pulp/pulp_ansible/issues/1328>`__
 
 
 ----
@@ -370,6 +405,27 @@ Bugfixes
 
 - Case-insensitive search for the ``owner__username`` and role ``name`` fields in the pulp_ansible role view (same as on galaxy.ansible.com).
   `#747 <https://github.com/pulp/pulp_ansible/issues/747>`_
+
+
+----
+
+
+0.10.5 (2023-02-03)
+===================
+
+Bugfixes
+--------
+
+- Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
+  PEP-440 parsing.
+  `#1340 <https://github.com/pulp/pulp_ansible/issues/1340>`__
+
+
+Improved Documentation
+----------------------
+
+- Fixed linebreak issues in remote workflow cli examples.
+  `#1328 <https://github.com/pulp/pulp_ansible/issues/1328>`__
 
 
 ----
