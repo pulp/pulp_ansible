@@ -24,7 +24,6 @@ from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import sync_collection
 from galaxy_importer.exceptions import ImporterError
 from git import GitCommandError, Repo
-from pkg_resources import Requirement
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -50,7 +49,8 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 from rest_framework.serializers import ValidationError
-from semantic_version import Version
+from semantic_version import SimpleSpec, Version
+from semantic_version.base import Always
 
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
@@ -72,6 +72,14 @@ from pulp_ansible.app.tasks.utils import (
 )
 
 log = logging.getLogger(__name__)
+
+
+# semantic_version.SimpleSpec interpretes "*" as ">=0.0.0"
+class AnsibleSpec(SimpleSpec):
+    def __init__(self, expression):
+        super().__init__(expression)
+        if self.expression == "*":
+            self.clause = Always()
 
 
 async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_only=False):
@@ -195,25 +203,6 @@ def sync(remote_pk, repository_pk, mirror, optimize):
         RepositoryContent.objects.filter(
             repository=repository, content__in=deprecated
         ).all().update(version_removed=repo_version)
-
-
-def parse_requirements_entry(requirements_entry):
-    """Parses a `RequirementsFileEntry` and returns a `Requirement` object."""
-    if requirements_entry.version == "*":
-        requirement_version = Requirement.parse("collection")
-    else:
-        # We need specifiers to enforce Requirement object criteria
-        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirements-parsing
-        # https://setuptools.readthedocs.io/en/latest/pkg_resources.html#requirement-methods-and-attributes
-        # If requirements_entry.version is a valid version, adds == specifier to the requirement
-        try:
-            Version(requirements_entry.version)
-            req_to_parse = f"collection=={requirements_entry.version}"
-        except ValueError:
-            req_to_parse = f"collection{requirements_entry.version}"
-
-        requirement_version = Requirement.parse(req_to_parse)
-    return requirement_version
 
 
 def import_collection(
@@ -689,7 +678,7 @@ class CollectionSyncFirstStage(Stage):
             else:
                 collection_versions = collection_versions_list["data"]
             for collection_version in collection_versions:
-                if collection_version["version"] in requirement:
+                if Version(collection_version["version"]) in requirement:
                     version_num = collection_version["version"]
                     collection_version_detail_url = f"{collection_url}/versions/{version_num}/"
                     if collection_metadata["deprecated"]:
@@ -736,7 +725,7 @@ class CollectionSyncFirstStage(Stage):
 
         all_versions_of_collection = self._unpaginated_collection_version_metadata[namespace][name]
         for col_version_metadata in all_versions_of_collection:
-            if col_version_metadata["version"] in requirement:
+            if Version(col_version_metadata["version"]) in requirement:
                 if "git_url" in col_version_metadata and col_version_metadata["git_url"]:
                     tasks.append(
                         loop.create_task(
@@ -763,7 +752,7 @@ class CollectionSyncFirstStage(Stage):
         await asyncio.gather(*tasks)
 
     async def _fetch_collection_metadata(self, requirements_entry):
-        requirement_version = parse_requirements_entry(requirements_entry)
+        requirement_version = AnsibleSpec(requirements_entry.version)
 
         namespace, name = requirements_entry.name.split(".")
 
@@ -814,7 +803,7 @@ class CollectionSyncFirstStage(Stage):
                     except ValidationError:
                         pass
                     else:
-                        excludes = {r.name: parse_requirements_entry(r) for r in excludes_list}
+                        excludes = {r.name: AnsibleSpec(r.version) for r in excludes_list}
                         self.exclude_info.update(excludes)
 
             if not isinstance(col_results, FileNotFoundError):
