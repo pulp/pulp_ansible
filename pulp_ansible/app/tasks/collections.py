@@ -55,6 +55,7 @@ from semantic_version.base import Always
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
+    AnsibleNamespace,
     AnsibleNamespaceMetadata,
     AnsibleRepository,
     Collection,
@@ -645,34 +646,44 @@ class CollectionSyncFirstStage(Stage):
                 await self.put(DeclarativeContent(content=cv_signature))
 
         # Process syncing CV Namespace Metadata if present
-        namespace = collection_version.namespace
-        if namespace not in self.namespaces_seen:
-            if await self._add_namespace(namespace):
-                self.namespaces_seen.add(namespace)
+        if metadata["namespace"].get("metadata_sha256"):
+            namespace = collection_version.namespace
+            if namespace not in self.namespaces_seen:
+                if await self._add_namespace(namespace):
+                    self.namespaces_seen.add(namespace)
 
     async def _add_namespace(self, name):
         """Adds A Namespace metadata content to the pipeline."""
-        if self._unpaginated_namespace_metadata:
-            if namespace := self._unpaginated_namespace_metadata.get(name, None):
-                namespace.pop("pulp_href", None)
-                url = namespace.pop("avatar_url", None)
-                da = (
-                    [
-                        DeclarativeArtifact(
-                            Artifact(sha256=namespace["avatar_sha256"]),
-                            url=url,
-                            remote=self.remote,
-                            relative_path=f"{name}-avatar",
-                            deferred_download=False,
-                        )
-                    ]
-                    if url
-                    else None
-                )
-                namespace = AnsibleNamespaceMetadata(**namespace)
-                dc = DeclarativeContent(namespace, d_artifacts=da)
-                await self.put(dc)
-                return True
+        endpoint, api_version = await self._get_root_api(self.remote.url)
+        namespace_url = f"{endpoint}/namespaces/{name}"
+        downloader = self.remote.get_downloader(
+            url=namespace_url, silence_errors_for_response_codes={404}
+        )
+        try:
+            result = await downloader.run()
+        except FileNotFoundError:
+            pass
+        else:
+            namespace = parse_metadata(result)
+            namespace.pop("pulp_href", None)
+            url = namespace.pop("avatar_url", None)
+            da = (
+                [
+                    DeclarativeArtifact(
+                        Artifact(sha256=namespace["avatar_sha256"]),
+                        url=url,
+                        remote=self.remote,
+                        relative_path=f"{name}-avatar",
+                        deferred_download=False,
+                    )
+                ]
+                if url
+                else None
+            )
+            namespace = AnsibleNamespaceMetadata(**namespace)
+            dc = DeclarativeContent(namespace, d_artifacts=da)
+            await self.put(dc)
+            return True
 
         return False
 
@@ -821,31 +832,14 @@ class CollectionSyncFirstStage(Stage):
 
             collection_endpoint = f"{root_endpoint}/collections/all/"
             excludes_endpoint = f"{root_endpoint}/excludes/"
-            namespaces_endpoint = f"{root_endpoint}/namespaces/?paginate=false"
             col_downloader = self.remote.get_downloader(
                 url=collection_endpoint, silence_errors_for_response_status_codes={404}
             )
             exc_downloader = self.remote.get_downloader(
                 url=excludes_endpoint, silence_errors_for_response_status_codes={404}
             )
-            nam_downloader = self.remote.get_downloader(
-                url=namespaces_endpoint, silence_errors_for_response_status_codes={404}
-            )
-            tasks = [
-                loop.create_task(col_downloader.run()),
-                loop.create_task(exc_downloader.run()),
-                loop.create_task(nam_downloader.run()),
-            ]
-            col_results, exc_results, nam_results = await asyncio.gather(
-                *tasks, return_exceptions=True
-            )
-
-            if not isinstance(nam_results, FileNotFoundError):
-                namespaces_response = parse_metadata(nam_results)
-                if namespaces_response:
-                    self._unpaginated_namespace_metadata = {
-                        n["name"]: n for n in namespaces_response
-                    }
+            tasks = [loop.create_task(col_downloader.run()), loop.create_task(exc_downloader.run())]
+            col_results, exc_results = await asyncio.gather(*tasks, return_exceptions=True)
 
             if not isinstance(exc_results, FileNotFoundError):
                 excludes_response = parse_metadata(exc_results)
@@ -1086,15 +1080,17 @@ class CollectionContentSaver(ContentSaver):
         for d_content in batch:
             if d_content is None:
                 continue
-            if not isinstance(d_content.content, CollectionVersion):
-                continue
+            if isinstance(d_content.content, CollectionVersion):
+                info = d_content.content.natural_key_dict()
+                collection, created = Collection.objects.get_or_create(
+                    namespace=info["namespace"], name=info["name"]
+                )
 
-            info = d_content.content.natural_key_dict()
-            collection, created = Collection.objects.get_or_create(
-                namespace=info["namespace"], name=info["name"]
-            )
-
-            d_content.content.collection = collection
+                d_content.content.collection = collection
+            elif isinstance(d_content.content, AnsibleNamespaceMetadata):
+                name = d_content.content.name
+                namespace, created = AnsibleNamespace.objects.get_or_create(name=name)
+                d_content.content.namespace = namespace
 
     def _post_save(self, batch):
         """

@@ -104,6 +104,14 @@ class Tag(BaseModel):
         return self.name
 
 
+class AnsibleNamespace(BaseModel):
+    """
+    A model representing a Namespace. This should be used for permissions.
+    """
+
+    name = models.CharField(max_length=64, unique=True, editable=True)
+
+
 class CollectionVersion(Content):
     """
     A content type representing a CollectionVersion.
@@ -251,6 +259,9 @@ class AnsibleNamespaceMetadata(Content):
         links (psql_fields.HStore): Labeled related links.
         avatar_sha256 (models.CharField): SHA256 digest of avatar image.
         metadata_sha256(models.CharField): SHA256 digest of all other metadata fields.
+
+    Relations:
+        namespace (AnsibleNamespace): A link to the Namespace model used for permissions.
     """
 
     TYPE = "namespace"
@@ -268,6 +279,9 @@ class AnsibleNamespaceMetadata(Content):
     # Hash of the values of all the fields mentioned above.
     # Content uniqueness constraint.
     metadata_sha256 = models.CharField(max_length=64, db_index=True, blank=False)
+    namespace = models.ForeignKey(
+        AnsibleNamespace, on_delete=models.PROTECT, related_name="metadatas"
+    )
 
     @hook(BEFORE_SAVE)
     def calculate_metadata_sha256(self):

@@ -31,6 +31,7 @@ from .models import (
     AnsibleDistribution,
     GitRemote,
     RoleRemote,
+    AnsibleNamespace,
     AnsibleNamespaceMetadata,
     AnsibleRepository,
     Collection,
@@ -820,21 +821,22 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     @transaction.atomic
     def create(self, validated_data):
         """Create the Namespace and add it to the Repository if present."""
-        namespace = AnsibleNamespaceMetadata(**validated_data)
-        namespace.calculate_metadata_sha256()
+        namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
+        metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
+        metadata.calculate_metadata_sha256()
         content = AnsibleNamespaceMetadata.objects.filter(
-            metadata_sha256=namespace.metadata_sha256
+            metadata_sha256=metadata.metadata_sha256
         ).first()
         if content:
             content.touch()
         else:
-            namespace.save()
-            content = namespace
-            if namespace.avatar_sha256:
+            metadata.save()
+            content = metadata
+            if metadata.avatar_sha256:
                 ContentArtifact.objects.create(
                     artifact_id=self.context["artifact"],
                     content=content,
-                    relative_path=f"{namespace.name}-avatar",
+                    relative_path=f"{metadata.name}-avatar",
                 )
 
         repository = self.context.pop("repository", None)

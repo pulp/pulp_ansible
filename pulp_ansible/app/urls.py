@@ -216,7 +216,7 @@ namespace_urls = [
     path(
         "<str:name>/",
         views_v3.AnsibleNamespaceViewSet.as_view(
-            {"get": "retrieve", "delete": "destroy", "patch": "partial_update"}
+            {"get": "retrieve", "delete": "delete", "patch": "partial_update"}
         ),
         name="ansible-namespaces-detail",
     ),

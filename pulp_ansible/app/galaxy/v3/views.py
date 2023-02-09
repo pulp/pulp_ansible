@@ -120,6 +120,9 @@ class AnsibleDistributionMixin:
         distro_content = self._distro_content
         context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
         context["namespaces"] = AnsibleNamespaceMetadata.objects.filter(pk__in=distro_content)
+        context["namespaces_map"] = {
+            n[0]: n[1] for n in context["namespaces"].values_list("name", "metadata_sha256")
+        }
         context["distro_base_path"] = self.kwargs["distro_base_path"]
         return context
 
@@ -655,11 +658,11 @@ class CollectionArtifactDownloadView(views.APIView):
 @extend_schema_view(
     create=extend_schema(responses={202: AsyncOperationResponseSerializer}),
     partial_update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+    delete=extend_schema(responses={202: AsyncOperationResponseSerializer}),
 )
 class AnsibleNamespaceViewSet(
     ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.ModelViewSet
 ):
-
     serializer_class = AnsibleNamespaceMetadataSerializer
     lookup_field = "name"
     filterset_fields = {
@@ -669,15 +672,6 @@ class AnsibleNamespaceViewSet(
     }
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
-
-    def initialize_request(self, request, *args, **kwargs):
-        # Wonder if there is a better way to perform this paginate hack
-        # With setting filterset_fields, any other query fields will return a 400 error
-        query_copy = request.GET.copy()
-        if query_copy.pop("paginate", None) == ["false"]:
-            self.pagination_class = None
-        request.GET = query_copy
-        return super().initialize_request(request, *args, **kwargs)
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -740,9 +734,7 @@ class AnsibleNamespaceViewSet(
             context["artifact"] = Artifact.objects.get(sha256=namespace.avatar_sha256).pk
         return self._create(request, data=serializer.validated_data, context=context)
 
-    # Schema wouldn't update w/o it here on the method :(
-    @extend_schema(responses={202: AsyncOperationResponseSerializer})
-    def destroy(self, request, *args, **kwargs):
+    def delete(self, request, *args, **kwargs):
         """Try to remove the Namespace if no Collections under Namespace are present."""
         namespace = self.get_object()
 

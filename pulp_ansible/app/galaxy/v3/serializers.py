@@ -184,6 +184,11 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     """
 
     name = serializers.CharField(source="namespace")
+    metadata_sha256 = serializers.SerializerMethodField()
+
+    def get_metadata_sha256(self, obj):
+        """Return the `metadata_sha256` if present in the repository."""
+        return self.context["namespaces_map"].get(obj.namespace)
 
 
 class CollectionVersionSignatureSerializer(serializers.ModelSerializer):
