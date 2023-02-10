@@ -345,6 +345,7 @@ def test_semver_sync(
     # If this fails check that it is still upstream!
     # TODO create a better local fixture to sync from.
     assert "0.0.1-rerelease+meta" in versions
+    assert "0.0.0-rerelease+meta" in versions
 
 
 @pytest.mark.parallel

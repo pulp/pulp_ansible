@@ -1,0 +1,2 @@
+Switched to using ``semantic_version`` for version comparison, and stopped depending on
+``setuptools``.
