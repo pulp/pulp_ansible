@@ -35,7 +35,6 @@ class CollectionDownloadTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.distribution = self._create_distribution_from_repo(self.first_repo)
 
     def _get_download_url(self, namespace, name):
-
         collection_api = PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi(self.client)
         versions_api = PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexVersionsApi(
             self.client
