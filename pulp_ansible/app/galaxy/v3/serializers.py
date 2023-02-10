@@ -333,3 +333,69 @@ class ClientConfigurationSerializer(serializers.Serializer):
     """Configuration settings for the ansible-galaxy client."""
 
     default_distribution_path = serializers.CharField(allow_null=True)
+
+
+class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
+    """Cross-repo search results."""
+
+    # All of these fields have to operate differently from the parent class
+    pulp_id = serializers.CharField(source="collectionversion_id")
+    repository_id = serializers.CharField()
+    repository_name = serializers.CharField(source="reponame")
+    namespace = serializers.CharField()
+    name = serializers.CharField()
+    namespace = serializers.CharField()
+    version = serializers.CharField()
+    created_at = serializers.CharField(source="cv_created_at")
+    updated_at = serializers.CharField(source="cv_updated_at")
+    requires_ansible = serializers.CharField(source="cv_requires_ansible")
+    dependencies = serializers.DictField(source="cv_dependencies")
+
+    # method fields
+    href = serializers.SerializerMethodField()
+    signatures = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.CrossRepositoryCollectionVersionIndexView
+
+        fields = (
+            # "pk",
+            "pulp_id",
+            "repository_name",
+            "repository_id",
+            "namespace",
+            "name",
+            "version",
+            "created_at",
+            "updated_at",
+            "requires_ansible",
+            "dependencies",
+            "href",
+            # "is_highest",
+            "is_deprecated",
+            "is_signed",
+            # "tags",
+            "signatures",
+        )
+
+    def get_collection_version(self, obj):
+        """Shortcut in case the collectionversion property moves around."""
+        return obj.collectionversion
+
+    def get_href(self, obj) -> str:
+        """Get href."""
+
+        ctx = _get_distro_context({"path": obj.reponame, "distro_base_path": obj.reponame})
+        return reverse(
+            settings.ANSIBLE_URL_NAMESPACE + "collection-versions-detail",
+            kwargs={**ctx, "namespace": obj.namespace, "name": obj.name, "version": obj.version},
+        )
+
+    def get_tags(self, obj):
+        return [x.name for x in self.get_collection_version(obj).tags.all()]
+
+    def get_signatures(self, obj):
+        """Do we want to return the list of signatures?"""
+        if hasattr(obj, "filtered_signatures"):
+            return obj.filtered_signatures
+        return []

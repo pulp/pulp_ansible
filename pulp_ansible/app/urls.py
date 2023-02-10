@@ -12,6 +12,7 @@ from pulp_ansible.app.galaxy.views import (
     RoleVersionList,
 )
 from pulp_ansible.app.galaxy.v3 import views as views_v3
+from pulp_ansible.app.galaxy.v3 import viewsets as viewsets_v3
 
 from pulp_ansible.app.viewsets import CopyViewSet, CollectionUploadViewSet
 
@@ -202,6 +203,11 @@ v3_plugin_urls = [
         "client-configuration/",
         views_v3.ClientConfigurationView.as_view(),
         name="client-configuration-viewset",
+    ),
+    path(
+        "search/collection-versions/",
+        viewsets_v3.CollectionVersionSearchViewSet.as_view({"get": "list"}),
+        name="collection-versions-search",
     ),
 ]
 

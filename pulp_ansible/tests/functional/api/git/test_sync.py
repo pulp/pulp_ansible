@@ -53,7 +53,6 @@ def test_sync_collection_from_git(ansible_repo, sync_and_count, ansible_distribu
 
     collection_name = "pulp.squeezer"
     with tempfile.TemporaryDirectory() as temp_dir:
-
         # The install command needs --pre so a pre-release collection versions install
         cmd = "ansible-galaxy collection install --pre {} -c -s {} -p {}".format(
             collection_name, distribution.client_url, temp_dir

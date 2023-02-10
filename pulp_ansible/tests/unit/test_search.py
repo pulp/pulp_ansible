@@ -13,11 +13,9 @@ from pulp_ansible.app.models import (
 
 
 class TestSearchUtil(TestCase):
-
     collections = None
 
     def setUp(self):
-
         # define 12 random collection version specifications
         self.collections = {}
         for i in range(0, 2):
@@ -37,7 +35,6 @@ class TestSearchUtil(TestCase):
 
         # "import" the collections
         for ids, spec in enumerate(specs):
-
             cdata = self.collections[spec]
 
             # make the collection
@@ -62,7 +59,6 @@ class TestSearchUtil(TestCase):
             cv.save()
 
     def tearDown(self):
-
         # delete collectionversions
         for spec, cdata in self.collections.items():
             cdata["cv"].delete()
@@ -77,7 +73,6 @@ class TestSearchUtil(TestCase):
             collections_deleted.append(collection.name)
 
     def test_search_vector_has_correct_tags(self):
-
         # flatten a list of all tags
         all_tags = list(itertools.chain(*[x["tags"] for x in self.collections.values()]))
 

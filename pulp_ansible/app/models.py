@@ -417,3 +417,54 @@ class AnsibleDistribution(Distribution):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class CrossRepositoryCollectionVersionIndexView(models.Model):
+    """
+    An unmanaged model that uses a postgres view to index collectionversions.
+    """
+
+    # the id is a concat|aggregate of the repoid and the collectionversionid
+    id = models.CharField(max_length=255, primary_key=True)
+
+    # the view has the primary key for the distribution and this auto-adds
+    # the relevant distribution object to the model
+    distribution = models.ForeignKey(AnsibleDistribution, on_delete=models.DO_NOTHING)
+
+    # the view has the primary key for the repository and this auto-adds
+    # the relevant repository object to the model
+    repository = models.ForeignKey(AnsibleRepository, on_delete=models.DO_NOTHING)
+
+    # the view has the primary key for the collectionversion and this auto-adds
+    # the relevant collectionversion object to the model
+    collectionversion = models.ForeignKey(CollectionVersion, on_delete=models.DO_NOTHING)
+
+    # computed and stored in the view
+    distribution_name = models.CharField(max_length=255)
+
+    # computed and stored in the view
+    reponame = models.CharField(max_length=255)
+
+    # computed and stored in the view
+    namespace = models.CharField(max_length=255)
+
+    # computed and stored in the view
+    name = models.CharField(max_length=255)
+
+    # computed and stored in the view
+    version = models.CharField(max_length=255)
+
+    # computed and stored in the view
+    is_deprecated = models.BooleanField()
+
+    # is there a signature still attached to the cv AND the repo
+    is_signed = models.BooleanField()
+
+    cv_created_at = models.DateTimeField()
+    cv_updated_at = models.DateTimeField()
+    cv_requires_ansible = models.CharField(null=True, max_length=255)
+    cv_dependencies = models.JSONField()
+
+    class Meta:
+        managed = False
+        db_table = "ansible_cross_repository_collection_versions_view"

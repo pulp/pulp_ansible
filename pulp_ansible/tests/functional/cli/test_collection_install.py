@@ -50,6 +50,7 @@ def test_install_collection(tmp_path, install_scenario_distribution):
         "collection",
         "install",
         collection_name,
+        "-vvv",
         "-c",
         "-s",
         install_scenario_distribution.client_url,
@@ -60,7 +61,8 @@ def test_install_collection(tmp_path, install_scenario_distribution):
     directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
 
     assert not path.exists(directory), "Directory {} already exists".format(directory)
-    subprocess.run(cmd)
+    pid = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    assert pid.returncode == 0, pid.stderr.decode("utf-8")
     assert path.exists(directory), "Could not find directory {}".format(directory)
     dl_log_dump = subprocess.check_output(["pulpcore-manager", "download-log"])
     dl_log = json.loads(dl_log_dump)
