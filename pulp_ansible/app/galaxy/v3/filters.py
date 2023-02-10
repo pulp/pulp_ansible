@@ -14,6 +14,7 @@ class CollectionVersionSearchFilter(FilterSet):
     version = filters.CharFilter(field_name="version")
     distribution = filters.CharFilter(method="filter_by_distribution")
     distribution_name = filters.CharFilter(method="filter_by_distribution_name")
+    base_path = filters.CharFilter(method="filter_by_base_path")
     repository = filters.CharFilter(method="filter_by_repository")
     repository_name = filters.CharFilter(method="filter_by_repository_name")
     dependency = filters.CharFilter(method="filter_by_dependency")
@@ -28,6 +29,17 @@ class CollectionVersionSearchFilter(FilterSet):
         help_text="Filter by comma separate list of tags that must all be matched",
     )
 
+    def filter_by_base_path(self, qs, name, value):
+        include_q = Q()
+        if "," in value:
+            base_paths = value.split(",")
+            for bp in base_paths:
+                include_q = include_q | Q(base_path=bp)
+        else:
+            include_q = include_q | Q(base_path=value)
+        qs = qs.filter(include_q)
+        return qs
+
     def filter_by_distribution(self, qs, name, value):
         include_q = Q()
         if "," in value:
@@ -35,7 +47,7 @@ class CollectionVersionSearchFilter(FilterSet):
             for did in distribution_ids:
                 include_q = include_q | Q(dist_id=did)
         else:
-            include_q = include_q | Q(repo_id=value)
+            include_q = include_q | Q(dist_id=value)
         qs = qs.filter(include_q)
         return qs
 

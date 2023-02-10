@@ -16,6 +16,7 @@ class Migration(migrations.Migration):
                 ('id', models.CharField(max_length=255, primary_key=True, serialize=False)),
                 ('distribution_name', models.CharField(max_length=255)),
                 ('dist_id', models.UUIDField()),
+                ('base_path', models.CharField(max_length=255)),
                 ('reponame', models.CharField(max_length=255)),
                 ('repo_id', models.UUIDField()),
                 ('namespace', models.CharField(max_length=255)),

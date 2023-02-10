@@ -99,6 +99,7 @@ SELECT
     cd.pulp_id as distribution_id,
     cd.pulp_id as dist_id,
     cd.name as distribution_name,
+    cd.base_path as base_path,
 
     cr.pulp_id as repository_id,
     cr.pulp_id as repo_id,

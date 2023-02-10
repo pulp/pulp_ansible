@@ -153,8 +153,10 @@ def get_collection_versions_by_repo(pulp_client, repo_names=None):
                             did = dists[repo_name]["pulp_href"]
                             did = did.split("/")[-2]
                             cv_info["distribution_id"] = did
+                            cv_info["base_path"] = dists[repo_name]["base_path"]
                         else:
                             cv_info["distribution_id"] = None
+                            cv_info["base_path"] = None
 
                         key = (
                             repo_name,
@@ -539,6 +541,7 @@ def search_specs(
         }
         if v["signatures"]:
             ds["signed"] = True
+        ds["base_path"] = v.get("base_path")
         collection_url = v["collection"]["href"]
         collection = pulp_client.get(collection_url)
         ds["deprecated"] = collection["deprecated"]
@@ -619,6 +622,31 @@ class TestCrossRepoSearch:
         )
         search_url += "?" + repo_id_params
         # resp1 = pulp_client.get(search_url)
+        resp1 = self.get_paginated_results(pulp_client, search_url)
+
+        skeys = keys_from_specs(search_specs)
+        rkeys = keys_from_results(resp1)
+        comparison = compare_keys(skeys, rkeys)
+        assert len(skeys) == len(rkeys), comparison
+
+    @pytest.mark.pulp_on_localhost
+    def test_collection_version_search_by_base_path(self, pulp_client, search_specs):
+        """Get everything (by distribution base path)."""
+
+        # we should never see things that were removed from the repos
+        search_specs = [x for x in search_specs if not x.get("removed")]
+
+        # limit searches to related repos
+        base_paths = sorted(set([x["base_path"] for x in search_specs if x.get("base_path")]))
+        base_paths = base_paths[:2]
+        base_path_params = "base_path=" + ",".join(base_paths)
+        search_specs = [x for x in search_specs if x.get("base_path") in base_paths]
+
+        # no filters (except for reponames) ...
+        search_url = (
+            "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
+        )
+        search_url += "?" + base_path_params
         resp1 = self.get_paginated_results(pulp_client, search_url)
 
         skeys = keys_from_specs(search_specs)

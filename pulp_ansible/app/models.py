@@ -431,6 +431,7 @@ class CrossRepositoryCollectionVersionIndexView(models.Model):
     # the relevant distribution object to the model
     distribution = models.ForeignKey(AnsibleDistribution, on_delete=models.DO_NOTHING)
     dist_id = models.UUIDField()
+    base_path = models.CharField(max_length=255)
 
     # the view has the primary key for the repository and this auto-adds
     # the relevant repository object to the model
