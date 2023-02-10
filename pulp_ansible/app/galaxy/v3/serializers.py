@@ -340,6 +340,9 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
 
     # All of these fields have to operate differently from the parent class
     pulp_id = serializers.CharField(source="collectionversion_id")
+    distribution_id = serializers.CharField(source="dist_id")
+    distribution_name = serializers.CharField()
+    base_path = serializers.CharField()
     repository_id = serializers.CharField()
     repository_name = serializers.CharField(source="reponame")
     namespace = serializers.CharField()
@@ -361,6 +364,9 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
         fields = (
             # "pk",
             "pulp_id",
+            "distribution_id",
+            "distribution_name",
+            "base_path",
             "repository_name",
             "repository_id",
             "namespace",
@@ -385,7 +391,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
     def get_href(self, obj) -> str:
         """Get href."""
 
-        ctx = _get_distro_context({"path": obj.reponame, "distro_base_path": obj.reponame})
+        ctx = _get_distro_context({"path": obj.base_path, "distro_base_path": obj.base_path})
         return reverse(
             settings.ANSIBLE_URL_NAMESPACE + "collection-versions-detail",
             kwargs={**ctx, "namespace": obj.namespace, "name": obj.name, "version": obj.version},
