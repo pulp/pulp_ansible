@@ -920,7 +920,6 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
     # subclasses viewset to make .as_view work correctly on non viewset views
     # subclasses the redirected viewset to get pagination class and query params
     class GeneratedRedirectView(RedirectView, viewsets.ViewSet, viewset):
-
         permanent = False
 
         def urlpattern(*args, **kwargs):
