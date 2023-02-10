@@ -150,7 +150,9 @@ def get_collection_versions_by_repo(pulp_client, repo_names=None):
                         # include the repoid & distid ...
                         cv_info["repository_id"] = repos[repo_name]["pulp_href"].split("/")[-2]
                         if repo_name in dists:
-                            cv_info["distribution_id"] = dists[repo_name]["pulp_href"].split("/")[-2]
+                            did = dists[repo_name]["pulp_href"]
+                            did = did.split("/")[-2]
+                            cv_info["distribution_id"] = did
                         else:
                             cv_info["distribution_id"] = None
 
@@ -202,13 +204,13 @@ def search_specs(
         os.makedirs(artifact_cache)
 
     # map out existing distros
-    #dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH)
-    #dists = dict((x["name"], x) for x in dists)
+    # dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH)
+    # dists = dict((x["name"], x) for x in dists)
     dists = get_distributions(pulp_client)
 
     # map out existing repos
-    #repos = pulp_client.get(ANSIBLE_REPO_PATH)
-    #repos = dict((x["name"], x) for x in repos)
+    # repos = pulp_client.get(ANSIBLE_REPO_PATH)
+    # repos = dict((x["name"], x) for x in repos)
     repos = get_repositories(pulp_client)
 
     # /pulp_ansible/galaxy/<path:path>/api/v3/plugin/ansible/search/collection-versions/
@@ -524,6 +526,7 @@ def search_specs(
     for k, v in cvbr.items():
         ds = {
             "repository_name": k[0],
+            "distribution_name": k[0],
             "namespace": k[1],
             "name": k[2],
             "version": k[3],
@@ -586,6 +589,88 @@ class TestCrossRepoSearch:
             "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
         )
         search_url += "?" + repo_name_params
+        # resp1 = pulp_client.get(search_url)
+        resp1 = self.get_paginated_results(pulp_client, search_url)
+
+        skeys = keys_from_specs(search_specs)
+        rkeys = keys_from_results(resp1)
+        comparison = compare_keys(skeys, rkeys)
+        assert len(skeys) == len(rkeys), comparison
+
+    @pytest.mark.pulp_on_localhost
+    def test_collection_version_search_by_repoid(self, pulp_client, search_specs):
+        """Get everything (but with repoids)."""
+
+        # we should never see things that were removed from the repos
+        search_specs = [x for x in search_specs if not x.get("removed")]
+        repo_names = sorted(set([x["repository_name"] for x in search_specs]))
+
+        # reduce to just 2 repos
+        allowed_repo_names = repo_names[:2]
+        search_specs = [x for x in search_specs if x["repository_name"] in allowed_repo_names]
+
+        # limit searches to related repos
+        repo_ids = sorted(set([x["repository_id"] for x in search_specs]))
+        repo_id_params = "repository=" + ",".join(repo_ids)
+
+        # no filters (except for reponames) ...
+        search_url = (
+            "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
+        )
+        search_url += "?" + repo_id_params
+        # resp1 = pulp_client.get(search_url)
+        resp1 = self.get_paginated_results(pulp_client, search_url)
+
+        skeys = keys_from_specs(search_specs)
+        rkeys = keys_from_results(resp1)
+        comparison = compare_keys(skeys, rkeys)
+        assert len(skeys) == len(rkeys), comparison
+
+    @pytest.mark.pulp_on_localhost
+    def test_collection_version_search_by_distribution_name(self, pulp_client, search_specs):
+        """Get everything (by distribution names)."""
+
+        # we should never see things that were removed from the repos
+        search_specs = [x for x in search_specs if not x.get("removed")]
+
+        # limit searches to related repos
+        dist_names = sorted(set([x["distribution_name"] for x in search_specs]))
+        dist_name_params = "distribution_name=" + ",".join(dist_names)
+
+        # no filters (except for reponames) ...
+        search_url = (
+            "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
+        )
+        search_url += "?" + dist_name_params
+        # resp1 = pulp_client.get(search_url)
+        resp1 = self.get_paginated_results(pulp_client, search_url)
+
+        skeys = keys_from_specs(search_specs)
+        rkeys = keys_from_results(resp1)
+        comparison = compare_keys(skeys, rkeys)
+        assert len(skeys) == len(rkeys), comparison
+
+    @pytest.mark.pulp_on_localhost
+    def test_collection_version_search_by_distid(self, pulp_client, search_specs):
+        """Get everything (but with distids)."""
+
+        # we should never see things that were removed from the repos
+        search_specs = [x for x in search_specs if not x.get("removed")]
+        dist_names = sorted(set([x["distribution_name"] for x in search_specs]))
+
+        # reduce to just 2 repos
+        allowed_dist_names = dist_names[:2]
+        search_specs = [x for x in search_specs if x["distribution_name"] in allowed_dist_names]
+
+        # limit searches to related repos
+        dist_ids = sorted(set([x["distribution_id"] for x in search_specs]))
+        dist_id_params = "distribution=" + ",".join(dist_ids)
+
+        # no filters (except for reponames) ...
+        search_url = (
+            "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
+        )
+        search_url += "?" + dist_id_params
         # resp1 = pulp_client.get(search_url)
         resp1 = self.get_paginated_results(pulp_client, search_url)
 
