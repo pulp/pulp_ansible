@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-192-gba67a84
+# generated with plugin_template@2021.08.26-193-geaaba01
 
 additional_repos: []
 api_root: /pulp/
@@ -11,7 +11,6 @@ check_gettext: true
 check_manifest: true
 check_openapi_schema: true
 check_stray_pulpcore_imports: true
-cherry_pick_automation: false
 ci_env: {}
 ci_trigger: '{pull_request: {branches: [''*'']}}'
 ci_update_branches:
@@ -75,8 +74,7 @@ redmine_project: ansible_plugin
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
 run_pulpcore_tests_for_plugins: true
-single_commit_check: false
-stable_branch: null
+single_commit_check: true
 stalebot: true
 stalebot_days_until_close: 30
 stalebot_days_until_stale: 90
@@ -94,6 +92,5 @@ test_reroute: true
 test_s3: true
 test_stream: true
 update_github: true
-update_redmine: false
 use_issue_template: true
 
