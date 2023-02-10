@@ -40,6 +40,20 @@ jobs:
         run: sh .github/workflows/scripts/check_commit.sh
       - name: Verify requirements files
         run: python .ci/scripts/check_requirements.py
+  single_commit:
+    runs-on: ubuntu-latest
+    name: Assert single commit
+    if: github.base_ref == 'main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Checkout main
+        run: git fetch origin main
+      - name: create local main branch
+        run: git branch main origin/main
+      - name: Commit Count Check
+        run: test `git log  --oneline --no-merges HEAD ^main  | wc -l ` = 1
 
   lint:
     runs-on: ubuntu-latest
