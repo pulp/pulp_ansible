@@ -118,6 +118,10 @@ def get_galaxy_url(base, path):
 
 def get_collection_versions_by_repo(pulp_client, repo_names=None):
     """Make a mapping of repositories and their CV content."""
+
+    repos = get_repositories(pulp_client)
+    dists = get_distributions(pulp_client)
+
     if repo_names is None:
         repos = get_repositories(pulp_client)
         repo_names = list(repos.keys())
@@ -142,6 +146,14 @@ def get_collection_versions_by_repo(pulp_client, repo_names=None):
                     next_cv_url = cvresp["links"]["next"]
                     for cv_summary in cvresp["data"]:
                         cv_info = pulp_client.get(cv_summary["href"])
+
+                        # include the repoid & distid ...
+                        cv_info["repository_id"] = repos[repo_name]["pulp_href"].split("/")[-2]
+                        if repo_name in dists:
+                            cv_info["distribution_id"] = dists[repo_name]["pulp_href"].split("/")[-2]
+                        else:
+                            cv_info["distribution_id"] = None
+
                         key = (
                             repo_name,
                             cv_info["namespace"]["name"],
@@ -164,6 +176,12 @@ def get_repositories(pulp_client):
     return repos
 
 
+def get_distributions(pulp_client):
+    dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH)
+    dists = dict((x["name"], x) for x in dists)
+    return dists
+
+
 @pytest.mark.pulp_on_localhost
 @pytest.fixture()
 def search_specs(
@@ -184,12 +202,14 @@ def search_specs(
         os.makedirs(artifact_cache)
 
     # map out existing distros
-    dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH)
-    dists = dict((x["name"], x) for x in dists)
+    #dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH)
+    #dists = dict((x["name"], x) for x in dists)
+    dists = get_distributions(pulp_client)
 
     # map out existing repos
-    repos = pulp_client.get(ANSIBLE_REPO_PATH)
-    repos = dict((x["name"], x) for x in repos)
+    #repos = pulp_client.get(ANSIBLE_REPO_PATH)
+    #repos = dict((x["name"], x) for x in repos)
+    repos = get_repositories(pulp_client)
 
     # /pulp_ansible/galaxy/<path:path>/api/v3/plugin/ansible/search/collection-versions/
     # /pulp/api/v3/content/ansible/collection_versions/
@@ -511,6 +531,8 @@ def search_specs(
             "dependencies": v["metadata"]["dependencies"],
             "signed": False,
             "deprecated": False,
+            "distribution_id": v["distribution_id"],
+            "repository_id": v["repository_id"],
         }
         if v["signatures"]:
             ds["signed"] = True
@@ -557,7 +579,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # no filters (except for reponames) ...
         search_url = (
@@ -581,7 +603,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by namespace ...
         search_url = (
@@ -603,7 +625,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by name ...
         search_url = (
@@ -625,7 +647,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by q ...
         search_url = (
@@ -648,7 +670,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by keywords
         search_url = (
@@ -670,7 +692,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by dependency ...
         search_url = (
@@ -692,7 +714,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by version ...
         search_url = (
@@ -714,7 +736,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by deprecated True/true/False/false/1/0 ...
         search_url = (
@@ -737,7 +759,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by deprecated True/true/False/false/1/0 ...
         search_url = (
@@ -760,7 +782,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by sign state = True
         search_url = (
@@ -784,7 +806,7 @@ class TestCrossRepoSearch:
 
         # limit searches to related repos
         repo_names = sorted(set([x["repository_name"] for x in search_specs]))
-        repo_name_params = "repository=" + ",".join(repo_names)
+        repo_name_params = "repository_name=" + ",".join(repo_names)
 
         # by sign state = False
         search_url = (

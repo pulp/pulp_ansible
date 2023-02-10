@@ -97,10 +97,13 @@ SELECT
     CONCAT(cr.pulp_id, '-', acv.content_ptr_id) as id,
 
     cd.pulp_id as distribution_id,
+    cd.pulp_id as dist_id,
     cd.name as distribution_name,
 
     cr.pulp_id as repository_id,
+    cr.pulp_id as repo_id,
     cr.name as reponame,
+
     acv.content_ptr_id as collectionversion_id,
     acv.namespace as namespace,
     acv.name as name,

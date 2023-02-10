@@ -15,7 +15,9 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.CharField(max_length=255, primary_key=True, serialize=False)),
                 ('distribution_name', models.CharField(max_length=255)),
+                ('dist_id', models.UUIDField()),
                 ('reponame', models.CharField(max_length=255)),
+                ('repo_id', models.UUIDField()),
                 ('namespace', models.CharField(max_length=255)),
                 ('name', models.CharField(max_length=255)),
                 ('version', models.CharField(max_length=255)),

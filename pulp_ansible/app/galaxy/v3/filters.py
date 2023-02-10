@@ -12,8 +12,9 @@ class CollectionVersionSearchFilter(FilterSet):
     name = filters.CharFilter(field_name="name")
     namespace = filters.CharFilter(field_name="namespace")
     version = filters.CharFilter(field_name="version")
-    distribution = filters.CharFilter(method="filter_by_repository_name")
-    repository = filters.CharFilter(method="filter_by_repository_name")
+    distribution = filters.CharFilter(method="filter_by_distribution")
+    distribution_name = filters.CharFilter(method="filter_by_distribution_name")
+    repository = filters.CharFilter(method="filter_by_repository")
     repository_name = filters.CharFilter(method="filter_by_repository_name")
     dependency = filters.CharFilter(method="filter_by_dependency")
     deprecated = filters.BooleanFilter(field_name="is_deprecated")
@@ -27,16 +28,49 @@ class CollectionVersionSearchFilter(FilterSet):
         help_text="Filter by comma separate list of tags that must all be matched",
     )
 
+    def filter_by_distribution(self, qs, name, value):
+        include_q = Q()
+        if "," in value:
+            distribution_ids = value.split(",")
+            for did in distribution_ids:
+                include_q = include_q | Q(dist_id=did)
+        else:
+            include_q = include_q | Q(repo_id=value)
+        qs = qs.filter(include_q)
+        return qs
+
+    def filter_by_distribution_name(self, qs, name, value):
+        """Allow for multiple repository names to filter on."""
+        include_q = Q()
+        if "," in value:
+            distribution_names = value.split(",")
+            for rn in distribution_names:
+                include_q = include_q | Q(distribution_name=rn)
+        else:
+            include_q = include_q | Q(distribution_name=value)
+        qs = qs.filter(include_q)
+        return qs
+
     def filter_by_repository_name(self, qs, name, value):
         """Allow for multiple repository names to filter on."""
-
         include_q = Q()
         if "," in value:
             repository_names = value.split(",")
             for rn in repository_names:
-                include_q = include_q | Q(repository__name=rn)
+                include_q = include_q | Q(reponame=rn)
         else:
-            include_q = include_q | Q(repository__name=value)
+            include_q = include_q | Q(reponame=value)
+        qs = qs.filter(include_q)
+        return qs
+
+    def filter_by_repository(self, qs, name, value):
+        include_q = Q()
+        if "," in value:
+            repository_ids = value.split(",")
+            for rid in repository_ids:
+                include_q = include_q | Q(repo_id=rid)
+        else:
+            include_q = include_q | Q(repo_id=value)
         qs = qs.filter(include_q)
         return qs
 
