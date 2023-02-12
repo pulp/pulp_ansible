@@ -20,6 +20,7 @@ class CollectionVersionSearchFilter(FilterSet):
     dependency = filters.CharFilter(method="filter_by_dependency")
     deprecated = filters.BooleanFilter(field_name="is_deprecated")
     signed = filters.BooleanFilter(field_name="is_signed")
+    highest = filters.BooleanFilter(method="filter_by_highest")
     q = filters.CharFilter(field_name="q", method="filter_by_q")
     keywords = filters.CharFilter(field_name="q", method="filter_by_q")
 
@@ -84,6 +85,13 @@ class CollectionVersionSearchFilter(FilterSet):
         else:
             include_q = include_q | Q(repo_id=value)
         qs = qs.filter(include_q)
+        return qs
+
+    def filter_by_highest(self, qs, name, value):
+        if value:
+            qs = qs.filter(semver=F('highest_semver'))
+        else:
+            qs = qs.filter(~Q(semver=F('highest_semver')))
         return qs
 
     def filter_by_dependency(self, qs, name, value):

@@ -5,6 +5,7 @@ from django.db import models
 from django.db.models import UniqueConstraint, Q
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
+from django.contrib.postgres.fields import ArrayField
 from django_lifecycle import AFTER_UPDATE, BEFORE_UPDATE, hook
 
 from pulpcore.plugin.models import (
@@ -456,6 +457,10 @@ class CrossRepositoryCollectionVersionIndexView(models.Model):
 
     # computed and stored in the view
     version = models.CharField(max_length=255)
+
+    # computed and stored in the view
+    semver = ArrayField(models.IntegerField(null=True, blank=True), null=True, blank=True)
+    highest_semver = ArrayField(models.IntegerField(null=True, blank=True), null=True, blank=True)
 
     # computed and stored in the view
     is_deprecated = models.BooleanField()
