@@ -357,7 +357,6 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
     # method fields
     href = serializers.SerializerMethodField()
     signatures = serializers.SerializerMethodField()
-    is_highest = serializers.SerializerMethodField()
 
     class Meta:
         model = models.CrossRepositoryCollectionVersionIndexView
@@ -378,7 +377,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             "requires_ansible",
             "dependencies",
             "href",
-            "is_highest",
+            # "is_highest",
             "is_deprecated",
             "is_signed",
             # "tags",
@@ -406,6 +405,3 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
         if hasattr(obj, "filtered_signatures"):
             return obj.filtered_signatures
         return []
-
-    def get_is_highest(self, obj):
-        return obj.semver == obj.highest_semver
