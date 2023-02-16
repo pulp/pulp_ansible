@@ -209,6 +209,9 @@ def build_and_upload_collection(ansible_collection_version_api_client):
             body["repository"] = ansible_repo.pulp_href
         response = ansible_collection_version_api_client.create(**body)
         task = monitor_task(response.task)
-        return collection, task.created_resources[-1]
+        collection_href = [
+            href for href in task.created_resources if "content/ansible/collection_versions" in href
+        ]
+        return collection, collection_href[0]
 
     return _build_and_upload_collection
