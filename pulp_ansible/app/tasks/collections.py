@@ -55,6 +55,8 @@ from semantic_version.base import Always
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
+    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     AnsibleRepository,
     Collection,
     CollectionImport,
@@ -507,6 +509,8 @@ class CollectionSyncFirstStage(Stage):
         self._unpaginated_collection_version_metadata = None
         self.optimize = optimize
         self.last_synced_metadata_time = None
+        self.namespaces_seen = set()
+        self._unpaginated_namespace_metadata = None
 
         # Interpret download policy
         self.deferred_download = self.remote.policy != Remote.IMMEDIATE
@@ -640,6 +644,48 @@ class CollectionSyncFirstStage(Stage):
                     pubkey_fingerprint=signature["pubkey_fingerprint"],
                 )
                 await self.put(DeclarativeContent(content=cv_signature))
+
+        # Process syncing CV Namespace Metadata if present
+        if metadata["namespace"].get("metadata_sha256"):
+            namespace = collection_version.namespace
+            if namespace not in self.namespaces_seen:
+                if await self._add_namespace(namespace):
+                    self.namespaces_seen.add(namespace)
+
+    async def _add_namespace(self, name):
+        """Adds A Namespace metadata content to the pipeline."""
+        endpoint, api_version = await self._get_root_api(self.remote.url)
+        namespace_url = f"{endpoint}/namespaces/{name}"
+        downloader = self.remote.get_downloader(
+            url=namespace_url, silence_errors_for_response_codes={404}
+        )
+        try:
+            result = await downloader.run()
+        except FileNotFoundError:
+            pass
+        else:
+            namespace = parse_metadata(result)
+            namespace.pop("pulp_href", None)
+            url = namespace.pop("avatar_url", None)
+            da = (
+                [
+                    DeclarativeArtifact(
+                        Artifact(sha256=namespace["avatar_sha256"]),
+                        url=url,
+                        remote=self.remote,
+                        relative_path=f"{name}-avatar",
+                        deferred_download=False,
+                    )
+                ]
+                if url
+                else None
+            )
+            namespace = AnsibleNamespaceMetadata(**namespace)
+            dc = DeclarativeContent(namespace, d_artifacts=da)
+            await self.put(dc)
+            return True
+
+        return False
 
     async def _add_collection_version_from_git(self, url, gitref, metadata_only):
         d_content = await declarative_content_from_git_repo(
@@ -1034,15 +1080,17 @@ class CollectionContentSaver(ContentSaver):
         for d_content in batch:
             if d_content is None:
                 continue
-            if not isinstance(d_content.content, CollectionVersion):
-                continue
+            if isinstance(d_content.content, CollectionVersion):
+                info = d_content.content.natural_key_dict()
+                collection, created = Collection.objects.get_or_create(
+                    namespace=info["namespace"], name=info["name"]
+                )
 
-            info = d_content.content.natural_key_dict()
-            collection, created = Collection.objects.get_or_create(
-                namespace=info["namespace"], name=info["name"]
-            )
-
-            d_content.content.collection = collection
+                d_content.content.collection = collection
+            elif isinstance(d_content.content, AnsibleNamespaceMetadata):
+                name = d_content.content.name
+                namespace, created = AnsibleNamespace.objects.get_or_create(name=name)
+                d_content.content.namespace = namespace
 
     def _post_save(self, batch):
         """

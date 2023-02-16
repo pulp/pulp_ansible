@@ -12,6 +12,7 @@ from pulpcore.client.pulp_ansible import (
     ApiClient,
     ContentCollectionSignaturesApi,
     ContentCollectionVersionsApi,
+    ContentNamespacesApi,
     DistributionsAnsibleApi,
     PulpAnsibleApiV3CollectionsVersionsApi,
     RepositoriesAnsibleApi,
@@ -19,8 +20,10 @@ from pulpcore.client.pulp_ansible import (
     RemotesCollectionApi,
     RemotesGitApi,
     RemotesRoleApi,
+    PulpAnsibleApiV3NamespacesApi,
     PulpAnsibleApiV3PluginAnsibleClientConfigurationApi,
     PulpAnsibleDefaultApiV3PluginAnsibleClientConfigurationApi,
+    PulpAnsibleApiV3PluginAnsibleContentNamespacesApi,
 )
 
 
@@ -102,8 +105,26 @@ def ansible_remote_git_api_client(ansible_bindings_client):
 
 
 @pytest.fixture
+def ansible_namespaces_api_client(ansible_bindings_client):
+    """Provides the Ansible Content Namespaces API client object."""
+    return ContentNamespacesApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_namespaces_api_client(ansible_bindings_client):
+    """Provides the *deprecated* Galaxy V3 Namespace API client object."""
+    return PulpAnsibleApiV3NamespacesApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_plugin_namespaces_api_client(ansible_bindings_client):
+    """Provides the Galaxy V3 Namespace API client object."""
+    return PulpAnsibleApiV3PluginAnsibleContentNamespacesApi(ansible_bindings_client)
+
+
+@pytest.fixture
 def galaxy_v3_collection_versions_api_client(ansible_bindings_client):
-    """Provides the Galaxy V3 Collection Versions API client object."""
+    """Provides the *deprecated* Galaxy V3 Collection Versions API client object."""
     return PulpAnsibleApiV3CollectionsVersionsApi(ansible_bindings_client)
 
 
@@ -181,10 +202,16 @@ def ansible_git_remote_factory(ansible_remote_git_api_client, gen_object_with_cl
 def build_and_upload_collection(ansible_collection_version_api_client):
     """A factory to locally create, build, and upload a collection."""
 
-    def _build_and_upload_collection():
-        collection = build_collection("skeleton")
-        response = ansible_collection_version_api_client.create(file=collection.filename)
+    def _build_and_upload_collection(ansible_repo=None, **kwargs):
+        collection = build_collection("skeleton", **kwargs)
+        body = {"file": collection.filename}
+        if ansible_repo:
+            body["repository"] = ansible_repo.pulp_href
+        response = ansible_collection_version_api_client.create(**body)
         task = monitor_task(response.task)
-        return collection, task.created_resources[0]
+        collection_href = [
+            href for href in task.created_resources if "content/ansible/collection_versions" in href
+        ]
+        return collection, collection_href[0]
 
     return _build_and_upload_collection

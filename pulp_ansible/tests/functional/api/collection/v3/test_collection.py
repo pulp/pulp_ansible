@@ -311,7 +311,7 @@ def test_collection_version(collection_artifact, pulp_client, collection_detail)
     )
 
     assert version["name"] == collection_artifact.name
-    assert version["namespace"] == {"name": collection_artifact.namespace}
+    assert version["namespace"] == {"metadata_sha256": None, "name": collection_artifact.namespace}
     assert version["version"] == "1.0.0"
 
     tarball = open(collection_artifact.filename, "rb").read()

@@ -3,7 +3,7 @@ from gettext import gettext as _
 import semantic_version
 
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db import DatabaseError
+from django.db import DatabaseError, IntegrityError
 from django.db.models import F, Q
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
@@ -14,7 +14,7 @@ from django_filters import filters
 from django.views.generic.base import RedirectView
 from django.conf import settings
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from jinja2 import Template
 from rest_framework import mixins
 from rest_framework.response import Response
@@ -26,12 +26,13 @@ from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from pulpcore.plugin.models import Content
+from pulpcore.plugin.models import Artifact, Content
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.viewsets import (
     BaseFilterSet,
     OperationPostponedResponse,
     SingleArtifactContentUploadViewSet,
+    NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
 
@@ -48,6 +49,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
+    AnsibleNamespaceMetadata,
     Collection,
     CollectionVersion,
     CollectionVersionSignature,
@@ -55,6 +57,7 @@ from pulp_ansible.app.models import (
     DownloadLog,
 )
 from pulp_ansible.app.serializers import (
+    AnsibleNamespaceMetadataSerializer,
     CollectionImportDetailSerializer,
     CollectionOneShotSerializer,
     CollectionVersionUploadSerializer,
@@ -116,6 +119,10 @@ class AnsibleDistributionMixin:
 
         distro_content = self._distro_content
         context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
+        context["namespaces"] = AnsibleNamespaceMetadata.objects.filter(pk__in=distro_content)
+        context["namespaces_map"] = {
+            n[0]: n[1] for n in context["namespaces"].values_list("name", "metadata_sha256")
+        }
         context["distro_base_path"] = self.kwargs["distro_base_path"]
         return context
 
@@ -646,6 +653,108 @@ class CollectionArtifactDownloadView(views.APIView):
             url = guard.preauthenticate_url(url)
 
         return redirect(url)
+
+
+@extend_schema_view(
+    create=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+    partial_update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+    delete=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+)
+class AnsibleNamespaceViewSet(
+    ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.ModelViewSet
+):
+    serializer_class = AnsibleNamespaceMetadataSerializer
+    lookup_field = "name"
+    filterset_fields = {
+        "name": NAME_FILTER_OPTIONS,
+        "company": NAME_FILTER_OPTIONS,
+        "metadata_sha256": ["exact", "in"],
+    }
+
+    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            # drf_spectacular get filter from get_queryset().model
+            # and it fails when "path" is not on self.kwargs
+            return AnsibleNamespaceMetadata.objects.none()
+        return AnsibleNamespaceMetadata.objects.filter(pk__in=self._distro_content)
+
+    def create(self, request, *args, **kwargs):
+        return self._create(request, data=request.data)
+
+    def _create(self, request, data, context=None):
+        """Dispatch task to create and add Namespace to repository."""
+        repo = self._repository_version.repository
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+
+        context = context or {}
+        context["repository"] = repo.pk
+        # If avatar was uploaded, init into artifact
+        if avatar := serializer.validated_data.pop("avatar", None):
+            artifact = Artifact.init_and_validate(avatar)
+            try:
+                artifact.save()
+            except IntegrityError:
+                # if artifact already exists, let's use it
+                try:
+                    artifact = Artifact.objects.get(sha256=artifact.sha256)
+                    artifact.touch()
+                except (Artifact.DoesNotExist, DatabaseError):
+                    # the artifact has since been removed from when we first attempted to save it
+                    artifact.save()
+            context["artifact"] = artifact.pk
+
+        # Dispatch general_create task
+        app_label = AnsibleNamespaceMetadata._meta.app_label
+        task = dispatch(
+            general_create,
+            args=(app_label, serializer.__class__.__name__),
+            exclusive_resources=[repo],
+            kwargs={
+                "data": serializer.validated_data,
+                "context": context,
+            },
+        )
+        return OperationPostponedResponse(task, request)
+
+    def update(self, request, *args, **kwargs):
+        """Dispatch task to update Namespace in repository."""
+        partial = kwargs.pop("partial", False)
+        namespace = self.get_object()
+        serializer = self.get_serializer(namespace, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+
+        for name, field in serializer.fields.items():
+            if not field.read_only and not field.write_only:
+                serializer.validated_data.setdefault(name, serializer.data[name])
+        context = {}
+        if "avatar" not in request.data and namespace.avatar_sha256:
+            context["artifact"] = Artifact.objects.get(sha256=namespace.avatar_sha256).pk
+        return self._create(request, data=serializer.validated_data, context=context)
+
+    def delete(self, request, *args, **kwargs):
+        """Try to remove the Namespace if no Collections under Namespace are present."""
+        namespace = self.get_object()
+
+        if self._distro_content.filter(
+            ansible_collectionversion__namespace=namespace.name
+        ).exists():
+            raise serializers.ValidationError(
+                detail=_(
+                    "Namespace {name} cannot be deleted because "
+                    "there are still collections associated with it."
+                ).format(name=namespace.name)
+            )
+
+        repository = self._repository_version.repository
+        async_result = dispatch(
+            add_and_remove,
+            args=(repository.pk, [], [namespace.pk]),
+            exclusive_resources=[repository],
+        )
+        return OperationPostponedResponse(async_result, request)
 
 
 class CollectionVersionViewSet(

@@ -1,14 +1,18 @@
 from gettext import gettext as _
 
+from django.db import transaction
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
+from urllib.parse import urljoin
 
-from pulpcore.plugin.models import Artifact, SigningService
+from galaxy_importer.constants import NAME_REGEXP
+from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
     ModelSerializer,
+    NoArtifactContentSerializer,
     NoArtifactContentUploadSerializer,
     RelatedField,
     RemoteSerializer,
@@ -27,6 +31,8 @@ from .models import (
     AnsibleDistribution,
     GitRemote,
     RoleRemote,
+    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     AnsibleRepository,
     Collection,
     CollectionImport,
@@ -738,6 +744,124 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
             "signed_collection",
             "pubkey_fingerprint",
             "signing_service",
+        )
+
+
+class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
+    """
+    A serializer for Namespaces.
+    """
+
+    name = serializers.RegexField(
+        NAME_REGEXP,
+        min_length=3,
+        max_length=64,
+        allow_blank=False,
+        help_text=_("Required named, only accepts lowercase, numbers and underscores."),
+    )
+    company = serializers.CharField(
+        max_length=64,
+        allow_blank=True,
+        required=False,
+        help_text=_("Optional namespace company owner."),
+    )
+    email = serializers.CharField(
+        max_length=256,
+        allow_blank=True,
+        required=False,
+        help_text=_("Optional namespace contact email."),
+    )
+    description = serializers.CharField(
+        max_length=256, allow_blank=True, required=False, help_text=_("Optional short description.")
+    )
+    resources = serializers.CharField(
+        allow_blank=True, required=False, help_text=_("Optional resource page in markdown format.")
+    )
+    links = serializers.HStoreField(
+        child=serializers.URLField(max_length=256),
+        required=False,
+        help_text=_("Labeled related links."),
+    )
+    avatar = serializers.ImageField(
+        write_only=True, required=False, help_text=_("Optional avatar image for Namespace")
+    )
+    avatar_sha256 = serializers.CharField(
+        max_length=64, read_only=True, help_text=_("SHA256 digest of avatar image if present.")
+    )
+    avatar_url = serializers.SerializerMethodField(
+        help_text=_("Download link for avatar image if present.")
+    )
+    metadata_sha256 = serializers.CharField(read_only=True)
+
+    def get_avatar_url(self, obj):
+        """Return the avatar url if distribution context has been set."""
+        if obj.avatar_sha256 and ("path" in self.context or "distro_base_path" in self.context):
+            origin = settings.CONTENT_ORIGIN.strip("/")
+            prefix = settings.CONTENT_PATH_PREFIX.strip("/")
+            base_path = self.context.get("path", self.context["distro_base_path"]).strip("/")
+
+            return urljoin(
+                urljoin(urljoin(origin, prefix + "/"), base_path + "/"), f"{obj.name}-avatar"
+            )
+        return None
+
+    def validate(self, data):
+        """Check that avatar_sha256 is set if avatar was present in upload."""
+        if self.instance:
+            if (name := data.get("name", None)) and name != self.instance.name:
+                raise serializers.ValidationError(_("Name can not be changed in an update"))
+
+        if "artifact" in self.context:
+            if "avatar_sh256" not in data:
+                avatar_artifact = Artifact.objects.get(pk=self.context["artifact"])
+                data["avatar_sha256"] = avatar_artifact.sha256
+
+        return super().validate(data)
+
+    @transaction.atomic
+    def create(self, validated_data):
+        """Create the Namespace and add it to the Repository if present."""
+        namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
+        metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
+        metadata.calculate_metadata_sha256()
+        content = AnsibleNamespaceMetadata.objects.filter(
+            metadata_sha256=metadata.metadata_sha256
+        ).first()
+        if content:
+            content.touch()
+        else:
+            metadata.save()
+            content = metadata
+            if metadata.avatar_sha256:
+                ContentArtifact.objects.create(
+                    artifact_id=self.context["artifact"],
+                    content=content,
+                    relative_path=f"{metadata.name}-avatar",
+                )
+
+        repository = self.context.pop("repository", None)
+        if repository:
+            repository = AnsibleRepository.objects.get(pk=repository)
+            content_to_add = AnsibleNamespaceMetadata.objects.filter(pk=content.pk)
+
+            with repository.new_version() as new_version:
+                new_version.add_content(content_to_add)
+        return content
+
+    class Meta:
+        model = AnsibleNamespaceMetadata
+        fields = (
+            "pulp_href",
+            "name",
+            "company",
+            "email",
+            "description",
+            "resources",
+            "links",
+            "avatar",
+            "avatar_sha256",
+            "avatar_url",
+            "metadata_sha256",
         )
 
 

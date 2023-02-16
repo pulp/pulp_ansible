@@ -23,8 +23,10 @@ from pulpcore.plugin.viewsets import (
     ContentViewSet,
     HyperlinkRelatedFilter,
     NamedModelViewSet,
+    NAME_FILTER_OPTIONS,
     NoArtifactContentUploadViewSet,
     OperationPostponedResponse,
+    ReadOnlyContentViewSet,
     RemoteViewSet,
     RepositoryViewSet,
     RepositoryVersionViewSet,
@@ -34,6 +36,7 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
+    AnsibleNamespaceMetadata,
     GitRemote,
     RoleRemote,
     AnsibleRepository,
@@ -46,6 +49,7 @@ from .models import (
 )
 from .serializers import (
     AnsibleDistributionSerializer,
+    AnsibleNamespaceMetadataSerializer,
     GitRemoteSerializer,
     RoleRemoteSerializer,
     AnsibleRepositorySerializer,
@@ -234,6 +238,31 @@ class CollectionDeprecatedViewSet(ContentViewSet):
     endpoint_name = "collection_deprecations"
     queryset = AnsibleCollectionDeprecated.objects.all()
     serializer_class = CollectionSerializer
+
+
+class AnsibleNamespaceFilter(ContentFilter):
+    """
+    A filter for namespaces.
+    """
+
+    class Meta:
+        model = AnsibleNamespaceMetadata
+        fields = {
+            "name": NAME_FILTER_OPTIONS,
+            "company": NAME_FILTER_OPTIONS,
+            "metadata_sha256": ["exact", "in"],
+        }
+
+
+class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
+    """
+    ViewSet for AnsibleNamespace.
+    """
+
+    endpoint_name = "namespaces"
+    queryset = AnsibleNamespaceMetadata.objects.all()
+    serializer_class = AnsibleNamespaceMetadataSerializer
+    filterset_class = AnsibleNamespaceFilter
 
 
 class RoleRemoteViewSet(RemoteViewSet):
