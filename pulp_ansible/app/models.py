@@ -490,8 +490,8 @@ class AnsibleRepository(Repository):
             base_version=new_version.base_version
         ).filter(pulp_type=CollectionVersion.get_pulp_type())
 
-        # Remove any deprecated, signature and namespace content associated with the removed
-        # collection versions
+        # Remove any deprecated, signature, mark and namespace content
+        # associated with the removed collection versions
         for version in removed_collection_versions:
             version = version.cast()
 
@@ -499,6 +499,11 @@ class AnsibleRepository(Repository):
                 content_qs=CollectionVersionSignature.objects.filter(signed_collection=version)
             )
             new_version.remove_content(signatures)
+
+            marks = new_version.get_content(
+                content_qs=CollectionVersionMark.objects.filter(marked_collection=version)
+            )
+            new_version.remove_content(marks)
 
             other_collection_versions = new_version.get_content(
                 content_qs=CollectionVersion.objects.filter(collection=version.collection)

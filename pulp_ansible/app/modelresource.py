@@ -149,6 +149,7 @@ IMPORT_ORDER = [
     CollectionDeprecationResource,
     TagResource,
     CollectionVersionContentResource,
+    CollectionVersionMark,
     CollectionVersionSignatureResource,
     RoleContentResource,
 ]
