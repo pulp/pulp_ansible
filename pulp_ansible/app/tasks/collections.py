@@ -43,6 +43,7 @@ from pulpcore.plugin.stages import (
     DeclarativeArtifact,
     DeclarativeContent,
     DeclarativeVersion,
+    GenericDownloader,
     QueryExistingArtifacts,
     QueryExistingContents,
     RemoteArtifactSaver,
@@ -1077,7 +1078,7 @@ class DeclarativeFailsafeArtifact(DeclarativeArtifact):
             return None
 
 
-class DocsBlobDownloader(ArtifactDownloader):
+class DocsBlobDownloader(GenericDownloader):
     """
     Stage for downloading docs_blob.
 
@@ -1088,6 +1089,9 @@ class DocsBlobDownloader(ArtifactDownloader):
         args: unused positional arguments passed along to :class:`~pulpcore.plugin.stages.Stage`.
         kwargs: unused keyword arguments passed along to :class:`~pulpcore.plugin.stages.Stage`.
     """
+
+    PROGRESS_REPORTING_MESSAGE = "Downloading Docs Blob"
+    PROGRESS_REPORTING_CODE = "sync.downloading.docs_blob"
 
     async def _handle_content_unit(self, d_content):
         """Handle one content unit.
