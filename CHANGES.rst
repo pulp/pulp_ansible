@@ -13,6 +13,25 @@ Changelog
 
 .. towncrier release notes start
 
+0.15.3 (2023-02-23)
+===================
+
+Bugfixes
+--------
+
+- Removed unused dependency on packaging.
+  `#1366 <https://github.com/pulp/pulp_ansible/issues/1366>`__
+
+
+Misc
+----
+
+- `#1349 <https://github.com/pulp/pulp_ansible/issues/1349>`__
+
+
+----
+
+
 0.15.2 (2023-02-03)
 ===================
 
