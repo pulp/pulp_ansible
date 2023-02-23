@@ -234,7 +234,7 @@ class CollectionVersionSignatureViewSet(NoArtifactContentUploadViewSet):
     serializer_class = CollectionVersionSignatureSerializer
 
 
-class MarkFilter(ContentFilter):
+class CollectionVersionMarkFilter(ContentFilter):
     """
     A filter for marks.
     """
@@ -259,7 +259,7 @@ class CollectionVersionMarkViewSet(ContentViewSet):
     """
 
     endpoint_name = "collection_marks"
-    filterset_class = MarkFilter
+    filterset_class = CollectionVersionMarkFilter
     queryset = CollectionVersionMark.objects.all()
     serializer_class = CollectionVersionMarkSerializer
 
