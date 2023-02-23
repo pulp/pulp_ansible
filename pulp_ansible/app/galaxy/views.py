@@ -2,7 +2,7 @@ import re
 
 from django.conf import settings
 from django.shortcuts import get_object_or_404, HttpResponse
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, pagination, response, views
 
 from pulpcore.plugin.models import PulpTemporaryFile
@@ -113,6 +113,7 @@ class RoleList(DistributionMixin, generics.ListAPIView):
         return roles
 
 
+@extend_schema_view(get=extend_schema(operation_id="api_v1_roles_versions_list"))
 class RoleVersionList(DistributionMixin, generics.ListAPIView):
     """
     APIView for Role Versions.
@@ -189,6 +190,7 @@ class GalaxyCollectionView(DistributionMixin, UploadGalaxyCollectionMixin, gener
         return OperationPostponedResponse(async_result, request)
 
 
+@extend_schema_view(get=extend_schema(operation_id="api_v2_collection_versions_list"))
 class GalaxyCollectionVersionList(DistributionMixin, generics.ListAPIView):
     """
     APIView for Collections by namespace/name.
