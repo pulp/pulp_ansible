@@ -13,6 +13,32 @@ Changelog
 
 .. towncrier release notes start
 
+0.16.1 (2023-02-23)
+===================
+
+Bugfixes
+--------
+
+- Removed unused dependency on packaging.
+  `#1366 <https://github.com/pulp/pulp_ansible/issues/1366>`__
+
+
+Improved Documentation
+----------------------
+
+- Fixed linebreak issues in remote workflow cli examples.
+  `#1328 <https://github.com/pulp/pulp_ansible/issues/1328>`__
+
+
+Misc
+----
+
+- `#1349 <https://github.com/pulp/pulp_ansible/issues/1349>`__
+
+
+----
+
+
 0.16.0 (2022-12-01)
 ===================
 
@@ -49,6 +75,25 @@ Misc
 ----
 
 - `#1273 <https://github.com/pulp/pulp_ansible/issues/1273>`__
+
+
+----
+
+
+0.15.3 (2023-02-23)
+===================
+
+Bugfixes
+--------
+
+- Removed unused dependency on packaging.
+  `#1366 <https://github.com/pulp/pulp_ansible/issues/1366>`__
+
+
+Misc
+----
+
+- `#1349 <https://github.com/pulp/pulp_ansible/issues/1349>`__
 
 
 ----
