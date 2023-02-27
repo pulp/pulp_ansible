@@ -577,7 +577,7 @@ class CollectionSyncFirstStage(Stage):
         )
         cv_unique = attrgetter("namespace", "name", "version")(collection_version)
         fullname, version = f"{cv_unique[0]}.{cv_unique[1]}", cv_unique[2]
-        if fullname in self.exclude_info and version in self.exclude_info[fullname]:
+        if fullname in self.exclude_info and Version(version) in self.exclude_info[fullname]:
             return
         if cv_unique in self.already_synced:
             return
