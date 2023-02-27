@@ -29,6 +29,7 @@ from rest_framework.exceptions import ValidationError
 
 from .models import (
     AnsibleDistribution,
+    CollectionVersionMark,
     GitRemote,
     RoleRemote,
     AnsibleNamespace,
@@ -863,6 +864,49 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             "avatar_url",
             "metadata_sha256",
         )
+
+
+class CollectionVersionMarkSerializer(ModelSerializer):
+    """
+    A serializer for mark models.
+    """
+
+    marked_collection = DetailRelatedField(
+        help_text=_("The content this mark is pointing to."),
+        view_name_pattern=r"content(-.*/.*)-detail",
+        queryset=CollectionVersion.objects.all(),
+    )
+    value = serializers.SlugField(
+        help_text=_("The string value of this mark."),
+        allow_null=False,
+    )
+
+    class Meta:
+        model = CollectionVersionMark
+        fields = ["marked_collection", "value"]
+
+
+class AnsibleRepositoryMarkSerializer(serializers.Serializer):
+    """
+    A serializer for the mark action.
+    """
+
+    content_units = serializers.ListField(
+        required=True,
+        help_text=_(
+            "List of collection version hrefs to mark, use * to mark all content in repository"
+        ),
+    )
+    value = serializers.SlugField(
+        required=True,
+        help_text=_("The string value of this mark."),
+    )
+
+    def validate_content_units(self, value):
+        """Make sure the list is correctly formatted."""
+        if len(value) > 1 and "*" in value:
+            raise serializers.ValidationError("Cannot supply content units and '*'.")
+        return value
 
 
 class AnsibleRepositorySignatureSerializer(serializers.Serializer):

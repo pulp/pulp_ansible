@@ -10,6 +10,7 @@ from pulpcore.client.pulp_ansible import (
     AnsibleCollectionsApi,
     AnsibleRepositorySyncURL,
     ApiClient,
+    ContentCollectionMarksApi,
     ContentCollectionSignaturesApi,
     ContentCollectionVersionsApi,
     ContentNamespacesApi,
@@ -60,6 +61,12 @@ def ansible_client_default_configuration_api_client(ansible_bindings_client):
 def ansible_collection_signatures_client(ansible_bindings_client):
     """Provides the Ansible Collection Signatures API client object."""
     return ContentCollectionSignaturesApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def ansible_collection_mark_client(ansible_bindings_client):
+    """Provides the Ansible Collection Marks API client object."""
+    return ContentCollectionMarksApi(ansible_bindings_client)
 
 
 @pytest.fixture

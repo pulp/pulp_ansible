@@ -62,6 +62,7 @@ from pulp_ansible.app.models import (
     CollectionImport,
     CollectionRemote,
     CollectionVersion,
+    CollectionVersionMark,
     CollectionVersionSignature,
     Tag,
 )
@@ -589,6 +590,7 @@ class CollectionSyncFirstStage(Stage):
 
         info = metadata["metadata"]
         signatures = metadata.get("signatures")
+        marks = metadata.get("marks")  # List[str]
 
         if self.signed_only and not signatures:
             return
@@ -633,7 +635,7 @@ class CollectionSyncFirstStage(Stage):
         await self.parsing_metadata_progress_bar.aincrement()
         await self.put(d_content)
 
-        if signatures:
+        if signatures or marks:
             collection_version = await d_content.resolution()
             for signature in signatures:
                 sig = signature["signature"]
@@ -644,6 +646,13 @@ class CollectionSyncFirstStage(Stage):
                     pubkey_fingerprint=signature["pubkey_fingerprint"],
                 )
                 await self.put(DeclarativeContent(content=cv_signature))
+
+            for mark_value in marks:
+                cv_mark = CollectionVersionMark(
+                    marked_collection=collection_version,
+                    value=mark_value,
+                )
+                await self.put(DeclarativeContent(content=cv_mark))
 
         # Process syncing CV Namespace Metadata if present
         if metadata["namespace"].get("metadata_sha256"):

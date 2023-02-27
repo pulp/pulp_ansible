@@ -212,6 +212,28 @@ class CollectionVersion(Content):
         ]
 
 
+class CollectionVersionMark(Content):
+    """
+    A content type representing a mark that is attached to a content unit.
+
+    Fields:
+        value (models.CharField): The value of the mark.
+        marked_collection (models.ForeignKey): Reference to a CollectionVersion.
+    """
+
+    PROTECTED_FROM_RECLAIM = False
+    TYPE = "collection_mark"
+
+    value = models.SlugField()
+    marked_collection = models.ForeignKey(
+        CollectionVersion, null=False, on_delete=models.CASCADE, related_name="marks"
+    )
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("value", "marked_collection")
+
+
 class CollectionVersionSignature(Content):
     """
     A content type representing a signature that is attached to a content unit.
@@ -446,6 +468,7 @@ class AnsibleRepository(Repository):
         AnsibleCollectionDeprecated,
         CollectionVersionSignature,
         AnsibleNamespaceMetadata,
+        CollectionVersionMark,
     ]
     REMOTE_TYPES = [RoleRemote, CollectionRemote, GitRemote]
 
@@ -467,8 +490,8 @@ class AnsibleRepository(Repository):
             base_version=new_version.base_version
         ).filter(pulp_type=CollectionVersion.get_pulp_type())
 
-        # Remove any deprecated, signature and namespace content associated with the removed
-        # collection versions
+        # Remove any deprecated, signature, mark and namespace content
+        # associated with the removed collection versions
         for version in removed_collection_versions:
             version = version.cast()
 
@@ -476,6 +499,11 @@ class AnsibleRepository(Repository):
                 content_qs=CollectionVersionSignature.objects.filter(signed_collection=version)
             )
             new_version.remove_content(signatures)
+
+            marks = new_version.get_content(
+                content_qs=CollectionVersionMark.objects.filter(marked_collection=version)
+            )
+            new_version.remove_content(marks)
 
             other_collection_versions = new_version.get_content(
                 content_qs=CollectionVersion.objects.filter(collection=version.collection)

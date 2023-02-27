@@ -1,3 +1,4 @@
+from typing import List
 import semantic_version
 from django.conf import settings
 from drf_spectacular.utils import extend_schema_field
@@ -101,6 +102,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
     href = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(source="collection.pulp_created")
     updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
+    marks = serializers.SerializerMethodField()
 
     class Meta:
         fields = (
@@ -109,8 +111,16 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "requires_ansible",
+            "marks",
         )
         model = models.CollectionVersion
+
+    def get_marks(self, obj) -> List[str]:
+        """Get a list of mark values filtering only those in the current repo."""
+        # The viewset adds "marks" to the context
+        return list(
+            obj.marks.filter(pk__in=self.context.get("marks", [])).values_list("value", flat=True)
+        )
 
     def get_href(self, obj) -> str:
         """

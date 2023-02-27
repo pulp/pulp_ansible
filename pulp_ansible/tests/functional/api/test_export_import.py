@@ -54,6 +54,13 @@ def test_export_then_import(
     repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/2/")
     repo_ver_b = ansible_repo_version_api_client.read(f"{repo_b.pulp_href}versions/1/")
 
+    mark_body = {
+        "content_units": ["*"],
+        "value": "exportable-mark",
+    }
+    monitor_task(ansible_repo_api_client.mark(repo_a.pulp_href, mark_body).task)
+    repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/3/")
+
     # Prepare export
     exporter = gen_object_with_cleanup(
         exporters_pulp_api_client,
@@ -106,6 +113,10 @@ def test_export_then_import(
     assert (
         repo_ver_c.content_summary.added["ansible.collection_signature"]["count"]
         == repo_ver_a.content_summary.present["ansible.collection_signature"]["count"]
+    )
+    assert (
+        repo_ver_c.content_summary.added["ansible.collection_mark"]["count"]
+        == repo_ver_a.content_summary.present["ansible.collection_mark"]["count"]
     )
     assert (
         repo_ver_d.content_summary.added["ansible.role"]["count"]

@@ -3,6 +3,7 @@ from import_export.widgets import ManyToManyWidget
 from pulpcore.plugin.importexport import BaseContentResource, QueryModelResource
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
+    CollectionVersionMark,
     Role,
     Collection,
     Tag,
@@ -75,6 +76,22 @@ class CollectionVersionSignatureResource(BaseContentResource):
         exclude = BaseContentResource.Meta.exclude + ("signing_service",)
 
 
+class CollectionVersionMarkResource(BaseContentResource):
+    """
+    Resource for import/export of ansible_collectionversionmark entities.
+    """
+
+    def set_up_queryset(self):
+        """
+        :return: CollectionVersionMark content specific to a specified repo-version.
+        """
+        return CollectionVersionMark.objects.filter(pk__in=self.repo_version.content)
+
+    class Meta:
+        model = CollectionVersionMark
+        import_id_fields = ("value", "marked_collection")
+
+
 class CollectionResource(QueryModelResource):
     """
     Resource for import/export of ansible_collection entities.
@@ -132,6 +149,7 @@ IMPORT_ORDER = [
     CollectionDeprecationResource,
     TagResource,
     CollectionVersionContentResource,
+    CollectionVersionMarkResource,
     CollectionVersionSignatureResource,
     RoleContentResource,
 ]
