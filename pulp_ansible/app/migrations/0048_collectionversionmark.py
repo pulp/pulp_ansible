@@ -8,7 +8,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('core', '0098_pulp_labels'),
-        ('ansible', '0046_add_fulltext_search_fix'),
+        ('ansible', '0047_ansible_namespace'),
     ]
 
     operations = [
