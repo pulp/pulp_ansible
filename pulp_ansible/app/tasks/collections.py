@@ -589,8 +589,8 @@ class CollectionSyncFirstStage(Stage):
         self.already_synced.add(cv_unique)
 
         info = metadata["metadata"]
-        signatures = metadata.get("signatures")
-        marks = metadata.get("marks")  # List[str]
+        signatures = metadata.get("signatures", [])
+        marks = metadata.get("marks", [])
 
         if self.signed_only and not signatures:
             return
