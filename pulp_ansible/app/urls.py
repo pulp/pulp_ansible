@@ -174,28 +174,6 @@ v3_collection_urls = [
         name="collection-artifact-download",
     ),
     path(
-        "index/<str:namespace>/<str:name>/",
-        views_v3.CollectionViewSet.as_view(
-            {"get": "retrieve", "patch": "update", "delete": "destroy"}
-        ),
-        name="collections-detail",
-    ),
-    path(
-        "index/<str:namespace>/<str:name>/versions/",
-        views_v3.CollectionVersionViewSet.as_view({"get": "list"}),
-        name="collection-versions-list",
-    ),
-    path(
-        "index/<str:namespace>/<str:name>/versions/<str:version>/",
-        views_v3.CollectionVersionViewSet.as_view({"get": "retrieve", "delete": "destroy"}),
-        name="collection-versions-detail",
-    ),
-    path(
-        "index/<str:namespace>/<str:name>/versions/<str:version>/docs-blob/",
-        views_v3.CollectionVersionDocsViewSet.as_view({"get": "retrieve"}),
-        name="collection-versions-detail-docs",
-    ),
-    path(
         "all-collections/",
         views_v3.UnpaginatedCollectionViewSet.as_view({"get": "list"}),
         name="metadata-collection-list",
@@ -204,6 +182,31 @@ v3_collection_urls = [
         "all-versions/",
         views_v3.UnpaginatedCollectionVersionViewSet.as_view({"get": "list"}),
         name="metadata-collection-versions-list",
+    ),
+]
+
+v3_collection_detail_urls = [
+    path(
+        "",
+        views_v3.CollectionViewSet.as_view(
+            {"get": "retrieve", "patch": "update", "delete": "destroy"}
+        ),
+        name="collections-detail",
+    ),
+    path(
+        "versions/",
+        views_v3.CollectionVersionViewSet.as_view({"get": "list"}),
+        name="collection-versions-list",
+    ),
+    path(
+        "versions/<str:version>/",
+        views_v3.CollectionVersionViewSet.as_view({"get": "retrieve", "delete": "destroy"}),
+        name="collection-versions-detail",
+    ),
+    path(
+        "versions/<str:version>/docs-blob/",
+        views_v3.CollectionVersionDocsViewSet.as_view({"get": "retrieve"}),
+        name="collection-versions-detail-docs",
     ),
 ]
 
@@ -225,6 +228,10 @@ namespace_urls = [
 v3_plugin_urls = [
     # path:var captures /, so it has to have something at the end to make it work
     # correctly.
+    path(
+        "content/<path:distro_base_path>/collections/index/<str:namespace>/<str:name>/",
+        include(v3_collection_detail_urls),
+    ),
     path("content/<path:distro_base_path>/collections/", include(v3_collection_urls)),
     path("content/<path:distro_base_path>/namespaces/", include(namespace_urls)),
     path(
