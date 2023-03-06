@@ -10,7 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.serializers import ValidationError as DRFValidationError
 
-from pulpcore.plugin.actions import ModifyRepositoryActionMixin, raise_for_unknown_content_units
+from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
@@ -32,6 +32,7 @@ from pulpcore.plugin.viewsets import (
     RepositoryVersionViewSet,
     SingleArtifactContentUploadViewSet,
 )
+from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleCollectionDeprecated,
@@ -419,7 +420,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             content_units_pks = ["*"]
         else:
             for url in content:
-                content_units[NamedModelViewSet.extract_pk(url)] = url
+                content_units[extract_pk(url)] = url
             content_units_pks = list(content_units.keys())
             existing_content_units = CollectionVersion.objects.filter(pk__in=content_units_pks)
             raise_for_unknown_content_units(existing_content_units, content_units)
@@ -452,7 +453,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             content_units_pks = ["*"]
         else:
             for url in content:
-                content_units[NamedModelViewSet.extract_pk(url)] = url
+                content_units[extract_pk(url)] = url
             content_units_pks = list(content_units.keys())
             existing_content_units = CollectionVersion.objects.filter(pk__in=content_units_pks)
             raise_for_unknown_content_units(existing_content_units, content_units)
@@ -689,7 +690,7 @@ class CopyViewSet(viewsets.ViewSet):
             if entry.get("content") is not None:
                 r["content"] = []
                 for c in entry["content"]:
-                    r["content"].append(NamedModelViewSet().extract_pk(c))
+                    r["content"].append(extract_pk(c))
             result.append(r)
 
         return result, exclusive_resources, shared_resources
