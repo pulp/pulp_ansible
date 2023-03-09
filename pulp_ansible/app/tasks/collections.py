@@ -430,10 +430,32 @@ def _update_highest_version(collection_version):
     equals False on the last highest version and True on this version.
     Otherwise does nothing.
     """
+
     last_highest = collection_version.collection.versions.filter(is_highest=True).first()
     if not last_highest:
-        collection_version.is_highest = True
+        # we only have one version, so mark it as the highest
+        if collection_version.collection.versions.count() == 1:
+            collection_version.is_highest = True
+            collection_version.save()
+            return None
+
+        # compute highest from the whole list ...
+        highest = None
+        for cv in collection_version.collection.versions.all():
+            sv = Version(cv.version)
+            if highest is None or (highest[0] < sv and not sv.prerelease):
+                highest = (sv, cv)
+        highest[1].is_highest = True
+        highest[1].save()
         return None
+
+    # don't use newer pre-releases if we have a stable version as is_highest
+    if (
+        Version(collection_version.version).prerelease
+        and not Version(last_highest.version).prerelease
+    ):
+        return None
+
     if Version(collection_version.version) > Version(last_highest.version):
         last_highest.is_highest = False
         collection_version.is_highest = True
