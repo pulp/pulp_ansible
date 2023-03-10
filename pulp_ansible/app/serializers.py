@@ -866,7 +866,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
         )
 
 
-class CollectionVersionMarkSerializer(ModelSerializer):
+class CollectionVersionMarkSerializer(NoArtifactContentSerializer):
     """
     A serializer for mark models.
     """
@@ -883,7 +883,7 @@ class CollectionVersionMarkSerializer(ModelSerializer):
 
     class Meta:
         model = CollectionVersionMark
-        fields = ["marked_collection", "value"]
+        fields = ["pulp_created", "pulp_href", "marked_collection", "value"]
 
 
 class AnsibleRepositoryMarkSerializer(serializers.Serializer):
@@ -961,6 +961,38 @@ class CollectionImportDetailSerializer(CollectionImportListSerializer):
 
     class Meta(CollectionImportListSerializer.Meta):
         fields = CollectionImportListSerializer.Meta.fields + ("error", "messages")
+
+
+class CollectionVersionCopyMoveSerializer(serializers.Serializer):
+    """
+    Copy or move collections from a source repository into one or mor destinations.
+    """
+
+    collection_versions = DetailRelatedField(
+        required=True,
+        view_name_pattern=r"content(-.*/.*)-detail",
+        queryset=CollectionVersion.objects.all(),
+        help_text=_("A list of collection versions to move or copy."),
+        many=True,
+    )
+
+    destination_repositories = DetailRelatedField(
+        required=True,
+        view_name="repositories-ansible/ansible-detail",
+        queryset=AnsibleRepository.objects.all(),
+        help_text=_("List of repository HREFs to put content in."),
+        many=True,
+    )
+
+    signing_service = RelatedField(
+        required=False,
+        view_name="signing-services-detail",
+        queryset=SigningService.objects.all(),
+        help_text=_(
+            "HREF for a signing service. This will be used to sign the collection "
+            "before moving putting it in any new repositories."
+        ),
+    )
 
 
 class CopySerializer(serializers.Serializer):
