@@ -710,14 +710,26 @@ class AnsibleNamespaceViewSet(
         "metadata_sha256": ["exact", "in"],
     }
 
-    # TODO: write an actual access policy
     DEFAULT_ACCESS_POLICY = {
         "statements": [
             _CAN_VIEW_REPO_CONTENT,
             {
-                "action": "*",
-                "principal": "*",
+                "action": "create",
+                "principal": "authenticated",
                 "effect": "allow",
+                "conditions": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
+            },
+            {
+                "action": "delete",
+                "principal": "authenticated",
+                "effect": "allow",
+                "conditions": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
+            },
+            {
+                "action": "partial_update",
+                "principal": "authenticated",
+                "effect": "allow",
+                "conditions": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
             },
         ],
     }
