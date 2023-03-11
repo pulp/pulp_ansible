@@ -218,13 +218,13 @@ class CollectionViewSet(
                 "action": "destroy",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.delete_collection",
+                "condition": "has_model_perms:ansible.delete_collection",
             },
             {
                 "action": ["update", "partial_update"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.change_collection",
+                "condition": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
             },
         ],
     }
@@ -515,7 +515,7 @@ class CollectionUploadViewSet(
                 "effect": "allow",
                 "condition": [
                     "has_model_perms:ansible.add_collection",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "v3_can_view_repo_content",
                 ],
             },
         ],
@@ -830,10 +830,7 @@ class CollectionVersionViewSet(
                 "action": ["destroy"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": [
-                    "has_model_or_obj_perms:ansible.delete_collection",
-                    "has_model_or_obj_perms:ansible.view_collection",
-                ],
+                "condition": "has_model_perms:ansible.delete_collection",
             },
         ],
     }
@@ -984,8 +981,6 @@ class CollectionImportViewSet(
 
     queryset = CollectionImport.objects.prefetch_related("task").all()
     serializer_class = CollectionImportDetailSerializer
-
-    queryset_filtering_required_permission = "ansible.view_ansiblerepository"
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
 

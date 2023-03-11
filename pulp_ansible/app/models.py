@@ -554,5 +554,4 @@ class AnsibleDistribution(Distribution, AutoAddObjPermsMixin):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-
         permissions = [("manage_roles_ansibledistribution", "Can manage roles on distributions")]

@@ -1,7 +1,6 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
 import pytest
 import subprocess
-import tempfile
 
 from os import path
 
@@ -74,7 +73,6 @@ def test_sync_collection_from_git(
 
         temp_dir = ansible_dir_factory(distribution.client_url, user)
         with temp_dir:
-
             # The install command needs --pre so a pre-release collection versions install
             cmd = "ansible-galaxy collection install --pre {} -c -p {}".format(
                 collection_name, temp_dir

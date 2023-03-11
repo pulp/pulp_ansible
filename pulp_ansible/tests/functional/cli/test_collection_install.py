@@ -39,9 +39,7 @@ def install_scenario_distribution(
     return ansible_distribution_factory(repo)
 
 
-def test_install_collection(
-    install_scenario_distribution, pulp_admin_user, ansible_dir_factory
-):
+def test_install_collection(install_scenario_distribution, pulp_admin_user, ansible_dir_factory):
     """Test that the collection can be installed from Pulp."""
     with pulp_admin_user:
         collection_name = ANSIBLE_DEMO_COLLECTION
