@@ -77,7 +77,8 @@ def copy_content(config):
 
 def copy_collection(cv_pk_list, src_repo_pk, dest_repo_list):
     """
-    Copy a collection and all of it's contents into a list of destination repositories
+    Copy a list of collection versions and all of it's related contents into a
+    list of destination repositories.
     """
     src_repo = AnsibleRepository.objects.get(pk=src_repo_pk)
     collection_versions = CollectionVersion.objects.filter(pk__in=cv_pk_list)
@@ -133,7 +134,7 @@ def move_collection(cv_pk_list, src_repo_pk, dest_repo_list):
     """
     copy_collection(cv_pk_list, src_repo_pk, dest_repo_list)
 
-    # don't need to clean anything other than the collection version because everything
+    # No need to remove anything other than the collection version because everything
     # else will get handled by AnsibleRepository.finalize_repo_version()
     add_and_remove(repository_pk=src_repo_pk, add_content_units=[], remove_content_units=cv_pk_list)
 

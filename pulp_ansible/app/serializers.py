@@ -965,12 +965,14 @@ class CollectionImportDetailSerializer(CollectionImportListSerializer):
 
 class CollectionVersionCopyMoveSerializer(serializers.Serializer):
     """
-    Copy or move collections from a source repository into one or mor destinations.
+    Copy or move collections from a source repository into one or more destinations.
+
+    This will carry associated content like Signatures and Marks along.
     """
 
     collection_versions = DetailRelatedField(
         required=True,
-        view_name_pattern=r"content(-.*/.*)-detail",
+        view_name=r"content-ansible/collection_versions-detail",
         queryset=CollectionVersion.objects.all(),
         help_text=_("A list of collection versions to move or copy."),
         many=True,

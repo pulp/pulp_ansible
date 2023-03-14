@@ -444,16 +444,21 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         data = serializer.validated_data
 
         dest_repos_pks = [x.pk for x in data["destination_repositories"]]
-
+        reserved = data["destination_repositories"]
+        shared = [repository]
         signing_service = data.get("signing_service", None)
         if signing_service:
             signing_service = signing_service.pk
 
-        reserved = data["destination_repositories"] + [repository]
+            # Reserve the source repository if a signing service is selected, so that
+            # signatures can be added.
+            reserved.append(repository)
+            shared = None
 
         result = dispatch(
             copy_or_move_and_sign,
             exclusive_resources=reserved,
+            shared_resources=shared,
             kwargs={
                 "src_repo_pk": repository.pk,
                 "cv_pk_list": [x.pk for x in data["collection_versions"]],
@@ -471,7 +476,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
     @action(detail=True, methods=["post"], serializer_class=CollectionVersionCopyMoveSerializer)
     def copy_collection_version(self, request, pk):
         """
-        Copy a collection and all of its associated content from this repository.
+        Copy a list of collection versions and all of their associated content from this
+        repository.
         """
 
         return self._handle_copy_or_move(request, "copy")
@@ -483,7 +489,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
     @action(detail=True, methods=["post"], serializer_class=CollectionVersionCopyMoveSerializer)
     def move_collection_version(self, request, pk):
         """
-        Move a collection and all of its associated content from this repository.
+        Move a list of collection versions and all of their associated content from this
+        repository.
         """
 
         return self._handle_copy_or_move(request, "move")
