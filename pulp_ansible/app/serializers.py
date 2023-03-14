@@ -146,6 +146,7 @@ class AnsibleRepositorySerializer(RepositorySerializer):
             "last_synced_metadata_time",
             "gpgkey",
             "last_sync_task",
+            "private",
         )
         model = AnsibleRepository
 

@@ -41,6 +41,48 @@ def try_action(user, client, action, outcome, *args, **kwargs):
         return response
 
 
+def test_private_repos(
+    ansible_repo_api_client,
+    ansible_distro_api_client,
+    ansible_distribution_factory,
+    gen_object_with_cleanup,
+    gen_users,
+):
+    user_creator, user_reader, user_helpless = gen_users(
+        ["ansiblerepository", "ansibledistribution"]
+    )
+
+    # Create 1 private, 1 public repository and distribution
+    with user_creator:
+        public_repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        ansible_distribution_factory(public_repo)
+        repo_kwargs = {"private": True}
+        private_repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo(**repo_kwargs))
+        ansible_distribution_factory(private_repo)
+
+    # Repository list testing
+    with user_creator:
+        uc_repo_list_count = ansible_repo_api_client.list().count
+    assert uc_repo_list_count == 2
+    with user_reader:
+        ur_repo_list_count = ansible_repo_api_client.list().count
+    assert ur_repo_list_count == 2
+    with user_helpless:
+        uh_repo_list_count = ansible_repo_api_client.list().count
+    assert uh_repo_list_count == 1
+
+    # Distribution list testing
+    with user_creator:
+        uc_distro_list_count = ansible_distro_api_client.list().count
+    assert uc_distro_list_count == 2
+    with user_reader:
+        ur_distro_list_count = ansible_distro_api_client.list().count
+    assert ur_distro_list_count == 2
+    with user_helpless:
+        uh_distro_list_count = ansible_distro_api_client.list().count
+    assert uh_distro_list_count == 1
+
+
 def test_ansible_repository_rbac(ansible_repo_api_client, gen_users):
     user_creator, user_reader, user_helpless = gen_users("ansiblerepository")
 
@@ -57,23 +99,23 @@ def test_ansible_repository_rbac(ansible_repo_api_client, gen_users):
     # View testing
     try_action(user_creator, ansible_repo_api_client, "read", 200, repo.pulp_href)
     try_action(user_reader, ansible_repo_api_client, "read", 200, repo.pulp_href)
-    try_action(user_helpless, ansible_repo_api_client, "read", 404, repo.pulp_href)
+    try_action(user_helpless, ansible_repo_api_client, "read", 200, repo.pulp_href)
 
     # Update testing
     update_args = [repo.pulp_href, gen_repo()]
     try_action(user_creator, ansible_repo_api_client, "update", 202, *update_args)
     try_action(user_reader, ansible_repo_api_client, "update", 403, *update_args)
-    try_action(user_helpless, ansible_repo_api_client, "update", 404, *update_args)
+    try_action(user_helpless, ansible_repo_api_client, "update", 403, *update_args)
 
     # Partial update testing
     partial_update_args = [repo.pulp_href, {"name": str(uuid.uuid4())}]
     try_action(user_creator, ansible_repo_api_client, "partial_update", 202, *partial_update_args)
     try_action(user_reader, ansible_repo_api_client, "partial_update", 403, *partial_update_args)
-    try_action(user_helpless, ansible_repo_api_client, "partial_update", 404, *partial_update_args)
+    try_action(user_helpless, ansible_repo_api_client, "partial_update", 403, *partial_update_args)
 
     # Delete testing
     try_action(user_reader, ansible_repo_api_client, "delete", 403, repo.pulp_href)
-    try_action(user_helpless, ansible_repo_api_client, "delete", 404, repo.pulp_href)
+    try_action(user_helpless, ansible_repo_api_client, "delete", 403, repo.pulp_href)
     try_action(user_creator, ansible_repo_api_client, "delete", 202, repo.pulp_href)
 
 
@@ -115,12 +157,12 @@ def test_repository_apis(
     body = {"mirror": False, "optimize": True, "remote": user_creator_remote.pulp_href}
     try_action(user_reader, ansible_repo_api_client, "sync", 403, repo.pulp_href, body)
     try_action(user_creator, ansible_repo_api_client, "sync", 202, repo.pulp_href, body)
-    try_action(user_helpless, ansible_repo_api_client, "sync", 404, repo.pulp_href, body)
+    try_action(user_helpless, ansible_repo_api_client, "sync", 403, repo.pulp_href, body)
 
     # Modify tests
     try_action(user_reader, ansible_repo_api_client, "modify", 403, repo.pulp_href, {})
     try_action(user_creator, ansible_repo_api_client, "modify", 202, repo.pulp_href, {})
-    try_action(user_helpless, ansible_repo_api_client, "modify", 404, repo.pulp_href, {})
+    try_action(user_helpless, ansible_repo_api_client, "modify", 403, repo.pulp_href, {})
 
     # Rebuild metadata tests
     rebuild_metadata_args = [
@@ -145,7 +187,7 @@ def test_repository_apis(
         user_helpless,
         ansible_repo_api_client,
         "rebuild_metadata",
-        404,
+        403,
         *rebuild_metadata_args,
     )
 
@@ -162,13 +204,13 @@ def test_repository_role_management(gen_users, ansible_repo_api_client, gen_obje
     assert aperm_response.permissions == []
     bperm_response = try_action(user_creator, ansible_repo_api_client, "my_permissions", 200, href)
     assert len(bperm_response.permissions) > 0
-    try_action(user_helpless, ansible_repo_api_client, "my_permissions", 404, href)
+    try_action(user_helpless, ansible_repo_api_client, "my_permissions", 200, href)
 
     # Add "viewer" role testing
     nested_role = {"users": [user_helpless.username], "role": "ansible.ansiblerepository_viewer"}
     try_action(user_reader, ansible_repo_api_client, "add_role", 403, href, nested_role=nested_role)
     try_action(
-        user_helpless, ansible_repo_api_client, "add_role", 404, href, nested_role=nested_role
+        user_helpless, ansible_repo_api_client, "add_role", 403, href, nested_role=nested_role
     )
     try_action(
         user_creator, ansible_repo_api_client, "add_role", 201, href, nested_role=nested_role
@@ -190,18 +232,25 @@ def test_repository_role_management(gen_users, ansible_repo_api_client, gen_obje
     )
 
     # Permission check testing one more time
-    try_action(user_helpless, ansible_repo_api_client, "my_permissions", 404, href)
+    cperm_response = try_action(user_helpless, ansible_repo_api_client, "my_permissions", 200, href)
+    assert len(cperm_response.permissions) == 0
 
 
-def test_ansible_distribution_rbac(ansible_distro_api_client, gen_users):
-    user_creator, user_reader, user_helpless = gen_users("ansibledistribution")
+def test_ansible_distribution_rbac(
+    ansible_distro_api_client,
+    ansible_repo_api_client,
+    ansible_distribution_factory,
+    gen_object_with_cleanup,
+    gen_users,
+):
+    user_creator, user_reader, user_helpless = gen_users(
+        ["ansibledistribution", "ansiblerepository"]
+    )
 
     # Create testing
-    dist_body = gen_distribution()
     with user_creator:
-        distribution_create = ansible_distro_api_client.create(dist_body)
-    created_resources = monitor_task(distribution_create.task).created_resources
-    distribution = ansible_distro_api_client.read(created_resources[0])
+        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        distribution = ansible_distribution_factory(repo)
     try_action(user_reader, ansible_distro_api_client, "create", 403, gen_distribution())
     try_action(user_helpless, ansible_distro_api_client, "create", 403, gen_distribution())
 
@@ -214,37 +263,44 @@ def test_ansible_distribution_rbac(ansible_distro_api_client, gen_users):
     view_args = [distribution.pulp_href]
     try_action(user_creator, ansible_distro_api_client, "read", 200, *view_args)
     try_action(user_reader, ansible_distro_api_client, "read", 200, *view_args)
-    try_action(user_helpless, ansible_distro_api_client, "read", 404, *view_args)
+    try_action(user_helpless, ansible_distro_api_client, "read", 200, *view_args)
 
     # Update testing
     update_args = [distribution.pulp_href, gen_distribution()]
     try_action(user_creator, ansible_distro_api_client, "update", 202, *update_args)
     try_action(user_reader, ansible_distro_api_client, "update", 403, *update_args)
-    try_action(user_helpless, ansible_distro_api_client, "update", 404, *update_args)
+    try_action(user_helpless, ansible_distro_api_client, "update", 403, *update_args)
 
     # Partial update testing
     partial_update_args = [distribution.pulp_href, {"name": str(uuid.uuid4())}]
     try_action(user_creator, ansible_distro_api_client, "partial_update", 202, *partial_update_args)
     try_action(user_reader, ansible_distro_api_client, "partial_update", 403, *partial_update_args)
     try_action(
-        user_helpless, ansible_distro_api_client, "partial_update", 404, *partial_update_args
+        user_helpless, ansible_distro_api_client, "partial_update", 403, *partial_update_args
     )
 
     # Delete testing
     try_action(user_reader, ansible_distro_api_client, "delete", 403, distribution.pulp_href)
-    try_action(user_helpless, ansible_distro_api_client, "delete", 404, distribution.pulp_href)
+    try_action(user_helpless, ansible_distro_api_client, "delete", 403, distribution.pulp_href)
     try_action(user_creator, ansible_distro_api_client, "delete", 202, distribution.pulp_href)
 
 
-def test_ansible_distribution_role_management(ansible_distro_api_client, gen_users):
-    user_creator, user_reader, user_helpless = gen_users("ansibledistribution")
+def test_ansible_distribution_role_management(
+    ansible_distro_api_client,
+    ansible_repo_api_client,
+    ansible_distribution_factory,
+    gen_object_with_cleanup,
+    gen_users,
+):
+    user_creator, user_reader, user_helpless = gen_users(
+        ["ansibledistribution", "ansiblerepository"]
+    )
 
     # Check role management apis
-    dist_body = gen_distribution()
     with user_creator:
-        distribution_create = ansible_distro_api_client.create(dist_body)
-    created_resources = monitor_task(distribution_create.task).created_resources
-    distribution = ansible_distro_api_client.read(created_resources[0])
+        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        distribution = ansible_distribution_factory(repo)
+
     href = distribution.pulp_href
 
     # Permission check testing
@@ -256,7 +312,7 @@ def test_ansible_distribution_role_management(ansible_distro_api_client, gen_use
         user_creator, ansible_distro_api_client, "my_permissions", 200, href
     )
     assert len(ucperm_response.permissions) > 0
-    try_action(user_helpless, ansible_distro_api_client, "my_permissions", 404, href)
+    try_action(user_helpless, ansible_distro_api_client, "my_permissions", 200, href)
 
     # Add "viewer" role testing
     nested_role = {"users": [user_helpless.username], "role": "ansible.ansibledistribution_viewer"}
@@ -264,7 +320,7 @@ def test_ansible_distribution_role_management(ansible_distro_api_client, gen_use
         user_reader, ansible_distro_api_client, "add_role", 403, href, nested_role=nested_role
     )
     try_action(
-        user_helpless, ansible_distro_api_client, "add_role", 404, href, nested_role=nested_role
+        user_helpless, ansible_distro_api_client, "add_role", 403, href, nested_role=nested_role
     )
     try_action(
         user_creator, ansible_distro_api_client, "add_role", 201, href, nested_role=nested_role
@@ -288,7 +344,8 @@ def test_ansible_distribution_role_management(ansible_distro_api_client, gen_use
     )
 
     # Permission check testing one more time
-    try_action(user_helpless, ansible_distro_api_client, "my_permissions", 404, href)
+    uhperm_response2 = try_action(user_helpless, ansible_distro_api_client, "my_permissions", 200, href)
+    assert len(uhperm_response2.permissions) == 0
 
 
 REMOTES = {

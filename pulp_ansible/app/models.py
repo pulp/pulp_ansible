@@ -465,6 +465,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     Fields:
 
         last_synced_metadata_time (models.DateTimeField): Last synced metadata time.
+        private (models.BooleanField): Indicator if this repository is private
     """
 
     TYPE = "ansible"
@@ -480,6 +481,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
 
     last_synced_metadata_time = models.DateTimeField(null=True)
     gpgkey = models.TextField(null=True)
+    private = models.BooleanField(default=False)
 
     @property
     def last_sync_task(self):
