@@ -108,7 +108,6 @@ class RoleViewSet(ContentViewSet):
                 "action": ["list", "retrieve"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_repository_model_or_obj_perms:ansible.view_role",
             },
             {
                 "action": ["create"],
@@ -121,7 +120,6 @@ class RoleViewSet(ContentViewSet):
                 ],
             },
         ],
-        "queryset_scoping": {"function": "scope_queryset"},
     }
 
 
@@ -597,8 +595,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "effect": "allow",
                 "condition_expression": [  # required to be single string
                     "has_model_or_obj_perms:ansible.sync_ansiblerepository "
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository "
-                    "(has_remote_param_model_or_obj_perms:ansible.view_collectionremote "
+                    "and has_model_or_obj_perms:ansible.view_ansiblerepository "
+                    "and (has_remote_param_model_or_obj_perms:ansible.view_collectionremote "
                     "or has_remote_param_model_or_obj_perms:ansible.view_gitremote "
                     "or has_remote_param_model_or_obj_perms:ansible.view_roleremote)"
                 ],
@@ -656,10 +654,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 repo_perm,
                 AnsibleRepository.objects.filter(private=True),
             )
-            return qs.filter(
-                Q(pk__in=public_repository_pks)
-                | Q(pk__in=private_repository_pks)
-            )
+            return qs.filter(Q(pk__in=public_repository_pks) | Q(pk__in=private_repository_pks))
 
     @extend_schema(
         description="Trigger an asynchronous task to sync Ansible content.",
@@ -926,7 +921,6 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
                 ],
             },
         ],
-        "queryset_scoping": {"function": "scope_queryset"},
     }
 
     @extend_schema(
@@ -1101,6 +1095,7 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
                 "effect": "allow",
                 "condition": [
                     "has_model_perms:ansible.add_ansibledistribution",
+                    "has_repo_or_repo_ver_param_model_or_obj_perms:ansible.view_ansiblerepository",
                 ],
             },
             {

@@ -344,7 +344,9 @@ def test_ansible_distribution_role_management(
     )
 
     # Permission check testing one more time
-    uhperm_response2 = try_action(user_helpless, ansible_distro_api_client, "my_permissions", 200, href)
+    uhperm_response2 = try_action(
+        user_helpless, ansible_distro_api_client, "my_permissions", 200, href
+    )
     assert len(uhperm_response2.permissions) == 0
 
 
