@@ -140,14 +140,15 @@ def move_collection(cv_pk_list, src_repo_pk, dest_repo_list):
 
 
 def copy_or_move_and_sign(copy_or_move, signing_service_pk=None, **move_task_kwargs):
-    if signing_service_pk:
-        sign(
-            signing_service_href=signing_service_pk,
-            repository_href=move_task_kwargs["src_repo_pk"],
-            content_hrefs=move_task_kwargs["cv_pk_list"],
-        )
-
     if copy_or_move == "copy":
         copy_collection(**move_task_kwargs)
     else:
         move_collection(**move_task_kwargs)
+
+    if signing_service_pk:
+        for pk in move_task_kwargs["dest_repo_list"]:
+            sign(
+                signing_service_href=signing_service_pk,
+                repository_href=pk,
+                content_hrefs=move_task_kwargs["cv_pk_list"],
+            )

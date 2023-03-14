@@ -450,11 +450,6 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
         if signing_service:
             signing_service = signing_service.pk
 
-            # Reserve the source repository if a signing service is selected, so that
-            # signatures can be added.
-            reserved.append(repository)
-            shared = None
-
         result = dispatch(
             copy_or_move_and_sign,
             exclusive_resources=reserved,
