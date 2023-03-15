@@ -68,10 +68,11 @@ from .serializers import (
     CopySerializer,
     RoleSerializer,
     TagSerializer,
+    CollectionVersionCopyMoveSerializer,
 )
 from .tasks.collections import sync as collection_sync
 from .tasks.collections import rebuild_repository_collection_versions_metadata
-from .tasks.copy import copy_content
+from .tasks.copy import copy_content, copy_or_move_and_sign
 from .tasks.roles import synchronize as role_sync
 from .tasks.git import synchronize as git_sync
 from .tasks.mark import mark, unmark
@@ -435,6 +436,59 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
             },
         )
         return OperationPostponedResponse(result, request)
+
+    def _handle_copy_or_move(self, request, copy_or_move):
+        repository = self.get_object()
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        dest_repos_pks = [x.pk for x in data["destination_repositories"]]
+        reserved = data["destination_repositories"]
+        shared = [repository]
+        signing_service = data.get("signing_service", None)
+        if signing_service:
+            signing_service = signing_service.pk
+
+        result = dispatch(
+            copy_or_move_and_sign,
+            exclusive_resources=reserved,
+            shared_resources=shared,
+            kwargs={
+                "src_repo_pk": repository.pk,
+                "cv_pk_list": [x.pk for x in data["collection_versions"]],
+                "dest_repo_list": dest_repos_pks,
+                "copy_or_move": copy_or_move,
+                "signing_service_pk": signing_service,
+            },
+        )
+        return OperationPostponedResponse(result, request)
+
+    @extend_schema(
+        description="Trigger an asynchronous task to copy collection versions.",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=CollectionVersionCopyMoveSerializer)
+    def copy_collection_version(self, request, pk):
+        """
+        Copy a list of collection versions and all of their associated content from this
+        repository.
+        """
+
+        return self._handle_copy_or_move(request, "copy")
+
+    @extend_schema(
+        description="Trigger an asynchronous task to move collection versions.",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=CollectionVersionCopyMoveSerializer)
+    def move_collection_version(self, request, pk):
+        """
+        Move a list of collection versions and all of their associated content from this
+        repository.
+        """
+
+        return self._handle_copy_or_move(request, "move")
 
     def _handle_mark_task(self, request, task_function):
         """

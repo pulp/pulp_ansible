@@ -4,6 +4,7 @@ from functools import partial
 from time import sleep
 import os
 import unittest
+from urllib.parse import urlparse, parse_qs
 
 from pulp_smash import api, config, selectors
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
@@ -345,3 +346,23 @@ def get_psql_smash_cmd(sql_statement):
     password = settings.DATABASES["default"]["PASSWORD"]
     dbname = settings.DATABASES["default"]["NAME"]
     return ("psql", "-c", sql_statement, f"postgresql://{user}:{password}@{host}/{dbname}")
+
+
+def iterate_all(list_func, **kwargs):
+    """
+    Iterate through all of the items on every page in a paginated list view.
+    """
+    next = kwargs
+    while next is not None:
+        r = list_func(**next)
+
+        for x in r.results:
+            yield x
+
+        if r.next:
+            qs = parse_qs(urlparse(r.next).query)
+            for p in ("offset", "limit"):
+                if p in qs:
+                    next[p] = qs[p][0]
+        else:
+            next = None
