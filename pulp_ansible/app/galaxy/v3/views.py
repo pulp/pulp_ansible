@@ -224,7 +224,7 @@ class CollectionViewSet(
                 "action": ["update", "partial_update"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
+                "condition": "v3_can_modify_repo_content",
             },
         ],
     }
@@ -717,19 +717,19 @@ class AnsibleNamespaceViewSet(
                 "action": "create",
                 "principal": "authenticated",
                 "effect": "allow",
-                "conditions": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
+                "conditions": "v3_can_modify_repo_content",
             },
             {
                 "action": "delete",
                 "principal": "authenticated",
                 "effect": "allow",
-                "conditions": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
+                "conditions": "v3_can_modify_repo_content",
             },
             {
                 "action": "partial_update",
                 "principal": "authenticated",
                 "effect": "allow",
-                "conditions": "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
+                "conditions": "v3_can_modify_repo_content",
             },
         ],
     }
