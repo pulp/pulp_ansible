@@ -431,7 +431,17 @@ def _update_highest_version(collection_version, save=False):
     Otherwise does nothing.
     """
 
+    def is_higher(a, b):
+        """Is a > b ?"""
+        if a.prerelease and b.prerelease and a > b:
+            return True
+        if a.prerelease and not b.prerelease:
+            return False
+        return a > b
+
+    # did we have one set previously for this collection?
     last_highest = collection_version.collection.versions.filter(is_highest=True).first()
+
     if not last_highest:
         # we only have one version, so mark it as the highest
         if collection_version.collection.versions.count() == 1:
@@ -443,8 +453,9 @@ def _update_highest_version(collection_version, save=False):
         highest = None
         for cv in collection_version.collection.versions.all():
             sv = Version(cv.version)
-            if highest is None or (highest[0] < sv and not sv.prerelease):
+            if highest is None or is_higher(sv, highest[0]):
                 highest = (sv, cv)
+
         highest[1].is_highest = True
         highest[1].save()
         return None
