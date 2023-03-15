@@ -421,7 +421,7 @@ def _get_backend_storage_url(artifact_file):
     return url
 
 
-def _update_highest_version(collection_version):
+def _update_highest_version(collection_version, save=False):
     """
     Checks if this version is greater than the most highest one.
 
@@ -460,11 +460,13 @@ def _update_highest_version(collection_version):
         last_highest.is_highest = False
         collection_version.is_highest = True
         last_highest.save()
-        collection_version.save()
+        if save:
+            collection_version.save()
 
     elif collection_version.is_highest and collection_version.version != last_highest.version:
         collection_version.is_highest = False
-        collection_version.save()
+        if save:
+            collection_version.save()
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
