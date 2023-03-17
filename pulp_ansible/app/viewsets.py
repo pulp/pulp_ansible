@@ -649,7 +649,11 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         if self.request.user.has_perm(repo_perm):
             return qs
         else:
-            public_repository_pks = AnsibleRepository.objects.filter(private=False)
+            public_repository_pks = get_objects_for_user(
+                self.request.user,
+                repo_perm,
+                AnsibleRepository.objects.filter(private=False),
+            )
             private_repository_pks = get_objects_for_user(
                 self.request.user,
                 repo_perm,
@@ -1158,7 +1162,11 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
         if self.request.user.has_perms([distro_perm, repo_perm]):
             return qs
         else:
-            public_repository_pks = AnsibleRepository.objects.filter(private=False)
+            public_repository_pks = get_objects_for_user(
+                self.request.user,
+                repo_perm,
+                AnsibleRepository.objects.filter(private=False),
+            )
             private_repository_pks = get_objects_for_user(
                 self.request.user,
                 repo_perm,
