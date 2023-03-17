@@ -462,24 +462,15 @@ def _update_highest_version(collection_version, save=False):
         highest[1].save()
         return
 
-    # don't use newer pre-releases if we have a stable version as is_highest
-    if (
-        Version(collection_version.version).prerelease
-        and not Version(last_highest.version).prerelease
-    ):
+    # exit if the new CV is not higher
+    if not is_new_highest(Version(collection_version.version), Version(last_highest.version)):
         return
 
-    if Version(collection_version.version) > Version(last_highest.version):
-        last_highest.is_highest = False
-        collection_version.is_highest = True
-        last_highest.save()
-        if save:
-            collection_version.save()
-
-    elif collection_version.is_highest and collection_version.version != last_highest.version:
-        collection_version.is_highest = False
-        if save:
-            collection_version.save()
+    last_highest.is_highest = False
+    collection_version.is_highest = True
+    last_highest.save()
+    if save:
+        collection_version.save()
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
