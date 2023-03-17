@@ -178,6 +178,32 @@ class TestCollectionVersionHighest(TestCase):
             is True
         )
 
+    def test_is_highest_set_on_multple_stable_releases(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1"),
+            (namespace, name, "2.0.1"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="2.0.1")
+            .first()
+            .is_highest
+            is True
+        )
+
     def test_is_highest_set_on_single_prerelease(self):
         namespace = randstr()
         name = randstr()

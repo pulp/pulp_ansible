@@ -437,6 +437,8 @@ def _update_highest_version(collection_version, save=False):
             return True
         if new.prerelease and not old.prerelease:
             return False
+        if not new.prerelease and old.prerelease:
+            return True
         return new > old
 
     # did we have one set previously for this collection?
