@@ -593,12 +593,13 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "action": ["sync"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition_expression": [  # required to be single string
-                    "has_model_or_obj_perms:ansible.sync_ansiblerepository "
-                    "and has_model_or_obj_perms:ansible.view_ansiblerepository "
-                    "and (has_remote_param_model_or_obj_perms:ansible.view_collectionremote "
-                    "or has_remote_param_model_or_obj_perms:ansible.view_gitremote "
-                    "or has_remote_param_model_or_obj_perms:ansible.view_roleremote)"
+                "condition": [
+                    "has_model_or_obj_perms:ansible.sync_ansiblerepository",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    # TODO Update has_remote_param_model_or_obj to handle multiple remote types
+                    # "has_remote_param_model_or_obj_perms:ansible.view_collectionremote",
+                    # "has_remote_param_model_or_obj_perms:ansible.view_gitremote",
+                    # "has_remote_param_model_or_obj_perms:ansible.view_roleremote",
                 ],
             },
             {
