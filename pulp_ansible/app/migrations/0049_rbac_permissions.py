@@ -21,7 +21,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AlterModelOptions(
             name='ansiblerepository',
-            options={'default_related_name': '%(app_label)s_%(model_name)s', 'permissions': [('rebuild_metadata_ansiblerepository', 'Can rebuild metadata on the repository'), ('repair_ansiblerepository', 'Can repair the repository'), ('sign_ansiblerepository', 'Can sign content on the repository'), ('sync_ansiblerepository', 'Can start a sync task on the repository'), ('manage_roles_ansiblerepository', 'Can manage roles on repositories'), ('modify_ansible_repo_content', 'Can modify repository content')]},
+            options={'default_related_name': '%(app_label)s_%(model_name)s', 'permissions': [('rebuild_metadata_ansiblerepository', 'Can rebuild metadata on the repository'), ('repair_ansiblerepository', 'Can repair the repository'), ('sign_ansiblerepository', 'Can sign content on the repository'), ('sync_ansiblerepository', 'Can start a sync task on the repository'), ('copy_collection_version_ansiblerepository', 'Can copy collection versions on the repository'), ('move_collection_version_ansiblerepository', 'Can move collection versions on the repository'), ('manage_roles_ansiblerepository', 'Can manage roles on repositories'), ('modify_ansible_repo_content', 'Can modify repository content')]},
         ),
         migrations.AlterModelOptions(
             name='collectionremote',

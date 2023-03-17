@@ -603,6 +603,26 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 ],
             },
             {
+                "action": ["copy_collection_version"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.copy_collection_version_ansiblerepository",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+                # TODO: create a custom access condition to ensure user has perms on dest repos
+            },
+            {
+                "action": ["move_collection_version"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.move_collection_version_ansiblerepository",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+                # TODO: create a custom access condition to ensure user has perms on dest repos
+            },
+            {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
@@ -628,9 +648,11 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         "ansible.ansiblerepository_owner": [
             "ansible.view_ansiblerepository",
             "ansible.change_ansiblerepository",
+            "ansible.copy_collection_version_ansiblerepository",
             "ansible.delete_ansiblerepository",
             "ansible.manage_roles_ansiblerepository",
             "ansible.modify_ansible_repo_content",
+            "ansible.move_collection_version_ansiblerepository",
             "ansible.rebuild_metadata_ansiblerepository",
             "ansible.repair_ansiblerepository",
             "ansible.sign_ansiblerepository",
