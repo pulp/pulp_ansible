@@ -455,7 +455,7 @@ def _update_highest_version(collection_version, save=False):
                 highest = (sv, cv)
 
         highest[1].is_highest = True
-        if highest[1] != collection_version or  save:
+        if highest[1] != collection_version or save:
             highest[1].save()
         return
 
