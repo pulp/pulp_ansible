@@ -443,7 +443,8 @@ def _update_highest_version(collection_version, save=False):
         # we only have one version, so mark it as the highest
         if collection_version.collection.versions.count() == 1:
             collection_version.is_highest = True
-            collection_version.save()
+            if save:
+                collection_version.save()
             return
 
         # compute highest from the whole list ...
@@ -454,7 +455,8 @@ def _update_highest_version(collection_version, save=False):
                 highest = (sv, cv)
 
         highest[1].is_highest = True
-        highest[1].save()
+        if save:
+            highest[1].save()
         return
 
     # exit if the new CV is not higher
