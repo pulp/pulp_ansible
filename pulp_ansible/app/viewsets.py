@@ -635,12 +635,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "parameters": {"roles": "ansible.ansiblerepository_owner"},
             },
         ],
-        "queryset_scoping": {
-            "function": "get_ansible_repository_qs",
-            "parameters": {
-                "repo_perm": "ansible.view_ansiblerepository",
-            },
-        },
+        "queryset_scoping": {"function": "scope_queryset"},
     }
 
     LOCKED_ROLES = {
@@ -660,28 +655,6 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         ],
         "ansible.ansiblerepository_viewer": ["ansible.view_ansiblerepository"],
     }
-
-    def get_ansible_repository_qs(self, qs, repo_perm):
-        """
-        Returns a queryset by filtering out private repositories unless the user has the required
-        permission to view.
-        """
-
-        qs = AnsibleRepository.objects.all()
-        if self.request.user.has_perm(repo_perm):
-            return qs
-        else:
-            public_repository_pks = get_objects_for_user(
-                self.request.user,
-                repo_perm,
-                AnsibleRepository.objects.filter(private=False),
-            )
-            private_repository_pks = get_objects_for_user(
-                self.request.user,
-                repo_perm,
-                AnsibleRepository.objects.filter(private=True),
-            )
-            return qs.filter(Q(pk__in=public_repository_pks) | Q(pk__in=private_repository_pks))
 
     @extend_schema(
         description="Trigger an asynchronous task to sync Ansible content.",
@@ -1154,13 +1127,7 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
                 "parameters": {"roles": "ansible.ansibledistribution_owner"},
             },
         ],
-        "queryset_scoping": {  # "function": "scope_queryset"},
-            "function": "get_ansible_distribution_qs",
-            "parameters": {
-                "distro_perm": "ansible.view_ansibledistribution",
-                "repo_perm": "ansible.view_ansiblerepository",
-            },
-        },
+        "queryset_scoping": {"function": "scope_queryset"},
     }
 
     LOCKED_ROLES = {
@@ -1173,31 +1140,6 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
         ],
         "ansible.ansibledistribution_viewer": ["ansible.view_ansibledistribution"],
     }
-
-    def get_ansible_distribution_qs(self, qs, distro_perm, repo_perm):
-        """
-        Returns a queryset by filtering out distributions with private repositories unless the user
-        has the required permission.
-        """
-
-        qs = AnsibleDistribution.objects.all()
-        if self.request.user.has_perms([distro_perm, repo_perm]):
-            return qs
-        else:
-            public_repository_pks = get_objects_for_user(
-                self.request.user,
-                repo_perm,
-                AnsibleRepository.objects.filter(private=False),
-            )
-            private_repository_pks = get_objects_for_user(
-                self.request.user,
-                repo_perm,
-                AnsibleRepository.objects.filter(private=True),
-            )
-            return qs.filter(
-                Q(repository__pk__in=public_repository_pks)
-                | Q(repository__pk__in=private_repository_pks)
-            )
 
 
 class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):

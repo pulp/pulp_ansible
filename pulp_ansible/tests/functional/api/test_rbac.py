@@ -41,48 +41,6 @@ def try_action(user, client, action, outcome, *args, **kwargs):
         return response
 
 
-def test_private_repos(
-    ansible_repo_api_client,
-    ansible_distro_api_client,
-    ansible_distribution_factory,
-    gen_object_with_cleanup,
-    gen_users,
-):
-    user_creator, user_reader, user_helpless = gen_users(
-        ["ansiblerepository", "ansibledistribution"]
-    )
-
-    # Create 1 private, 1 public repository and distribution
-    with user_creator:
-        public_repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
-        ansible_distribution_factory(public_repo)
-        repo_kwargs = {"private": True}
-        private_repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo(**repo_kwargs))
-        ansible_distribution_factory(private_repo)
-
-    # Repository list testing
-    with user_creator:
-        uc_repo_list_count = ansible_repo_api_client.list().count
-    assert uc_repo_list_count == 2
-    with user_reader:
-        ur_repo_list_count = ansible_repo_api_client.list().count
-    assert ur_repo_list_count == 2
-    with user_helpless:
-        uh_repo_list_count = ansible_repo_api_client.list().count
-    assert uh_repo_list_count == 0
-
-    # Distribution list testing
-    with user_creator:
-        uc_distro_list_count = ansible_distro_api_client.list().count
-    assert uc_distro_list_count == 2
-    with user_reader:
-        ur_distro_list_count = ansible_distro_api_client.list().count
-    assert ur_distro_list_count == 2
-    with user_helpless:
-        uh_distro_list_count = ansible_distro_api_client.list().count
-    assert uh_distro_list_count == 0
-
-
 def test_ansible_repository_rbac(ansible_repo_api_client, gen_users):
     user_creator, user_reader, user_helpless = gen_users("ansiblerepository")
 
