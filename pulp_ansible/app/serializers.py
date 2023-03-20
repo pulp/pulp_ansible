@@ -805,7 +805,8 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             return urljoin(
                 urljoin(urljoin(origin, prefix + "/"), base_path + "/"), f"{obj.name}-avatar"
             )
-        return None
+        else:
+            return obj.avatar_url
 
     def validate(self, data):
         """Check that avatar_sha256 is set if avatar was present in upload."""

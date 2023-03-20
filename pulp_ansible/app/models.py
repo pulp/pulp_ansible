@@ -307,6 +307,9 @@ class AnsibleNamespaceMetadata(Content):
     links = psql_fields.HStoreField(default=dict)
     avatar_sha256 = models.CharField(max_length=64, null=True)
 
+    # used for backwards compatibility with galaxy_ng
+    avatar_url = models.URLField(max_length=256, blank=True, default="")
+
     # Hash of the values of all the fields mentioned above.
     # Content uniqueness constraint.
     metadata_sha256 = models.CharField(max_length=64, db_index=True, blank=False)
@@ -325,6 +328,7 @@ class AnsibleNamespaceMetadata(Content):
             "resources": self.resources,
             "links": self.links,
             "avatar_sha256": self.avatar_sha256,
+            "avatar_url": self.avatar_url,
         }
         metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
         hasher = hashlib.sha256(metadata_json)
