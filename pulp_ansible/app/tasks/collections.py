@@ -444,7 +444,7 @@ def _update_highest_version(collection_version, save=False):
         if collection_version.collection.versions.count() == 1:
             collection_version.is_highest = True
             if save:
-                collection_version.save()
+                collection_version.save(update_fields=["is_highest"])
             return
 
         # compute highest from the whole list ...
@@ -455,7 +455,7 @@ def _update_highest_version(collection_version, save=False):
                 highest = (sv, cv)
 
         highest[1].is_highest = True
-        if save:
+        if highest[1] != collection_version or  save:
             highest[1].save()
         return
 
@@ -464,10 +464,10 @@ def _update_highest_version(collection_version, save=False):
         return
 
     last_highest.is_highest = False
+    last_highest.save(update_fields=["is_highest"])
     collection_version.is_highest = True
-    last_highest.save()
     if save:
-        collection_version.save()
+        collection_version.save(update_fields=["is_highest"])
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
