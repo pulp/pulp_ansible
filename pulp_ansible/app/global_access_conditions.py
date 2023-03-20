@@ -9,7 +9,13 @@ def v3_can_view_repo_content(request, view, action):
 
     if "distro_base_path" in view.kwargs:
         distro_base_path = view.kwargs["distro_base_path"]
-        repo = models.AnsibleDistribution.objects.get(base_path=distro_base_path).repository.cast()
+        distro = models.AnsibleDistribution.objects.select_related(
+            "repository", "repository_version"
+        ).get(base_path=distro_base_path)
+        if not (repo := distro.repository.cast()):
+            if not (repo_ver := distro.repository_version.cast()):
+                return False
+            repo = repo_ver.repository
 
         if repo.private:
             return request.user.has_perm("ansible.view_ansiblerepository")
@@ -32,7 +38,13 @@ def v3_can_modify_repo_content(request, view, action):
 
     if "distro_base_path" in view.kwargs:
         distro_base_path = view.kwargs["distro_base_path"]
-        repo = models.AnsibleDistribution.objects.get(base_path=distro_base_path).repository.cast()
+        distro = models.AnsibleDistribution.objects.select_related(
+            "repository", "repository_version"
+        ).get(base_path=distro_base_path)
+        if not (repo := distro.repository.cast()):
+            if not (repo_ver := distro.repository_version.cast()):
+                return False
+            repo = repo_ver.repository
         return request.user.has_perm(permission, repo)
 
     return False
