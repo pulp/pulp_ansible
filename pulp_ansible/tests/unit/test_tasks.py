@@ -7,6 +7,8 @@ from unittest import mock
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
+from orionutils.generator import randstr
+
 from pulp_ansible.app.models import AnsibleDistribution
 from pulp_ansible.app.models import AnsibleRepository
 from pulp_ansible.app.models import Collection
@@ -14,8 +16,11 @@ from pulp_ansible.app.models import CollectionVersion
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.models import ContentArtifact
 
-from pulp_ansible.app.tasks.collections import _rebuild_collection_version_meta
-from pulp_ansible.app.tasks.collections import rebuild_repository_collection_versions_metadata
+from pulp_ansible.app.tasks.collections import (
+    _rebuild_collection_version_meta,
+    rebuild_repository_collection_versions_metadata,
+    _update_highest_version,
+)
 
 
 def make_cv_tarball(namespace, name, version):
@@ -37,12 +42,40 @@ def make_cv_tarball(namespace, name, version):
     return tarfn
 
 
+def build_cvs_from_specs(specs):
+    """Make CVs from namespace.name.version specs."""
+    collection_versions = []
+    for spec in specs:
+        tarfn = make_cv_tarball(spec[0], spec[1], None)
+        rawbin = open(tarfn, "rb").read()
+        artifact = Artifact.objects.create(
+            sha224=hashlib.sha224(rawbin).hexdigest(),
+            sha256=hashlib.sha256(rawbin).hexdigest(),
+            sha384=hashlib.sha384(rawbin).hexdigest(),
+            sha512=hashlib.sha512(rawbin).hexdigest(),
+            size=os.path.getsize(tarfn),
+            file=SimpleUploadedFile(tarfn, rawbin),
+        )
+        artifact.save()
+
+        col, _ = Collection.objects.get_or_create(name=spec[0])
+        col.save()
+        cv = CollectionVersion(collection=col, namespace=spec[0], name=spec[1], version=spec[2])
+        cv.save()
+        ca = ContentArtifact.objects.create(
+            artifact=artifact, content=cv, relative_path=cv.relative_path
+        )
+        ca.save()
+        collection_versions.append(cv)
+
+    return collection_versions
+
+
 class TestCollectionReImport(TestCase):
     """Test Collection Re-Import."""
 
     def setUp(self):
         """Make all the test data."""
-        self.collection_versions = []
 
         specs = [
             ("foo", "bar", "1.0.0"),
@@ -50,28 +83,7 @@ class TestCollectionReImport(TestCase):
             ("zip", "drive", "1.0.0"),
         ]
 
-        for spec in specs:
-            tarfn = make_cv_tarball(spec[0], spec[1], None)
-            rawbin = open(tarfn, "rb").read()
-            artifact = Artifact.objects.create(
-                sha224=hashlib.sha224(rawbin).hexdigest(),
-                sha256=hashlib.sha256(rawbin).hexdigest(),
-                sha384=hashlib.sha384(rawbin).hexdigest(),
-                sha512=hashlib.sha512(rawbin).hexdigest(),
-                size=os.path.getsize(tarfn),
-                file=SimpleUploadedFile(tarfn, rawbin),
-            )
-            artifact.save()
-
-            col, _ = Collection.objects.get_or_create(name=spec[0])
-            col.save()
-            cv = CollectionVersion(collection=col, namespace=spec[0], name=spec[1], version=spec[2])
-            cv.save()
-            ca = ContentArtifact.objects.create(
-                artifact=artifact, content=cv, relative_path=cv.relative_path
-            )
-            ca.save()
-            self.collection_versions.append(cv)
+        self.collection_versions = build_cvs_from_specs(specs)
 
         # create a repository
         self.repo = AnsibleRepository(name="foorepo")
@@ -143,3 +155,230 @@ class TestCollectionReImport(TestCase):
         call_pks = sorted([str(x.args[0].pk) for x in mock_rebuild_cv.mock_calls])
         expected_pks = sorted([str(x.pk) for x in expected_cvs])
         assert call_pks == expected_pks
+
+
+class TestCollectionVersionHighest(TestCase):
+    """Test Collection Re-Import."""
+
+    def test_is_highest_set(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1")
+            .first()
+            .is_highest
+            is True
+        )
+
+    def test_is_highest_set_on_multple_stable_releases(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1"),
+            (namespace, name, "2.0.1"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="2.0.1")
+            .first()
+            .is_highest
+            is True
+        )
+
+    def test_is_highest_set_on_single_prerelease(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1-rc2"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc2")
+            .first()
+            .is_highest
+            is True
+        )
+
+    def test_is_highest_set_on_multiple_prereleases(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1-rc1"),
+            (namespace, name, "1.0.1-rc2"),
+            (namespace, name, "1.0.1-rc3"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc1")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc2")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc3")
+            .first()
+            .is_highest
+            is True
+        )
+
+    def test_is_highest_set_on_multiple_prereleases_one_pass(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1-rc1"),
+            (namespace, name, "1.0.1-rc2"),
+            (namespace, name, "1.0.1-rc3"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        _update_highest_version(collection_versions[1], save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc1")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc2")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc3")
+            .first()
+            .is_highest
+            is True
+        )
+
+    def test_is_highest_set_on_multiple_prereleases_backwards_order(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1-rc4"),
+            (namespace, name, "1.0.1-rc1"),
+            (namespace, name, "1.0.1-rc2"),
+            (namespace, name, "1.0.1-rc3"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions[::-1]:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc1")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc2")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc3")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc4")
+            .first()
+            .is_highest
+            is True
+        )
+
+    def test_prerelease_not_higher_than_stable(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "1.0.1"),
+            (namespace, name, "2.0.0-rc1"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1")
+            .first()
+            .is_highest
+            is True
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="2.0.0-rc1")
+            .first()
+            .is_highest
+            is False
+        )
+
+    def test_prerelease_matches_stable(self):
+        namespace = randstr()
+        name = randstr()
+        specs = [
+            (namespace, name, "2.0.0-rc1"),
+            (namespace, name, "2.0.0"),
+        ]
+
+        collection_versions = build_cvs_from_specs(specs)
+        for cv in collection_versions:
+            _update_highest_version(cv, save=True)
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="2.0.0-rc1")
+            .first()
+            .is_highest
+            is False
+        )
+
+        assert (
+            CollectionVersion.objects.filter(namespace=namespace, name=name, version="2.0.0")
+            .first()
+            .is_highest
+            is True
+        )
