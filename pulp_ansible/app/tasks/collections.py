@@ -418,7 +418,7 @@ def _get_backend_storage_url(artifact_file):
     return url
 
 
-def _update_highest_version(collection_version):
+def _update_highest_version(collection_version, save=False):
     """
     Checks if this version is greater than the most highest one.
 
@@ -427,19 +427,44 @@ def _update_highest_version(collection_version):
     equals False on the last highest version and True on this version.
     Otherwise does nothing.
     """
-    last_highest = collection_version.collection.versions.filter(is_highest=True).first()
-    if not last_highest:
-        collection_version.is_highest = True
-        return None
-    if Version(collection_version.version) > Version(last_highest.version):
-        last_highest.is_highest = False
-        collection_version.is_highest = True
-        last_highest.save()
-        collection_version.save()
 
-    elif collection_version.is_highest and collection_version.version != last_highest.version:
-        collection_version.is_highest = False
-        collection_version.save()
+    def is_new_highest(new, old):
+        if bool(new.prerelease) == bool(old.prerelease):
+            return new > old
+        return bool(old.prerelease)
+
+    # did we have one set previously for this collection?
+    last_highest = collection_version.collection.versions.filter(is_highest=True).first()
+
+    if not last_highest:
+        # we only have one version, so mark it as the highest
+        if collection_version.collection.versions.count() == 1:
+            collection_version.is_highest = True
+            if save:
+                collection_version.save(update_fields=["is_highest"])
+            return
+
+        # compute highest from the whole list ...
+        highest = None
+        for cv in collection_version.collection.versions.all():
+            sv = Version(cv.version)
+            if highest is None or is_new_highest(sv, highest[0]):
+                highest = (sv, cv)
+
+        highest[1].is_highest = True
+        if highest[1] != collection_version or save:
+            highest[1].save()
+        return
+
+    # exit if the new CV is not higher
+    if not is_new_highest(Version(collection_version.version), Version(last_highest.version)):
+        return
+
+    last_highest.is_highest = False
+    last_highest.save(update_fields=["is_highest"])
+    collection_version.is_highest = True
+    if save:
+        collection_version.save(update_fields=["is_highest"])
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
