@@ -4,7 +4,6 @@ from django.db import transaction
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
-from urllib.parse import urljoin
 
 from galaxy_importer.constants import NAME_REGEXP
 from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
