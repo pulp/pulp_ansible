@@ -40,53 +40,45 @@ def test_sync_collection_from_git(
     gen_user,
     gen_object_with_cleanup,
     ansible_dir_factory,
+    pulp_admin_user,
 ):
     """Sync collections from Git repositories and then install one of them."""
-    user = gen_user(
-        model_roles=[
-            "ansible.ansibledistribution_creator",
-            "ansible.ansiblerepository_creator",
-            "ansible.gitremote_creator",
-        ]
+    body = gen_ansible_remote(
+        url="https://github.com/pulp/pulp_installer.git", include_pulp_auth=True
     )
 
-    with user:
-        body = gen_ansible_remote(url="https://github.com/pulp/pulp_installer.git")
+    repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+    count = sync_and_count(body, repo=repo)
+    assert count == 1
 
-        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
-        count = sync_and_count(body, repo=repo)
-        assert count == 1
+    body.pop("name")  # Forces a new remote to be created
+    count = sync_and_count(body, repo=repo)
+    assert count == 1
 
-        body.pop("name")  # Forces a new remote to be created
-        count = sync_and_count(body, repo=repo)
-        assert count == 1
+    body = gen_ansible_remote(url="https://github.com/pulp/squeezer.git")
 
-        body = gen_ansible_remote(url="https://github.com/pulp/squeezer.git")
+    count = sync_and_count(body, repo=repo)
+    assert count == 2
 
-        count = sync_and_count(body, repo=repo)
-        assert count == 2
+    # Create a distribution.
+    distribution = ansible_distribution_factory(repo)
 
-        # Create a distribution.
-        distribution = ansible_distribution_factory(repo)
+    collection_name = "pulp.squeezer"
 
-        collection_name = "pulp.squeezer"
+    temp_dir = ansible_dir_factory(distribution.client_url, pulp_admin_user)
+    with temp_dir:
+        # The install command needs --pre so a pre-release collection versions install
+        cmd = "ansible-galaxy collection install --pre {} -c -p {}".format(
+            collection_name, temp_dir
+        )
 
-        temp_dir = ansible_dir_factory(distribution.client_url, user)
-        with temp_dir:
-            # The install command needs --pre so a pre-release collection versions install
-            cmd = "ansible-galaxy collection install --pre {} -c -p {}".format(
-                collection_name, temp_dir
-            )
+        directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
 
-            directory = "{}/ansible_collections/{}".format(
-                temp_dir, collection_name.replace(".", "/")
-            )
+        assert not path.exists(directory), "Directory {} already exists".format(directory)
 
-            assert not path.exists(directory), "Directory {} already exists".format(directory)
+        subprocess.run(cmd.split(), cwd=temp_dir)
 
-            subprocess.run(cmd.split(), cwd=temp_dir)
-
-            assert path.exists(directory), "Could not find directory {}".format(directory)
+        assert path.exists(directory), "Could not find directory {}".format(directory)
 
 
 @pytest.mark.parallel
@@ -171,6 +163,7 @@ def test_sync_metadata_only_collection_from_pulp(
         url="https://github.com/ansible-collections/amazon.aws/",
         metadata_only=True,
         git_ref="2.1.0",
+        include_pulp_auth=True,
     )
     amazon_remote = ansible_git_remote_factory(**body)
 
