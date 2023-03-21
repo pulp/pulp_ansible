@@ -317,6 +317,13 @@ class AnsibleNamespaceMetadata(Content):
         AnsibleNamespace, on_delete=models.PROTECT, related_name="metadatas"
     )
 
+    @property
+    def avatar_artifact(self):
+        if self.avatar_sha256:
+            return self._artifacts.get(sha256=self.avatar_sha256)
+
+        return None
+
     @hook(BEFORE_SAVE)
     def calculate_metadata_sha256(self):
         """Calculates the metadata_sha256 from the other metadata fields."""
@@ -327,9 +334,16 @@ class AnsibleNamespaceMetadata(Content):
             "description": self.description,
             "resources": self.resources,
             "links": self.links,
-            "avatar_sha256": self.avatar_sha256,
-            "avatar_url": self.avatar_url,
         }
+
+        # If the avatar_url is saved on the model, use it to calculate the sha instead
+        # of the avatar_sha256. This is to support syncing against galaxy_ng, which
+        # does not currently support avatar_sha256.
+        if self.avatar_url:
+            metadata["avatar_url"] = self.avatar_url
+        else:
+            metadata["avatar_sha256"] = self.avatar_sha256
+
         metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
         hasher = hashlib.sha256(metadata_json)
         if self.metadata_sha256:

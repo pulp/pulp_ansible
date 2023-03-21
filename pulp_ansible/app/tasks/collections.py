@@ -699,21 +699,46 @@ class CollectionSyncFirstStage(Stage):
             pass
         else:
             namespace = parse_metadata(result)
-            namespace.pop("pulp_href", None)
-            url = namespace.pop("avatar_url", None)
-            da = (
-                [
-                    DeclarativeArtifact(
-                        Artifact(sha256=namespace["avatar_sha256"]),
-                        url=url,
-                        remote=self.remote,
-                        relative_path=f"{name}-avatar",
-                        deferred_download=False,
-                    )
-                ]
-                if url
-                else None
-            )
+            links = namespace.get("links", None)
+
+            # clean up the galaxy API for pulp
+            if links:
+                namespace["links"] = {x["name"]: x["url"] for x in links}
+
+            for key in ("pulp_href", "groups", "id", "related_fields"):
+                namespace.pop(key, None)
+
+            avatar_sha256 = namespace.get("avatar_sha256", None)
+            url = namespace.get("avatar_url", None)
+
+            if url:
+                if avatar_sha256:
+                    a = Artifact(sha256=avatar_sha256)
+                else:
+                    a = Artifact()
+                logo = DeclarativeArtifact(
+                    a,
+                    url=url,
+                    remote=self.remote,
+                    relative_path=f"{name}-avatar",
+                    deferred_download=False,
+                )
+
+                await logo.download()
+
+                # If the remote doesn't support avatar_sha256, save the avatar_url to the
+                # database. This will cause the namespace metadata has to be calculated using
+                # the url instead of the sha, which will allow it to be computed correctly for
+                # syncs against galaxy_ng
+                if avatar_sha256:
+                    namespace.pop("avatar_url", None)
+                else:
+                    namespace["avatar_sha256"] = logo.artifact.sha256
+            else:
+                logo = None
+
+            da = [logo] if logo else None
+
             namespace = AnsibleNamespaceMetadata(**namespace)
             dc = DeclarativeContent(namespace, d_artifacts=da)
             await self.put(dc)

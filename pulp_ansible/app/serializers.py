@@ -25,6 +25,7 @@ from pulpcore.plugin.serializers import (
     validate_unknown_fields,
     TaskSerializer,
 )
+from pulpcore.plugin.util import get_url
 from rest_framework.exceptions import ValidationError
 
 from .models import (
@@ -749,6 +750,19 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         )
 
 
+class NamespaceLinkField(serializers.HStoreField):
+    """
+    Provides backwards compatible interface for links with the legacy
+    GalaxyNG API.
+    """
+
+    def to_internal_value(self, data):
+        return {x["name"]: x["url"] for x in data}
+
+    def to_representation(self, value):
+        return [{"name": x, "url": value[x]} for x in value]
+
+
 class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     """
     A serializer for Namespaces.
@@ -779,7 +793,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     resources = serializers.CharField(
         allow_blank=True, required=False, help_text=_("Optional resource page in markdown format.")
     )
-    links = serializers.HStoreField(
+    links = NamespaceLinkField(
         child=serializers.URLField(max_length=256),
         required=False,
         help_text=_("Labeled related links."),
@@ -796,17 +810,11 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     metadata_sha256 = serializers.CharField(read_only=True)
 
     def get_avatar_url(self, obj):
-        """Return the avatar url if distribution context has been set."""
-        if obj.avatar_sha256 and ("path" in self.context or "distro_base_path" in self.context):
-            origin = settings.CONTENT_ORIGIN.strip("/")
-            prefix = settings.CONTENT_PATH_PREFIX.strip("/")
-            base_path = self.context.get("path", self.context["distro_base_path"]).strip("/")
-
-            return urljoin(
-                urljoin(urljoin(origin, prefix + "/"), base_path + "/"), f"{obj.name}-avatar"
-            )
+        """Return the avatar url"""
+        if obj.avatar_sha256 or obj.avatar_url:
+            return get_url(obj) + "avatar/"
         else:
-            return obj.avatar_url
+            return None
 
     def validate(self, data):
         """Check that avatar_sha256 is set if avatar was present in upload."""
