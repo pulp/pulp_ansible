@@ -170,6 +170,7 @@ def test_namespace_syncing(
     monitor_task,
     ansible_sync_factory,
     ansible_collection_remote_factory,
+    pulp_admin_user,
 ):
     """Test syncing a Collection w/ a Namespace also syncs the Namespace."""
     # Set up first Repo to have 3 Collections and 3 Namespaces
@@ -197,6 +198,8 @@ def test_namespace_syncing(
     remote = ansible_collection_remote_factory(
         url=distro1.client_url,
         requirements_file=requirements,
+        username=pulp_admin_user.username,
+        password=pulp_admin_user.password,
     )
 
     ansible_sync_factory(ansible_repo=repo2, remote=remote.pulp_href)

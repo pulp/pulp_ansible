@@ -1,7 +1,6 @@
 from gettext import gettext as _
 
 from django.contrib.postgres.search import SearchQuery
-from django.db.models import Q
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters
@@ -16,7 +15,6 @@ from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import dispatch
-from pulpcore.plugin.util import get_objects_for_user
 from pulpcore.plugin.viewsets import (
     DistributionViewSet,
     BaseFilterSet,
