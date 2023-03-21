@@ -41,6 +41,7 @@ class Migration(migrations.Migration):
                 ('avatar_sha256', models.CharField(max_length=64, null=True)),
                 ('metadata_sha256', models.CharField(db_index=True, max_length=64)),
                 ('namespace', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='metadatas', to='ansible.ansiblenamespace')),
+                ('avatar_url', models.CharField(blank=True, default='', max_length=256)),
             ],
             options={
                 'default_related_name': '%(app_label)s_%(model_name)s',
