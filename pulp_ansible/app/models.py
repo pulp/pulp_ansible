@@ -8,7 +8,14 @@ from django.db.models import UniqueConstraint, Q
 from django.db.utils import IntegrityError
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
-from django_lifecycle import AFTER_UPDATE, BEFORE_SAVE, BEFORE_UPDATE, hook
+from django_lifecycle import (
+    AFTER_UPDATE,
+    AFTER_DELETE,
+    AFTER_CREATE,
+    BEFORE_UPDATE,
+    BEFORE_SAVE,
+    hook,
+)
 
 from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
@@ -23,6 +30,7 @@ from pulpcore.plugin.models import (
     EncryptedTextField,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
+
 from .downloaders import AnsibleDownloaderFactory
 
 
@@ -542,6 +550,10 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
         remove_duplicates(new_version)
         validate_repo_version(new_version)
 
+        from pulp_ansible.app.tasks.collectionversion_index import update_index
+
+        update_index(repository_version=new_version, is_latest=True)
+
     @hook(BEFORE_UPDATE, when="remote", has_changed=True)
     def _reset_repository_last_synced_metadata_time(self):
         self.last_synced_metadata_time = None
@@ -557,3 +569,32 @@ class AnsibleDistribution(Distribution, AutoAddObjPermsMixin):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         permissions = [("manage_roles_ansibledistribution", "Can manage roles on distributions")]
+
+    @hook(AFTER_CREATE)
+    @hook(AFTER_UPDATE)
+    @hook(AFTER_DELETE)
+    def _update_index(self):
+        from pulp_ansible.app.tasks.collectionversion_index import update_distribution_index
+
+        update_distribution_index(self)
+
+
+class CrossRepositoryCollectionVersionIndex(models.Model):
+    """
+    A model that indexes all CV content across all repositories.
+    """
+
+    repository = models.ForeignKey(AnsibleRepository, on_delete=models.CASCADE)
+    repository_version = models.ForeignKey(RepositoryVersion, on_delete=models.CASCADE, null=True)
+    collection_version = models.ForeignKey(CollectionVersion, on_delete=models.CASCADE)
+    namespace_metadata = models.ForeignKey(
+        AnsibleNamespaceMetadata, null=True, on_delete=models.SET_NULL
+    )
+
+    is_deprecated = models.BooleanField()
+    is_signed = models.BooleanField()
+    is_highest = models.BooleanField()
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("repository", "repository_version", "collection_version")

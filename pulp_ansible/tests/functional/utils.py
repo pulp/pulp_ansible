@@ -239,7 +239,7 @@ class TestCaseUsingBindings(PulpTestCase):
 class SyncHelpersMixin:
     """A common place for sync helper functions."""
 
-    def _create_repo_and_sync_with_remote(self, remote, **repo_kwargs):
+    def _create_repo_and_sync_with_remote(self, remote, distribution=False, **repo_kwargs):
         """
         Create a repository and then sync with the provided `remote`.
 
@@ -252,6 +252,8 @@ class SyncHelpersMixin:
         # Create the repository.
         repo = self.repo_api.create(gen_repo(**repo_kwargs))
         self.addCleanup(self.repo_api.delete, repo.pulp_href)
+        if distribution:
+            self._create_distribution_from_repo(repo)
         return self._sync_repo(repo, remote=remote.pulp_href)
 
     def _create_repo_with_attached_remote_and_sync(self, remote, **repo_kwargs):

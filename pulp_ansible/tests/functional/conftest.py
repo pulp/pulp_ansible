@@ -10,6 +10,7 @@ from pulpcore.client.pulp_ansible import (
     AnsibleCollectionsApi,
     AnsibleRepositorySyncURL,
     ApiClient,
+    ContentCollectionDeprecationsApi,
     ContentCollectionMarksApi,
     ContentCollectionSignaturesApi,
     ContentCollectionVersionsApi,
@@ -21,11 +22,15 @@ from pulpcore.client.pulp_ansible import (
     RemotesCollectionApi,
     RemotesGitApi,
     RemotesRoleApi,
+    PulpAnsibleApiV3CollectionsApi,
     PulpAnsibleApiV3NamespacesApi,
     PulpAnsibleApiV3PluginAnsibleClientConfigurationApi,
+    PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexVersionsApi,
     PulpAnsibleDefaultApiV3PluginAnsibleClientConfigurationApi,
+    PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexApi,
     PulpAnsibleApiV3PluginAnsibleContentNamespacesApi,
     PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi,
+    PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi,
 )
 
 
@@ -89,6 +94,12 @@ def ansible_distro_api_client(ansible_bindings_client):
 
 
 @pytest.fixture
+def ansible_collection_deprecations_api_client(ansible_bindings_client):
+    """Provides the Ansible Deprecations API client object."""
+    return ContentCollectionDeprecationsApi(ansible_bindings_client)
+
+
+@pytest.fixture
 def ansible_collection_version_api_client(ansible_bindings_client):
     """Provides the Ansible Content Collection Version API client object."""
     return ContentCollectionVersionsApi(ansible_bindings_client)
@@ -140,6 +151,30 @@ def galaxy_v3_plugin_namespaces_api_client(ansible_bindings_client):
 def galaxy_v3_collection_versions_api_client(ansible_bindings_client):
     """Provides the *deprecated* Galaxy V3 Collection Versions API client object."""
     return PulpAnsibleApiV3CollectionsVersionsApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_collections_api_client(ansible_bindings_client):
+    """Provides the *deprecated* Galaxy V3 Collections API client object."""
+    return PulpAnsibleApiV3CollectionsApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_content_collections_index_api_client(ansible_bindings_client):
+    """Provides the Galaxy V3 Collection API client object."""
+    return PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_content_collections_index_versions_api_client(ansible_bindings_client):
+    """Provides the Galaxy V3 Collection Versions API client object."""
+    return PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexVersionsApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_default_search_api_client(ansible_bindings_client):
+    """Provides the Galaxy V3 Search API client object."""
+    return PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi(ansible_bindings_client)
 
 
 # Object Generation Fixtures
