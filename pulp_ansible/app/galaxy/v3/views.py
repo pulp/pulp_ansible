@@ -72,9 +72,17 @@ from pulp_ansible.app.viewsets import (
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
+
+_CAN_VIEW_REPO_CONTENT = {
+    "action": ["list", "retrieve", "download"],
+    "principal": "authenticated",
+    "effect": "allow",
+    "condition": "v3_can_view_repo_content",
+}
+
 _PERMISSIVE_ACCESS_POLICY = {
     "statements": [
-        {"action": "*", "principal": "*", "effect": "allow"},
+        _CAN_VIEW_REPO_CONTENT,
     ],
     "creation_hooks": [],
 }
@@ -203,7 +211,23 @@ class CollectionViewSet(
     filterset_class = CollectionFilter
     pagination_class = LimitOffsetPagination
 
-    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            _CAN_VIEW_REPO_CONTENT,
+            {
+                "action": "destroy",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_perms:ansible.delete_collection",
+            },
+            {
+                "action": ["update", "partial_update"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "v3_can_modify_repo_content",
+            },
+        ],
+    }
 
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
@@ -482,7 +506,20 @@ class CollectionUploadViewSet(
     serializer_class = CollectionVersionUploadSerializer
     pulp_tag_name = "Pulp_Ansible: Artifacts Collections V3"
 
-    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            _CAN_VIEW_REPO_CONTENT,
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_perms:ansible.add_collection",
+                    "v3_can_view_repo_content",
+                ],
+            },
+        ],
+    }
 
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
@@ -673,7 +710,29 @@ class AnsibleNamespaceViewSet(
         "metadata_sha256": ["exact", "in"],
     }
 
-    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            _CAN_VIEW_REPO_CONTENT,
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "conditions": "v3_can_modify_repo_content",
+            },
+            {
+                "action": "delete",
+                "principal": "authenticated",
+                "effect": "allow",
+                "conditions": "v3_can_modify_repo_content",
+            },
+            {
+                "action": "partial_update",
+                "principal": "authenticated",
+                "effect": "allow",
+                "conditions": "v3_can_modify_repo_content",
+            },
+        ],
+    }
 
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
@@ -776,7 +835,17 @@ class CollectionVersionViewSet(
 
     lookup_field = "version"
 
-    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            _CAN_VIEW_REPO_CONTENT,
+            {
+                "action": ["destroy"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_perms:ansible.delete_collection",
+            },
+        ],
+    }
 
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
@@ -1110,6 +1179,8 @@ class ClientConfigurationView(views.APIView):
     """Return configurations for the ansible-galaxy client."""
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+
+    action = "retrieve"
 
     @extend_schema(responses=ClientConfigurationSerializer)
     def get(self, request, *args, **kwargs):

@@ -30,6 +30,7 @@ from pulpcore.plugin.viewsets import (
     RemoteViewSet,
     RepositoryViewSet,
     RepositoryVersionViewSet,
+    RolesMixin,
     SingleArtifactContentUploadViewSet,
 )
 from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units
@@ -99,6 +100,26 @@ class RoleViewSet(ContentViewSet):
     serializer_class = RoleSerializer
     filterset_class = RoleFilter
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": ["create"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
+                    "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
+                    "has_upload_param_model_or_obj_perms:core.change_upload",
+                ],
+            },
+        ],
+    }
+
 
 class CollectionFilter(BaseFilterSet):
     """
@@ -113,7 +134,9 @@ class CollectionFilter(BaseFilterSet):
         fields = ["namespace", "name"]
 
 
-class CollectionViewset(NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin):
+class CollectionViewset(
+    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin, RolesMixin
+):
     """
     Viewset for Ansible Collections.
     """
@@ -201,6 +224,27 @@ class CollectionVersionViewSet(UploadGalaxyCollectionMixin, SingleArtifactConten
     filterset_class = CollectionVersionFilter
     ordering_fields = ("pulp_created", "name", "version", "namespace")
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
+                    "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
+                    "has_upload_param_model_or_obj_perms:core.change_upload",
+                ],
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
 
 class SignatureFilter(ContentFilter):
     """
@@ -234,6 +278,26 @@ class CollectionVersionSignatureViewSet(NoArtifactContentUploadViewSet):
     filterset_class = SignatureFilter
     queryset = CollectionVersionSignature.objects.all()
     serializer_class = CollectionVersionSignatureSerializer
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
+                    "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
+                ],
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
 
 
 class CollectionVersionMarkFilter(ContentFilter):
@@ -275,6 +339,26 @@ class CollectionDeprecatedViewSet(ContentViewSet):
     queryset = AnsibleCollectionDeprecated.objects.all()
     serializer_class = CollectionSerializer
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
+                    "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
+                ],
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
 
 class AnsibleNamespaceFilter(ContentFilter):
     """
@@ -301,7 +385,7 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
     filterset_class = AnsibleNamespaceFilter
 
 
-class RoleRemoteViewSet(RemoteViewSet):
+class RoleRemoteViewSet(RemoteViewSet, RolesMixin):
     """
     ViewSet for Role Remotes.
     """
@@ -309,9 +393,62 @@ class RoleRemoteViewSet(RemoteViewSet):
     endpoint_name = "role"
     queryset = RoleRemote.objects.all()
     serializer_class = RoleRemoteSerializer
+    queryset_filtering_required_permission = "ansible.view_roleremote"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_perms:ansible.add_roleremote",
+            },
+            {
+                "action": "destroy",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.delete_roleremote",
+            },
+            {
+                "action": ["update", "partial_update"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.change_roleremote",
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.manage_roles_roleremote",
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "ansible.roleremote_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+    LOCKED_ROLES = {
+        "ansible.roleremote_creator": ["ansible.add_roleremote"],
+        "ansible.roleremote_owner": [
+            "ansible.view_roleremote",
+            "ansible.change_roleremote",
+            "ansible.delete_roleremote",
+            "ansible.manage_roles_roleremote",
+        ],
+        "ansible.roleremote_viewer": ["ansible.view_roleremote"],
+    }
 
 
-class GitRemoteViewSet(RemoteViewSet):
+class GitRemoteViewSet(RemoteViewSet, RolesMixin):
     """
     ViewSet for Ansible Remotes.
 
@@ -321,9 +458,62 @@ class GitRemoteViewSet(RemoteViewSet):
     endpoint_name = "git"
     queryset = GitRemote.objects.all()
     serializer_class = GitRemoteSerializer
+    queryset_filtering_required_permission = "ansible.view_gitremote"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_perms:ansible.add_gitremote",
+            },
+            {
+                "action": "destroy",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.delete_gitremote",
+            },
+            {
+                "action": ["update", "partial_update"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.change_gitremote",
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.manage_roles_gitremote",
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "ansible.gitremote_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+    LOCKED_ROLES = {
+        "ansible.gitremote_creator": ["ansible.add_gitremote"],
+        "ansible.gitremote_owner": [
+            "ansible.view_gitremote",
+            "ansible.change_gitremote",
+            "ansible.delete_gitremote",
+            "ansible.manage_roles_gitremote",
+        ],
+        "ansible.gitremote_viewer": ["ansible.view_gitremote"],
+    }
 
 
-class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
+class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, RolesMixin):
     """
     ViewSet for Ansible Repositories.
     """
@@ -331,6 +521,136 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin):
     endpoint_name = "ansible"
     queryset = AnsibleRepository.objects.all()
     serializer_class = AnsibleRepositorySerializer
+
+    queryset_filtering_required_permission = "ansible.view_ansiblerepository"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_perms:ansible.add_ansiblerepository",
+            },
+            {
+                "action": "destroy",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.delete_ansiblerepository",
+            },
+            {
+                "action": ["update", "partial_update"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.change_ansiblerepository",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
+                "action": ["modify", "mark", "unmark"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
+                "action": ["rebuild_metadata"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.rebuild_metadata_ansiblerepository",
+                ],
+            },
+            {
+                "action": ["repair"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.repair_ansiblerepository"
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
+                "action": ["sign"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.sign_ansiblerepository",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
+                "action": ["sync"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.sync_ansiblerepository",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    # TODO Update has_remote_param_model_or_obj to handle multiple remote types
+                    # "has_remote_param_model_or_obj_perms:ansible.view_collectionremote",
+                    # "has_remote_param_model_or_obj_perms:ansible.view_gitremote",
+                    # "has_remote_param_model_or_obj_perms:ansible.view_roleremote",
+                ],
+            },
+            {
+                "action": ["copy_collection_version"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:modify_ansible_repo_content",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+                # TODO: create a custom access condition to ensure user has perms on dest repos
+            },
+            {
+                "action": ["move_collection_version"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:modify_ansible_repo_content",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+                # TODO: create a custom access condition to ensure user has perms on dest repos
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.manage_roles_ansiblerepository",
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "ansible.ansiblerepository_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+    LOCKED_ROLES = {
+        "ansible.ansiblerepository_creator": ["ansible.add_ansiblerepository"],
+        "ansible.ansiblerepository_owner": [
+            "ansible.view_ansiblerepository",
+            "ansible.change_ansiblerepository",
+            "ansible.delete_ansiblerepository",
+            "ansible.manage_roles_ansiblerepository",
+            "ansible.modify_ansible_repo_content",
+            "ansible.rebuild_metadata_ansiblerepository",
+            "ansible.repair_ansiblerepository",
+            "ansible.sign_ansiblerepository",
+            "ansible.sync_ansiblerepository",
+        ],
+        "ansible.ansiblerepository_viewer": ["ansible.view_ansiblerepository"],
+    }
 
     @extend_schema(
         description="Trigger an asynchronous task to sync Ansible content.",
@@ -562,6 +882,43 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
 
     parent_viewset = AnsibleRepositoryViewSet
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_repository_model_or_obj_perms:ansible.view_ansiblerepository",
+            },
+            {
+                "action": "destroy",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_repository_model_or_obj_perms:ansible.delete_ansiblerepository",
+                    "has_repository_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
+                "action": ["repair"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_repository_model_or_obj_perms:ansible.repair_ansiblerepository",
+                    "has_repository_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
+                "action": ["rebuild_metadata"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_repository_model_or_obj_perms:ansible.rebuild_metadata_ansiblerepository",
+                ],
+            },
+        ],
+    }
+
     @extend_schema(
         description="Trigger an asynchronous task to rebuild Ansible content meta.",
         responses={202: AsyncOperationResponseSerializer},
@@ -588,7 +945,7 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
         return OperationPostponedResponse(result, request)
 
 
-class CollectionRemoteViewSet(RemoteViewSet):
+class CollectionRemoteViewSet(RemoteViewSet, RolesMixin):
     """
     ViewSet for Collection Remotes.
     """
@@ -597,6 +954,60 @@ class CollectionRemoteViewSet(RemoteViewSet):
     queryset = CollectionRemote.objects.all()
     serializer_class = CollectionRemoteSerializer
     filterset_class = CollectionRemoteFilter
+
+    queryset_filtering_required_permission = "ansible.view_collectionremote"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_perms:ansible.add_collectionremote",
+            },
+            {
+                "action": "destroy",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.delete_collectionremote",
+            },
+            {
+                "action": ["update", "partial_update"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.change_collectionremote",
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.manage_roles_collectionremote",
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "ansible.collectionremote_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+    LOCKED_ROLES = {
+        "ansible.collectionremote_creator": ["ansible.add_collectionremote"],
+        "ansible.collectionremote_owner": [
+            "ansible.view_collectionremote",
+            "ansible.change_collectionremote",
+            "ansible.delete_collectionremote",
+            "ansible.manage_roles_collectionremote",
+        ],
+        "ansible.collectionremote_viewer": ["ansible.view_collectionremote"],
+    }
 
     def async_reserved_resources(self, instance):
         if instance is None:
@@ -656,7 +1067,7 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
         return OperationPostponedResponse(async_result, request)
 
 
-class AnsibleDistributionViewSet(DistributionViewSet):
+class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
     """
     ViewSet for Ansible Distributions.
     """
@@ -664,6 +1075,67 @@ class AnsibleDistributionViewSet(DistributionViewSet):
     endpoint_name = "ansible"
     queryset = AnsibleDistribution.objects.all()
     serializer_class = AnsibleDistributionSerializer
+
+    queryset_filtering_required_permission = "ansible.view_ansibledistribution"
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve", "my_permissions"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_perms:ansible.add_ansibledistribution",
+                    "has_repo_or_repo_ver_param_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
+                "action": "destroy",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.delete_ansibledistribution",
+                ],
+            },
+            {
+                "action": ["update", "partial_update"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.change_ansibledistribution",
+                ],
+            },
+            {
+                "action": ["list_roles", "add_role", "remove_role"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": "has_model_or_obj_perms:ansible.manage_roles_ansibledistribution",
+            },
+        ],
+        "creation_hooks": [
+            {
+                "function": "add_roles_for_object_creator",
+                "parameters": {"roles": "ansible.ansibledistribution_owner"},
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+    LOCKED_ROLES = {
+        "ansible.ansibledistribution_creator": ["ansible.add_ansibledistribution"],
+        "ansible.ansibledistribution_owner": [
+            "ansible.view_ansibledistribution",
+            "ansible.change_ansibledistribution",
+            "ansible.delete_ansibledistribution",
+            "ansible.manage_roles_ansibledistribution",
+        ],
+        "ansible.ansibledistribution_viewer": ["ansible.view_ansibledistribution"],
+    }
 
 
 class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):

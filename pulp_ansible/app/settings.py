@@ -27,3 +27,8 @@ ANSIBLE_SIGNING_TASK_LIMITER = 10
 ANSIBLE_DEFAULT_DISTRIBUTION_PATH = None
 ANSIBLE_URL_NAMESPACE = ""
 ANSIBLE_COLLECT_DOWNLOAD_LOG = False
+
+DRF_ACCESS_POLICY = {
+    "dynaconf_merge_unique": True,
+    "reusable_conditions": ["pulp_ansible.app.global_access_conditions"],
+}

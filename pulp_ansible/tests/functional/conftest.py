@@ -229,3 +229,24 @@ def build_and_upload_collection(ansible_collection_version_api_client):
         return collection, collection_href[0]
 
     return _build_and_upload_collection
+
+
+@pytest.fixture
+def ansible_dir_factory(tmp_path):
+    """A factory to create a local ansible.cfg file with authentication"""
+
+    def _ansible_dir_factory(server, user):
+        ansible_cfg = (
+            "[galaxy]\nserver_list = pulp_ansible\n\n"
+            "[galaxy_server.pulp_ansible]\n"
+            "url = {}\n"
+            "username = {}\n"
+            "password = {}"
+        ).format(server, user.username, user.password)
+
+        cfg_file = "{}/ansible.cfg".format(tmp_path)
+        with open(cfg_file, "w", encoding="utf8") as f:
+            f.write(ansible_cfg)
+        return tmp_path
+
+    return _ansible_dir_factory
