@@ -19,7 +19,8 @@ def v3_can_view_repo_content(request, view, action):
         repo = repo.cast()
 
         if repo.private:
-            return request.user.has_perm("ansible.view_ansiblerepository")
+            perm = "ansible.view_ansiblerepository"
+            return request.user.has_perm(perm) or request.user.has_perm(perm, repo)
 
     return True
 
