@@ -68,12 +68,6 @@ password password
 # Some commands like ansible-galaxy specifically require 600
 cmd_user_stdin_prefix bash -c "chmod 600 ~pulp/.netrc"
 
-cat unittest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/unittest_requirements.txt"
-cat functest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/functest_requirements.txt"
-cmd_prefix pip3 install -r /tmp/unittest_requirements.txt
-cmd_prefix pip3 install -r /tmp/functest_requirements.txt
-cmd_prefix pip3 install --upgrade ../pulp-smash
-
 cd ../pulp-openapi-generator
 ./generate.sh pulp_ansible python
 cmd_prefix pip3 install /root/pulp-openapi-generator/pulp_ansible-client
@@ -82,6 +76,10 @@ sudo rm -rf ./pulp_ansible-client
 cmd_prefix pip3 install /root/pulp-openapi-generator/pulpcore-client
 sudo rm -rf ./pulpcore-client
 cd $REPO_ROOT
+
+cat unittest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/unittest_requirements.txt"
+cat functest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/functest_requirements.txt"
+cmd_prefix pip3 install -r /tmp/unittest_requirements.txt -r /tmp/functest_requirements.txt
 
 CERTIFI=$(cmd_prefix python3 -c 'import certifi; print(certifi.where())')
 cmd_prefix bash -c "cat /etc/pulp/certs/pulp_webserver.crt  | tee -a "$CERTIFI" > /dev/null"
