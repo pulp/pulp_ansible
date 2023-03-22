@@ -1,7 +1,7 @@
 from typing import List
 import semantic_version
 from django.conf import settings
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
@@ -351,6 +351,7 @@ class ClientConfigurationSerializer(serializers.Serializer):
     default_distribution_path = serializers.CharField(allow_null=True)
 
 
+@extend_schema_serializer(component_name="CollectionSummary")
 class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerializer):
     """Collection Version serializer without docs blob."""
 
