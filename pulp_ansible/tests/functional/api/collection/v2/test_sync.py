@@ -1,6 +1,9 @@
 """Tests collection sync using the Galaxy V2 API."""
 import pytest
 from pulpcore.client.pulp_ansible import ApiException
+from pulpcore.client.pulp_ansible import (
+    PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi,
+)
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
@@ -345,3 +348,28 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             "<h1>Docker Community Collection</h1>"
             in after["docs_blob"]["collection_readme"]["html"]
         )
+
+    def test_sync_updates_cv_index(self):
+        # clean up collection versions from previous test
+        delete_orphans()
+
+        body = gen_ansible_remote(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: community.molecule\n    version: 0.1.0",
+            sync_dependencies=False,
+        )
+        remote = self.remote_collection_api.create(body)
+        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
+
+        # this will make the repo and sync the collection from upstream into it
+        # when the builtin repo cleanup is called, the collection will be
+        # orphaned and testcaseusebindings will delete it via orphan_cleanup
+        # in the teardown method
+        repo = self._create_repo_and_sync_with_remote(remote, distribution=True)
+
+        sc = PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi(self.client)
+        cv_list = sc.list(repository_name=[repo.name])
+        assert cv_list.meta.count == 1
+        assert cv_list.data[0].collection_version.namespace == "community"
+        assert cv_list.data[0].collection_version.name == "molecule"
+        assert cv_list.data[0].collection_version.version == "0.1.0"

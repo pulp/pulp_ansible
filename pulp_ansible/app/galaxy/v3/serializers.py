@@ -1,13 +1,14 @@
 from typing import List
 import semantic_version
 from django.conf import settings
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
-from pulp_ansible.app import models
+from pulp_ansible.app import models, serializers as ansible_serializers
 from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
+from pulpcore.plugin import serializers as core_serializers
 
 
 def _get_distro_context(context):
@@ -348,3 +349,70 @@ class ClientConfigurationSerializer(serializers.Serializer):
     """Configuration settings for the ansible-galaxy client."""
 
     default_distribution_path = serializers.CharField(allow_null=True)
+
+
+@extend_schema_serializer(component_name="CollectionSummary")
+class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerializer):
+    """Collection Version serializer without docs blob."""
+
+    class Meta:
+        model = models.CollectionVersion
+        fields = (
+            "pulp_href",
+            "namespace",
+            "name",
+            "version",
+            "requires_ansible",
+            "pulp_created",
+            "contents",
+            "dependencies",
+            "description",
+            "tags",
+        )
+
+
+class NamespaceSummarySerializer(ansible_serializers.AnsibleNamespaceMetadataSerializer):
+    """Namespace serializer without resources."""
+
+    class Meta:
+        model = models.AnsibleNamespaceMetadata
+        fields = (
+            "pulp_href",
+            "name",
+            "company",
+            "description",
+            "avatar",
+            "avatar_url",
+        )
+
+
+class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
+    """Cross-repo search results."""
+
+    # All of these fields have to operate differently from the parent class
+    repository = core_serializers.RepositorySerializer()
+    collection_version = CollectionSummarySerializer()
+    repository_version = serializers.SerializerMethodField()
+
+    is_highest = serializers.BooleanField()
+    is_signed = serializers.BooleanField()
+    is_deprecated = serializers.BooleanField()
+
+    class Meta:
+        model = models.CrossRepositoryCollectionVersionIndex
+
+        fields = (
+            "repository",
+            "collection_version",
+            "repository_version",
+            "namespace_metadata",
+            "is_highest",
+            "is_deprecated",
+            "is_signed",
+        )
+
+    def get_repository_version(self, obj):
+        if obj.repository_version:
+            return obj.repository_version.number
+        else:
+            return "latest"
