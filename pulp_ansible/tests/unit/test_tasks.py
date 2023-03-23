@@ -112,7 +112,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "1.0.1"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
             _update_highest_version(cv, save=True)
 
@@ -131,7 +131,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "2.0.1"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
             _update_highest_version(cv, save=True)
 
@@ -156,7 +156,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "1.0.1-rc2"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
             _update_highest_version(cv, save=True)
 
@@ -176,7 +176,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "1.0.1-rc3"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
             _update_highest_version(cv, save=True)
 
@@ -210,7 +210,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "1.0.1-rc3"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         _update_highest_version(collection_versions[1], save=True)
 
         assert (
@@ -244,7 +244,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "1.0.1-rc3"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions[::-1]:
             _update_highest_version(cv, save=True)
 
@@ -284,7 +284,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "2.0.0-rc1"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
             _update_highest_version(cv, save=True)
 
@@ -310,7 +310,7 @@ class TestCollectionVersionHighest(TestCase):
             (namespace, name, "2.0.0"),
         ]
 
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
             _update_highest_version(cv, save=True)
 
