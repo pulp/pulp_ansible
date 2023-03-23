@@ -1,9 +1,12 @@
 from gettext import gettext as _
 
+import json
+
 from django.db import transaction
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 
 from galaxy_importer.constants import NAME_REGEXP
 from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
@@ -749,14 +752,46 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         )
 
 
+class NamespaceLinkSerializer(serializers.Serializer):
+    """
+    Provides backwards compatible interface for links with the legacy
+    GalaxyNG API.
+    """
+
+    url = serializers.URLField(max_length=256, allow_blank=False)
+    name = serializers.CharField(max_length=256, allow_blank=False)
+
+
+@extend_schema_field(NamespaceLinkSerializer(many=True))
 class NamespaceLinkField(serializers.HStoreField):
     """
     Provides backwards compatible interface for links with the legacy
     GalaxyNG API.
     """
 
+    def get_value(self, dictionary):
+        data = dictionary.get(self.field_name, [])
+
+        # The open api client sends data as a form request rather than json
+        # because of the avatar URL. It converts a list like
+        # [{"foo": "bar"}, {"bar": "foo"}] into "{'foo': 'bar'}, {'bar': 'foo'}"
+        # This is a best effort attempt to capture that data and convert it into
+        # valid JSON and then transform it into a list that the API can understand
+        if isinstance(data, str):
+            try:
+                data = f"[{data}]".replace("'", '"')
+                return json.loads(data)
+            except json.decoder.JSONDecodeError:
+                raise ValidationError(detail={"links": "Must be valid JSON"})
+
+        return super().get_value(dictionary)
+
     def to_internal_value(self, data):
-        return {x["name"]: x["url"] for x in data}
+        if isinstance(data, dict):
+            transformed = data
+        else:
+            transformed = {x["name"]: x["url"] for x in data}
+        return super().to_internal_value(transformed)
 
     def to_representation(self, value):
         return [{"name": x, "url": value[x]} for x in value]

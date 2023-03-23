@@ -385,6 +385,22 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
     serializer_class = AnsibleNamespaceMetadataSerializer
     filterset_class = AnsibleNamespaceFilter
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": "*",
+                "principal": "admin",
+                "effect": "allow",
+            },
+            {
+                "action": "avatar",
+                "principal": "*",
+                "effect": "allow",
+            },
+        ],
+        "creation_hooks": [],
+    }
+
     @extend_schema(
         description="Get the logo for the this namespace.",
         responses={302: HttpResponseRedirect},

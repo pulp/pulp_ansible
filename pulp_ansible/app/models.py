@@ -334,15 +334,8 @@ class AnsibleNamespaceMetadata(Content):
             "description": self.description,
             "resources": self.resources,
             "links": self.links,
+            "avatar_sha256": self.avatar_sha256,
         }
-
-        # If the avatar_url is saved on the model, use it to calculate the sha instead
-        # of the avatar_sha256. This is to support syncing against galaxy_ng, which
-        # does not currently support avatar_sha256.
-        if self.avatar_url:
-            metadata["avatar_url"] = self.avatar_url
-        else:
-            metadata["avatar_sha256"] = self.avatar_sha256
 
         metadata_json = json.dumps(metadata, sort_keys=True).encode("utf-8")
         hasher = hashlib.sha256(metadata_json)

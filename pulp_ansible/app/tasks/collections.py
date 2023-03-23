@@ -680,14 +680,26 @@ class CollectionSyncFirstStage(Stage):
                 await self.put(DeclarativeContent(content=cv_mark))
 
         # Process syncing CV Namespace Metadata if present
-        if metadata["namespace"].get("metadata_sha256"):
+        namespace_sha = metadata["namespace"].get("metadata_sha256")
+        if namespace_sha:
             namespace = collection_version.namespace
+
             if namespace not in self.namespaces_seen:
-                if await self._add_namespace(namespace):
+                if await self._add_namespace(namespace, namespace_sha):
                     self.namespaces_seen.add(namespace)
 
-    async def _add_namespace(self, name):
+    async def _add_namespace(self, name, namespace_sha):
         """Adds A Namespace metadata content to the pipeline."""
+
+        try:
+            ns = await sync_to_async(AnsibleNamespaceMetadata.objects.get)(
+                metadata_sha256=namespace_sha
+            )
+            await self.put(DeclarativeContent(ns))
+            return True
+        except AnsibleNamespaceMetadata.DoesNotExist:
+            pass
+
         endpoint, api_version = await self._get_root_api(self.remote.url)
         namespace_url = f"{endpoint}/namespaces/{name}"
         downloader = self.remote.get_downloader(
@@ -704,38 +716,30 @@ class CollectionSyncFirstStage(Stage):
             # clean up the galaxy API for pulp
             if links:
                 namespace["links"] = {x["name"]: x["url"] for x in links}
+            else:
+                namespace["links"] = dict()
 
             for key in ("pulp_href", "groups", "id", "related_fields"):
                 namespace.pop(key, None)
 
             avatar_sha256 = namespace.get("avatar_sha256", None)
-            url = namespace.get("avatar_url", None)
+            url = namespace.pop("avatar_url", None)
 
-            if url:
-                if avatar_sha256:
-                    a = Artifact(sha256=avatar_sha256)
+            logo = None
+            # don't download the logo if it already exists
+            if not sync_to_async(Artifact.objects.filter(sha256=avatar_sha256).exists):
+                if url:
+                    logo = DeclarativeArtifact(
+                        Artifact(sha256=avatar_sha256),
+                        url=url,
+                        remote=self.remote,
+                        relative_path=f"{name}-avatar",
+                        deferred_download=False,
+                    )
+
+                    await logo.download()
                 else:
-                    a = Artifact()
-                logo = DeclarativeArtifact(
-                    a,
-                    url=url,
-                    remote=self.remote,
-                    relative_path=f"{name}-avatar",
-                    deferred_download=False,
-                )
-
-                await logo.download()
-
-                # If the remote doesn't support avatar_sha256, save the avatar_url to the
-                # database. This will cause the namespace metadata has to be calculated using
-                # the url instead of the sha, which will allow it to be computed correctly for
-                # syncs against galaxy_ng
-                if avatar_sha256:
-                    namespace.pop("avatar_url", None)
-                else:
-                    namespace["avatar_sha256"] = logo.artifact.sha256
-            else:
-                logo = None
+                    logo = None
 
             da = [logo] if logo else None
 

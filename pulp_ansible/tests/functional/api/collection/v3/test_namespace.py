@@ -51,16 +51,26 @@ def test_crud_namespaces(
     repo, distro = ansible_repo_and_distro_factory()
     kwargs = {"path": distro.base_path, "distro_base_path": distro.base_path}
 
+    links = [
+        {"name": "link1", "url": "http://galaxy.ansible.com"},
+        {"name": "link2", "url": "http://begta-galaxy.ansible.com"},
+    ]
+
     # Test Basic Creation
     name = random_string()
     task = galaxy_v3_plugin_namespaces_api_client.create(
-        name=name, description="hello", company="Testing Co.", **kwargs
+        name=name, description="hello", company="Testing Co.", links=links, **kwargs
     )
     result = monitor_task(task.task)
 
     assert len(result.created_resources) == 2
     namespace_href = result.created_resources[1]
     assert "content/ansible/namespaces/" in namespace_href
+
+    def _link_to_dict(resp):
+        return {x.name: x.url for x in resp}
+
+    link_comparison = {x["name"]: x["url"] for x in links}
 
     # Test Reading Namespace from Pulp API
     namespace = ansible_namespaces_api_client.read(namespace_href)
@@ -69,6 +79,7 @@ def test_crud_namespaces(
     assert namespace.description == "hello"
     assert namespace.metadata_sha256 != ""
     assert namespace.avatar_url is None
+    assert _link_to_dict(namespace.links) == link_comparison
 
     # Test Reading Namespace from Galaxy API
     v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
@@ -78,6 +89,7 @@ def test_crud_namespaces(
     assert v3_namespace.description == "hello"
     assert v3_namespace.metadata_sha256 != ""
     assert v3_namespace.avatar_url is None
+    assert _link_to_dict(v3_namespace.links) == link_comparison
 
     v3_list = galaxy_v3_plugin_namespaces_api_client.list(**kwargs)
     assert v3_list.count == 1
@@ -102,7 +114,7 @@ def test_crud_namespaces(
 
     # Test Updating Namespace back to original description brings back original object
     task = galaxy_v3_plugin_namespaces_api_client.partial_update(
-        name=name, description="hello", **kwargs
+        name=name, description="hello", links=links, **kwargs
     )
     result = monitor_task(task.task)
     assert len(result.created_resources) == 2
@@ -149,12 +161,12 @@ def test_namespace_avatar(
 
     namespace = ansible_namespaces_api_client.read(namespace_href)
     assert namespace.avatar_sha256 == avatar_sha256
-    assert namespace.avatar_url is None  # Content view doesn't know of the distribution
+    assert namespace.avatar_url.endswith(f"{namespace_href}avatar/")
 
     v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
     assert v3_namespace.pulp_href == namespace_href
     assert v3_namespace.avatar_sha256 == avatar_sha256
-    assert v3_namespace.avatar_url.endswith(f"{distro.base_path}/{name}-avatar")
+    assert v3_namespace.avatar_url.endswith(f"{namespace_href}avatar/")
 
     r = requests.get(v3_namespace.avatar_url)
     assert r.status_code == 200
