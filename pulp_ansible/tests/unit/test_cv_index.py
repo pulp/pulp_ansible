@@ -14,6 +14,7 @@ class TestCollectionVersionIndex(TestCase):
     """Test Collection Version Cross Repository Index Behavior."""
 
     def test_cv_index_removes_cvs(self):
+        """Ensure when CVs are removed from a repo, the index is also removed."""
         repo_name = randstr()
         base_path = repo_name
         distro_name = repo_name
@@ -55,6 +56,7 @@ class TestCollectionVersionIndex(TestCase):
         assert qs.first().collection_version.version == "1.0.0"
 
     def test_cv_index_retains_ids(self):
+        """Ensure old indexes are retained instead of deleted and recreated."""
         repo_name = randstr()
         base_path = repo_name
         distro_name = repo_name
