@@ -45,6 +45,8 @@ class CollectionVersionContentResource(BaseContentResource):
             row (tablib.Dataset row): incoming import-row representing a single CollectionVersion.
             kwargs: args passed along from the import() call.
         """
+        super().before_import_row(row, **kwargs)
+
         col = Collection.objects.get(name=row["name"], namespace=row["namespace"])
         row["collection"] = str(col.pk)
 
