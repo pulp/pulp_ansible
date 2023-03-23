@@ -1,5 +1,7 @@
+import contextlib
 import hashlib
 import os
+import shutil
 import subprocess
 import tempfile
 
@@ -11,6 +13,7 @@ from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.models import ContentArtifact
 
 
+@contextlib.contextmanager
 def make_cv_tarball(namespace, name, version):
     """Create a collection version from scratch."""
     tdir = tempfile.mkdtemp()
@@ -27,24 +30,25 @@ def make_cv_tarball(namespace, name, version):
         stdout=subprocess.PIPE,
     )
     tarfn = build_pid.stdout.decode("utf-8").strip().split()[-1]
-    return tarfn
+    yield tarfn
+    shutil.rmtree(tdir)
 
 
 def build_cvs_from_specs(specs):
     """Make CVs from namespace.name.version specs."""
     collection_versions = []
     for spec in specs:
-        tarfn = make_cv_tarball(spec[0], spec[1], None)
-        rawbin = open(tarfn, "rb").read()
-        artifact = Artifact.objects.create(
-            sha224=hashlib.sha224(rawbin).hexdigest(),
-            sha256=hashlib.sha256(rawbin).hexdigest(),
-            sha384=hashlib.sha384(rawbin).hexdigest(),
-            sha512=hashlib.sha512(rawbin).hexdigest(),
-            size=os.path.getsize(tarfn),
-            file=SimpleUploadedFile(tarfn, rawbin),
-        )
-        artifact.save()
+        with make_cv_tarball(spec[0], spec[1], None) as tarfn:
+            rawbin = open(tarfn, "rb").read()
+            artifact = Artifact.objects.create(
+                sha224=hashlib.sha224(rawbin).hexdigest(),
+                sha256=hashlib.sha256(rawbin).hexdigest(),
+                sha384=hashlib.sha384(rawbin).hexdigest(),
+                sha512=hashlib.sha512(rawbin).hexdigest(),
+                size=os.path.getsize(tarfn),
+                file=SimpleUploadedFile(tarfn, rawbin),
+            )
+            artifact.save()
 
         col, _ = Collection.objects.get_or_create(name=spec[0])
         col.save()
