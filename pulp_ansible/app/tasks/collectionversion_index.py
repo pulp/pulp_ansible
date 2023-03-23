@@ -93,19 +93,17 @@ def update_index(distribution=None, repository=None, repository_version=None, is
         if CVIndex.objects.filter(repository_version=repository_version).exists():
             return
 
-    # If using a repository version and this is the latest version,
-    # clean up entries for the previous repository versions.
-    # If we don't do this, the row count will grow exponentially.
-    if is_latest and not use_repository_version:
-        CVIndex.objects.filter(repository=repository).exclude(
-            repository_version=repository_version
-        ).delete()
-
     # get all CVs in this repository version
     cvs = repository_version.content.filter(pulp_type="ansible.collection_version").values_list(
         "pk", flat=True
     )
     cvs = CollectionVersion.objects.filter(pk__in=cvs)
+
+    # clean out cvs no longer in the repo when a distro w/ a repo
+    if not use_repository_version:
+        CVIndex.objects.filter(repository=repository, repository_version=None).exclude(
+            collection_version__pk__in=cvs
+        ).delete()
 
     # get the set of signatures in this repo version
     repo_signatures_pks = repository_version.content.filter(
@@ -130,6 +128,10 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     # map out the namespace(s).name(s) for everything in the repo version
     colset = set(cvs.values_list("namespace", "name").distinct())
 
+    repo_v = None
+    if use_repository_version:
+        repo_v = repository_version
+
     # iterate through each collection in the repository
     for colkey in colset:
         namespace, name = colkey
@@ -147,10 +149,6 @@ def update_index(distribution=None, repository=None, repository_version=None, is
         for rcv in related_cvs:
             # get the related signatures for this CV
             rcv_signatures = repo_signatures.filter(signed_collection=rcv).count()
-
-            repo_v = None
-            if use_repository_version:
-                repo_v = repository_version
 
             # create|update the index for this CV
             CVIndex.objects.update_or_create(
