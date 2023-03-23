@@ -31,7 +31,7 @@ class TestCollectionVersionIndex(TestCase):
             (ns, "foo", "1.0.0"),
             (ns, "bar", "1.0.0"),
         ]
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         cv_pks = [x.pk for x in collection_versions]
         qs = CollectionVersion.objects.filter(pk__in=cv_pks)
         with repo.new_version() as new_version:
@@ -71,7 +71,7 @@ class TestCollectionVersionIndex(TestCase):
         specs = [
             (ns, "bar", "1.0.0"),
         ]
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         cv_pks = [x.pk for x in collection_versions]
         qs = CollectionVersion.objects.filter(pk__in=cv_pks)
         with repo.new_version() as new_version:
@@ -87,7 +87,7 @@ class TestCollectionVersionIndex(TestCase):
         specs = [
             (ns, "bar", "2.0.0"),
         ]
-        collection_versions = build_cvs_from_specs(specs)
+        collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         cv_pks = [x.pk for x in collection_versions]
         qs = CollectionVersion.objects.filter(pk__in=cv_pks)
         with repo.new_version() as new_version:

@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import yaml
 
 from django.core.files.uploadedfile import SimpleUploadedFile
 
@@ -23,6 +24,12 @@ def make_cv_tarball(namespace, name, version):
         f.write('requires_ansible: ">=2.13"\n')
     with open(os.path.join(tdir, namespace, name, "README.md"), "w") as f:
         f.write("# title\ncollection docs\n")
+    if version is not None:
+        with open(os.path.join(tdir, namespace, name, "galaxy.yml"), "r") as f:
+            gdata = yaml.load(f.read())
+        gdata["version"] = version
+        with open(os.path.join(tdir, namespace, name, "galaxy.yml"), "w") as f:
+            f.write(yaml.dump(gdata))
     build_pid = subprocess.run(
         "ansible-galaxy collection build .",
         shell=True,
@@ -34,30 +41,32 @@ def make_cv_tarball(namespace, name, version):
     shutil.rmtree(tdir)
 
 
-def build_cvs_from_specs(specs):
-    """Make CVs from namespace.name.version specs."""
+def build_cvs_from_specs(specs, build_artifacts=True):
+    """Make CVs from a list of [namespace, name, version] specs."""
     collection_versions = []
     for spec in specs:
-        with make_cv_tarball(spec[0], spec[1], None) as tarfn:
-            rawbin = open(tarfn, "rb").read()
-            artifact = Artifact.objects.create(
-                sha224=hashlib.sha224(rawbin).hexdigest(),
-                sha256=hashlib.sha256(rawbin).hexdigest(),
-                sha384=hashlib.sha384(rawbin).hexdigest(),
-                sha512=hashlib.sha512(rawbin).hexdigest(),
-                size=os.path.getsize(tarfn),
-                file=SimpleUploadedFile(tarfn, rawbin),
-            )
-            artifact.save()
-
         col, _ = Collection.objects.get_or_create(name=spec[0])
         col.save()
         cv = CollectionVersion(collection=col, namespace=spec[0], name=spec[1], version=spec[2])
         cv.save()
-        ca = ContentArtifact.objects.create(
-            artifact=artifact, content=cv, relative_path=cv.relative_path
-        )
-        ca.save()
         collection_versions.append(cv)
+
+        if build_artifacts:
+            with make_cv_tarball(spec[0], spec[1], spec[2]) as tarfn:
+                rawbin = open(tarfn, "rb").read()
+                artifact = Artifact.objects.create(
+                    sha224=hashlib.sha224(rawbin).hexdigest(),
+                    sha256=hashlib.sha256(rawbin).hexdigest(),
+                    sha384=hashlib.sha384(rawbin).hexdigest(),
+                    sha512=hashlib.sha512(rawbin).hexdigest(),
+                    size=os.path.getsize(tarfn),
+                    file=SimpleUploadedFile(tarfn, rawbin),
+                )
+                artifact.save()
+
+            ca = ContentArtifact.objects.create(
+                artifact=artifact, content=cv, relative_path=cv.relative_path
+            )
+            ca.save()
 
     return collection_versions
