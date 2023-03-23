@@ -8,6 +8,8 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSearchListSerializer,
 )
 
+from pulpcore.plugin.util import get_url
+
 from pulp_ansible.app.models import CrossRepositoryCollectionVersionIndex, AnsibleDistribution
 
 from pulp_ansible.app.galaxy.v3.filters import CollectionVersionSearchFilter
@@ -77,6 +79,7 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
             CrossRepositoryCollectionVersionIndex.objects.select_related("repository")
             .select_related("collection_version")
             .select_related("repository_version")
+            .select_related("namespace_metadata")
             .all()
         )
 
@@ -86,6 +89,6 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
             exclusive_resources=[
                 "/pulp_ansible/galaxy/default/api/v3/plugin/ansible/search/collection-versions/"
             ],
-            shared_resources=[AnsibleDistribution],
+            shared_resources=[get_url(AnsibleDistribution)],
         )
         return OperationPostponedResponse(async_result, request)
