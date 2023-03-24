@@ -722,26 +722,21 @@ class CollectionSyncFirstStage(Stage):
             for key in ("pulp_href", "groups", "id", "related_fields"):
                 namespace.pop(key, None)
 
-            avatar_sha256 = namespace.get("avatar_sha256", None)
             url = namespace.pop("avatar_url", None)
 
-            logo = None
-            # don't download the logo if it already exists
-            if not sync_to_async(Artifact.objects.filter(sha256=avatar_sha256).exists):
-                if url:
-                    logo = DeclarativeArtifact(
-                        Artifact(sha256=avatar_sha256),
+            da = (
+                [
+                    DeclarativeArtifact(
+                        Artifact(sha256=namespace["avatar_sha256"]),
                         url=url,
                         remote=self.remote,
                         relative_path=f"{name}-avatar",
                         deferred_download=False,
                     )
-
-                    await logo.download()
-                else:
-                    logo = None
-
-            da = [logo] if logo else None
+                ]
+                if url
+                else None
+            )
 
             namespace = AnsibleNamespaceMetadata(**namespace)
             dc = DeclarativeContent(namespace, d_artifacts=da)
