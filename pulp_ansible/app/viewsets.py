@@ -411,14 +411,9 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
         Dispatches a collection version rebuild task.
         """
         ns = self.get_object()
-
         artifact = ns.avatar_artifact
-
         if artifact:
             return HttpResponseRedirect(get_artifact_url(artifact))
-
-        if ns.avatar_url:
-            return HttpResponseRedirect(ns.avatar_url)
 
         return HttpResponseNotFound()
 

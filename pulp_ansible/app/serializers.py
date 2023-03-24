@@ -845,7 +845,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
     def get_avatar_url(self, obj):
         """Return the avatar url"""
-        if obj.avatar_sha256 or obj.avatar_url:
+        if obj.avatar_sha256:
             return settings.ANSIBLE_API_HOSTNAME + get_url(obj) + "avatar/"
         else:
             return None
