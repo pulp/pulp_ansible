@@ -8,11 +8,11 @@
 #
 # For more info visit https://github.com/pulp/plugin_template
 
+set -mveuo pipefail
+
 # make sure this script runs at the repo root
 cd "$(dirname "$(realpath -e "$0")")"/../../..
 REPO_ROOT="$PWD"
-
-set -mveuo pipefail
 
 source .github/workflows/scripts/utils.sh
 
@@ -44,21 +44,16 @@ if [[ "$TEST" = "docs" ]]; then
   exit
 fi
 
+REPORTED_STATUS="$(pulp status)"
+
 if [[ "${RELEASE_WORKFLOW:-false}" == "true" ]]; then
-  STATUS_ENDPOINT="${PULP_URL}${PULP_API_ROOT}api/v3/status/"
-  echo $STATUS_ENDPOINT
-  REPORTED_VERSION=$(http $STATUS_ENDPOINT | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
+  REPORTED_VERSION="$(echo $REPORTED_STATUS | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')"
   response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible/$REPORTED_VERSION/)
   if [ "$response" == "200" ];
   then
     echo "pulp_ansible $REPORTED_VERSION has already been released. Skipping running tests."
     exit
   fi
-fi
-
-if [[ "$TEST" == "plugin-from-pypi" ]]; then
-  COMPONENT_VERSION=$(http https://pypi.org/pypi/pulp-ansible/json | jq -r '.info.version')
-  git checkout ${COMPONENT_VERSION} -- pulp_ansible/tests/
 fi
 
 echo "machine pulp
@@ -69,12 +64,13 @@ password password
 cmd_user_stdin_prefix bash -c "chmod 600 ~pulp/.netrc"
 
 cd ../pulp-openapi-generator
-./generate.sh pulp_ansible python
-cmd_prefix pip3 install /root/pulp-openapi-generator/pulp_ansible-client
-sudo rm -rf ./pulp_ansible-client
-./generate.sh pulpcore python
-cmd_prefix pip3 install /root/pulp-openapi-generator/pulpcore-client
-sudo rm -rf ./pulpcore-client
+for item in $(echo "$REPORTED_STATUS" | jq -r '.versions[].package|sub("-"; "_")')
+do
+./generate.sh "${item}" python
+cmd_prefix pip3 install "/root/pulp-openapi-generator/${item}-client"
+sudo rm -rf "./${item}-client"
+done
+
 cd $REPO_ROOT
 
 cat unittest_requirements.txt | cmd_stdin_prefix bash -c "cat > /tmp/unittest_requirements.txt"
