@@ -68,6 +68,10 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
     pagination_class = LimitOffsetPagination
     filterset_class = CollectionVersionSearchFilter
 
+    def urlpattern(*args, **kwargs):
+        """Helper for galaxy_ng access control."""
+        return "pulp_ansible/v3/search/collection_versions"
+
     def get_queryset(self):
         return (
             CrossRepositoryCollectionVersionIndex.objects.select_related("repository")
