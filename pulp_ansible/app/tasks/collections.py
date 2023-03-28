@@ -680,14 +680,26 @@ class CollectionSyncFirstStage(Stage):
                 await self.put(DeclarativeContent(content=cv_mark))
 
         # Process syncing CV Namespace Metadata if present
-        if metadata["namespace"].get("metadata_sha256"):
+        namespace_sha = metadata["namespace"].get("metadata_sha256")
+        if namespace_sha:
             namespace = collection_version.namespace
+
             if namespace not in self.namespaces_seen:
-                if await self._add_namespace(namespace):
+                if await self._add_namespace(namespace, namespace_sha):
                     self.namespaces_seen.add(namespace)
 
-    async def _add_namespace(self, name):
+    async def _add_namespace(self, name, namespace_sha):
         """Adds A Namespace metadata content to the pipeline."""
+
+        try:
+            ns = await sync_to_async(AnsibleNamespaceMetadata.objects.get)(
+                metadata_sha256=namespace_sha
+            )
+            await self.put(DeclarativeContent(ns))
+            return True
+        except AnsibleNamespaceMetadata.DoesNotExist:
+            pass
+
         endpoint, api_version = await self._get_root_api(self.remote.url)
         namespace_url = f"{endpoint}/namespaces/{name}"
         downloader = self.remote.get_downloader(
@@ -699,8 +711,19 @@ class CollectionSyncFirstStage(Stage):
             pass
         else:
             namespace = parse_metadata(result)
-            namespace.pop("pulp_href", None)
+            links = namespace.get("links", None)
+
+            # clean up the galaxy API for pulp
+            if links:
+                namespace["links"] = {x["name"]: x["url"] for x in links}
+            else:
+                namespace["links"] = dict()
+
+            for key in ("pulp_href", "groups", "id", "related_fields"):
+                namespace.pop(key, None)
+
             url = namespace.pop("avatar_url", None)
+
             da = (
                 [
                     DeclarativeArtifact(
@@ -714,6 +737,7 @@ class CollectionSyncFirstStage(Stage):
                 if url
                 else None
             )
+
             namespace = AnsibleNamespaceMetadata(**namespace)
             dc = DeclarativeContent(namespace, d_artifacts=da)
             await self.put(dc)

@@ -6,7 +6,7 @@ from django.db.models import Q
 from pulp_ansible.app.models import (
     AnsibleDistribution,
     AnsibleCollectionDeprecated,
-    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     AnsibleRepository,
     CollectionVersion,
     CollectionVersionSignature,
@@ -119,10 +119,7 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     deprecations_set = {(x.namespace, x.name) for x in deprecations}
 
     # find all namespaces in the repo version
-    namespaces = repository_version.content.filter(pulp_type="ansible.namespace").values_list(
-        "pk", flat=True
-    )
-    namespaces = AnsibleNamespace.objects.filter(pk__in=namespaces)
+    namespaces = repository_version.get_content(content_qs=AnsibleNamespaceMetadata.objects).all()
     namespaces = {x.name: x for x in namespaces}
 
     # map out the namespace(s).name(s) for everything in the repo version

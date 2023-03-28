@@ -4,6 +4,7 @@ from django.contrib.postgres.search import SearchQuery
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters
+from django.http import HttpResponseRedirect, HttpResponseNotFound
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
@@ -33,7 +34,7 @@ from pulpcore.plugin.viewsets import (
     RolesMixin,
     SingleArtifactContentUploadViewSet,
 )
-from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units
+from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units, get_artifact_url
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleCollectionDeprecated,
@@ -383,6 +384,38 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
     queryset = AnsibleNamespaceMetadata.objects.all()
     serializer_class = AnsibleNamespaceMetadataSerializer
     filterset_class = AnsibleNamespaceFilter
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": "*",
+                "principal": "admin",
+                "effect": "allow",
+            },
+            {
+                "action": "avatar",
+                "principal": "*",
+                "effect": "allow",
+            },
+        ],
+        "creation_hooks": [],
+    }
+
+    @extend_schema(
+        description="Get the logo for the this namespace.",
+        responses={302: HttpResponseRedirect},
+    )
+    @action(detail=True, methods=["get"], serializer_class=None)
+    def avatar(self, request, pk):
+        """
+        Dispatches a collection version rebuild task.
+        """
+        ns = self.get_object()
+        artifact = ns.avatar_artifact
+        if artifact:
+            return HttpResponseRedirect(get_artifact_url(artifact))
+
+        return HttpResponseNotFound()
 
 
 class RoleRemoteViewSet(RemoteViewSet, RolesMixin):

@@ -393,6 +393,7 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
     repository = core_serializers.RepositorySerializer()
     collection_version = CollectionSummarySerializer()
     repository_version = serializers.SerializerMethodField()
+    namespace_metadata = NamespaceSummarySerializer(allow_null=True)
 
     is_highest = serializers.BooleanField()
     is_signed = serializers.BooleanField()

@@ -1,10 +1,12 @@
 from gettext import gettext as _
 
+import json
+
 from django.db import transaction
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
-from urllib.parse import urljoin
+from drf_spectacular.utils import extend_schema_field
 
 from galaxy_importer.constants import NAME_REGEXP
 from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
@@ -25,6 +27,7 @@ from pulpcore.plugin.serializers import (
     validate_unknown_fields,
     TaskSerializer,
 )
+from pulpcore.plugin.util import get_url
 from rest_framework.exceptions import ValidationError
 
 from .models import (
@@ -749,6 +752,51 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         )
 
 
+class NamespaceLinkSerializer(serializers.Serializer):
+    """
+    Provides backwards compatible interface for links with the legacy
+    GalaxyNG API.
+    """
+
+    url = serializers.URLField(max_length=256, allow_blank=False)
+    name = serializers.CharField(max_length=256, allow_blank=False)
+
+
+@extend_schema_field(NamespaceLinkSerializer(many=True))
+class NamespaceLinkField(serializers.HStoreField):
+    """
+    Provides backwards compatible interface for links with the legacy
+    GalaxyNG API.
+    """
+
+    def get_value(self, dictionary):
+        data = dictionary.get(self.field_name, [])
+
+        # The open api client sends data as a form request rather than json
+        # because of the avatar URL. It converts a list like
+        # [{"foo": "bar"}, {"bar": "foo"}] into "{'foo': 'bar'}, {'bar': 'foo'}"
+        # This is a best effort attempt to capture that data and convert it into
+        # valid JSON and then transform it into a list that the API can understand
+        if isinstance(data, str):
+            try:
+                data = f"[{data}]".replace("'", '"')
+                return json.loads(data)
+            except json.decoder.JSONDecodeError:
+                raise ValidationError(detail={"links": "Must be valid JSON"})
+
+        return super().get_value(dictionary)
+
+    def to_internal_value(self, data):
+        if isinstance(data, dict):
+            transformed = data
+        else:
+            transformed = {x["name"]: x["url"] for x in data}
+        return super().to_internal_value(transformed)
+
+    def to_representation(self, value):
+        return [{"name": x, "url": value[x]} for x in value]
+
+
 class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     """
     A serializer for Namespaces.
@@ -779,7 +827,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     resources = serializers.CharField(
         allow_blank=True, required=False, help_text=_("Optional resource page in markdown format.")
     )
-    links = serializers.HStoreField(
+    links = NamespaceLinkField(
         child=serializers.URLField(max_length=256),
         required=False,
         help_text=_("Labeled related links."),
@@ -796,16 +844,11 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     metadata_sha256 = serializers.CharField(read_only=True)
 
     def get_avatar_url(self, obj):
-        """Return the avatar url if distribution context has been set."""
-        if obj.avatar_sha256 and ("path" in self.context or "distro_base_path" in self.context):
-            origin = settings.CONTENT_ORIGIN.strip("/")
-            prefix = settings.CONTENT_PATH_PREFIX.strip("/")
-            base_path = self.context.get("path", self.context["distro_base_path"]).strip("/")
-
-            return urljoin(
-                urljoin(urljoin(origin, prefix + "/"), base_path + "/"), f"{obj.name}-avatar"
-            )
-        return None
+        """Return the avatar url"""
+        if obj.avatar_sha256:
+            return settings.ANSIBLE_API_HOSTNAME + get_url(obj) + "avatar/"
+        else:
+            return None
 
     def validate(self, data):
         """Check that avatar_sha256 is set if avatar was present in upload."""
