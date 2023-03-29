@@ -75,13 +75,19 @@ class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
         return "pulp_ansible/v3/search/collection_versions"
 
     def get_queryset(self):
-        return (
+        qs = (
             CrossRepositoryCollectionVersionIndex.objects.select_related("repository")
             .select_related("collection_version")
             .select_related("repository_version")
             .select_related("namespace_metadata")
             .all()
         )
+
+        for permission_class in self.get_permissions():
+            if hasattr(permission_class, "scope_queryset"):
+                qs = permission_class.scope_queryset(self, qs)
+
+        return qs
 
     def rebuild(self, request, *args, **kwargs):
         async_result = dispatch(
