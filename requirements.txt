@@ -4,7 +4,7 @@ galaxy_importer~=0.4.1
 GitPython~=3.1.24
 jsonschema~=4.4
 packaging~=21.3
-pulpcore>=3.18,<3.20
+pulpcore>=3.18.0,<3.20
 PyYAML<6.0
 semantic_version~=2.10
 setuptools>=39.2,<66.2.0
