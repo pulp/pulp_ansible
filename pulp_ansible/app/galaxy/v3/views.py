@@ -866,9 +866,11 @@ class CollectionVersionViewSet(
         Returns paginated CollectionVersions list.
         """
         queryset = self.filter_queryset(self.get_queryset())
-        queryset = sorted(
-            queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
-        )
+
+        # This is -very- slow when the collection has many versions.
+        # queryset = sorted(
+        #    queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
+        # )
 
         context = self.get_serializer_context()
         page = self.paginate_queryset(queryset)
