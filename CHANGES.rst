@@ -13,6 +13,78 @@ Changelog
 
 .. towncrier release notes start
 
+0.17.0 (2023-03-30)
+===================
+
+Features
+--------
+
+- Added Namespace metadata content model and Galaxy endpoints `v3/namespaces/` & `v3/plugin/ansible/content/<base_path>/namespaces/`.
+
+  Added ability to sync Namespaces during Collection syncs.
+  `#735 <https://github.com/pulp/pulp_ansible/issues/735>`__
+- Add a cross repository collection version index for fast searching and filtering.
+  `#739 <https://github.com/pulp/pulp_ansible/issues/739>`__
+- Added "total" count on "sync.parsing.metadata" progress report.
+  `#1219 <https://github.com/pulp/pulp_ansible/issues/1219>`__
+- Added Role Based Access Control.
+  New default roles (creator, owner, viewer) have been added for ``AnsibleRepository``, ``AnsibleDistribution``,
+  ``CollectionRemote``, ``RoleRemote``, and ``GitRemote``.
+  New detail role management endpoints (``my_permissions``, ``list_roles``, ``add_role``,
+  ``remove_role``) have been added to ``AnsibleRepository``, ``AnsibleDistribution``, ``CollectionRemote``,
+  ``GitRemote``, and ``RoleRemote``.
+  `#1290 <https://github.com/pulp/pulp_ansible/issues/1290>`__
+- Add CollectionVersionMark as a content
+  `#1325 <https://github.com/pulp/pulp_ansible/issues/1325>`__
+- Added ``last_sync_task`` field to ``CollectionRemote`` and ``AnsibleRepository``.
+  Added filtering by ``url`` in ``CollectionRemote``.
+  `#1344 <https://github.com/pulp/pulp_ansible/issues/1344>`__
+- Created POST ``{repo_href}/copy_collection_version/`` and POST
+  ``{repo_href}/copy_collection_version/`` API endpoints which
+  allow for copying and moving collections between repos.
+  `#1394 <https://github.com/pulp/pulp_ansible/issues/1394>`__
+
+
+Bugfixes
+--------
+
+- GitRemotes can now be attached to an AnsibleRepository.
+  `#1140 <https://github.com/pulp/pulp_ansible/issues/1140>`__
+- Fixed a 500 server error in the ``repositories/ansible/ansible/{repository_pk}/versions/{number}/rebuild_metadata/`` endpoint.
+  `#1322 <https://github.com/pulp/pulp_ansible/issues/1322>`__
+- Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
+  PEP-440 parsing.
+  `#1340 <https://github.com/pulp/pulp_ansible/issues/1340>`__
+- Fixed duplicate operationIDs in Galaxy V1 & V2 API endpoint schemas.
+  `#1356 <https://github.com/pulp/pulp_ansible/issues/1356>`__
+- Fix exclude list when syncing from galaxy_ng.
+  `#1381 <https://github.com/pulp/pulp_ansible/issues/1381>`__
+- Fixed broken sync form servers without signatures or marks.
+  `#1387 <https://github.com/pulp/pulp_ansible/issues/1387>`__
+- Fix 404 on collection detail routing for collections with a name of "collections".
+  `#1388 <https://github.com/pulp/pulp_ansible/issues/1388>`__
+- Pre-release collection versions should only be higher than stable releases when none exist.
+  `#1391 <https://github.com/pulp/pulp_ansible/issues/1391>`__
+- Selectively delete indexes for content no longer in the repo.
+  `#1396 <https://github.com/pulp/pulp_ansible/issues/1396>`__
+
+
+Improved Documentation
+----------------------
+
+- Fixed linebreak issues in remote workflow cli examples.
+  `#1328 <https://github.com/pulp/pulp_ansible/issues/1328>`__
+
+
+Misc
+----
+
+- `#1349 <https://github.com/pulp/pulp_ansible/issues/1349>`__
+
+
+----
+
+
 0.16.1 (2023-02-23)
 ===================
 
