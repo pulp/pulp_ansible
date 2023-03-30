@@ -4,4 +4,4 @@ pytest
 dynaconf
 numpy
 pulpcore-client
-pulp-ansible-client==0.17.0.dev
+pulp-ansible-client
