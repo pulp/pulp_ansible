@@ -26,10 +26,10 @@ def make_cv_tarball(namespace, name, version):
         f.write("# title\ncollection docs\n")
     if version is not None:
         with open(os.path.join(tdir, namespace, name, "galaxy.yml"), "r") as f:
-            gdata = yaml.load(f.read())
+            gdata = yaml.safe_load(f.read())
         gdata["version"] = version
         with open(os.path.join(tdir, namespace, name, "galaxy.yml"), "w") as f:
-            f.write(yaml.dump(gdata))
+            f.write(yaml.safe_dump(gdata))
     build_pid = subprocess.run(
         "ansible-galaxy collection build .",
         shell=True,
