@@ -41,8 +41,11 @@ from .models import (
     CollectionImport,
     CollectionVersion,
     CollectionVersionSignature,
+    CollectionVersionSigstoreSignature,
     CollectionRemote,
     Role,
+    SigstoreSigningService,
+    SigstoreVerifyingService,
     Tag,
 )
 from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
@@ -51,6 +54,7 @@ from pulp_ansible.app.tasks.utils import (
     parse_collection_filename,
 )
 from pulp_ansible.app.tasks.signature import verify_signature_upload
+from pulp_ansible.app.sigstore.tasks.sigstore_signature import verify_sigstore_signature_upload
 from pulp_ansible.app.tasks.upload import process_collection_artifact, finish_collection_upload
 
 
@@ -128,6 +132,156 @@ class GitRemoteSerializer(RemoteSerializer):
         )
 
 
+class SigstoreSigningServiceSerializer(NoArtifactContentUploadSerializer):
+    """
+    A serializer for Sigstore signing services.
+    """
+    name = serializers.CharField(
+        help_text=_("A unique name used to recognize a Sigstore signing service"),
+        required=True,
+    )
+    rekor_url = serializers.CharField(
+        initial="https://rekor.sigstore.dev",
+        required=True,
+        help_text=_(
+            "The URL of the Rekor instance to use for logging signatures. "
+            "Defaults to the Rekor public good instance URL "
+            "(https://rekor.sigstore.dev) if not specified"
+        ),
+    )
+    fulcio_url = serializers.CharField(
+        initial="https://fulcio.sigstore.dev",
+        required=True,
+        help_text=_(
+            "The URL of the Fulcio instance for getting signing certificates. "
+            "Defaults to the Fulcio public good instance URL "
+            "(https://fulcio.sigstore.dev) if not specified"
+        ),
+    )
+    tuf_url = serializers.CharField(
+        initial="https://sigstore-tuf-root.storage.googleapis.com/",
+        required=True,
+        help_text=_(
+            "The URL of the TUF metadata repository instance to use. "
+            "Defaults to the public TUF instance URL "
+            "(https://sigstore-tuf-root.storage.googleapis.com/) if not specified. "
+        ),
+    )
+    rekor_root_pubkey = serializers.CharField(
+        help_text=_("A PEM-encoded root public key for Rekor itself"),
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+    )
+    oidc_issuer = serializers.CharField(
+        initial="https://oauth2.sigstore.dev",
+        required=True,
+        help_text=_(
+            "The OpenID Connect issuer to use for signing and to check "
+            "for in the certificate's OIDC issuer extension. "
+            "Defaults to the public OAuth2 server URL (https://oauth2.sigstore.dev/auth) "
+            "if not specified."
+        ),
+    )
+    credentials_file_path = serializers.CharField(
+        required=True,
+        help_text=_(
+            "Path to the OIDC client ID and client secret file "
+            "on the server to authentify to Sigstore."
+        ),
+    )
+    ctfe_pubkey = serializers.CharField(
+        help_text=_("A PEM-encoded public key for the CT log"),
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+    )
+    enable_interactive = serializers.BooleanField(
+        help_text=_(
+            "Enable Sigstore's interactive browser flow. Defaults to 'false' if not specified."
+        ),
+        default=False,
+    )
+
+    class Meta:
+        model = SigstoreSigningService
+        fields = NoArtifactContentUploadSerializer.Meta.fields + (
+            "name",
+            "rekor_url",
+            "fulcio_url",
+            "tuf_url",
+            "rekor_root_pubkey",
+            "oidc_issuer",
+            "credentials_file_path",
+            "ctfe_pubkey",
+            "enable_interactive",
+        )
+        extra_kwargs = {"view_name": "sigstore-signing-services-detail"}
+
+
+class SigstoreVerifyingServiceSerializer(NoArtifactContentUploadSerializer):
+    """
+    A serializer for Sigstore verifying services.
+    """
+    name = serializers.CharField(
+        help_text=_("A unique name used to recognize a Sigstore verifying service"),
+        required=True,
+    )
+    rekor_url = serializers.CharField(
+        initial="https://rekor.sigstore.dev",
+        required=True,
+        help_text=_(
+            "The URL of the Rekor instance to use for verifying signature logs"
+        ),
+    )
+    rekor_root_pubkey = serializers.CharField(
+        help_text=_("A PEM-encoded root public key for Rekor itself"),
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+    )
+    certificate_chain = serializers.CharField(
+        help_text=_(
+            "A list of PEM-encoded CA certificates needed to build the Fulcio signing certificate chain."
+        ),
+        allow_null=True,
+        allow_blank=True,
+        required=False,
+    )
+    expected_oidc_issuer = serializers.CharField(
+        help_text=_(
+            "The expected OIDC issuer in the signing certificate."
+        ),
+        required=True,
+    )
+    expected_identity = serializers.CharField(
+        help_text=_(
+            "The expected identity in the signing certificate."
+        ),
+        required=True,
+    )
+    verify_offline = serializers.BooleanField(
+        help_text=_(
+            "Verify the signature offline."
+        ),
+        required=False,
+        default=False,
+    )
+
+    class Meta:
+        model = SigstoreVerifyingService
+        fields = NoArtifactContentUploadSerializer.Meta.fields + (
+            "name",
+            "rekor_url",
+            "rekor_root_pubkey",
+            "certificate_chain",
+            "expected_oidc_issuer",
+            "expected_identity",
+            "verify_offline",
+        )
+        extra_kwargs = {"view_name": "sigstore-verifying-services-detail"}
+
+
 class AnsibleRepositorySerializer(RepositorySerializer):
     """
     Serializer for Ansible Repositories.
@@ -143,6 +297,14 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     )
 
     last_sync_task = serializers.SerializerMethodField()
+    sigstore_signing_service = DetailRelatedField(
+        help_text=_("A Sigstore service to use to sign the collections"),
+        queryset=SigstoreSigningService.objects.all(),
+    )
+    sigstore_verifying_service = DetailRelatedField(
+        help_text=_("A Sigstore service used to verify the collection signatures"),
+        queryset=SigstoreVerifyingService.objects.all(),
+    )
 
     class Meta:
         fields = RepositorySerializer.Meta.fields + (
@@ -150,6 +312,8 @@ class AnsibleRepositorySerializer(RepositorySerializer):
             "gpgkey",
             "last_sync_task",
             "private",
+            "sigstore_signing_service",
+            "sigstore_verifying_service",
         )
         model = AnsibleRepository
 
@@ -763,6 +927,63 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
             "signing_service",
         )
 
+class CollectionVersionSigstoreSignatureSerializer(NoArtifactContentUploadSerializer):
+    """
+    A serializer for Sigstore signature models.
+    """
+
+    data = serializers.CharField(
+        help_text=_("A signature, base64 encoded."),
+        required=True,
+    )
+    sigstore_x509_certificate = serializers.CharField(
+        help_text=_("The ephemeral PEM-encoded signing certificate generated by Sigstore."),
+        required=True,
+    )
+    sigstore_bundle = serializers.JSONField(
+        help_text=_("A Sigstore bundle used for offline verification."),
+        allow_null=True,
+    )
+    signed_collection = DetailRelatedField(
+        help_text=_("The content this signature is pointing to."),
+        view_name_pattern=r"content(-.*/.*)-detail",
+        queryset=CollectionVersion.objects.all(),
+    )
+    sigstore_signing_service = DetailRelatedField(
+        help_text=_("A signing service to use to sign the collections"),
+        view_name="sigstore-signing-services-detail",
+        read_only=True,
+        allow_null=True,
+    )
+
+    def __init__(self, *args, **kwargs):
+        """Ensure `file` field is required."""
+        super().__init__(*args, **kwargs)
+        self.fields["file"].required = True
+
+    def validate(self, data):
+        """
+        Verify the signature is valid before creating it.
+        """
+        data = super().validate(data)
+
+        if "request" not in self.context:
+            # Validate is called twice, first on the viewset, and second on the create task
+            # data should be set up properly on the second time, when request isn't in context
+            data = verify_sigstore_signature_upload(data)
+
+        return data
+
+    class Meta:
+        model = CollectionVersionSigstoreSignature
+        fields = NoArtifactContentUploadSerializer.Meta.fields + (
+            "data",
+            "sigstore_x509_certificate",
+            "sigstore_bundle",
+            "signed_collection",
+            "sigstore_signing_service",
+        )
+
 
 class NamespaceLinkSerializer(serializers.Serializer):
     """
@@ -980,6 +1201,29 @@ class AnsibleRepositorySignatureSerializer(serializers.Serializer):
         required=True,
         view_name="signing-services-detail",
         queryset=SigningService.objects.all(),
+        help_text=_("A signing service to use to sign the collections"),
+    )
+
+    def validate_content_units(self, value):
+        """Make sure the list is correctly formatted."""
+        if len(value) > 1 and "*" in value:
+            raise serializers.ValidationError("Cannot supply content units and '*'.")
+        return value
+
+
+class AnsibleRepositorySigstoreSignatureSerializer(serializers.Serializer):
+    """
+    A serializer for the signing action using Sigstore.
+    """
+
+    content_units = serializers.ListField(
+        required=True,
+        help_text=_(
+            "List of collection version hrefs to sign, use * to sign all content in repository"
+        ),
+    )
+    sigstore_signing_service = DetailRelatedField(
+        queryset=SigstoreSigningService.objects.all(),
         help_text=_("A signing service to use to sign the collections"),
     )
 
