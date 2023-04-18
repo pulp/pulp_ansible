@@ -6,3 +6,6 @@ Pillow>=7.0,<10.2
 pulpcore>=3.25.0,<3.40
 PyYAML>=5.4.1,<7.0
 semantic_version>=2.9,<2.11
+setuptools>=39.2,<66.2.0
+sigstore==1.1.1
+voluptuous==0.13.1
