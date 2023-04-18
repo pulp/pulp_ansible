@@ -924,7 +924,14 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     Fields:
 
         last_synced_metadata_time (models.DateTimeField): Last synced metadata time.
-        private (models.BooleanField): Indicator if this repository is private
+        gpgkey (models.TextField): GPG key for verifying signatures.
+        private (models.BooleanField): Indicator if this repository is private.
+
+    Relations:
+        sistore_signing_service (models.ForeignKey):
+            Sigstore service used to sign collections.
+        sigstore_verifying_service (models.ForeignKey):
+            Sigstore service used to verify collection signatures.
     """
 
     TYPE = "ansible"
@@ -933,6 +940,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
         CollectionVersion,
         AnsibleCollectionDeprecated,
         CollectionVersionSignature,
+        CollectionVersionSigstoreSignature,
         AnsibleNamespaceMetadata,
         CollectionVersionMark,
     ]
@@ -941,6 +949,23 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     last_synced_metadata_time = models.DateTimeField(null=True)
     gpgkey = models.TextField(null=True)
     private = models.BooleanField(default=False)
+
+    sigstore_signing_service = models.ForeignKey(
+        SigstoreSigningService,
+        on_delete=models.SET_NULL,
+        related_name="ansible_repositories",
+        null=True,
+    )
+    sigstore_verifying_service = models.ForeignKey(
+        SigstoreVerifyingService,
+        on_delete=models.SET_NULL,
+        related_name="ansible_repositories",
+        null=True,
+    )
+
+    @property
+    def last_sync_task(self):
+        return _get_last_sync_task(self.pk)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -968,7 +993,13 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
             signatures = new_version.get_content(
                 content_qs=CollectionVersionSignature.objects.filter(signed_collection=version)
             )
+            sigstore_signatures = new_version.get_content(
+                content_qs=CollectionVersionSigstoreSignature.objects.filter(
+                    signed_collection=version
+                )
+            )
             new_version.remove_content(signatures)
+            new_version.remove_content(sigstore_signatures)
 
             marks = new_version.get_content(
                 content_qs=CollectionVersionMark.objects.filter(marked_collection=version)
