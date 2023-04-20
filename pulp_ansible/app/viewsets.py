@@ -368,6 +368,26 @@ class CollectionVersionSigstoreSignatureViewSet(NoArtifactContentUploadViewSet):
     queryset = CollectionVersionSigstoreSignature.objects.all()
     serializer_class = CollectionVersionSigstoreSignatureSerializer
 
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
+                    "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
+                ],
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
 
 class CollectionVersionMarkFilter(ContentFilter):
     """
@@ -696,6 +716,15 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 ],
             },
             {
+                "action": ["sigstore_sign"],
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_model_or_obj_perms:ansible.sigstore_sign_ansiblerepository",
+                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                ],
+            },
+            {
                 "action": ["sync"],
                 "principal": "authenticated",
                 "effect": "allow",
@@ -755,6 +784,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
             "ansible.rebuild_metadata_ansiblerepository",
             "ansible.repair_ansiblerepository",
             "ansible.sign_ansiblerepository",
+            "ansible.sigstore_sign_ansiblerepository",
             "ansible.sync_ansiblerepository",
         ],
         "ansible.ansiblerepository_viewer": ["ansible.view_ansiblerepository"],

@@ -10,6 +10,7 @@ import io
 import json
 import logging
 import os
+import re
 import tarfile
 import tempfile
 import cryptography.x509 as x509
@@ -64,10 +65,11 @@ from pulp_ansible.app.models import (
 log = logging.getLogger(__name__)
 
 
-def _generate_checksum_manifest(cartifact):
+def _generate_checksum_manifest(collection_version):
     """
     Generate a file containing the sha256 hashes of all the collection elements.
     """
+    cartifact = collection_version.contentartifact_set.select_related("artifact").first()
     artifact_name = cartifact.artifact.file.name
     artifact_file = storage.open(artifact_name)
 
@@ -115,12 +117,18 @@ def verify_sigstore_signature_upload(data):
         )
     signature = data["data"]
     certificate = data["sigstore_x509_certificate"]
-    sigstore_bundle = data.get("sigstore_bundle")
-    cartifact = collection.contentartifact_set.select_related("artifact").first()
-    checksums = _generate_checksum_manifest(cartifact)
 
-    if sigstore_bundle:
-        bundle = Bundle().from_json(sigstore_bundle)
+    def format(pubkey):
+        delimiter = "-----"
+        s = pubkey.split(delimiter)
+        res = delimiter + s[1] + delimiter +re.sub(' +', '\n', s[2]) + delimiter + s[3] + delimiter
+        return res
+
+    certificate = format(certificate)
+    sigstore_bundle = data.get("sigstore_bundle")
+    checksums = _generate_checksum_manifest(collection)
+
+    bundle = Bundle().from_json(sigstore_bundle) if sigstore_bundle != "null" else None
 
     with tempfile.NamedTemporaryFile(dir=".", delete=False, mode="w") as manifest_file:
         manifest_file.write(checksums)
@@ -143,7 +151,8 @@ def verify_sigstore_signature_upload(data):
     if isinstance(verification_result, VerificationFailure):
         raise VerificationFailureException(
             "Failed to verify Sigstore signature for collection "
-            f"{collection}: {verification_result.reason}"
+            f"{collection}: {verification_result.reason}\n"
+            f"Exception: {verification_result.exception}"
         )
 
     print(f"Validated Sigstore signature for collection {collection}")
@@ -244,8 +253,7 @@ class CollectionSigstoreSigningFirstStage(Stage):
                 async with aiofiles.tempfile.NamedTemporaryFile(
                     dir=".", mode="w", delete=False
                 ) as manifest_file:
-                    cartifact = collection_version.contentartifact_set.select_related("artifact").first()
-                    manifest_data = await sync_to_async(_generate_checksum_manifest)(cartifact)                    
+                    manifest_data = await sync_to_async(_generate_checksum_manifest)(collection_version)                    
                     await manifest_file.write(manifest_data)
                 async with aiofiles.open(manifest_file.name, mode="rb", buffering=0) as iofile:
                     async with aiofiles.tempfile.NamedTemporaryFile(dir=".", mode="w", delete=False) as manifest_content:

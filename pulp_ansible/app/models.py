@@ -643,8 +643,9 @@ class SigstoreVerifyingService(Content):
         else:
             verification_materials = VerificationMaterials(
                 input_=manifest,
-                cert_pem=certificcate,
+                cert_pem=certificate,
                 signature=signature,
+                rekor_entry=None,
                 offline=False,
             )
 
@@ -708,7 +709,7 @@ class CollectionVersionSigstoreSignature(Content):
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("sigstore_x509_certificate", "signed_collection")
 
-        
+
 class AnsibleNamespaceMetadata(Content):
     """
     A content type representing the Namespace metadata of a Collection.
@@ -975,6 +976,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
             ("rebuild_metadata_ansiblerepository", "Can rebuild metadata on the repository"),
             ("repair_ansiblerepository", "Can repair the repository"),
             ("sign_ansiblerepository", "Can sign content on the repository"),
+            ("sigstore_sign_ansiblerepository", "Can sign content on the repository with Sigstore"),
             ("sync_ansiblerepository", "Can start a sync task on the repository"),
             ("manage_roles_ansiblerepository", "Can manage roles on repositories"),
             ("modify_ansible_repo_content", "Can modify repository content"),
