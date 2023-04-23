@@ -1,3 +1,4 @@
 plantuml
 sphinx
+sphinx-rtd-theme
 towncrier
