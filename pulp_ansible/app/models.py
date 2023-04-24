@@ -335,7 +335,7 @@ class CollectionVersionSignature(Content):
 
 
 
-class SigstoreSigningService(Content):
+class SigstoreSigningService(BaseModel):
     """
     A service to generate Sigstore signatures for a given CollectionVersion.
     Distinct from SigningService objects used to sign artifacts using GPG
@@ -553,7 +553,7 @@ class SigstoreSigningService(Content):
         default_related_name = "%(app_label)s_%(model_name)s"
 
 
-class SigstoreVerifyingService(Content):
+class SigstoreVerifyingService(BaseModel):
     """
     A service to verify a CollectionVersion Sigstore signature.
     Fields:
