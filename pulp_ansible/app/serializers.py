@@ -132,7 +132,7 @@ class GitRemoteSerializer(RemoteSerializer):
         )
 
 
-class SigstoreSigningServiceSerializer(NoArtifactContentUploadSerializer):
+class SigstoreSigningServiceSerializer(ModelSerializer):
     """
     A serializer for Sigstore signing services.
     """
@@ -219,7 +219,7 @@ class SigstoreSigningServiceSerializer(NoArtifactContentUploadSerializer):
         extra_kwargs = {"view_name": "sigstore-signing-services-detail"}
 
 
-class SigstoreVerifyingServiceSerializer(NoArtifactContentUploadSerializer):
+class SigstoreVerifyingServiceSerializer(ModelSerializer):
     """
     A serializer for Sigstore verifying services.
     """
@@ -300,10 +300,12 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     sigstore_signing_service = DetailRelatedField(
         help_text=_("A Sigstore service to use to sign the collections"),
         queryset=SigstoreSigningService.objects.all(),
+        many=True,
     )
     sigstore_verifying_service = DetailRelatedField(
         help_text=_("A Sigstore service used to verify the collection signatures"),
         queryset=SigstoreVerifyingService.objects.all(),
+        many=True,
     )
 
     class Meta:
