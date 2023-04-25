@@ -305,7 +305,9 @@ class SigstoreSignatureFilter(ContentFilter):
         }
 
 
-class SigstoreSigningServiceViewSet(NoArtifactContentUploadViewSet):
+class SigstoreSigningServiceViewSet(
+    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin, RolesMixin
+):
     """
     Viewset for looking at Sigstore signing services.
     """
@@ -316,7 +318,9 @@ class SigstoreSigningServiceViewSet(NoArtifactContentUploadViewSet):
     filterset_fields = ["name"]
 
 
-class SigstoreVerifyingServiceViewSet(NoArtifactContentUploadViewSet):
+class SigstoreVerifyingServiceViewSet(
+    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin, RolesMixin
+):
     """
     Viewset for looking at Sigstore verifying services.
     """
