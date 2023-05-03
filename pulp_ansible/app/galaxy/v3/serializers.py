@@ -335,6 +335,12 @@ class CollectionVersionDocsSerializer(serializers.ModelSerializer):
         model = models.CollectionVersion
 
 
+class CollectionVersionDownloadCountSerializer(serializers.Serializer):
+    """A serializer to display the download count of a CollectionVersion."""
+
+    download_count = serializers.IntegerField()
+
+
 class RepoMetadataSerializer(serializers.ModelSerializer):
     """A serializer to display RepositoryVersion metadata."""
 

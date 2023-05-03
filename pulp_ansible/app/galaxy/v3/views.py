@@ -41,6 +41,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionDocsSerializer,
+    CollectionVersionDownloadCountSerializer,
     CollectionVersionListSerializer,
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
@@ -989,6 +990,39 @@ class CollectionVersionDocsViewSet(
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
         return "pulp_ansible/v3/collection-versions/docs"
+
+
+class CollectionVersionDownloadCountViewSet(
+    CollectionVersionRetrieveMixin,
+    ExceptionHandlerMixin,
+    AnsibleDistributionMixin,
+    viewsets.GenericViewSet,
+):
+    """
+    ViewSet for download count of CollectionVersion.
+    """
+
+    serializer_class = CollectionVersionDownloadCountSerializer
+
+    lookup_field = "version"
+
+    DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
+
+    def urlpattern(*args, **kwargs):
+        """Return url pattern for RBAC."""
+        return "pulp_ansible/v3/collection-versions/download-count"
+
+    def retrieve(self, request, *args, **kwargs):
+        if not settings.ANSIBLE_COLLECT_DOWNLOAD_LOG:
+            return HttpResponseNotFound()
+        else:
+            collection_version = self.get_object()
+            download_count = DownloadLog.objects.filter(content_unit=collection_version.pk).count()
+            serializer = CollectionVersionDownloadCountSerializer(
+                {"download_count": download_count}
+            )
+
+            return Response(serializer.data)
 
 
 class CollectionImportViewSet(

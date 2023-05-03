@@ -31,6 +31,7 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleApiV3PluginAnsibleContentNamespacesApi,
     PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi,
     PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi,
+    PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexVersionsDownloadCountApi,
 )
 
 
@@ -175,6 +176,14 @@ def galaxy_v3_content_collections_index_versions_api_client(ansible_bindings_cli
 def galaxy_v3_default_search_api_client(ansible_bindings_client):
     """Provides the Galaxy V3 Search API client object."""
     return PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi(ansible_bindings_client)
+
+
+@pytest.fixture
+def galaxy_v3_content_collections_index_versions_download_count_api_client(ansible_bindings_client):
+    """Provides the Galaxy V3 Collection Versions Download Count API client object."""
+    return PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexVersionsDownloadCountApi(
+        ansible_bindings_client
+    )
 
 
 # Object Generation Fixtures

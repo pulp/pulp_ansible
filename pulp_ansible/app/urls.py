@@ -209,6 +209,11 @@ v3_collection_detail_urls = [
         views_v3.CollectionVersionDocsViewSet.as_view({"get": "retrieve"}),
         name="collection-versions-detail-docs",
     ),
+    path(
+        "versions/<str:version>/download-count/",
+        views_v3.CollectionVersionDownloadCountViewSet.as_view({"get": "retrieve"}),
+        name="collection-versions-download-count",
+    ),
 ]
 
 namespace_urls = [
