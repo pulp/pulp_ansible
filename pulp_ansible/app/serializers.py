@@ -1,6 +1,7 @@
 from gettext import gettext as _
 
 import json
+import re
 
 from django.db import transaction
 from django.conf import settings
@@ -26,6 +27,8 @@ from pulpcore.plugin.serializers import (
     RepositoryVersionRelatedField,
     validate_unknown_fields,
     TaskSerializer,
+    GetOrCreateSerializerMixin,
+    IdentityField,
 )
 from pulpcore.plugin.util import get_url
 from rest_framework.exceptions import ValidationError
@@ -53,6 +56,12 @@ from pulp_ansible.app.tasks.utils import (
 )
 from pulp_ansible.app.tasks.signature import verify_signature_upload
 from pulp_ansible.app.tasks.upload import process_collection_artifact, finish_collection_upload
+
+from .custom_fields import (
+    RelatedFieldsBaseSerializer,
+    MyPermissionsField,
+    GroupPermissionField
+)
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -797,10 +806,19 @@ class NamespaceLinkField(serializers.HStoreField):
         return [{"name": x, "url": value[x]} for x in value]
 
 
+class NamespaceRelatedFieldSerializer(RelatedFieldsBaseSerializer):
+    my_permissions = MyPermissionsField(source="*", read_only=True)
+
+
 class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     """
     A serializer for Namespaces.
     """
+
+
+    # TODO: These two fields should be deprecated
+    related_fields = NamespaceRelatedFieldSerializer(source="*")
+    groups = GroupPermissionField(source="namespace.groups")
 
     name = serializers.RegexField(
         NAME_REGEXP,
@@ -863,9 +881,41 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
         return super().validate(data)
 
+    def validate_name(self, name):
+        if not name:
+            raise ValidationError(detail={
+                'name': _("Attribute 'name' is required")})
+        if not re.match(r'^[a-z0-9_]+$', name):
+            raise ValidationError(detail={
+                'name': _('Name can only contain lower case letters, underscores and numbers')})
+        if len(name) <= 2:
+            raise ValidationError(detail={
+                'name': _('Name must be longer than 2 characters')})
+        if name.startswith('_'):
+            raise ValidationError(detail={
+                'name': _("Name cannot begin with '_'")})
+        return name
+
     @transaction.atomic
     def create(self, validated_data):
         """Create the Namespace and add it to the Repository if present."""
+
+
+
+
+        # TODO: compatibilty changes
+        """
+        - accept avatar url as a save parameter
+        - return my permissions
+        - should v3 return a task or the serialized content that will be created?
+            - maybe make create and add separate operations?
+        - serialize links using the old style of link
+            - will need to update sync
+        - permission setting:
+            - support old system or not?
+            - return groups as read only?
+        - filters
+        """
         namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
         metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
         metadata.calculate_metadata_sha256()
@@ -907,7 +957,18 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             "avatar_sha256",
             "avatar_url",
             "metadata_sha256",
+            "related_fields",
+            "groups"
         )
+
+
+class AnsibleGlobalNamespaceSerializer(ModelSerializer, GetOrCreateSerializerMixin):
+    pulp_href = IdentityField(view_name="pulp_ansible/namespaces-detail")
+    latest_metadata = AnsibleNamespaceMetadataSerializer(read_only=True)
+
+    class Meta:
+        fields = ModelSerializer.Meta.fields + ("name", "latest_metadata",)
+        model = AnsibleNamespace
 
 
 class CollectionVersionMarkSerializer(NoArtifactContentSerializer):

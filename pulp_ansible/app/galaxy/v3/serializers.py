@@ -7,7 +7,7 @@ from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
 from pulp_ansible.app import models, serializers as ansible_serializers
-from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
+from pulpcore.plugin.models import ContentArtifact, RepositoryVersion, RepositoryContent
 from pulpcore.plugin import serializers as core_serializers
 
 
@@ -417,3 +417,41 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             return obj.repository_version.number
         else:
             return "latest"
+
+
+class NamespaceSearchSerializer(serializers.ModelSerializer):
+    metadata = ansible_serializers.AnsibleNamespaceMetadataSerializer(source="content.ansible_ansiblenamespacemetadata")
+    repository_name = serializers.CharField(source="repository.name")
+
+
+    class Meta:
+        model = RepositoryContent
+        fields = (
+            "pk",
+            "metadata",
+            "repository_name",
+            # "has_latest_distro",
+            # "has_specific_distro",
+            # "version_added_num",
+            # "version_removed_num"
+        )
+
+
+    # debugging fields
+    # has_latest_distro = serializers.BooleanField()
+    # has_specific_distro = serializers.BooleanField()
+    # version_removed_num = serializers.SerializerMethodField()
+    # version_added_num = serializers.SerializerMethodField()
+
+
+    # def get_version_removed_num(self, obj):
+    #     if obj.version_removed:
+    #         return obj.version_removed.number
+
+    #     return None
+
+    # def get_version_added_num(self, obj):
+    #     if obj.version_added:
+    #         return obj.version_added.number
+
+    #     return None

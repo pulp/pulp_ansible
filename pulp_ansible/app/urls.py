@@ -250,6 +250,13 @@ v3_plugin_urls = [
         viewsets_v3.CollectionVersionSearchViewSet.as_view({"get": "list", "post": "rebuild"}),
         name="collection-versions-search",
     ),
+    path(
+        "search/namespace-metadata/",
+        views_v3.NamespaceMetadataSearchViewset.as_view(
+            {"get": "list"}
+        ),
+        name="ansible-namespaces-search",
+    )
 ]
 
 v3_urls = [

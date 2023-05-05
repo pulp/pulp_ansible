@@ -34,7 +34,12 @@ from pulpcore.plugin.viewsets import (
     RolesMixin,
     SingleArtifactContentUploadViewSet,
 )
-from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units, get_artifact_url
+from pulpcore.plugin.util import (
+    extract_pk,
+    raise_for_unknown_content_units,
+    get_objects_for_user,
+    get_artifact_url
+)
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
     AnsibleCollectionDeprecated,
@@ -50,10 +55,12 @@ from .models import (
     CollectionRemote,
     Role,
     Tag,
+    AnsibleNamespace,
 )
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleNamespaceMetadataSerializer,
+    AnsibleGlobalNamespaceSerializer,
     CollectionVersionMarkSerializer,
     GitRemoteSerializer,
     RoleRemoteSerializer,
@@ -366,6 +373,12 @@ class AnsibleNamespaceFilter(ContentFilter):
     A filter for namespaces.
     """
 
+    # this is a hack to keep pulp from throwing a 400 when an unknwon
+    # query param is included, since filtering is handled by the related
+    # field serializer
+    include_related = filters.CharFilter(method='no_op')
+    my_permissions = filters.CharFilter(method='has_permissions')
+
     class Meta:
         model = AnsibleNamespaceMetadata
         fields = {
@@ -373,6 +386,15 @@ class AnsibleNamespaceFilter(ContentFilter):
             "company": NAME_FILTER_OPTIONS,
             "metadata_sha256": ["exact", "in"],
         }
+
+    def no_op(self, queryset, name, value):
+        return queryset
+
+    def has_permissions(self, queryset, name, value):
+        perms = self.request.query_params.getlist(name)
+        namespaces = get_objects_for_user(
+            self.request.user, perms, qs=AnsibleNamespace.objects.all())
+        return self.queryset.filter(namespace__in=namespaces)
 
 
 class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
@@ -416,6 +438,66 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
             return HttpResponseRedirect(get_artifact_url(artifact))
 
         return HttpResponseNotFound()
+
+
+class AnsibleGlobalNamespaceViewSet(
+    NamedModelViewSet,
+    mixins.CreateModelMixin,
+    # mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    RolesMixin,
+):
+    """
+    ViewSet for AnsibleNamespace.
+    """
+
+    endpoint_name = "pulp_ansible/namespaces"
+    queryset = AnsibleNamespace.objects.all()
+    serializer_class = AnsibleGlobalNamespaceSerializer
+    # filterset_class = ContainerNamespaceFilter
+
+    # DEFAULT_ACCESS_POLICY = {
+    #     "statements": [
+    #         {
+    #             "action": ["list"],
+    #             "principal": "authenticated",
+    #             "effect": "allow",
+    #         },
+    #         {
+    #             "action": ["create"],
+    #             "principal": "authenticated",
+    #             "effect": "allow",
+    #             "condition": "has_model_perms:container.add_containernamespace",
+    #         },
+    #         {
+    #             "action": ["create"],
+    #             "principal": "authenticated",
+    #             "effect": "allow",
+    #             "condition": "namespace_is_username",
+    #         },
+    #         {
+    #             "action": ["retrieve", "my_permissions"],
+    #             "principal": "authenticated",
+    #             "effect": "allow",
+    #             "condition": "has_model_or_obj_perms:container.view_containernamespace",
+    #         },
+    #         {
+    #             "action": ["destroy"],
+    #             "principal": "authenticated",
+    #             "effect": "allow",
+    #             "condition": [
+    #                 "has_model_or_obj_perms:container.delete_containernamespace",
+    #                 "has_model_or_obj_perms:container.view_containernamespace",
+    #             ],
+    #         },
+    #     ],
+    #     "creation_hooks": [],
+    #     "queryset_scoping": {"function": "scope_queryset"},
+    # }
+
+
+
 
 
 class RoleRemoteViewSet(RemoteViewSet, RolesMixin):

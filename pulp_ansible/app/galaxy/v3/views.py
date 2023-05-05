@@ -4,7 +4,7 @@ import semantic_version
 
 from django.contrib.postgres.aggregates import ArrayAgg
 from django.db import DatabaseError, IntegrityError
-from django.db.models import F, Q
+from django.db.models import F, Q, OuterRef, Exists
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
 from django.http import StreamingHttpResponse, HttpResponseNotFound
@@ -26,7 +26,7 @@ from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from pulpcore.plugin.models import Artifact, Content
+from pulpcore.plugin.models import Artifact, Content, RepositoryContent, Distribution
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.viewsets import (
     BaseFilterSet,
@@ -45,6 +45,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
     ClientConfigurationSerializer,
+    NamespaceSearchSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -56,6 +57,8 @@ from pulp_ansible.app.models import (
     CollectionVersionSignature,
     CollectionImport,
     DownloadLog,
+    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
 )
 from pulp_ansible.app.serializers import (
     AnsibleNamespaceMetadataSerializer,
@@ -68,6 +71,7 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import (
     CollectionVersionFilter,
+    AnsibleNamespaceFilter,
 )
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
@@ -704,11 +708,7 @@ class AnsibleNamespaceViewSet(
 ):
     serializer_class = AnsibleNamespaceMetadataSerializer
     lookup_field = "name"
-    filterset_fields = {
-        "name": NAME_FILTER_OPTIONS,
-        "company": NAME_FILTER_OPTIONS,
-        "metadata_sha256": ["exact", "in"],
-    }
+    filterset_class = AnsibleNamespaceFilter
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
@@ -1202,3 +1202,44 @@ class ClientConfigurationView(views.APIView):
         )
 
         return Response(data.data)
+
+
+class NamespaceSearchFilter(BaseFilterSet):
+    """
+    FilterSet for Ansible Namespaces.
+    """
+
+    name = filters.CharFilter(field_name="content__ansible_ansiblenamespacemetadata__name")
+
+    class Meta:
+        model = RepositoryContent
+        fields = ["name"]
+
+
+class NamespaceMetadataSearchViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
+    serializer_class = NamespaceSearchSerializer
+    filterset_class = NamespaceSearchFilter
+
+    # Get namespace metadata for all distributed repositories
+    def get_queryset(self):
+        has_latest_distro = Distribution.objects.filter(
+            repository=OuterRef("repository"),
+            repository_version=None
+        )
+
+        has_specific_distro = Distribution.objects.exclude(repository_version=None).filter(
+            repository_version__repository=OuterRef("repository"),
+            repository_version__number__gte=OuterRef("version_added__number"),
+            repository_version__number__lt=OuterRef("version_removed__number")
+        )
+
+        return RepositoryContent.objects.select_related(
+            "content__ansible_ansiblenamespacemetadata"
+        ).exclude(
+            content__ansible_ansiblenamespacemetadata=None
+        ).annotate(
+            has_latest_distro=Exists(has_latest_distro),
+            has_specific_distro=Exists(has_specific_distro)
+        ).filter(
+            Q(has_specific_distro=True) | Q(Q(version_removed=None) & Q(has_latest_distro=True))
+        )
