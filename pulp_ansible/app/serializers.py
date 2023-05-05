@@ -1,8 +1,9 @@
 from gettext import gettext as _
 
 import json
+import re
 
-from django.db import transaction
+from django.db import transaction, DatabaseError, IntegrityError
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
@@ -25,6 +26,8 @@ from pulpcore.plugin.serializers import (
     DistributionSerializer,
     RepositoryVersionRelatedField,
     validate_unknown_fields,
+    GetOrCreateSerializerMixin,
+    IdentityField,
 )
 from pulpcore.plugin.util import get_url
 from rest_framework.exceptions import ValidationError
@@ -52,6 +55,13 @@ from pulp_ansible.app.tasks.utils import (
 )
 from pulp_ansible.app.tasks.signature import verify_signature_upload
 from pulp_ansible.app.tasks.upload import process_collection_artifact, finish_collection_upload
+
+from .custom_fields import (
+    RelatedFieldsBaseSerializer,
+    MyPermissionsField,
+    GroupPermissionField,
+    set_object_group_roles,
+)
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -808,10 +818,37 @@ class NamespaceLinkField(serializers.HStoreField):
         return [{"name": x, "url": value[x]} for x in value]
 
 
-class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
+class NamespaceRelatedFieldSerializer(RelatedFieldsBaseSerializer):
+    my_permissions = MyPermissionsField(source="*", read_only=True)
+
+
+class NamespaceValidationMixin:
+    def validate_name(self, name):
+        if not name:
+            raise ValidationError(detail={"name": _("Attribute 'name' is required")})
+        if not re.match(r"^[a-z0-9_]+$", name):
+            raise ValidationError(
+                detail={
+                    "name": _("Name can only contain lower case letters, underscores and numbers")
+                }
+            )
+        if len(name) <= 2:
+            raise ValidationError(detail={"name": _("Name must be longer than 2 characters")})
+        if name[0] in "0123456789_":
+            raise ValidationError(detail={"name": _("Name cannot begin with '_' or any number")})
+
+        return name
+
+
+class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer, NamespaceValidationMixin):
     """
     A serializer for Namespaces.
     """
+
+    # Task on the serializer will always return none. It's just here to prevent the bindings
+    # from breaking.
+    task = serializers.SerializerMethodField()
+    groups = GroupPermissionField(source="namespace", allow_null=True, required=False)
 
     name = serializers.RegexField(
         NAME_REGEXP,
@@ -854,6 +891,9 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     )
     metadata_sha256 = serializers.CharField(read_only=True)
 
+    def get_task(self, obj):
+        return None
+
     def get_avatar_url(self, obj):
         """Return the avatar url"""
         if obj.avatar_sha256:
@@ -876,8 +916,44 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        """Create the Namespace and add it to the Repository if present."""
+        """Create the Namespace."""
+
+        # TODO: compatibilty changes
+        """
+        - accept avatar url as a save parameter
+        - return my permissions
+        - should v3 return a task or the serialized content that will be created?
+            - maybe make create and add separate operations?
+        - serialize links using the old style of link
+            - will need to update sync
+        - permission setting:
+            - support old system or not?
+            - return groups as read only?
+        - filters
+        """
+
+        groups = validated_data.pop("namespace", None)
+
+        # If avatar was uploaded, init into artifact
+        if avatar := validated_data.pop("avatar", None):
+            artifact = Artifact.init_and_validate(avatar)
+            try:
+                artifact.save()
+            except IntegrityError:
+                # if artifact already exists, let's use it
+                try:
+                    artifact = Artifact.objects.get(sha256=artifact.sha256)
+                    artifact.touch()
+                except (Artifact.DoesNotExist, DatabaseError):
+                    # the artifact has since been removed from when we first attempted to save it
+                    artifact.save()
+            validated_data["avatar_sha256"] = artifact.sha256
+
         namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
+
+        if groups is not None:
+            set_object_group_roles(namespace, groups)
+
         metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
         metadata.calculate_metadata_sha256()
         content = AnsibleNamespaceMetadata.objects.filter(
@@ -890,18 +966,11 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             content = metadata
             if metadata.avatar_sha256:
                 ContentArtifact.objects.create(
-                    artifact_id=self.context["artifact"],
+                    artifact_id=artifact.pk,
                     content=content,
                     relative_path=f"{metadata.name}-avatar",
                 )
 
-        repository = self.context.pop("repository", None)
-        if repository:
-            repository = AnsibleRepository.objects.get(pk=repository)
-            content_to_add = AnsibleNamespaceMetadata.objects.filter(pk=content.pk)
-
-            with repository.new_version() as new_version:
-                new_version.add_content(content_to_add)
         return content
 
     class Meta:
@@ -918,7 +987,21 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             "avatar_sha256",
             "avatar_url",
             "metadata_sha256",
+            "groups",
+            "task",
         )
+
+
+class AnsibleGlobalNamespaceSerializer(
+    ModelSerializer, GetOrCreateSerializerMixin, NamespaceValidationMixin
+):
+    pulp_href = IdentityField(view_name="pulp_ansible/namespaces-detail")
+    latest_metadata = AnsibleNamespaceMetadataSerializer(read_only=True)
+    my_permissions = MyPermissionsField(source="*", read_only=True)
+
+    class Meta:
+        fields = ModelSerializer.Meta.fields + ("name", "latest_metadata", "my_permissions")
+        model = AnsibleNamespace
 
 
 class CollectionVersionMarkSerializer(NoArtifactContentSerializer):

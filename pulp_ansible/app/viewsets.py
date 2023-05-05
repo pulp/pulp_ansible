@@ -11,6 +11,8 @@ from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.serializers import ValidationError as DRFValidationError
+from rest_framework.response import Response
+from rest_framework import status as http_status
 
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
@@ -35,7 +37,12 @@ from pulpcore.plugin.viewsets import (
     RolesMixin,
     SingleArtifactContentUploadViewSet,
 )
-from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units, get_artifact_url
+from pulpcore.plugin.util import (
+    extract_pk,
+    raise_for_unknown_content_units,
+    get_objects_for_user,
+    get_artifact_url,
+)
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.utils import get_queryset_annotated_with_last_sync_task
 from .models import (
@@ -52,10 +59,12 @@ from .models import (
     CollectionRemote,
     Role,
     Tag,
+    AnsibleNamespace,
 )
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleNamespaceMetadataSerializer,
+    AnsibleGlobalNamespaceSerializer,
     CollectionVersionMarkSerializer,
     GitRemoteSerializer,
     RoleRemoteSerializer,
@@ -368,6 +377,12 @@ class AnsibleNamespaceFilter(ContentFilter):
     A filter for namespaces.
     """
 
+    # this is a hack to keep pulp from throwing a 400 when an unknwon
+    # query param is included, since filtering is handled by the related
+    # field serializer
+    include_related = filters.CharFilter(method="no_op")
+    my_permissions = filters.CharFilter(method="has_permissions")
+
     class Meta:
         model = AnsibleNamespaceMetadata
         fields = {
@@ -375,6 +390,16 @@ class AnsibleNamespaceFilter(ContentFilter):
             "company": NAME_FILTER_OPTIONS,
             "metadata_sha256": ["exact", "in"],
         }
+
+    def no_op(self, queryset, name, value):
+        return queryset
+
+    def has_permissions(self, queryset, name, value):
+        perms = self.request.query_params.getlist(name)
+        namespaces = get_objects_for_user(
+            self.request.user, perms, qs=AnsibleNamespace.objects.all()
+        )
+        return self.queryset.filter(namespace__in=namespaces)
 
 
 class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
@@ -417,6 +442,86 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
             return HttpResponseRedirect(get_artifact_url(artifact))
 
         return HttpResponseNotFound()
+
+
+class AnsibleGlobalNamespaceFilter(BaseFilterSet):
+    """
+    A filter for namespaces.
+    """
+
+    my_permissions = filters.CharFilter(method="has_permissions")
+
+    class Meta:
+        model = AnsibleNamespace
+        fields = {
+            "name": NAME_FILTER_OPTIONS,
+        }
+
+    def has_permissions(self, queryset, name, value):
+        perms = self.request.query_params.getlist(name)
+        namespaces = get_objects_for_user(
+            self.request.user, perms, qs=AnsibleNamespace.objects.all()
+        )
+        return self.queryset.filter(pk__in=namespaces)
+
+
+class AnsibleGlobalNamespaceViewSet(
+    NamedModelViewSet,
+    mixins.CreateModelMixin,
+    mixins.DestroyModelMixin,
+    mixins.ListModelMixin,
+    mixins.RetrieveModelMixin,
+    RolesMixin,
+):
+    """
+    ViewSet for AnsibleNamespace.
+    """
+
+    endpoint_name = "pulp_ansible/namespaces"
+    queryset = AnsibleNamespace.objects.all()
+    serializer_class = AnsibleGlobalNamespaceSerializer
+    filterset_class = AnsibleGlobalNamespaceFilter
+
+    # TODO: RBAC
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": "*",
+                "principal": "authenticated",
+                "effect": "allow",
+            }
+        ],
+        "creation_hooks": [],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+    LOCKED_ROLES = {
+        "ansible.namespace_owner": [
+            "ansible.view_ansiblenamespace",
+            "ansible.change_ansiblenamespace",
+            "ansible.delete_ansiblenamespace",
+            # "ansible.manage_roles_ansiblenamespace",
+        ],
+    }
+
+    def destroy(self, request, *args, **kwargs):
+        ns = self.get_object()
+
+        if ns.metadatas.all().count() != 0:
+            return Response(
+                {
+                    "detail": _(
+                        "Namespace {name} cannot be deleted because it"
+                        " has namespace metadata associated with it."
+                    ).format(
+                        name=ns.name,
+                    )
+                },
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        ns.delete()
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
 class RoleRemoteViewSet(RemoteViewSet, RolesMixin):

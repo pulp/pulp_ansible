@@ -1455,12 +1455,10 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
     collection_name = randstr()
 
     # make namespace metadata
-    task = galaxy_v3_plugin_namespaces_api_client.create(
+    namespace = galaxy_v3_plugin_namespaces_api_client.create(
         name=namespace_name, description="hello", company="Testing Co.", **distro_kwargs
     )
-    result = monitor_task(task.task)
-    namespace_href = [x for x in result.created_resources if "namespaces" in x][0]
-    add_to_cleanup(galaxy_v3_plugin_namespaces_api_client, namespace_href)
+    add_to_cleanup(galaxy_v3_plugin_namespaces_api_client, namespace.pulp_href)
 
     # make and publish a collection
     build_and_upload_collection(
@@ -1473,7 +1471,7 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
 
     # did it get all the metadata?
     cv = resp.data[0]
-    assert cv.namespace_metadata.pulp_href == namespace_href
+    assert cv.namespace_metadata.pulp_href == namespace.pulp_href
     assert cv.namespace_metadata.avatar_url is None
     # assert cv.namespace_metadata.avatar_sha256 is None
     assert cv.namespace_metadata.company == "Testing Co."
@@ -1482,16 +1480,14 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
 
     # update the namespace metadata with an avatar
     avatar_path = random_image_factory()
-    task2 = galaxy_v3_plugin_namespaces_api_client.create(
+    namespace2 = galaxy_v3_plugin_namespaces_api_client.create(
         name=namespace_name,
         description="hello 2",
         company="Testing Co. redux",
         avatar=avatar_path,
         **distro_kwargs,
     )
-    result2 = monitor_task(task2.task)
-    namespace2_href = [x for x in result2.created_resources if "namespaces" in x][0]
-    add_to_cleanup(galaxy_v3_plugin_namespaces_api_client, namespace2_href)
+    add_to_cleanup(galaxy_v3_plugin_namespaces_api_client, namespace2.pulp_href)
 
     # make sure the CV was re-indexed
     resp2 = galaxy_v3_default_search_api_client.list(limit=1000, distribution=[dist_id])
@@ -1499,7 +1495,7 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
 
     # did it get all the NEW metadata?
     cv2 = resp2.data[0]
-    assert cv2.namespace_metadata.pulp_href == namespace2_href
+    assert cv2.namespace_metadata.pulp_href == namespace2.pulp_href
     assert cv2.namespace_metadata.avatar_url is not None
     # assert cv2.namespace_metadata.avatar_sha256 is not None
     assert cv2.namespace_metadata.company == "Testing Co. redux"
