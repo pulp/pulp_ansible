@@ -191,7 +191,9 @@ class GalaxyCollectionUploadSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Ensure duplicate artifact isn't uploaded."""
+        data = super().validate(data)
         sha256 = data["file"].hashers["sha256"].hexdigest()
         artifact = Artifact.objects.filter(sha256=sha256).first()
         if artifact:
             raise serializers.ValidationError(_("Artifact already exists"))
+        return data
