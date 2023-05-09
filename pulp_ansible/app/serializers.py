@@ -818,7 +818,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
     # TODO: These two fields should be deprecated
     related_fields = NamespaceRelatedFieldSerializer(source="*")
-    groups = GroupPermissionField(source="namespace.groups")
+    # groups = GroupPermissionField(source="namespace.groups")
 
     name = serializers.RegexField(
         NAME_REGEXP,
@@ -958,7 +958,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             "avatar_url",
             "metadata_sha256",
             "related_fields",
-            "groups"
+            # "groups"
         )
 
 
