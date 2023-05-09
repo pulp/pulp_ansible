@@ -865,7 +865,12 @@ class CollectionVersionViewSet(
         """
         Returns paginated CollectionVersions list.
         """
-        queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.get_queryset()
+
+        # prevent OOMKILL ...
+        queryset = queryset.only("pk", "content_ptr_id")
+
+        queryset = self.filter_queryset(queryset)
 
         # This is -very- slow when the collection has many versions.
         # queryset = sorted(
