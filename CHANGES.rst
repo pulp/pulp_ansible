@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.17.1 (2023-05-09)
+===================
+
+Bugfixes
+--------
+
+- Reduce fetched fields in cv list endpoint to prevent oomkill.
+  `#1433 <https://github.com/pulp/pulp_ansible/issues/1433>`__
+- Fix traceback when publishing a collection to the v2 API endpoint
+  `#1441 <https://github.com/pulp/pulp_ansible/issues/1441>`__
+
+
+----
+
+
 0.17.0 (2023-03-30)
 ===================
 
