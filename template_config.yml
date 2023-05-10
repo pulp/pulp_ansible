@@ -17,6 +17,7 @@ ci_update_branches:
 - '0.13'
 - '0.15'
 - '0.16'
+- '0.17'
 cli_package: pulp-cli
 cli_repo: https://github.com/pulp/pulp-cli.git
 core_import_allowed: []
