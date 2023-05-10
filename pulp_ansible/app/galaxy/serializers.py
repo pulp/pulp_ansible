@@ -108,7 +108,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         """
         rv = obj.versions.filter(is_highest=True).first()
         href = reverse(
-            "collection-versions-detail",
+            "v2-collection-versions-detail",
             kwargs={
                 "path": self.context["path"],
                 "namespace": obj.namespace,

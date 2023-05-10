@@ -4,6 +4,7 @@ from django.conf import settings
 from django.shortcuts import get_object_or_404, HttpResponse
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, pagination, response, views
+from rest_framework.reverse import reverse
 
 from pulpcore.plugin.models import PulpTemporaryFile
 from pulpcore.plugin.viewsets import OperationPostponedResponse
@@ -149,7 +150,8 @@ class GalaxyCollectionDetailView(DistributionMixin, generics.RetrieveAPIView):
         """
         # This seems wrong, no repository scoping occurring
         collection = get_object_or_404(Collection, namespace=namespace, name=name)
-        return response.Response(GalaxyCollectionSerializer(collection).data)
+        context = self.get_serializer_context()
+        return response.Response(GalaxyCollectionSerializer(collection, context=context).data)
 
 
 class GalaxyCollectionView(DistributionMixin, UploadGalaxyCollectionMixin, generics.ListAPIView):
@@ -214,7 +216,7 @@ class GalaxyCollectionVersionList(DistributionMixin, generics.ListAPIView):
         return versions
 
 
-class GalaxyCollectionVersionDetail(DistributionMixin, views.APIView):
+class GalaxyCollectionVersionDetail(DistributionMixin, generics.GenericAPIView):
     """
     APIView for Galaxy Collections Detail view.
     """
@@ -234,12 +236,20 @@ class GalaxyCollectionVersionDetail(DistributionMixin, views.APIView):
             ContentArtifact, content__in=self._distro_content, relative_path=version.relative_path
         )
 
-        download_url = "{content_hostname}/{base_path}/{relative_path}".format(
-            content_hostname=settings.ANSIBLE_CONTENT_HOSTNAME,
-            base_path=self.kwargs["path"],
-            relative_path=version.relative_path,
+        # Normally would just pass request to reverse and DRF would automatically build the
+        # absolute URI for us. However there's a weird bug where, because there's a kwarg
+        # in the URL for this view called "version" (the collection version), DRF gets
+        # confused and thinks we're using a versioning scheme
+        # (https://www.django-rest-framework.org/api-guide/versioning/) and attempts to insert
+        # the version into kwargs, which causes the reverse lookup to fail.
+        path = reverse(
+            settings.ANSIBLE_URL_NAMESPACE + "collection-artifact-download",
+            kwargs={"distro_base_path": self.kwargs["path"], "filename": version.relative_path},
         )
+        context = self.get_serializer_context()
+        request = context["request"]
+        download_url = request.build_absolute_uri(path)
 
-        data = GalaxyCollectionVersionSerializer(version).data
+        data = GalaxyCollectionVersionSerializer(version, context=context).data
         data["download_url"] = download_url
         return response.Response(data)
