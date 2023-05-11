@@ -455,46 +455,35 @@ class AnsibleGlobalNamespaceViewSet(
     endpoint_name = "pulp_ansible/namespaces"
     queryset = AnsibleNamespace.objects.all()
     serializer_class = AnsibleGlobalNamespaceSerializer
+
+
+
+
+
+
+    # TODO
     # filterset_class = ContainerNamespaceFilter
 
-    # DEFAULT_ACCESS_POLICY = {
-    #     "statements": [
-    #         {
-    #             "action": ["list"],
-    #             "principal": "authenticated",
-    #             "effect": "allow",
-    #         },
-    #         {
-    #             "action": ["create"],
-    #             "principal": "authenticated",
-    #             "effect": "allow",
-    #             "condition": "has_model_perms:container.add_containernamespace",
-    #         },
-    #         {
-    #             "action": ["create"],
-    #             "principal": "authenticated",
-    #             "effect": "allow",
-    #             "condition": "namespace_is_username",
-    #         },
-    #         {
-    #             "action": ["retrieve", "my_permissions"],
-    #             "principal": "authenticated",
-    #             "effect": "allow",
-    #             "condition": "has_model_or_obj_perms:container.view_containernamespace",
-    #         },
-    #         {
-    #             "action": ["destroy"],
-    #             "principal": "authenticated",
-    #             "effect": "allow",
-    #             "condition": [
-    #                 "has_model_or_obj_perms:container.delete_containernamespace",
-    #                 "has_model_or_obj_perms:container.view_containernamespace",
-    #             ],
-    #         },
-    #     ],
-    #     "creation_hooks": [],
-    #     "queryset_scoping": {"function": "scope_queryset"},
-    # }
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": "*",
+                "principal": "authenticated",
+                "effect": "allow",
+            }
+        ],
+        "creation_hooks": [],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+    LOCKED_ROLES = {
+        "ansible.namespace_owner": [
+            "ansible.view_ansiblenamespace",
+            "ansible.change_ansiblenamespace",
+            "ansible.delete_ansiblenamespace",
+            # "ansible.manage_roles_ansiblenamespace",
+        ],
+    }
 
 
 

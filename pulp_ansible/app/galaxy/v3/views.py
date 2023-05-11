@@ -26,6 +26,7 @@ from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
+from pulpcore.plugin.util import get_url
 from pulpcore.plugin.models import Artifact, Content, RepositoryContent, Distribution
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.viewsets import (
@@ -701,6 +702,7 @@ class CollectionArtifactDownloadView(views.APIView):
 @extend_schema_view(
     create=extend_schema(responses={202: AsyncOperationResponseSerializer}),
     partial_update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+    update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
     delete=extend_schema(responses={202: AsyncOperationResponseSerializer}),
 )
 class AnsibleNamespaceViewSet(
@@ -767,33 +769,34 @@ class AnsibleNamespaceViewSet(
                     artifact.save()
             context["artifact"] = artifact.pk
 
-        # Dispatch general_create task
-        app_label = AnsibleNamespaceMetadata._meta.app_label
+        # create the new namespace metadata object
+        c = serializer.save()
+
+        # launch a background task to add the metadata to the current repo
         task = dispatch(
-            general_create,
-            args=(app_label, serializer.__class__.__name__),
+            add_and_remove,
+            args=(repo.pk, [c.pk], []),
             exclusive_resources=[repo],
-            kwargs={
-                "data": serializer.validated_data,
-                "context": context,
-            },
         )
-        return OperationPostponedResponse(task, request)
+
+        # return the namespace metadata immediately, along with the move task, for compatibility
+        # with the original v3/namespaces/ api.
+        resp_data = serializer.data
+        resp_data["task"] = get_url(task)
+        return Response(resp_data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         """Dispatch task to update Namespace in repository."""
-        partial = kwargs.pop("partial", False)
         namespace = self.get_object()
-        serializer = self.get_serializer(namespace, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
+        serializer = self.get_serializer(namespace)
 
-        for name, field in serializer.fields.items():
-            if not field.read_only and not field.write_only:
-                serializer.validated_data.setdefault(name, serializer.data[name])
         context = {}
         if "avatar" not in request.data and namespace.avatar_sha256:
             context["artifact"] = Artifact.objects.get(sha256=namespace.avatar_sha256).pk
-        return self._create(request, data=serializer.validated_data, context=context)
+
+        # merge the data from the serialized db object with the request data to support PATCH
+        # updates.
+        return self._create(request, data={**serializer.data, **request.data}, context=context)
 
     def delete(self, request, *args, **kwargs):
         """Try to remove the Namespace if no Collections under Namespace are present."""

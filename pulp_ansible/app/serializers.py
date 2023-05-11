@@ -818,7 +818,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
     # TODO: These two fields should be deprecated
     related_fields = NamespaceRelatedFieldSerializer(source="*")
-    # groups = GroupPermissionField(source="namespace.groups")
+    groups = GroupPermissionField(source="namespace.groups", allow_null=True, required=False)
 
     name = serializers.RegexField(
         NAME_REGEXP,
@@ -898,10 +898,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
     @transaction.atomic
     def create(self, validated_data):
-        """Create the Namespace and add it to the Repository if present."""
-
-
-
+        """Create the Namespace."""
 
         # TODO: compatibilty changes
         """
@@ -916,7 +913,14 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             - return groups as read only?
         - filters
         """
+        ns_data = validated_data.pop("namespace", {})
+
         namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
+
+        if groups := ns_data.get("groups"):
+            namespace.groups = groups
+            namespace.save()
+
         metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
         metadata.calculate_metadata_sha256()
         content = AnsibleNamespaceMetadata.objects.filter(
@@ -934,13 +938,6 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
                     relative_path=f"{metadata.name}-avatar",
                 )
 
-        repository = self.context.pop("repository", None)
-        if repository:
-            repository = AnsibleRepository.objects.get(pk=repository)
-            content_to_add = AnsibleNamespaceMetadata.objects.filter(pk=content.pk)
-
-            with repository.new_version() as new_version:
-                new_version.add_content(content_to_add)
         return content
 
     class Meta:
@@ -958,7 +955,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             "avatar_url",
             "metadata_sha256",
             "related_fields",
-            # "groups"
+            "groups"
         )
 
 

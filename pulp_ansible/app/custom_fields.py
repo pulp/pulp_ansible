@@ -16,7 +16,7 @@ from pulpcore.plugin.util import (
     get_groups_with_perms_attached_roles,
     get_perms_for_model
 )
-from django.contrib.auth.models import Group
+from pulpcore.plugin.models import Group
 
 
 class GroupModelPermissionsMixin:
