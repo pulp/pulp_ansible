@@ -1,6 +1,5 @@
 from django.conf import settings
-from django.conf.urls import url
-from django.urls import include, path
+from django.urls import include, path, re_path
 
 from pulp_ansible.app.galaxy.views import (
     GalaxyCollectionVersionDetail,
@@ -269,5 +268,5 @@ urlpatterns = [
     path(GALAXY_API_ROOT + "v2/", include(v2_urls)),
     path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
     path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
-    url(r"^pulp/api/v3/ansible/copy/$", CopyViewSet.as_view({"post": "create"})),
+    re_path(r"^pulp/api/v3/ansible/copy/$", CopyViewSet.as_view({"post": "create"})),
 ]
