@@ -68,7 +68,7 @@ pypi_username: pulp
 python_version: '3.8'
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
-run_pulpcore_tests_for_plugins: true
+run_pulpcore_tests_for_plugins: false
 single_commit_check: false
 stalebot: true
 stalebot_days_until_close: 30
