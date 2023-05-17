@@ -8,6 +8,31 @@ import numpy as np
 from PIL import Image
 
 
+
+
+
+
+"""
+New tests:
+- v3/namespaces
+    - groups
+    - split create/add to repo
+    - error messages
+    - namespace name validation
+- search/namespace-metadata
+    - filters
+    - verify only items in distributions are returned
+- pulp_ansible/namespaces
+    - My permissions (filter and field)
+    - latest metadata
+    - CRUD
+    - role management
+"""
+
+
+
+
+
 def random_string(n=10):
     """Create a random lower_case + digits string."""
     a = random.choice(string.ascii_lowercase)
@@ -58,14 +83,15 @@ def test_crud_namespaces(
 
     # Test Basic Creation
     name = random_string()
-    task = galaxy_v3_plugin_namespaces_api_client.create(
+    result = galaxy_v3_plugin_namespaces_api_client.create(
         name=name, description="hello", company="Testing Co.", links=links, **kwargs
     )
-    result = monitor_task(task.task)
+    task_result = monitor_task(result.task)
 
-    assert len(result.created_resources) == 2
-    namespace_href = result.created_resources[1]
-    assert "content/ansible/namespaces/" in namespace_href
+    assert len(task_result.created_resources) == 1
+    # namespace_href = result.created_resources[1]
+    # assert "content/ansible/namespaces/" in namespace_href
+    namespace_href = result.pulp_href
 
     def _link_to_dict(resp):
         return {x.name: x.url for x in resp}
@@ -98,11 +124,12 @@ def test_crud_namespaces(
     task = galaxy_v3_plugin_namespaces_api_client.partial_update(
         name=name, description="hey!", **kwargs
     )
+    updated_namespace_href = task.pulp_href
     result = monitor_task(task.task)
-    assert len(result.created_resources) == 2
+    assert len(result.created_resources) == 1
     repo_version = result.created_resources[0]
     assert repo_version[-2] == "2"
-    updated_namespace_href = result.created_resources[1]
+
     assert updated_namespace_href != namespace_href
 
     updated_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
@@ -116,11 +143,11 @@ def test_crud_namespaces(
     task = galaxy_v3_plugin_namespaces_api_client.partial_update(
         name=name, description="hello", links=links, **kwargs
     )
+    updated2_namespace_href = task.pulp_href
     result = monitor_task(task.task)
-    assert len(result.created_resources) == 2
+    assert len(result.created_resources) == 1
     repo_version = result.created_resources[0]
     assert repo_version[-2] == "3"
-    updated2_namespace_href = result.created_resources[1]
     assert updated2_namespace_href == namespace_href
 
     # Test 'Deleting' a Namespace (Namespace are removed from Galaxy API, but are still in Pulp)
@@ -156,10 +183,11 @@ def test_namespace_avatar(
     task = galaxy_v3_plugin_namespaces_api_client.create(name=name, avatar=avatar_path, **kwargs)
     result = monitor_task(task.task)
 
-    assert len(result.created_resources) == 2
-    namespace_href = result.created_resources[1]
+    assert len(result.created_resources) == 1
+    namespace_href = task.pulp_href
 
     namespace = ansible_namespaces_api_client.read(namespace_href)
+
     assert namespace.avatar_sha256 == avatar_sha256
     assert namespace.avatar_url.endswith(f"{namespace_href}avatar/")
 
@@ -195,12 +223,12 @@ def test_namespace_syncing(
         namespace = random_string()
         collection, _ = build_and_upload_collection(repo1, config={"namespace": namespace})
         avatar_path = random_image_factory()
-        task = galaxy_v3_plugin_namespaces_api_client.create(
+        ns = galaxy_v3_plugin_namespaces_api_client.create(
             name=namespace, avatar=avatar_path, **kwargs1
         )
-        result = monitor_task(task.task)
+        monitor_task(ns.task)
         collections.append(collection)
-        namespaces[namespace] = result.created_resources[-1]
+        namespaces[namespace] = ns.pulp_href
 
     # Set up second Repo and sync 2 Collections from first Repo
     repo2, distro2 = ansible_repo_and_distro_factory()

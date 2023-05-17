@@ -7,7 +7,7 @@ from django.db import DatabaseError, IntegrityError
 from django.db.models import F, Q, OuterRef, Exists
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
-from django.http import StreamingHttpResponse, HttpResponseNotFound
+from django.http import StreamingHttpResponse, HttpResponseNotFound, QueryDict
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
 from django_filters import filters
@@ -700,9 +700,9 @@ class CollectionArtifactDownloadView(views.APIView):
 
 
 @extend_schema_view(
-    create=extend_schema(responses={202: AsyncOperationResponseSerializer}),
-    partial_update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
-    update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+    create=extend_schema(responses={202: AnsibleNamespaceMetadataSerializer}),
+    partial_update=extend_schema(responses={202: AnsibleNamespaceMetadataSerializer}),
+    update=extend_schema(responses={202: AnsibleNamespaceMetadataSerializer}),
     delete=extend_schema(responses={202: AsyncOperationResponseSerializer}),
 )
 class AnsibleNamespaceViewSet(
@@ -752,24 +752,6 @@ class AnsibleNamespaceViewSet(
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        context = context or {}
-        context["repository"] = repo.pk
-        # If avatar was uploaded, init into artifact
-        if avatar := serializer.validated_data.pop("avatar", None):
-            artifact = Artifact.init_and_validate(avatar)
-            try:
-                artifact.save()
-            except IntegrityError:
-                # if artifact already exists, let's use it
-                try:
-                    artifact = Artifact.objects.get(sha256=artifact.sha256)
-                    artifact.touch()
-                except (Artifact.DoesNotExist, DatabaseError):
-                    # the artifact has since been removed from when we first attempted to save it
-                    artifact.save()
-            context["artifact"] = artifact.pk
-
-        # create the new namespace metadata object
         c = serializer.save()
 
         # launch a background task to add the metadata to the current repo
@@ -796,7 +778,8 @@ class AnsibleNamespaceViewSet(
 
         # merge the data from the serialized db object with the request data to support PATCH
         # updates.
-        return self._create(request, data={**serializer.data, **request.data}, context=context)
+        merged = {**serializer.data, **request.data.dict()}
+        return self._create(request, data=merged, context=context)
 
     def delete(self, request, *args, **kwargs):
         """Try to remove the Namespace if no Collections under Namespace are present."""

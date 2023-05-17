@@ -3,7 +3,7 @@ from gettext import gettext as _
 import json
 import re
 
-from django.db import transaction
+from django.db import transaction, DatabaseError, IntegrityError
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
@@ -815,6 +815,10 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     """
     A serializer for Namespaces.
     """
+
+    # Task on the serializer will always return none. It's just here to prevent the bindings
+    # from breaking.
+    task = serializers.SerializerMethodField()
     groups = GroupPermissionField(source="namespace", allow_null=True, required=False)
 
     name = serializers.RegexField(
@@ -857,6 +861,9 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
         help_text=_("Download link for avatar image if present.")
     )
     metadata_sha256 = serializers.CharField(read_only=True)
+
+    def get_task(self, obj):
+        return None
 
     def get_avatar_url(self, obj):
         """Return the avatar url"""
@@ -913,6 +920,21 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
         groups = validated_data.pop("namespace", None)
 
+        # If avatar was uploaded, init into artifact
+        if avatar := validated_data.pop("avatar", None):
+            artifact = Artifact.init_and_validate(avatar)
+            try:
+                artifact.save()
+            except IntegrityError:
+                # if artifact already exists, let's use it
+                try:
+                    artifact = Artifact.objects.get(sha256=artifact.sha256)
+                    artifact.touch()
+                except (Artifact.DoesNotExist, DatabaseError):
+                    # the artifact has since been removed from when we first attempted to save it
+                    artifact.save()
+            validated_data["avatar_sha256"] = artifact.sha256
+
         namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
 
         if groups is not None:
@@ -930,7 +952,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             content = metadata
             if metadata.avatar_sha256:
                 ContentArtifact.objects.create(
-                    artifact_id=self.context["artifact"],
+                    artifact_id=artifact.pk,
                     content=content,
                     relative_path=f"{metadata.name}-avatar",
                 )
@@ -951,7 +973,8 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             "avatar_sha256",
             "avatar_url",
             "metadata_sha256",
-            "groups"
+            "groups",
+            "task"
         )
 
 
