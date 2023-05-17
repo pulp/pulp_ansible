@@ -1,7 +1,6 @@
 from collections import OrderedDict
 
 from django.utils.translation import gettext_lazy as _
-from django.db import transaction
 from django.core.exceptions import BadRequest
 from django_lifecycle import hook
 
@@ -17,56 +16,6 @@ from pulpcore.plugin.util import (
     get_perms_for_model
 )
 from pulpcore.plugin.models import Group
-
-
-class GroupModelPermissionsMixin:
-    _groups = None
-
-    @property
-    def groups(self):
-        return get_groups_with_perms_attached_roles(
-            self, include_model_permissions=False, for_concrete_model=True)
-
-    @groups.setter
-    def groups(self, groups):
-        self._set_groups(groups)
-
-    @transaction.atomic
-    def _set_groups(self, groups):
-        # Can't add permissions to objects that haven't been
-        # saved. When creating new objects, save group data to _groups where it
-        # can be picked up by the post save hook.
-        if self._state.adding:
-            self._groups = groups
-        else:
-            obj = self
-
-            # If the model is a proxy model, get the original model since pulp
-            # doesn't allow us to assign permissions to proxied models.
-            if self._meta.proxy:
-                obj = self._meta.concrete_model.objects.get(pk=self.pk)
-
-            current_groups = get_groups_with_perms_attached_roles(
-                obj, include_model_permissions=False)
-            for group in current_groups:
-                for perm in current_groups[group]:
-                    remove_role(perm, group, obj)
-
-            for group in groups:
-                for role in groups[group]:
-                    try:
-                        assign_role(role, group, obj)
-                    except BadRequest:
-                        raise ValidationError(
-                            detail={'groups': _('Role {role} does not exist or does not '
-                                                'have any permissions related to this object.'
-                                                ).format(role=role)}
-                        )
-
-    @hook('after_save')
-    def set_object_groups(self):
-        if self._groups:
-            self._set_groups(self._groups)
 
 
 class RelatedFieldsBaseSerializer(serializers.Serializer):
@@ -144,6 +93,31 @@ class MyPermissionsField(serializers.Serializer):
         return my_perms
 
 
+def set_object_group_roles(obj, new_groups):
+    current_groups = get_groups_with_perms_attached_roles(
+        obj, include_model_permissions=False)
+
+    # remove the old roles
+    for group in current_groups:
+        if group in new_groups:
+            new_groups.pop(group)
+            continue
+        for role in current_groups[group]:
+            remove_role(role, group, obj)
+
+    # add the new ones
+    for group in new_groups:
+        for role in new_groups[group]:
+            try:
+                assign_role(role, group, obj)
+            except BadRequest:
+                raise ValidationError(
+                    detail={'groups': _('Role {role} does not exist or does not '
+                                        'have any permissions related to this object.'
+                                        ).format(role=role)}
+                )
+
+
 class GroupPermissionField(serializers.Field):
     def _validate_group(self, group_data):
         if 'object_roles' not in group_data:
@@ -170,11 +144,14 @@ class GroupPermissionField(serializers.Field):
 
     def to_representation(self, value):
         rep = []
-        for group in value:
+        groups = get_groups_with_perms_attached_roles(
+            value, include_model_permissions=False, for_concrete_model=True
+        )
+        for group in groups:
             rep.append({
                 'id': group.id,
                 'name': group.name,
-                'object_roles': value[group]
+                'object_roles': groups[group]
             })
         return rep
 

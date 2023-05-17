@@ -32,7 +32,6 @@ from pulpcore.plugin.models import (
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 
 from .downloaders import AnsibleDownloaderFactory
-from .custom_fields import GroupModelPermissionsMixin
 
 
 log = getLogger(__name__)
@@ -114,7 +113,7 @@ class Tag(BaseModel):
         return self.name
 
 
-class AnsibleNamespace(BaseModel, GroupModelPermissionsMixin):
+class AnsibleNamespace(BaseModel):
     """
     A model representing a Namespace. This should be used for permissions.
     """

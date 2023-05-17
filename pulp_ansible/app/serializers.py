@@ -60,7 +60,8 @@ from pulp_ansible.app.tasks.upload import process_collection_artifact, finish_co
 from .custom_fields import (
     RelatedFieldsBaseSerializer,
     MyPermissionsField,
-    GroupPermissionField
+    GroupPermissionField,
+    set_object_group_roles
 )
 
 
@@ -818,7 +819,7 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 
     # TODO: These two fields should be deprecated
     related_fields = NamespaceRelatedFieldSerializer(source="*")
-    groups = GroupPermissionField(source="namespace.groups", allow_null=True, required=False)
+    groups = GroupPermissionField(source="namespace", allow_null=True, required=False)
 
     name = serializers.RegexField(
         NAME_REGEXP,
@@ -913,13 +914,13 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             - return groups as read only?
         - filters
         """
-        ns_data = validated_data.pop("namespace", {})
+
+        groups = validated_data.pop("namespace", None)
 
         namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
 
-        if groups := ns_data.get("groups"):
-            namespace.groups = groups
-            namespace.save()
+        if groups is not None:
+            set_object_group_roles(namespace, groups)
 
         metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
         metadata.calculate_metadata_sha256()
