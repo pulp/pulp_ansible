@@ -815,10 +815,6 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     """
     A serializer for Namespaces.
     """
-
-
-    # TODO: These two fields should be deprecated
-    related_fields = NamespaceRelatedFieldSerializer(source="*")
     groups = GroupPermissionField(source="namespace", allow_null=True, required=False)
 
     name = serializers.RegexField(
@@ -955,7 +951,6 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             "avatar_sha256",
             "avatar_url",
             "metadata_sha256",
-            "related_fields",
             "groups"
         )
 
@@ -963,9 +958,10 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
 class AnsibleGlobalNamespaceSerializer(ModelSerializer, GetOrCreateSerializerMixin):
     pulp_href = IdentityField(view_name="pulp_ansible/namespaces-detail")
     latest_metadata = AnsibleNamespaceMetadataSerializer(read_only=True)
+    my_permissions = MyPermissionsField(source="*", read_only=True)
 
     class Meta:
-        fields = ModelSerializer.Meta.fields + ("name", "latest_metadata",)
+        fields = ModelSerializer.Meta.fields + ("name", "latest_metadata", "my_permissions")
         model = AnsibleNamespace
 
 

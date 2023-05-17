@@ -440,6 +440,25 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
         return HttpResponseNotFound()
 
 
+class AnsibleGlobalNamespaceFilter(ContentFilter):
+    """
+    A filter for namespaces.
+    """
+    my_permissions = filters.CharFilter(method='has_permissions')
+
+    class Meta:
+        model = AnsibleNamespace
+        fields = {
+            "name": NAME_FILTER_OPTIONS,
+        }
+
+    def has_permissions(self, queryset, name, value):
+        perms = self.request.query_params.getlist(name)
+        namespaces = get_objects_for_user(
+            self.request.user, perms, qs=AnsibleNamespace.objects.all())
+        return self.queryset.filter(pk__in=namespaces)
+
+
 class AnsibleGlobalNamespaceViewSet(
     NamedModelViewSet,
     mixins.CreateModelMixin,
@@ -455,14 +474,7 @@ class AnsibleGlobalNamespaceViewSet(
     endpoint_name = "pulp_ansible/namespaces"
     queryset = AnsibleNamespace.objects.all()
     serializer_class = AnsibleGlobalNamespaceSerializer
-
-
-
-
-
-
-    # TODO
-    # filterset_class = ContainerNamespaceFilter
+    filterset_class = AnsibleGlobalNamespaceFilter
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
