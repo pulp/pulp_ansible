@@ -10,7 +10,7 @@ from django.db.models.functions.window import FirstValue
 from django.http import StreamingHttpResponse, HttpResponseNotFound, QueryDict
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
-from django_filters import filters
+from django_filters import filters, OrderingFilter
 from django.views.generic.base import RedirectView
 from django.conf import settings
 
@@ -1195,25 +1195,44 @@ class NamespaceSearchFilter(BaseFilterSet):
     FilterSet for Ansible Namespaces.
     """
 
-    name = filters.CharFilter(field_name="content__ansible_ansiblenamespacemetadata__name")
+    order_by = OrderingFilter(
+        fields={
+            "content__ansible_ansiblenamespacemetadata__pulp_created": "pulp_created",
+            "content__ansible_ansiblenamespacemetadata__name": "name",
+        },
+    )
+
+    name = filters.CharFilter(
+        field_name="content__ansible_ansiblenamespacemetadata__name"
+    )
+    name__icontains = filters.CharFilter(
+        field_name="content__ansible_ansiblenamespacemetadata__name",
+        lookup_expr="icontains"
+    )
+
+    repository_name = filters.CharFilter(field_name="repository__name")
+    repository_name__icontains = filters.CharFilter(
+        field_name="repository__name",
+        lookup_expr="icontains"
+    )
 
     class Meta:
         model = RepositoryContent
-        fields = ["name"]
+        fields = ("name", "name__icontains", "repository_name", "repository_name__icontains")
 
 
 class NamespaceMetadataSearchViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
     serializer_class = NamespaceSearchSerializer
     filterset_class = NamespaceSearchFilter
 
-    # Get namespace metadata for all distributed repositories
+    # Get all distributed namespace metadata
     def get_queryset(self):
-        has_latest_distro = Distribution.objects.filter(
+        repo_has_latest_distro_qs = Distribution.objects.filter(
             repository=OuterRef("repository"),
             repository_version=None
         )
 
-        has_specific_distro = Distribution.objects.exclude(repository_version=None).filter(
+        in_old_repo_version_qs = Distribution.objects.exclude(repository_version=None).filter(
             repository_version__repository=OuterRef("repository"),
             repository_version__number__gte=OuterRef("version_added__number"),
             repository_version__number__lt=OuterRef("version_removed__number")
@@ -1224,8 +1243,9 @@ class NamespaceMetadataSearchViewset(viewsets.GenericViewSet, mixins.ListModelMi
         ).exclude(
             content__ansible_ansiblenamespacemetadata=None
         ).annotate(
-            has_latest_distro=Exists(has_latest_distro),
-            has_specific_distro=Exists(has_specific_distro)
+            repo_has_latest_distro=Exists(repo_has_latest_distro_qs),
+            in_old_repo_version=Exists(in_old_repo_version_qs),
+
         ).filter(
-            Q(has_specific_distro=True) | Q(Q(version_removed=None) & Q(has_latest_distro=True))
+            Q(in_old_repo_version=True) | Q(Q(version_removed=None) & Q(repo_has_latest_distro=True))
         )

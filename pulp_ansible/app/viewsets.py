@@ -10,6 +10,8 @@ from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.serializers import ValidationError as DRFValidationError
+from rest_framework.response import Response
+from rest_framework import status as http_status
 
 from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
@@ -440,7 +442,7 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
         return HttpResponseNotFound()
 
 
-class AnsibleGlobalNamespaceFilter(ContentFilter):
+class AnsibleGlobalNamespaceFilter(BaseFilterSet):
     """
     A filter for namespaces.
     """
@@ -462,7 +464,7 @@ class AnsibleGlobalNamespaceFilter(ContentFilter):
 class AnsibleGlobalNamespaceViewSet(
     NamedModelViewSet,
     mixins.CreateModelMixin,
-    # mixins.DestroyModelMixin,
+    mixins.DestroyModelMixin,
     mixins.ListModelMixin,
     mixins.RetrieveModelMixin,
     RolesMixin,
@@ -499,6 +501,34 @@ class AnsibleGlobalNamespaceViewSet(
 
 
 
+
+
+    # TODO: How to handle delete?
+    # Can't delete if metadata exists, but namespaces should be able to deleted as
+    # long as no collections exist with them
+
+    # @extend_schema(
+    #     description="Trigger an asynchronous delete task",
+    #     responses={202: AsyncOperationResponseSerializer},
+    # )
+    def destroy(self, request, *args, **kwargs):
+        ns = self.get_object()
+
+        if ns.metadatas.all().count() != 0:
+            return Response(
+                {
+                    "detail": _(
+                        "Namespace {name} cannot be deleted because it"
+                        " has namespace metadata associated with it."
+                    ).format(
+                        name=ns.name,
+                    )
+                },
+                status=http_status.HTTP_400_BAD_REQUEST,
+            )
+
+        ns.delete()
+        return Response(status=http_status.HTTP_204_NO_CONTENT)
 
 
 class RoleRemoteViewSet(RemoteViewSet, RolesMixin):

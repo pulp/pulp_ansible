@@ -1,8 +1,13 @@
+import json
+
 from collections import OrderedDict
 
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import BadRequest
 from django_lifecycle import hook
+
+from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.types import OpenApiTypes
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -118,7 +123,37 @@ def set_object_group_roles(obj, new_groups):
                 )
 
 
+
+class GroupFieldType(serializers.Serializer):
+    """
+    Group open api type
+    """
+
+    name = serializers.CharField(max_length=256, allow_blank=False)
+    id = serializers.CharField(max_length=256, allow_blank=True, required=False)
+    object_roles = serializers.ListField(child=serializers.CharField())
+
+
+@extend_schema_field(GroupFieldType(many=True))
 class GroupPermissionField(serializers.Field):
+    def get_value(self, dictionary):
+        data = dictionary.get(self.field_name, [])
+
+        # The open api client sends data as a form request rather than json
+        # because of the avatar URL. It converts a list like
+        # [{"foo": "bar"}, {"bar": "foo"}] into "{'foo': 'bar'}, {'bar': 'foo'}"
+        # This is a best effort attempt to capture that data and convert it into
+        # valid JSON and then transform it into a list that the API can understand
+        if isinstance(data, str):
+            try:
+                data = f"[{data}]".replace("'", '"')
+                return json.loads(data)
+            except json.decoder.JSONDecodeError:
+                raise ValidationError(detail={"links": "Must be valid JSON"})
+
+        return super().get_value(dictionary)
+
+
     def _validate_group(self, group_data):
         if 'object_roles' not in group_data:
             raise ValidationError(detail={
