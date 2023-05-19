@@ -47,7 +47,7 @@ def random_image_factory(tmp_path):
 def test_invalid_namespace_names(
     ansible_repo_and_distro_factory,
     galaxy_v3_plugin_namespaces_api_client,
-    global_ansible_namespaces_api_client
+    global_ansible_namespaces_api_client,
 ):
     """Test that users can't create namespaces with invalid names."""
     repo, distro = ansible_repo_and_distro_factory()
@@ -76,9 +76,7 @@ def test_invalid_namespace_names(
             assert not f"User was able to create global namespace with invalid name {name}"
 
         try:
-            galaxy_v3_plugin_namespaces_api_client.create(
-                name=name, **kwargs
-            )
+            galaxy_v3_plugin_namespaces_api_client.create(name=name, **kwargs)
         except ApiException as e:
             assert "name" in e.body
         except ApiValueError as e:
@@ -108,9 +106,7 @@ def test_namespace_groups(
 
     # Create namespace with no groups
     name = random_string()
-    result = galaxy_v3_plugin_namespaces_api_client.create(
-        name=name, **kwargs
-    )
+    result = galaxy_v3_plugin_namespaces_api_client.create(name=name, **kwargs)
     monitor_task(result.task)
 
     v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
@@ -129,7 +125,11 @@ def test_namespace_groups(
     # Create namespace with groups
     name = random_string()
     result = galaxy_v3_plugin_namespaces_api_client.create(
-        name=name, groups=[group_1_mapping, ], **kwargs
+        name=name,
+        groups=[
+            group_1_mapping,
+        ],
+        **kwargs,
     )
     monitor_task(result.task)
     v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
@@ -145,16 +145,19 @@ def test_namespace_groups(
 
     # Add an extra group
     result = galaxy_v3_plugin_namespaces_api_client.partial_update(
-        name=name, groups=[group_1_mapping, group_2_mapping,], **kwargs
+        name=name,
+        groups=[
+            group_1_mapping,
+            group_2_mapping,
+        ],
+        **kwargs,
     )
     monitor_task(result.task)
     v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
     assert {x.name for x in v3_namespace.groups} == {group_1, group_2}
 
     # Remove groups
-    result = galaxy_v3_plugin_namespaces_api_client.partial_update(
-        name=name, groups=[], **kwargs
-    )
+    result = galaxy_v3_plugin_namespaces_api_client.partial_update(name=name, groups=[], **kwargs)
     monitor_task(result.task)
     v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
     assert v3_namespace.groups == []
@@ -166,7 +169,7 @@ def test_namespace_metadata_search(
     monitor_task,
     ansible_namespace_search_api_client,
     ansible_repo_api_client,
-    ansible_distro_api_client
+    ansible_distro_api_client,
 ):
     """
     Test that the namespaces search API is returning all the distributed namespace
@@ -191,16 +194,12 @@ def test_namespace_metadata_search(
     # populate two repositories with a set of shared and unique namespaces
     for name in repo1_namespaces + shared_ns:
         kwargs = {"path": distro1.base_path, "distro_base_path": distro1.base_path}
-        result = galaxy_v3_plugin_namespaces_api_client.create(
-            name=name, **kwargs
-        )
+        result = galaxy_v3_plugin_namespaces_api_client.create(name=name, **kwargs)
         monitor_task(result.task)
 
     for name in repo2_namespaces + shared_ns:
         kwargs = {"path": distro2.base_path, "distro_base_path": distro2.base_path}
-        result = galaxy_v3_plugin_namespaces_api_client.create(
-            name=name, **kwargs
-        )
+        result = galaxy_v3_plugin_namespaces_api_client.create(name=name, **kwargs)
         monitor_task(result.task)
 
     repo1_set = _tupleify(shared_ns + repo1_namespaces, [repo1])
@@ -217,11 +216,13 @@ def test_namespace_metadata_search(
     assert search_results == repo1_set | repo2_set
 
     # add a new distro pointing to a specific repository version of the first repo
-    task = ansible_distro_api_client.create({
-        "base_path": random_string(),
-        "name": random_string(),
-        "repository_version": ansible_repo_api_client.read(repo1.pulp_href).latest_version_href
-    })
+    task = ansible_distro_api_client.create(
+        {
+            "base_path": random_string(),
+            "name": random_string(),
+            "repository_version": ansible_repo_api_client.read(repo1.pulp_href).latest_version_href,
+        }
+    )
 
     new_distro_href = monitor_task(task.task).created_resources[0]
 
@@ -239,7 +240,8 @@ def test_namespace_metadata_search(
 
     kwargs = {"path": distro1.base_path, "distro_base_path": distro1.base_path}
     monitor_task(
-        galaxy_v3_plugin_namespaces_api_client.delete(name=removed_namespace, **kwargs).task)
+        galaxy_v3_plugin_namespaces_api_client.delete(name=removed_namespace, **kwargs).task
+    )
 
     # Contents of repo1 should be marked as in latest and old repo version
     for ns in iterate_all(ansible_namespace_search_api_client.list, repository_name=repo1.name):
@@ -263,8 +265,8 @@ def test_namespace_metadata_search(
     # The removed namespace should no longer appear in the search now that the distro that it
     # was in has been deleted
     search_results = {
-        (x.repository.name, x.metadata.name) for x in iterate_all(
-            ansible_namespace_search_api_client.list)
+        (x.repository.name, x.metadata.name)
+        for x in iterate_all(ansible_namespace_search_api_client.list)
     }
 
     assert search_results == repo1_set | repo2_set
@@ -275,8 +277,8 @@ def test_namespace_metadata_search(
 
     # The content in distro1 should be removed from the search results
     search_results = {
-        (x.repository.name, x.metadata.name) for x in iterate_all(
-            ansible_namespace_search_api_client.list)
+        (x.repository.name, x.metadata.name)
+        for x in iterate_all(ansible_namespace_search_api_client.list)
     }
 
     assert search_results == repo2_set
@@ -330,7 +332,7 @@ def test_global_namespaces_latest_crud(
     ansible_repo_and_distro_factory,
     galaxy_v3_plugin_namespaces_api_client,
     monitor_task,
-    gen_user
+    gen_user,
 ):
     ns_owner = gen_user()
 
@@ -342,21 +344,28 @@ def test_global_namespaces_latest_crud(
 
     # test my permissions filter
     with ns_owner:
-        assert global_ansible_namespaces_api_client.list(
-            name=name, my_permissions="ansible.change_ansiblenamespace").count == 0
+        assert (
+            global_ansible_namespaces_api_client.list(
+                name=name, my_permissions="ansible.change_ansiblenamespace"
+            ).count
+            == 0
+        )
 
     global_ansible_namespaces_api_client.add_role(
         g_ns.pulp_href,
         {
-            "users": [ns_owner.user.username, ],
-            "role": "ansible.namespace_owner"
-        }
+            "users": [
+                ns_owner.user.username,
+            ],
+            "role": "ansible.namespace_owner",
+        },
     )
 
     # test my permissions filter
     with ns_owner:
         results = global_ansible_namespaces_api_client.list(
-            name=name, my_permissions="ansible.change_ansiblenamespace")
+            name=name, my_permissions="ansible.change_ansiblenamespace"
+        )
 
         assert results.count == 1
         assert "ansible.change_ansiblenamespace" in results.results[0].my_permissions

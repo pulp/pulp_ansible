@@ -40,7 +40,7 @@ from pulpcore.plugin.util import (
     extract_pk,
     raise_for_unknown_content_units,
     get_objects_for_user,
-    get_artifact_url
+    get_artifact_url,
 )
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from .models import (
@@ -378,8 +378,8 @@ class AnsibleNamespaceFilter(ContentFilter):
     # this is a hack to keep pulp from throwing a 400 when an unknwon
     # query param is included, since filtering is handled by the related
     # field serializer
-    include_related = filters.CharFilter(method='no_op')
-    my_permissions = filters.CharFilter(method='has_permissions')
+    include_related = filters.CharFilter(method="no_op")
+    my_permissions = filters.CharFilter(method="has_permissions")
 
     class Meta:
         model = AnsibleNamespaceMetadata
@@ -395,7 +395,8 @@ class AnsibleNamespaceFilter(ContentFilter):
     def has_permissions(self, queryset, name, value):
         perms = self.request.query_params.getlist(name)
         namespaces = get_objects_for_user(
-            self.request.user, perms, qs=AnsibleNamespace.objects.all())
+            self.request.user, perms, qs=AnsibleNamespace.objects.all()
+        )
         return self.queryset.filter(namespace__in=namespaces)
 
 
@@ -446,7 +447,8 @@ class AnsibleGlobalNamespaceFilter(BaseFilterSet):
     """
     A filter for namespaces.
     """
-    my_permissions = filters.CharFilter(method='has_permissions')
+
+    my_permissions = filters.CharFilter(method="has_permissions")
 
     class Meta:
         model = AnsibleNamespace
@@ -457,7 +459,8 @@ class AnsibleGlobalNamespaceFilter(BaseFilterSet):
     def has_permissions(self, queryset, name, value):
         perms = self.request.query_params.getlist(name)
         namespaces = get_objects_for_user(
-            self.request.user, perms, qs=AnsibleNamespace.objects.all())
+            self.request.user, perms, qs=AnsibleNamespace.objects.all()
+        )
         return self.queryset.filter(pk__in=namespaces)
 
 
@@ -478,6 +481,7 @@ class AnsibleGlobalNamespaceViewSet(
     serializer_class = AnsibleGlobalNamespaceSerializer
     filterset_class = AnsibleGlobalNamespaceFilter
 
+    # TODO: RBAC
     DEFAULT_ACCESS_POLICY = {
         "statements": [
             {
@@ -499,18 +503,6 @@ class AnsibleGlobalNamespaceViewSet(
         ],
     }
 
-
-
-
-
-    # TODO: How to handle delete?
-    # Can't delete if metadata exists, but namespaces should be able to deleted as
-    # long as no collections exist with them
-
-    # @extend_schema(
-    #     description="Trigger an asynchronous delete task",
-    #     responses={202: AsyncOperationResponseSerializer},
-    # )
     def destroy(self, request, *args, **kwargs):
         ns = self.get_object()
 

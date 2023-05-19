@@ -61,7 +61,7 @@ from .custom_fields import (
     RelatedFieldsBaseSerializer,
     MyPermissionsField,
     GroupPermissionField,
-    set_object_group_roles
+    set_object_group_roles,
 )
 
 
@@ -811,20 +811,20 @@ class NamespaceRelatedFieldSerializer(RelatedFieldsBaseSerializer):
     my_permissions = MyPermissionsField(source="*", read_only=True)
 
 
-class NamespaceValidationMixin():
+class NamespaceValidationMixin:
     def validate_name(self, name):
         if not name:
-            raise ValidationError(detail={
-                'name': _("Attribute 'name' is required")})
-        if not re.match(r'^[a-z0-9_]+$', name):
-            raise ValidationError(detail={
-                'name': _('Name can only contain lower case letters, underscores and numbers')})
+            raise ValidationError(detail={"name": _("Attribute 'name' is required")})
+        if not re.match(r"^[a-z0-9_]+$", name):
+            raise ValidationError(
+                detail={
+                    "name": _("Name can only contain lower case letters, underscores and numbers")
+                }
+            )
         if len(name) <= 2:
-            raise ValidationError(detail={
-                'name': _('Name must be longer than 2 characters')})
+            raise ValidationError(detail={"name": _("Name must be longer than 2 characters")})
         if name[0] in "0123456789_":
-            raise ValidationError(detail={
-                'name': _("Name cannot begin with '_' or any number")})
+            raise ValidationError(detail={"name": _("Name cannot begin with '_' or any number")})
 
         return name
 
@@ -977,11 +977,13 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer, NamespaceV
             "avatar_url",
             "metadata_sha256",
             "groups",
-            "task"
+            "task",
         )
 
 
-class AnsibleGlobalNamespaceSerializer(ModelSerializer, GetOrCreateSerializerMixin, NamespaceValidationMixin):
+class AnsibleGlobalNamespaceSerializer(
+    ModelSerializer, GetOrCreateSerializerMixin, NamespaceValidationMixin
+):
     pulp_href = IdentityField(view_name="pulp_ansible/namespaces-detail")
     latest_metadata = AnsibleNamespaceMetadataSerializer(read_only=True)
     my_permissions = MyPermissionsField(source="*", read_only=True)

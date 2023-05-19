@@ -3,11 +3,11 @@ from gettext import gettext as _
 import semantic_version
 
 from django.contrib.postgres.aggregates import ArrayAgg
-from django.db import DatabaseError, IntegrityError
+from django.db import DatabaseError
 from django.db.models import F, Q, OuterRef, Exists
 from django.db.models.expressions import Window
 from django.db.models.functions.window import FirstValue
-from django.http import StreamingHttpResponse, HttpResponseNotFound, QueryDict
+from django.http import StreamingHttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
 from django_filters import filters, OrderingFilter
@@ -33,7 +33,6 @@ from pulpcore.plugin.viewsets import (
     BaseFilterSet,
     OperationPostponedResponse,
     SingleArtifactContentUploadViewSet,
-    NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
 
@@ -58,8 +57,6 @@ from pulp_ansible.app.models import (
     CollectionVersionSignature,
     CollectionImport,
     DownloadLog,
-    AnsibleNamespace,
-    AnsibleNamespaceMetadata,
 )
 from pulp_ansible.app.serializers import (
     AnsibleNamespaceMetadataSerializer,
@@ -1202,18 +1199,14 @@ class NamespaceSearchFilter(BaseFilterSet):
         },
     )
 
-    name = filters.CharFilter(
-        field_name="content__ansible_ansiblenamespacemetadata__name"
-    )
+    name = filters.CharFilter(field_name="content__ansible_ansiblenamespacemetadata__name")
     name__icontains = filters.CharFilter(
-        field_name="content__ansible_ansiblenamespacemetadata__name",
-        lookup_expr="icontains"
+        field_name="content__ansible_ansiblenamespacemetadata__name", lookup_expr="icontains"
     )
 
     repository_name = filters.CharFilter(field_name="repository__name")
     repository_name__icontains = filters.CharFilter(
-        field_name="repository__name",
-        lookup_expr="icontains"
+        field_name="repository__name", lookup_expr="icontains"
     )
 
     class Meta:
@@ -1228,24 +1221,24 @@ class NamespaceMetadataSearchViewset(viewsets.GenericViewSet, mixins.ListModelMi
     # Get all distributed namespace metadata
     def get_queryset(self):
         repo_has_latest_distro_qs = Distribution.objects.filter(
-            repository=OuterRef("repository"),
-            repository_version=None
+            repository=OuterRef("repository"), repository_version=None
         )
 
         in_old_repo_version_qs = Distribution.objects.exclude(repository_version=None).filter(
             repository_version__repository=OuterRef("repository"),
             repository_version__number__gte=OuterRef("version_added__number"),
-            repository_version__number__lt=OuterRef("version_removed__number")
+            repository_version__number__lt=OuterRef("version_removed__number"),
         )
 
-        return RepositoryContent.objects.select_related(
-            "content__ansible_ansiblenamespacemetadata"
-        ).exclude(
-            content__ansible_ansiblenamespacemetadata=None
-        ).annotate(
-            repo_has_latest_distro=Exists(repo_has_latest_distro_qs),
-            in_old_repo_version=Exists(in_old_repo_version_qs),
-
-        ).filter(
-            Q(in_old_repo_version=True) | Q(Q(version_removed=None) & Q(repo_has_latest_distro=True))
+        return (
+            RepositoryContent.objects.select_related("content__ansible_ansiblenamespacemetadata")
+            .exclude(content__ansible_ansiblenamespacemetadata=None)
+            .annotate(
+                repo_has_latest_distro=Exists(repo_has_latest_distro_qs),
+                in_old_repo_version=Exists(in_old_repo_version_qs),
+            )
+            .filter(
+                Q(in_old_repo_version=True)
+                | Q(Q(version_removed=None) & Q(repo_has_latest_distro=True))
+            )
         )

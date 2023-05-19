@@ -4,10 +4,8 @@ from collections import OrderedDict
 
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import BadRequest
-from django_lifecycle import hook
 
 from drf_spectacular.utils import extend_schema_field
-from drf_spectacular.types import OpenApiTypes
 
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
@@ -18,7 +16,7 @@ from pulpcore.plugin.util import (
     assign_role,
     remove_role,
     get_groups_with_perms_attached_roles,
-    get_perms_for_model
+    get_perms_for_model,
 )
 from pulpcore.plugin.models import Group
 
@@ -52,17 +50,16 @@ class RelatedFieldsBaseSerializer(serializers.Serializer):
     def __init__(self, *args, **kwargs):
         # This should only be included as a sub serializer and shouldn't be used for
         # updating objects, so set read_only to true
-        kwargs['read_only'] = True
+        kwargs["read_only"] = True
         return super().__init__(*args, **kwargs)
 
     def to_representation(self, instance):
         result = OrderedDict()
         fields = self._readable_fields
-        request = self.context.get('request', None)
+        request = self.context.get("request", None)
         if request:
-
             # TODO: Figure out how to make `include_related` show up in the open API spec
-            include_fields = request.GET.getlist('include_related')
+            include_fields = request.GET.getlist("include_related")
 
             if len(include_fields) > 0:
                 for field in fields:
@@ -79,7 +76,7 @@ class RelatedFieldsBaseSerializer(serializers.Serializer):
 
 class MyPermissionsField(serializers.Serializer):
     def to_representation(self, original_obj):
-        request = self.context.get('request', None)
+        request = self.context.get("request", None)
         if request is None:
             return []
         user = request.user
@@ -99,8 +96,7 @@ class MyPermissionsField(serializers.Serializer):
 
 
 def set_object_group_roles(obj, new_groups):
-    current_groups = get_groups_with_perms_attached_roles(
-        obj, include_model_permissions=False)
+    current_groups = get_groups_with_perms_attached_roles(obj, include_model_permissions=False)
 
     # remove the old roles
     for group in current_groups:
@@ -117,11 +113,13 @@ def set_object_group_roles(obj, new_groups):
                 assign_role(role, group, obj)
             except BadRequest:
                 raise ValidationError(
-                    detail={'groups': _('Role {role} does not exist or does not '
-                                        'have any permissions related to this object.'
-                                        ).format(role=role)}
+                    detail={
+                        "groups": _(
+                            "Role {role} does not exist or does not "
+                            "have any permissions related to this object."
+                        ).format(role=role)
+                    }
                 )
-
 
 
 class GroupFieldType(serializers.Serializer):
@@ -153,29 +151,24 @@ class GroupPermissionField(serializers.Field):
 
         return super().get_value(dictionary)
 
-
     def _validate_group(self, group_data):
-        if 'object_roles' not in group_data:
-            raise ValidationError(detail={
-                'groups': _('object_roles field is required')})
+        if "object_roles" not in group_data:
+            raise ValidationError(detail={"groups": _("object_roles field is required")})
 
-        if 'id' not in group_data and 'name' not in group_data:
-            raise ValidationError(detail={
-                'groups': _('id or name field is required')})
+        if "id" not in group_data and "name" not in group_data:
+            raise ValidationError(detail={"groups": _("id or name field is required")})
 
-        roles = group_data['object_roles']
+        roles = group_data["object_roles"]
 
         if not isinstance(roles, list):
-            raise ValidationError(detail={
-                'groups': _('object_roles must be a list of strings')})
+            raise ValidationError(detail={"groups": _("object_roles must be a list of strings")})
 
         # validate that the permissions exist
         for role in roles:
             # TODO(newswangerd): Figure out how to make this one SQL query instead of
             # performing N queries for each permission
             if not Role.objects.filter(name=role).exists():
-                raise ValidationError(detail={
-                    'groups': _('Role {} does not exist').format(role)})
+                raise ValidationError(detail={"groups": _("Role {} does not exist").format(role)})
 
     def to_representation(self, value):
         rep = []
@@ -183,38 +176,34 @@ class GroupPermissionField(serializers.Field):
             value, include_model_permissions=False, for_concrete_model=True
         )
         for group in groups:
-            rep.append({
-                'id': group.id,
-                'name': group.name,
-                'object_roles': groups[group]
-            })
+            rep.append({"id": group.id, "name": group.name, "object_roles": groups[group]})
         return rep
 
     def to_internal_value(self, data):
         if not isinstance(data, list):
-            raise ValidationError(detail={
-                'groups': _('Groups must be a list of group objects')
-            })
+            raise ValidationError(detail={"groups": _("Groups must be a list of group objects")})
 
         internal = {}
         for group_data in data:
             self._validate_group(group_data)
             group_filter = {}
             for field in group_data:
-                if field in ('id', 'name'):
+                if field in ("id", "name"):
                     group_filter[field] = group_data[field]
             try:
                 group = Group.objects.get(**group_filter)
-                if 'object_permissions' in group_data:
-                    internal[group] = group_data['object_permissions']
-                if 'object_roles' in group_data:
-                    internal[group] = group_data['object_roles']
+                if "object_permissions" in group_data:
+                    internal[group] = group_data["object_permissions"]
+                if "object_roles" in group_data:
+                    internal[group] = group_data["object_roles"]
             except Group.DoesNotExist:
-                raise ValidationError(detail={
-                    'groups': _("Group name=%s, id=%s does not exist") % (
-                        group_data.get('name'), group_data.get('id'))
-                })
+                raise ValidationError(
+                    detail={
+                        "groups": _("Group name=%s, id=%s does not exist")
+                        % (group_data.get("name"), group_data.get("id"))
+                    }
+                )
             except ValueError:
-                raise ValidationError(detail={'group': _('Invalid group name or ID')})
+                raise ValidationError(detail={"group": _("Invalid group name or ID")})
 
         return internal

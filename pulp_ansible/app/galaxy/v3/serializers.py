@@ -421,7 +421,8 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
 
 class NamespaceSearchSerializer(serializers.ModelSerializer):
     metadata = ansible_serializers.AnsibleNamespaceMetadataSerializer(
-        source="content.ansible_ansiblenamespacemetadata")
+        source="content.ansible_ansiblenamespacemetadata"
+    )
     repository = core_serializers.RepositorySerializer()
     in_latest_repo_version = serializers.SerializerMethodField()
     in_old_repo_version = serializers.BooleanField()
