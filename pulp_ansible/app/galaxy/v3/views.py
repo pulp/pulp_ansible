@@ -653,15 +653,18 @@ class CollectionArtifactDownloadView(views.APIView):
             version=version,
         )
 
-        DownloadLog.objects.create(
+        log_params = dict(
             content_unit=collection_version,
-            user=request.user,
             ip=ip,
             extra_data={"org_id": _get_org_id(request)},
             user_agent=user_agent,
             repository=repository_version.repository,
             repository_version=repository_version,
         )
+        if request.user.is_authenticated:
+            log_params["user"] = request.user
+
+        DownloadLog.objects.create(**log_params)
 
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
