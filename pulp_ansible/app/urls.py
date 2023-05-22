@@ -33,6 +33,7 @@ v2_urls = [
     path(
         "collections/<str:namespace>/<str:name>/versions/<str:version>/",
         GalaxyCollectionVersionDetail.as_view(),
+        name="v2-collection-versions-detail",
     ),
     path(
         "collection-imports/<uuid:pk>/",
