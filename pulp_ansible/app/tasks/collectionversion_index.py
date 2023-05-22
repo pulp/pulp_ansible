@@ -13,6 +13,8 @@ from pulp_ansible.app.models import (
     CrossRepositoryCollectionVersionIndex as CVIndex,
 )
 
+from pulpcore.plugin.models import RepositoryVersion
+
 
 log = logging.getLogger(__name__)
 
@@ -33,6 +35,40 @@ def get_highest_version_string_from_cv_objects(cv_objects):
     if stable_versions:
         return str(stable_versions[0])
     return str(versions[0])
+
+
+def compute_repository_changes(repository_version):
+    """Use the previous version to make a list of namespace(s).name(s) changed."""
+
+    # Figure out what the previous repo version is
+    repository = repository_version.repository
+    previous_number = repository_version.number - 1
+    previous_version = RepositoryVersion.objects.filter(
+        repository=repository, number=previous_number
+    ).first()
+
+    # If there isn't a previous verison, all things have "changed"
+    if previous_version is None:
+        return None
+
+    changed_collections = set()
+
+    for method in ["added", "removed"]:
+        func = getattr(repository_version, method)
+        for modified in func(base_version=previous_version):
+            if modified.pulp_type == CollectionVersion.get_pulp_type():
+                cv = modified.ansible_collectionversion
+                changed_collections.add((cv.namespace, cv.name))
+            elif modified.pulp_type == AnsibleCollectionDeprecated.get_pulp_type():
+                dep = modified.ansible_ansiblecollectiondeprecated
+                changed_collections.add((dep.namespace, dep.name))
+            elif modified.pulp_type == CollectionVersionSignature.get_pulp_type():
+                sig = modified.ansible_collectionversionsignature
+                changed_collections.add(
+                    (sig.signed_collection.namespace, sig.signed_collection.name)
+                )
+
+    return changed_collections
 
 
 def update_index(distribution=None, repository=None, repository_version=None, is_latest=False):
@@ -93,17 +129,14 @@ def update_index(distribution=None, repository=None, repository_version=None, is
         if CVIndex.objects.filter(repository_version=repository_version).exists():
             return
 
+    # What has changed between this version and the last?
+    changed_collections = compute_repository_changes(repository_version)
+
     # get all CVs in this repository version
-    cvs = repository_version.content.filter(pulp_type="ansible.collection_version").values_list(
+    cvs_pk = repository_version.content.filter(pulp_type="ansible.collection_version").values_list(
         "pk", flat=True
     )
-    cvs = CollectionVersion.objects.filter(pk__in=cvs)
-
-    # clean out cvs no longer in the repo when a distro w/ a repo
-    if not use_repository_version:
-        CVIndex.objects.filter(repository=repository, repository_version=None).exclude(
-            collection_version__pk__in=cvs
-        ).delete()
+    cvs = CollectionVersion.objects.filter(pk__in=cvs_pk)
 
     # get the set of signatures in this repo version
     repo_signatures_pks = repository_version.content.filter(
@@ -129,9 +162,18 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     if use_repository_version:
         repo_v = repository_version
 
+    # clean out cvs no longer in the repo when a distro w/ a repo
+    if not use_repository_version:
+        CVIndex.objects.filter(repository=repository, repository_version=None).exclude(
+            collection_version__pk__in=cvs
+        ).delete()
+
     # iterate through each collection in the repository
     for colkey in colset:
         namespace, name = colkey
+
+        if changed_collections is not None and (namespace, name) not in changed_collections:
+            continue
 
         # get all the versions for this collection
         related_cvs = cvs.filter(namespace=namespace, name=name).only("version")

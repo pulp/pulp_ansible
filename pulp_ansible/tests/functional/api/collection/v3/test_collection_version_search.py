@@ -762,8 +762,6 @@ class TestCrossRepoSearchFilters:
 
         comparison = compare_keys(skeys, rkeys)
 
-        # import epdb; epdb.st()
-
         assert len(skeys) == len(rkeys), comparison
 
     @pytest.mark.pulp_on_localhost
@@ -1389,3 +1387,50 @@ def test_cross_repo_search_index_on_deleted_distro_with_another_still_remaining(
         limit=1000, repository_name=[pulp_repo.name], repository_version="latest"
     )
     assert resp.meta.count == 1
+
+
+def test_cross_repo_search_index_on_distribution_with_repository_and_deprecation(
+    ansible_collection_deprecations_api_client,
+    ansible_distro_api_client,
+    ansible_repo_api_client,
+    ansible_repo_version_api_client,
+    build_and_upload_collection,
+    galaxy_v3_collections_api_client,
+    galaxy_v3_default_search_api_client,
+    gen_object_with_cleanup,
+    monitor_task,
+):
+    """Make sure indexes are marking deprecations."""
+
+    pulp_repo = gen_object_with_cleanup(ansible_repo_api_client, {"name": str(uuid.uuid4())})
+    col = build_and_upload_collection(ansible_repo=pulp_repo)
+
+    # make a distro that points only at the latest repo version ...
+    distro = gen_object_with_cleanup(
+        ansible_distro_api_client,
+        {
+            "name": pulp_repo.name,
+            "base_path": pulp_repo.name,
+            "repository": pulp_repo.pulp_href,
+        },
+    )
+
+    # make a deprecation
+    namespace = col[0].namespace
+    name = col[0].name
+    monitor_task(
+        galaxy_v3_collections_api_client.update(
+            name,
+            namespace,
+            pulp_repo.name,
+            {"deprecated": True},
+        ).task
+    )
+
+    # make sure the CV was indexed
+    dist_id = distro.pulp_href.split("/")[-2]
+    resp = galaxy_v3_default_search_api_client.list(limit=1000, distribution=[dist_id])
+    assert resp.meta.count == 1, resp
+
+    # did it get properly marked as deprecated?
+    assert resp.data[0].is_deprecated, resp
