@@ -13,6 +13,7 @@ from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
+    IdentityField,
     ModelSerializer,
     NoArtifactContentSerializer,
     NoArtifactContentUploadSerializer,
@@ -142,7 +143,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
     )
     rekor_url = serializers.CharField(
         initial="https://rekor.sigstore.dev",
-        required=True,
+        default="https://rekor.sigstore.dev",
         help_text=_(
             "The URL of the Rekor instance to use for logging signatures. "
             "Defaults to the Rekor public good instance URL "
@@ -151,7 +152,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
     )
     fulcio_url = serializers.CharField(
         initial="https://fulcio.sigstore.dev",
-        required=True,
+        default="https://fulcio.sigstore.dev",
         help_text=_(
             "The URL of the Fulcio instance for getting signing certificates. "
             "Defaults to the Fulcio public good instance URL "
@@ -160,7 +161,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
     )
     tuf_url = serializers.CharField(
         initial="https://sigstore-tuf-root.storage.googleapis.com/",
-        required=True,
+        default="https://tuf-repo-cdn.sigstore.dev",
         help_text=_(
             "The URL of the TUF metadata repository instance to use. "
             "Defaults to the public TUF instance URL "
@@ -175,7 +176,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
     )
     oidc_issuer = serializers.CharField(
         initial="https://oauth2.sigstore.dev",
-        required=True,
+        default="https://oauth2.sigstore.dev",
         help_text=_(
             "The OpenID Connect issuer to use for signing and to check "
             "for in the certificate's OIDC issuer extension. "
@@ -205,7 +206,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
 
     class Meta:
         model = SigstoreSigningService
-        fields = NoArtifactContentUploadSerializer.Meta.fields + (
+        fields = (
             "name",
             "rekor_url",
             "fulcio_url",
@@ -216,7 +217,6 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "ctfe_pubkey",
             "enable_interactive",
         )
-        extra_kwargs = {"view_name": "sigstore-signing-services-detail"}
 
 
 class SigstoreVerifyingServiceSerializer(ModelSerializer):
@@ -270,7 +270,7 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
 
     class Meta:
         model = SigstoreVerifyingService
-        fields = NoArtifactContentUploadSerializer.Meta.fields + (
+        fields = (
             "name",
             "rekor_url",
             "rekor_root_pubkey",
@@ -279,7 +279,6 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
             "expected_identity",
             "verify_offline",
         )
-        extra_kwargs = {"view_name": "sigstore-verifying-services-detail"}
 
 
 class AnsibleRepositorySerializer(RepositorySerializer):
@@ -302,20 +301,19 @@ class AnsibleRepositorySerializer(RepositorySerializer):
         queryset=SigstoreSigningService.objects.all(),
         many=True,
     )
-    sigstore_verifying_service = DetailRelatedField(
+    sigstore_verifying_service = RelatedField(
         help_text=_("A Sigstore service used to verify the collection signatures"),
         queryset=SigstoreVerifyingService.objects.all(),
-        many=True,
+        view_name="sigstore-verifying-services-detail",
     )
 
     class Meta:
         fields = RepositorySerializer.Meta.fields + (
             "last_synced_metadata_time",
             "gpgkey",
+            "sigstore_verifying_service",
             "last_sync_task",
             "private",
-            "sigstore_signing_service",
-            "sigstore_verifying_service",
         )
         model = AnsibleRepository
 
@@ -951,8 +949,8 @@ class CollectionVersionSigstoreSignatureSerializer(NoArtifactContentUploadSerial
         view_name_pattern=r"content(-.*/.*)-detail",
         queryset=CollectionVersion.objects.all(),
     )
-    sigstore_signing_service = DetailRelatedField(
-        help_text=_("A signing service to use to sign the collections"),
+    sigstore_signing_service = RelatedField(
+        help_text=_("The signing service used to sign the collections"),
         view_name="sigstore-signing-services-detail",
         read_only=True,
         allow_null=True,
@@ -1203,7 +1201,7 @@ class AnsibleRepositorySignatureSerializer(serializers.Serializer):
         required=True,
         view_name="signing-services-detail",
         queryset=SigningService.objects.all(),
-        help_text=_("A signing service to use to sign the collections"),
+        help_text=_("The signing service used to sign the collections"),
     )
 
     def validate_content_units(self, value):
@@ -1224,9 +1222,11 @@ class AnsibleRepositorySigstoreSignatureSerializer(serializers.Serializer):
             "List of collection version hrefs to sign, use * to sign all content in repository"
         ),
     )
-    sigstore_signing_service = DetailRelatedField(
+    sigstore_signing_service = RelatedField(
+        required=True,
         queryset=SigstoreSigningService.objects.all(),
-        help_text=_("A signing service to use to sign the collections"),
+        help_text=_("The signing service used to sign the collections"),
+        view_name="sigstore-signing-services-detail",
     )
 
     def validate_content_units(self, value):
