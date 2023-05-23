@@ -52,6 +52,7 @@ from pulpcore.plugin.sync import sync_to_async
 
 from pulp_ansible.app.sigstore.exceptions import MissingIdentityToken
 from pulp_ansible.app.sigstore.issuers.keycloak import Keycloak
+from pulp_ansible.app.sigstore.utils import validate_and_format_pem_public_key
 
 from sigstore._internal.ctfe import CTKeyring
 from sigstore._internal.oidc.ambient import detect_gcp
@@ -539,14 +540,10 @@ class SigstoreSigningService(BaseModel):
 
     def save(self, *args, **kwargs):
         """Override the base `save` method to properly format PEM-encoded files."""
-        def format(pubkey):
-            delimiter = "-----"
-            s = pubkey.split(delimiter)
-            return delimiter + s[1] + delimiter + s[2].replace(" ", "\n") + delimiter + s[3] + delimiter
-        if self.ctfe_pubkey:
-            self.ctfe_pubkey = format(self.ctfe_pubkey)
         if self.rekor_root_pubkey:
-            self.rekor_root_pubkey = format(self.rekor_root_pubkey)
+            self.rekor_root_pubkey = validate_and_format_pem_public_key(self.rekor_root_pubkey)
+        if self.ctfe_pubkey:
+            self.ctfe_pubkey = validate_and_format_pem_public_key(self.ctfe_pubkey)
         super(SigstoreSigningService, self).save(*args, **kwargs)
 
     class Meta:
@@ -657,16 +654,10 @@ class SigstoreVerifyingService(BaseModel):
 
     def save(self, *args, **kwargs):
         """Override the base `save` method to properly format PEM-encoded files."""
-        def format(pubkey):
-            delimiter = "-----"
-            s = pubkey.split(delimiter)
-            res = delimiter + s[1] + delimiter +re.sub(' +', '\n', s[2]) + delimiter + s[3] + delimiter
-            return res
-
         if self.certificate_chain:
-            self.certificate_chain = format(self.certificate_chain)
+            self.certificate_chain = validate_and_format_pem_public_key(self.certificate_chain)
         if self.rekor_root_pubkey:
-            self.rekor_root_pubkey = format(self.rekor_root_pubkey)
+            self.rekor_root_pubkey = validate_and_format_pem_public_key(self.rekor_root_pubkey)
         super(SigstoreVerifyingService, self).save(*args, **kwargs)
 
     class Meta:
