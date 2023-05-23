@@ -562,6 +562,10 @@ class SigstoreVerifyingService(BaseModel):
         rekor_root_pubkey (models.TextField):
             A PEM-encoded root public key for Rekor itself.
             Defaults to None.
+        tuf_url (models.TextField):
+            The URL of the TUF metadata repository instance to use.
+            Defaults to the public TUF instance URL
+            (https://sigstore-tuf-root.storage.googleapis.com/).
         certificate_chain (models.TextField):
             A list of PEM-encoded CA certificates needed to build the Fulcio signing certificate chain.
             Defaults to None.
@@ -579,10 +583,12 @@ class SigstoreVerifyingService(BaseModel):
     # TODO: dedupe public URL
 
     PUBLIC_REKOR_URL = "https://rekor.sigstore.dev"
+    PUBLIC_TUF_URL = "https://sigstore-tuf-root.storage.googleapis.com/"
 
     name = models.CharField(db_index=True, unique=True, max_length=64)
     rekor_url = models.TextField(default=PUBLIC_REKOR_URL)
     rekor_root_pubkey = models.TextField(null=True)
+    tuf_url = models.TextField(default=PUBLIC_TUF_URL)
     certificate_chain = models.TextField(null=True)
     expected_oidc_issuer = models.TextField()
     expected_identity = models.TextField()
