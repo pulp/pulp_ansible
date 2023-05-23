@@ -111,49 +111,53 @@ class Command(BaseCommand):
             "--enable-interactive",
             metavar="BOOL",
             type=bool,
+            default=False,
             help=_("Enable Sigstore's interactive browser flow. Defaults to False."),
         )
 
 
     def handle(self, *args, **options):
+        sign_options = {}
+
         if "from_file" in options:
             file_path = Path(options["from_file"])
 
             with open(file_path, "r") as file:
-                sigstore_config = json.load(file)
-                SIGSTORE_CONFIGURATION_FILE_SCHEMA(sigstore_config)
-                sign_options = sigstore_config["sign-options"]
-                options = {option_name.replace("_", "-") : option_value for option_name, option_value in options.items()}
-                for option_name, option_value in options.items():
-                    if option_value:
-                        sign_options[option_name] = option_value
+                config = json.load(file)
+                SIGSTORE_CONFIGURATION_FILE_SCHEMA(config)
+                sign_options = config
 
-                enable_interactive = _to_bool(sign_options["enable-interactive"])
+        options = {option_name.replace("_", "-") : option_value for option_name, option_value in options.items()}
+        for option_name, option_value in options.items():
+            if option_value:
+                sign_options[option_name] = option_value
 
-                try:
-                    SigstoreSigningService.objects.create(
-                        name=sign_options["name"],
-                        rekor_url=sign_options.get("rekor-url"),
-                        oidc_issuer=sign_options.get("oidc-issuer"),
-                        tuf_url=sign_options.get("tuf-url"),
-                        rekor_root_pubkey=sign_options.get("rekor-root-pubkey"),
-                        fulcio_url=sign_options.get("fulcio-url"),
-                        ctfe_pubkey=sign_options.get("ctfe-pubkey"),
-                        credentials_file_path=sign_options.get("credentials-file-path"),
-                        enable_interactive=enable_interactive,
-                    )
+        enable_interactive = _to_bool(sign_options["enable-interactive"])
 
-                    print(
-                        f"Successfully configured the Sigstore signing service {sign_options['name']} with the following parameters: \n"
-                        f"Rekor instance URL: {sign_options['rekor-url']}\n"
-                        f"OIDC issuer: {sign_options.get('oidc-issuer')}\n"
-                        f"TUF repository metadata URL: {sign_options['tuf-url']}\n"
-                        f"Rekor root public key: {sign_options.get('rekor-root-pubkey')}\n"
-                        f"Fulcio instance URL: {sign_options['fulcio-url']}\n"
-                        f"Certificate Transparency log public key: {sign_options.get('ctfe-pubkey')}\n"
-                        f"OIDC credentials file path: {sign_options['credentials-file-path']}\n"
-                        f"Enable interactive signing: {enable_interactive}\n"
-                    )
+        try:
+            SigstoreSigningService.objects.create(
+                name=sign_options["name"],
+                rekor_url=sign_options.get("rekor-url"),
+                oidc_issuer=sign_options.get("oidc-issuer"),
+                tuf_url=sign_options.get("tuf-url"),
+                rekor_root_pubkey=sign_options.get("rekor-root-pubkey"),
+                fulcio_url=sign_options.get("fulcio-url"),
+                ctfe_pubkey=sign_options.get("ctfe-pubkey"),
+                credentials_file_path=sign_options.get("credentials-file-path"),
+                enable_interactive=enable_interactive,
+            )
 
-                except IntegrityError as e:
-                    raise CommandError(str(e))
+            print(
+                f"Successfully configured the Sigstore signing service {sign_options['name']} with the following parameters: \n"
+                f"Rekor instance URL: {sign_options['rekor-url']}\n"
+                f"OIDC issuer: {sign_options.get('oidc-issuer')}\n"
+                f"TUF repository metadata URL: {sign_options['tuf-url']}\n"
+                f"Rekor root public key: {sign_options.get('rekor-root-pubkey')}\n"
+                f"Fulcio instance URL: {sign_options['fulcio-url']}\n"
+                f"Certificate Transparency log public key: {sign_options.get('ctfe-pubkey')}\n"
+                f"OIDC credentials file path: {sign_options['credentials-file-path']}\n"
+                f"Enable interactive signing: {enable_interactive}\n"
+            )
+
+        except IntegrityError as e:
+            raise CommandError(str(e))
