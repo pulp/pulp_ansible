@@ -26,6 +26,18 @@ SIGSTORE_CONFIGURATION_FILE_SCHEMA = Schema(
     }
 )
 
+DEFAULTS = {
+    "rekor-url": "https://rekor.sigstore.dev",
+    "tuf-url": "https://sigstore-tuf-root.storage.googleapis.com/",
+    "fulcio-url": "https://fulcio.sigstore.dev",
+    "oidc-issuer": "https://oauth2.sigstore.dev",
+    "rekor-root-pubkey": None,
+    "ctfe-pubkey": None,
+    "credentials-file-path": None,
+    "enable-interactive": False,
+}
+
+
 # Taken from https://github.com/sigstore/sigstore-python/blob/55f98f663721be34a5e5b63fb72e740c3d580f66/sigstore/_cli.py#L64
 def _to_bool(val):
     if isinstance(val, bool):
@@ -63,35 +75,30 @@ class Command(BaseCommand):
             "--rekor-url",
             metavar="URL",
             type=str,
-            default="https://rekor.sigstore.dev",
-            help=_("The Rekor instance to use. WARNING: defaults to the public good Sigstore instance https://rekor.sigstore.dev"),
+            help=_("The Rekor instance to use."),
         )
         sign_options.add_argument(
             "--tuf-url",
             metavar="URL",
             type=str,
-            default="https://sigstore-tuf-root.storage.googleapis.com/",
-            help=_("The TUF repository to use. WARNING: defaults to the public TUF metadata repository https://sigstore-tuf-root.storage.googleapis.com/"),
+            help=_("The TUF repository to use."),
         )
         sign_options.add_argument(
             "--rekor-root-pubkey",
             metavar="FILE",
             type=argparse.FileType("rb"),
             help=_("A PEM-encoded root public key for Rekor itself"),
-            default=None,
         )
         sign_options.add_argument(
             "--fulcio-url",
             metavar="URL",
             type=str,
-            default="https://fulcio.sigstore.dev",
-            help=_("The Fulcio instance to use. WARNING: defaults to the public good Sigstore instance https://fulcio.sigstore.dev"),
+            help=_("The Fulcio instance to use."),
         )
         sign_options.add_argument(
             "--oidc-issuer",
             metavar="URL",
             type=str,
-            default="https://oauth2.sigstore.dev",
             help=_("The OpenID Connect issuer to use to sign the artifact"),
         )
         sign_options.add_argument(
@@ -104,15 +111,13 @@ class Command(BaseCommand):
             "--credentials-file-path",
             metavar="URL",
             type=str,
-            default=None,
             help=_("Path to the OIDC client ID and client secret file on the server to authentify to Sigstore."),
         )
         sign_options.add_argument(
             "--enable-interactive",
             metavar="BOOL",
             type=bool,
-            default=False,
-            help=_("Enable Sigstore's interactive browser flow. Defaults to False."),
+            help=_("Enable Sigstore's interactive browser flow."),
         )
 
 
