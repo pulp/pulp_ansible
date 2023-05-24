@@ -156,7 +156,7 @@ class Command(BaseCommand):
                 f"Successfully configured the Sigstore signing service {sign_options['name']} with the following parameters: \n"
                 f"Rekor instance URL: {sign_options['rekor-url']}\n"
                 f"OIDC issuer: {sign_options.get('oidc-issuer')}\n"
-                f"TUF repository metadata URL: {sign_options['tuf-url']}\n"
+                f"TUF repository metadata URL: {sign_options.get('tuf-url')}\n"
                 f"Rekor root public key: {sign_options.get('rekor-root-pubkey')}\n"
                 f"Fulcio instance URL: {sign_options['fulcio-url']}\n"
                 f"Certificate Transparency log public key: {sign_options.get('ctfe-pubkey')}\n"
