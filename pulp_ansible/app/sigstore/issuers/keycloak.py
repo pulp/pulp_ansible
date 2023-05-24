@@ -35,12 +35,6 @@ class Keycloak(BaseIssuer):
 
     def __init__(self, keycloak_base_url):
         """Create a new Keycloak issuer with custom endpoints."""
-        if not urllib.parse.urlsplit(keycloak_base_url).path.startswith("/realms"):
-            raise KeycloakException(
-                f"Incorrect base Keycloak URL {keycloak_base_url}."
-                " URL should contain the current Keycloak realm to use for authentication."
-            )
-
         oidc_config_url = os.path.join(
             keycloak_base_url, ".well-known/openid-configuration"
         )
