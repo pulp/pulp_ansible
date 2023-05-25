@@ -155,7 +155,7 @@ def verify_sigstore_signature_upload(data):
             f"Exception: {verification_result.exception}"
         )
 
-    print(f"Validated Sigstore signature for collection {collection}")
+    log.info(f"Validated Sigstore signature for collection {collection}")
 
     data["data"] = signature
     data["sigstore_x509_certificate"] = certificate
