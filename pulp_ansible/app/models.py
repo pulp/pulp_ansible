@@ -388,7 +388,7 @@ class SigstoreSigningService(BaseModel):
     rekor_url = models.TextField(default=PUBLIC_REKOR_URL)
     rekor_root_pubkey = models.TextField(null=True)
     fulcio_url = models.TextField(default=PUBLIC_FULCIO_URL)
-    tuf_url = models.TextField(default=PUBLIC_TUF_URL)
+    tuf_url = models.TextField(default=PUBLIC_TUF_URL, null=True)
     oidc_issuer = models.TextField(default=PUBLIC_ISSUER_URL)
     credentials_file_path = models.TextField(null=True)
     ctfe_pubkey = models.TextField(null=True)
