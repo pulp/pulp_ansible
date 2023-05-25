@@ -69,7 +69,6 @@ from .serializers import (
     AnsibleRepositorySyncURLSerializer,
     AnsibleRepositoryRebuildSerializer,
     AnsibleRepositorySignatureSerializer,
-    AnsibleRepositorySigstoreSignatureSerializer,
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionSignatureSerializer,
@@ -312,7 +311,7 @@ class SigstoreSigningServiceViewSet(
     Viewset for looking at Sigstore signing services.
     """
 
-    endpoint_name = "sigstore_signing_services"
+    endpoint_name = "sigstore-signing-services"
     queryset = SigstoreSigningService.objects.all()
     serializer_class = SigstoreSigningServiceSerializer
     filterset_fields = ["name"]
@@ -325,7 +324,7 @@ class SigstoreVerifyingServiceViewSet(
     Viewset for looking at Sigstore verifying services.
     """
 
-    endpoint_name = "sigstore_verifying_services"
+    endpoint_name = "sigstore-verifying-services"
     queryset = SigstoreVerifyingService.objects.all()
     serializer_class = SigstoreVerifyingServiceSerializer
     filterset_fields = ["name"]
@@ -720,15 +719,6 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 ],
             },
             {
-                "action": ["sigstore_sign"],
-                "principal": "authenticated",
-                "effect": "allow",
-                "condition": [
-                    "has_model_or_obj_perms:ansible.sigstore_sign_ansiblerepository",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
-                ],
-            },
-            {
                 "action": ["sync"],
                 "principal": "authenticated",
                 "effect": "allow",
@@ -788,7 +778,6 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
             "ansible.rebuild_metadata_ansiblerepository",
             "ansible.repair_ansiblerepository",
             "ansible.sign_ansiblerepository",
-            "ansible.sigstore_sign_ansiblerepository",
             "ansible.sync_ansiblerepository",
         ],
         "ansible.ansiblerepository_viewer": ["ansible.view_ansiblerepository"],
@@ -876,7 +865,14 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        signing_service = serializer.validated_data["signing_service"]
+        if "signing_service" in serializer.validated_data:
+            signing_service = serializer.validated_data["signing_service"]
+            sign_method = sign
+            signing_service_href = "signing_service_href"
+        elif "sigstore_signing_service" in serializer.validated_data:
+            signing_service = serializer.validated_data["sigstore_signing_service"]
+            sign_method = sigstore_sign
+            signing_service_href = "sigstore_signing_service_href"
         content = serializer.validated_data["content_units"]
 
         if "*" in content:
@@ -889,53 +885,12 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
             raise_for_unknown_content_units(existing_content_units, content_units)
 
         result = dispatch(
-            sign,
+            sign_method,
             exclusive_resources=[repository],
             kwargs={
                 "repository_href": repository.pk,
                 "content_hrefs": content_units_pks,
-                "signing_service_href": signing_service.pk,
-            },
-        )
-        return OperationPostponedResponse(result, request)
-
-    @extend_schema(
-        description="Trigger an asynchronous task to sign Ansible content with Sigstore.",
-        responses={202: AsyncOperationResponseSerializer},
-    )
-    @action(
-        detail=True, methods=["post"], serializer_class=AnsibleRepositorySigstoreSignatureSerializer
-    )
-    def sigstore_sign(self, request, pk):
-        """
-        Dispatches a Sigstore signing task.
-        This endpoint is in tech preview and can change at any time in the future.
-        """
-        content_units = {}
-
-        repository = self.get_object()
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        sigstore_signing_service = serializer.validated_data["sigstore_signing_service"]
-        content = serializer.validated_data["content_units"]
-
-        if "*" in content:
-            content_units_pks = ["*"]
-        else:
-            for url in content:
-                content_units[NamedModelViewSet.extract_pk(url)] = url
-            content_units_pks = list(content_units.keys())
-            existing_content_units = CollectionVersion.objects.filter(pk__in=content_units_pks)
-            raise_for_unknown_content_units(existing_content_units, content_units)
-
-        result = dispatch(
-            sigstore_sign,
-            exclusive_resources=[repository],
-            kwargs={
-                "repository_href": repository.pk,
-                "content_hrefs": content_units_pks,
-                "sigstore_signing_service_href": sigstore_signing_service.pk,
+                signing_service_href: signing_service.pk,
             },
         )
         return OperationPostponedResponse(result, request)
