@@ -53,19 +53,22 @@ def compute_repository_changes(repository_version):
 
     changed_collections = set()
 
-    for method in ["added", "removed"]:
-        func = getattr(repository_version, method)
+    cv_type = CollectionVersion.get_pulp_type()
+    deprecation_type = AnsibleCollectionDeprecated.get_pulp_type()
+    signature_type = CollectionVersionSignature.get_pulp_type()
+
+    for func in [repository_version.added, repository_version.removed]:
         for modified in func(base_version=previous_version):
-            if modified.pulp_type == CollectionVersion.get_pulp_type():
+            if modified.pulp_type == cv_type:
                 cv = modified.ansible_collectionversion
                 changed_collections.add((cv.namespace, cv.name))
-            elif modified.pulp_type == AnsibleCollectionDeprecated.get_pulp_type():
-                dep = modified.ansible_ansiblecollectiondeprecated
-                changed_collections.add((dep.namespace, dep.name))
-            elif modified.pulp_type == CollectionVersionSignature.get_pulp_type():
-                sig = modified.ansible_collectionversionsignature
+            elif modified.pulp_type == deprecation_type:
+                deprecation = modified.ansible_ansiblecollectiondeprecated
+                changed_collections.add((deprecation.namespace, deprecation.name))
+            elif modified.pulp_type == signature_type:
+                signature = modified.ansible_collectionversionsignature
                 changed_collections.add(
-                    (sig.signed_collection.namespace, sig.signed_collection.name)
+                    (signature.signed_collection.namespace, signature.signed_collection.name)
                 )
 
     return changed_collections
@@ -133,10 +136,10 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     changed_collections = compute_repository_changes(repository_version)
 
     # get all CVs in this repository version
-    cvs_pk = repository_version.content.filter(pulp_type="ansible.collection_version").values_list(
+    cvs_pks = repository_version.content.filter(pulp_type="ansible.collection_version").values_list(
         "pk", flat=True
     )
-    cvs = CollectionVersion.objects.filter(pk__in=cvs_pk)
+    cvs = CollectionVersion.objects.filter(pk__in=cvs_pks)
 
     # get the set of signatures in this repo version
     repo_signatures_pks = repository_version.content.filter(
