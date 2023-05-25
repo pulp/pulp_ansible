@@ -1198,35 +1198,16 @@ class AnsibleRepositorySignatureSerializer(serializers.Serializer):
         ),
     )
     signing_service = RelatedField(
-        required=True,
         view_name="signing-services-detail",
+        required=False,
         queryset=SigningService.objects.all(),
         help_text=_("The signing service used to sign the collections"),
     )
-
-    def validate_content_units(self, value):
-        """Make sure the list is correctly formatted."""
-        if len(value) > 1 and "*" in value:
-            raise serializers.ValidationError("Cannot supply content units and '*'.")
-        return value
-
-
-class AnsibleRepositorySigstoreSignatureSerializer(serializers.Serializer):
-    """
-    A serializer for the signing action using Sigstore.
-    """
-
-    content_units = serializers.ListField(
-        required=True,
-        help_text=_(
-            "List of collection version hrefs to sign, use * to sign all content in repository"
-        ),
-    )
     sigstore_signing_service = RelatedField(
-        required=True,
-        queryset=SigstoreSigningService.objects.all(),
-        help_text=_("The signing service used to sign the collections"),
         view_name="sigstore-signing-services-detail",
+        required=False,
+        queryset=SigstoreSigningService.objects.all(),
+        help_text=_("The Sigstore signing service used to sign the collections"),
     )
 
     def validate_content_units(self, value):
