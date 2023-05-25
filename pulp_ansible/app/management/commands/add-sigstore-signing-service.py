@@ -3,7 +3,6 @@ from django.db.utils import IntegrityError
 
 import argparse
 import json
-import os
 
 from gettext import gettext as _
 from pathlib import Path
@@ -38,7 +37,7 @@ DEFAULTS = {
 }
 
 
-# Taken from https://github.com/sigstore/sigstore-python/blob/55f98f663721be34a5e5b63fb72e740c3d580f66/sigstore/_cli.py#L64
+# https://github.com/sigstore/sigstore-python/blob/55f98f663721be34a5e5b63fb72e740c3d580f66/sigstore/_cli.py#L64
 def _to_bool(val):
     if isinstance(val, bool):
         return val
@@ -63,7 +62,10 @@ class Command(BaseCommand):
         sign_options = parser.add_argument_group("Sign options")
         sign_options.add_argument(
             "--from-file",
-            help=_("Load the Sigstore configuration from a JSON file. File configuration can be overriden by specified arguments.\n"),
+            help=_(
+                "Load the Sigstore configuration from a JSON file. "
+                "File configuration can be overriden by specified arguments.\n"
+            ),
         )
         sign_options.add_argument(
             "--name",
@@ -111,7 +113,10 @@ class Command(BaseCommand):
             "--credentials-file-path",
             metavar="URL",
             type=str,
-            help=_("Path to the OIDC client ID and client secret file on the server to authentify to Sigstore."),
+            help=_(
+                "Path to the OIDC client ID and client secret "
+                "file on the server to authentify to Sigstore."
+            ),
         )
         sign_options.add_argument(
             "--enable-interactive",
@@ -119,7 +124,6 @@ class Command(BaseCommand):
             type=bool,
             help=_("Enable Sigstore's interactive browser flow."),
         )
-
 
     def handle(self, *args, **options):
         sign_options = {}
@@ -132,7 +136,10 @@ class Command(BaseCommand):
                 SIGSTORE_CONFIGURATION_FILE_SCHEMA(config)
                 sign_options = config
 
-        options = {option_name.replace("_", "-") : option_value for option_name, option_value in options.items()}
+        options = {
+            option_name.replace("_", "-"): option_value
+            for option_name, option_value in options.items()
+        }
         for option_name, option_value in options.items():
             if option_value:
                 sign_options[option_name] = option_value
@@ -153,7 +160,8 @@ class Command(BaseCommand):
             )
 
             print(
-                f"Successfully configured the Sigstore signing service {sign_options['name']} with the following parameters: \n"
+                "Successfully configured the Sigstore signing service "
+                f"{sign_options['name']} with the following parameters: \n"
                 f"Rekor instance URL: {sign_options['rekor-url']}\n"
                 f"OIDC issuer: {sign_options.get('oidc-issuer')}\n"
                 f"TUF repository metadata URL: {sign_options.get('tuf-url')}\n"

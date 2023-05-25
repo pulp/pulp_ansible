@@ -4,9 +4,6 @@ Tasks related to Sigstore content signature and verification.
 
 import aiofiles
 import asyncio
-import base64
-import hashlib
-import io
 import json
 import logging
 import os
@@ -15,15 +12,13 @@ import tarfile
 import tempfile
 import cryptography.x509 as x509
 from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.x509.oid import NameOID
+from distlib.manifest import DistlibException
 from gettext import gettext as _
 
 from ansible_sign.checksum import (
     ChecksumFile,
-    ChecksumMismatch,
-    InvalidChecksumLine,
 )
 from ansible_sign.checksum.differ import DistlibManifestChecksumFileExistenceDiffer
 
@@ -34,9 +29,7 @@ from sigstore._utils import sha256_streaming
 from sigstore_protobuf_specs.dev.sigstore.bundle.v1 import Bundle
 
 from pulpcore.plugin.stages import (
-    ContentSaver,
     DeclarativeContent,
-    DeclarativeVersion,
     Stage,
 )
 
@@ -44,20 +37,12 @@ from pulp_ansible.app.tasks.signature import SigningDeclarativeVersion
 
 from django.conf import settings
 from django.core.files.storage import default_storage as storage
-from pulpcore.plugin.models import SigningService, ProgressReport
+from pulpcore.plugin.models import ProgressReport
 from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
-from pulpcore.plugin.util import gpg_verify
-from pulpcore.plugin.exceptions import InvalidSignatureError
-from pulp_ansible.app.tasks.utils import get_file_obj_from_tarball
-from pulp_ansible.app.sigstore.exceptions import (
-    MissingSigstoreVerificationMaterialsException,
-    VerificationFailureException,
-)
-from rest_framework import serializers
+from pulp_ansible.app.sigstore.exceptions import VerificationFailureException
 
 from pulp_ansible.app.models import (
     CollectionVersion,
-    CollectionVersionSignature,
     CollectionVersionSigstoreSignature,
     SigstoreSigningService,
 )
@@ -84,7 +69,9 @@ def _generate_checksum_manifest(collection_version):
 
             except FileNotFoundError as e:
                 if os.path.islink(e.filename):
-                    log.error(f"Broken symlink found at {e.filename} -- this is not supported. Aborting.")
+                    log.error(
+                        f"Broken symlink found at {e.filename} -- this is not supported. Aborting."
+                    )
                 if e.filename.endswith("/MANIFEST.in"):
                     log.error("Could not find a MANIFEST.in file in the specified project.")
                     log.info("If you are attempting to sign a project, please create this file.")
@@ -112,16 +99,14 @@ def verify_sigstore_signature_upload(data):
     if repository:
         sigstore_verifying_service = repository.sigstore_verifying_service
     else:
-        raise ValueError(
-            "This content type must be associated with a repository."
-        )
+        raise ValueError("This content type must be associated with a repository.")
     signature = data["data"]
     certificate = data["sigstore_x509_certificate"]
 
     def format(pubkey):
         delimiter = "-----"
         s = pubkey.split(delimiter)
-        res = delimiter + s[1] + delimiter +re.sub(' +', '\n', s[2]) + delimiter + s[3] + delimiter
+        res = delimiter + s[1] + delimiter + re.sub(" +", "\n", s[2]) + delimiter + s[3] + delimiter
         return res
 
     certificate = format(certificate)
@@ -253,12 +238,16 @@ class CollectionSigstoreSigningFirstStage(Stage):
                 async with aiofiles.tempfile.NamedTemporaryFile(
                     dir=".", mode="w", delete=False
                 ) as manifest_file:
-                    manifest_data = await sync_to_async(_generate_checksum_manifest)(collection_version)                    
+                    manifest_data = await sync_to_async(_generate_checksum_manifest)(
+                        collection_version
+                    )
                     await manifest_file.write(manifest_data)
                 async with aiofiles.open(manifest_file.name, mode="rb", buffering=0) as iofile:
-                    async with aiofiles.tempfile.NamedTemporaryFile(dir=".", mode="w", delete=False) as manifest_content:
+                    async with aiofiles.tempfile.NamedTemporaryFile(
+                        dir=".", mode="w", delete=False
+                    ) as manifest_content:
                         content = await iofile.read()
-                        manifest_content.write()
+                        manifest_content.write(content)
                     with open(manifest_content.name, "rb") as manifest_bytes:
                         input_digest = sha256_streaming(manifest_bytes)
                         result = await self.sigstore_signing_service.sigstore_asign(
@@ -268,7 +257,7 @@ class CollectionSigstoreSigningFirstStage(Stage):
                         sig_data, cert_data, bundle_data = (
                             result["signature"],
                             result["certificate"],
-                            result["bundle"]
+                            result["bundle"],
                         )
 
                     cv_signature = CollectionVersionSigstoreSignature(
@@ -295,7 +284,11 @@ class CollectionSigstoreSigningFirstStage(Stage):
         msg = _("Signing new CollectionVersions with Sigstore.")
         async with ProgressReport(message=msg, code="sign.new.signature", total=ntotal) as p:
             self.progress_report = p
-            await asyncio.create_task(self.sigstore_sign_collection_versions(sync_to_async_iterable(new_content.iterator())))
+            await asyncio.create_task(
+                self.sigstore_sign_collection_versions(
+                    sync_to_async_iterable(new_content.iterator())
+                )
+            )
 
         present_content = current_signatures.filter(signed_collection__in=self.content).exclude(
             pk__in=self.repos_current_sigstore_signatures

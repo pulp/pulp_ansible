@@ -3,7 +3,6 @@ from django.db.utils import IntegrityError
 
 import argparse
 import json
-import os
 
 from gettext import gettext as _
 from pathlib import Path
@@ -36,7 +35,7 @@ DEFAULTS = {
 }
 
 
-# Taken from https://github.com/sigstore/sigstore-python/blob/55f98f663721be34a5e5b63fb72e740c3d580f66/sigstore/_cli.py#L64
+# https://github.com/sigstore/sigstore-python/blob/55f98f663721be34a5e5b63fb72e740c3d580f66/sigstore/_cli.py#L64
 def _to_bool(val):
     if isinstance(val, bool):
         return val
@@ -61,7 +60,10 @@ class Command(BaseCommand):
         verify_options = parser.add_argument_group("Sign options")
         verify_options.add_argument(
             "--from-file",
-            help=_("Load the Sigstore configuration from a JSON file. File configuration can be overriden by specified arguments.\n"),
+            help=_(
+                "Load the Sigstore configuration from a JSON file. "
+                "File configuration can be overriden by specified arguments.\n"
+            ),
         )
         verify_options.add_argument(
             "--name",
@@ -73,13 +75,17 @@ class Command(BaseCommand):
             "--rekor-url",
             metavar="URL",
             type=str,
-            help=_("The Rekor instance to use. WARNING: defaults to the public good Sigstore instance https://rekor.sigstore.dev"),
+            help=_(
+                "The Rekor instance to use."
+            ),
         )
         verify_options.add_argument(
             "--tuf-url",
             metavar="URL",
             type=str,
-            help=_("The TUF repository to use. WARNING: defaults to the public TUF metadata repository https://sigstore-tuf-root.storage.googleapis.com/"),
+            help=_(
+                "The TUF repository to use."
+            ),
         )
         verify_options.add_argument(
             "--rekor-root-pubkey",
@@ -103,15 +109,17 @@ class Command(BaseCommand):
             "--certificate-chain",
             metavar="FILE",
             type=str,
-            help=_("Path to a list of CA certificates in PEM format which will be needed when building the certificate chain for the Fulcio signing certificate (default: None)."),
+            help=_(
+                "Path to a list of CA certificates in PEM format which will be needed "
+                "when building the certificate chain for the Fulcio signing certificate."
+            ),
         )
         verify_options.add_argument(
             "--verify-offline",
             metavar="BOOL",
             type=bool,
-            help=_("Verify the signature offline. Defaults to `False`."),
+            help=_("Verify the signature offline."),
         )
-
 
     def handle(self, *args, **options):
         verify_options = {}
@@ -124,7 +132,10 @@ class Command(BaseCommand):
                 SIGSTORE_CONFIGURATION_FILE_SCHEMA(config)
                 verify_options = config
 
-        options = {option_name.replace("_", "-") : option_value for option_name, option_value in options.items()}
+        options = {
+            option_name.replace("_", "-"): option_value
+            for option_name, option_value in options.items()
+        }
         for option_name, option_value in options.items():
             if option_value:
                 verify_options[option_name] = option_value
@@ -144,7 +155,8 @@ class Command(BaseCommand):
             )
 
             print(
-                f"Successfully configured the Sigstore signing service {verify_options['name']} with the following parameters: \n"
+                "Successfully configured the Sigstore signing service "
+                f"{verify_options['name']} with the following parameters: \n"
                 f"Rekor instance URL: {verify_options['rekor-url']}\n"
                 f"Expected OIDC issuer: {verify_options.get('expected-oidc-issuer')}\n"
                 f"Expected identity: {verify_options.get('expected-identity')}\n"

@@ -1,10 +1,7 @@
-import base64
-
 from gettext import gettext as _
 
 from django.contrib.postgres.search import SearchQuery
-from django.core.files.base import ContentFile
-from django.db.models import fields as db_fields, Q
+from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
 from django_filters import filters
 from django.http import HttpResponseRedirect, HttpResponseNotFound

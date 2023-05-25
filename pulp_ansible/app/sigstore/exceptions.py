@@ -2,6 +2,7 @@
 Sigstore-related exceptions.
 """
 
+
 class SigstoreException(Exception):
     """Base class for Sigstore related Exceptions."""
 

@@ -13,9 +13,9 @@ def validate_and_format_pem_public_key(value) -> str:
         public_key = serialization.load_pem_public_key(value.encode(), backend=default_backend())
         pem_data = public_key.public_bytes(
             encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo
+            format=serialization.PublicFormat.SubjectPublicKeyInfo,
         ).decode()
-        
+
         return pem_data.strip()
 
     except (ValueError, TypeError, UnsupportedAlgorithm):

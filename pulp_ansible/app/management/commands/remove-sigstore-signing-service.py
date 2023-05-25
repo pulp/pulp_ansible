@@ -4,10 +4,10 @@ from django.core.management import BaseCommand, CommandError
 
 from django.core.exceptions import ObjectDoesNotExist
 
-from django.apps import apps
 from django.db.utils import IntegrityError
 
 from pulp_ansible.app.models import SigstoreSigningService
+
 
 class Command(BaseCommand):
     """
@@ -30,13 +30,13 @@ class Command(BaseCommand):
             SigstoreSigningService.objects.get(name=name).delete()
         except IntegrityError:
             raise CommandError(
-                _("Sigstore Signing service '{}' could not be removed because it's still in use.").format(
-                    name
-                )
+                _(
+                    "Sigstore Signing service '{}' could not be removed because it's still in use."
+                ).format(name)
             )
         except ObjectDoesNotExist:
-            raise CommandError(
-                _("Sigstore Signing service '{}' does not exists.").format(name)
-            )
+            raise CommandError(_("Sigstore Signing service '{}' does not exists.").format(name))
         else:
-            self.stdout.write(_("Sigstore Signing service '{}' has been successfully removed.").format(name))
+            self.stdout.write(
+                _("Sigstore Signing service '{}' has been successfully removed.").format(name)
+            )

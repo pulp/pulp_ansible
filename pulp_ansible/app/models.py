@@ -2,9 +2,6 @@ import aiohttp
 import base64
 import hashlib
 import json
-import os
-import re
-import requests
 import tempfile
 from cryptography.hazmat.primitives import (
     hashes,
@@ -13,16 +10,14 @@ from cryptography.hazmat.primitives import (
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
 from cryptography.x509 import load_pem_x509_certificates
-from gettext import gettext as _
 from logging import getLogger
 from urllib.parse import urljoin
 
 from semantic_version import Version
 
 from django.conf import settings
-from django.core.files.base import ContentFile
 from django.db import models
-from django.db.models import JSONField, UniqueConstraint, Q
+from django.db.models import UniqueConstraint, Q
 from django.db.utils import IntegrityError
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
@@ -55,7 +50,6 @@ from pulp_ansible.app.sigstore.issuers.keycloak import Keycloak
 from pulp_ansible.app.sigstore.utils import validate_and_format_pem_public_key
 
 from sigstore._internal.ctfe import CTKeyring
-from sigstore._internal.oidc.ambient import detect_gcp
 from sigstore._internal.fulcio.client import FulcioClient
 from sigstore._internal.keyring import Keyring
 from sigstore._internal.rekor.client import (
@@ -335,7 +329,6 @@ class CollectionVersionSignature(Content):
         unique_together = ("pubkey_fingerprint", "signed_collection")
 
 
-
 class SigstoreSigningService(BaseModel):
     """
     A service to generate Sigstore signatures for a given CollectionVersion.
@@ -525,9 +518,7 @@ class SigstoreSigningService(BaseModel):
 
         result = SigningResult(
             input_digest=input_digest.hex(),
-            cert_pem=PEMCert(
-                cert.public_bytes(encoding=serialization.Encoding.PEM).decode()
-            ),
+            cert_pem=PEMCert(cert.public_bytes(encoding=serialization.Encoding.PEM).decode()),
             b64_signature=b64_artifact_signature,
             log_entry=log_entry,
         )
@@ -567,7 +558,8 @@ class SigstoreVerifyingService(BaseModel):
             Defaults to the public TUF instance URL
             (https://sigstore-tuf-root.storage.googleapis.com/).
         certificate_chain (models.TextField):
-            A list of PEM-encoded CA certificates needed to build the Fulcio signing certificate chain.
+            A list of PEM-encoded CA certificates needed to build
+            the Fulcio signing certificate chain.
             Defaults to None.
         expected_oidc_issuer (models.TextField):
             The expected OIDC issuer in the signing certificate.
@@ -635,9 +627,7 @@ class SigstoreVerifyingService(BaseModel):
     def sigstore_verify(self, manifest, signature, certificate, sigstore_bundle=None):
         """Verify a Sigstore signature validity."""
         if self.verify_offline and not sigstore_bundle:
-            raise ValueError(
-                "Offline verification requires a Sigstore bundle."
-            )
+            raise ValueError("Offline verification requires a Sigstore bundle.")
 
         if self.verify_offline and sigstore_bundle:
             verification_materials = VerificationMaterials.from_bundle(

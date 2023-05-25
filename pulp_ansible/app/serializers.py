@@ -13,7 +13,6 @@ from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
-    IdentityField,
     ModelSerializer,
     NoArtifactContentSerializer,
     NoArtifactContentUploadSerializer,
@@ -137,6 +136,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
     """
     A serializer for Sigstore signing services.
     """
+
     name = serializers.CharField(
         help_text=_("A unique name used to recognize a Sigstore signing service"),
         required=True,
@@ -223,6 +223,7 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
     """
     A serializer for Sigstore verifying services.
     """
+
     name = serializers.CharField(
         help_text=_("A unique name used to recognize a Sigstore verifying service"),
         required=True,
@@ -230,9 +231,7 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
     rekor_url = serializers.CharField(
         initial="https://rekor.sigstore.dev",
         required=True,
-        help_text=_(
-            "The URL of the Rekor instance to use for verifying signature logs"
-        ),
+        help_text=_("The URL of the Rekor instance to use for verifying signature logs"),
     )
     rekor_root_pubkey = serializers.CharField(
         help_text=_("A PEM-encoded root public key for Rekor itself"),
@@ -242,28 +241,23 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
     )
     certificate_chain = serializers.CharField(
         help_text=_(
-            "A list of PEM-encoded CA certificates needed to build the Fulcio signing certificate chain."
+            "A list of PEM-encoded CA certificates needed "
+            "to build the Fulcio signing certificate chain."
         ),
         allow_null=True,
         allow_blank=True,
         required=False,
     )
     expected_oidc_issuer = serializers.CharField(
-        help_text=_(
-            "The expected OIDC issuer in the signing certificate."
-        ),
+        help_text=_("The expected OIDC issuer in the signing certificate."),
         required=True,
     )
     expected_identity = serializers.CharField(
-        help_text=_(
-            "The expected identity in the signing certificate."
-        ),
+        help_text=_("The expected identity in the signing certificate."),
         required=True,
     )
     verify_offline = serializers.BooleanField(
-        help_text=_(
-            "Verify the signature offline."
-        ),
+        help_text=_("Verify the signature offline."),
         required=False,
         default=False,
     )
@@ -926,6 +920,7 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
             "pubkey_fingerprint",
             "signing_service",
         )
+
 
 class CollectionVersionSigstoreSignatureSerializer(NoArtifactContentUploadSerializer):
     """

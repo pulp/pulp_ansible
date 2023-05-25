@@ -9,7 +9,6 @@ import logging
 import os
 import requests
 import time
-import urllib.parse
 import webbrowser
 
 from pulp_ansible.app.sigstore.exceptions import KeycloakException
@@ -35,9 +34,7 @@ class Keycloak(BaseIssuer):
 
     def __init__(self, keycloak_base_url):
         """Create a new Keycloak issuer with custom endpoints."""
-        oidc_config_url = os.path.join(
-            keycloak_base_url, ".well-known/openid-configuration"
-        )
+        oidc_config_url = os.path.join(keycloak_base_url, ".well-known/openid-configuration")
 
         resp: requests.Response = requests.get(oidc_config_url)
         try:

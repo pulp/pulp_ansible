@@ -203,7 +203,7 @@ Here is an example configuration file:
         "rekor-url": "https://rekor.sigstore.dev",
         "rekor-root-pubkey": "-----BEGIN PUBLIC KEY----- MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMMgqllG63h1hb313Gu16zCu1ctcZ j9Wi6b+xM2p2Ofv3A4I4E5/pgGjlGRAd8G8aQrq3HwCT//3TERROMVc84w== -----END PUBLIC KEY-----",
         "tuf-url": "https://sigstore-tuf-root.storage.googleapis.com/",
-        "certificate-chain": "-----BEGIN CERTIFICATE----- MIICFzCCAb2gAwIBAgIUTlC6Sec7aMzNSEPjM4GGRGD4SRQwCgYIKoZIzj0EAwIw ... -----END CERTIFICATE-----"
+        "certificate-chain": "-----BEGIN CERTIFICATE----- MIICFzCCAb2gAwIBAgIUTlC6Sec7aMzNSEPjM4GGRGD4SRQwCgYIKoZIzj0EAwIw aDEMMAoGA1UEBhMDVVNBMQswCQYDVQQIEwJXQTERMA8GA1UEBxMIS2lya2xhbmQx FTATBgNVBAkTDDc2NyA2dGggU3QgUzEOMAwGA1UEERMFOTgwMzMxETAPBgNVBAoT CHNpZ3N0b3JlMB4XDTIzMDQxOTA5MjAwNFoXDTMzMDQxOTA5MjAwNFowaDEMMAoG A1UEBhMDVVNBMQswCQYDVQQIEwJXQTERMA8GA1UEBxMIS2lya2xhbmQxFTATBgNV BAkTDDc2NyA2dGggU3QgUzEOMAwGA1UEERMFOTgwMzMxETAPBgNVBAoTCHNpZ3N0 b3JlMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEpUO2LlVYeoWPImhoiqWZ//ou 6moSKSWV81ao6FdWXPPLNf1We//hljTVSMTecy9nXrs6l37tyW9PZ4PCh3uBWKNF MEMwDgYDVR0PAQH/BAQDAgEGMBIGA1UdEwEB/wQIMAYBAf8CAQEwHQYDVR0OBBYE FBKveBwpxVN+GGVl4lYhtGf9JwlxMAoGCCqGSM49BAMCA0gAMEUCID/2LldMDc0M UoGRusZhP5WMuUXtQ+lMivTYbZiDNAavAiEAwt4NSqNkYPwMdBU9GiU2v/6jxzUs AvuFGeDHHbe+K2Y= -----END CERTIFICATE-----"
         "expected-identity": "user@example.com",
         "expected-oidc-issuer": "https://oauth2.sigstore.dev/auth",
         "verify-offline": false
