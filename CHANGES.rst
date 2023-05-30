@@ -13,6 +13,32 @@ Changelog
 
 .. towncrier release notes start
 
+0.18.0 (2023-05-25)
+===================
+
+Features
+--------
+
+- Updated compatibility for pulpcore 3.25 and Django 4.2.
+  `#1462 <https://github.com/pulp/pulp_ansible/issues/1462>`__
+
+
+Bugfixes
+--------
+
+- Reduce fetched fields in cv list endpoint to prevent oomkill.
+  `#1433 <https://github.com/pulp/pulp_ansible/issues/1433>`__
+- Fix traceback when publishing a collection to the v2 API endpoint
+  `#1441 <https://github.com/pulp/pulp_ansible/issues/1441>`__
+- Fixed several bugs in the galaxy v2 API related to generating URLs for various collection resources.
+  `#1452 <https://github.com/pulp/pulp_ansible/issues/1452>`__
+- Increase collectionversion search index build speeds.
+  `#1467 <https://github.com/pulp/pulp_ansible/issues/1467>`__
+
+
+----
+
+
 0.17.1 (2023-05-09)
 ===================
 
