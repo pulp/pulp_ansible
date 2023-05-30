@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.17.2 (2023-05-30)
+===================
+
+Bugfixes
+--------
+
+- Fixed several bugs in the galaxy v2 API related to generating URLs for various collection resources.
+  `#1452 <https://github.com/pulp/pulp_ansible/issues/1452>`__
+- Increase collectionversion search index build speeds.
+  `#1467 <https://github.com/pulp/pulp_ansible/issues/1467>`__
+
+
+----
+
+
 0.17.1 (2023-05-09)
 ===================
 
