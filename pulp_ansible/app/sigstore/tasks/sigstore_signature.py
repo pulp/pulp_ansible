@@ -4,7 +4,6 @@ Tasks related to Sigstore content signature and verification.
 
 import aiofiles
 import asyncio
-import json
 import logging
 import os
 import re
@@ -193,15 +192,10 @@ class CollectionSigstoreSigningFirstStage(Stage):
 
         # Prepare ephemeral key pair and certificate and sign the collections asynchronously
         private_key = ec.generate_private_key(ec.SECP384R1())
-        with open(self.sigstore_signing_service.credentials_file_path, "r") as credentials_file:
-            credentials = json.load(credentials_file)
-            client_id, client_secret = (
-                credentials["keycloak_client_id"],
-                credentials["keycloak_client_secret"],
-            )
-            identity_token = self.sigstore_signing_service.issuer.identity_token(
-                client_id, client_secret, self.sigstore_signing_service.enable_interactive
-            )
+        client_secret = self.sigstore_signing_service.oidc_client_secret
+        identity_token = self.sigstore_signing_service.issuer.identity_token(
+            "sigstore", client_secret, self.sigstore_signing_service.enable_interactive
+        )
         oidc_identity = Identity(identity_token)
 
         # Build an X.509 Certificiate Signing Request

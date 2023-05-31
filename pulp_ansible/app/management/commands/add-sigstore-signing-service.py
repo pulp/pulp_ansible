@@ -20,7 +20,7 @@ SIGSTORE_CONFIGURATION_FILE_SCHEMA = Schema(
         Optional("fulcio-url"): str,
         Optional("oidc-issuer"): str,
         Optional("ctfe-pubkey"): str,
-        Optional("credentials-file-path"): str,
+        Optional("oidc-client-secret"): str,
         Optional("enable-interactive"): bool,
     }
 )
@@ -32,7 +32,7 @@ DEFAULTS = {
     "oidc-issuer": "https://oauth2.sigstore.dev",
     "rekor-root-pubkey": None,
     "ctfe-pubkey": None,
-    "credentials-file-path": None,
+    "oidc-client-secret": None,
     "enable-interactive": False,
 }
 
@@ -110,13 +110,10 @@ class Command(BaseCommand):
             help=_("A PEM-encoded public key for the CT log"),
         )
         sign_options.add_argument(
-            "--credentials-file-path",
+            "--oidc-client-secret",
             metavar="URL",
             type=str,
-            help=_(
-                "Path to the OIDC client ID and client secret "
-                "file on the server to authentify to Sigstore."
-            ),
+            help=_("The OIDC client secret to use to authenticate to Sigstore."),
         )
         sign_options.add_argument(
             "--enable-interactive",
@@ -155,7 +152,7 @@ class Command(BaseCommand):
                 rekor_root_pubkey=sign_options.get("rekor-root-pubkey"),
                 fulcio_url=sign_options.get("fulcio-url"),
                 ctfe_pubkey=sign_options.get("ctfe-pubkey"),
-                credentials_file_path=sign_options.get("credentials-file-path"),
+                oidc_client_secret=sign_options.get("oidc-client-secret"),
                 enable_interactive=enable_interactive,
             )
 
@@ -168,7 +165,6 @@ class Command(BaseCommand):
                 f"Rekor root public key: {sign_options.get('rekor-root-pubkey')}\n"
                 f"Fulcio instance URL: {sign_options['fulcio-url']}\n"
                 f"Certificate Transparency log public key: {sign_options.get('ctfe-pubkey')}\n"
-                f"OIDC credentials file path: {sign_options['credentials-file-path']}\n"
                 f"Enable interactive signing: {enable_interactive}\n"
             )
 

@@ -184,7 +184,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "if not specified."
         ),
     )
-    credentials_file_path = serializers.CharField(
+    oidc_client_secret = serializers.CharField(
         required=True,
         help_text=_(
             "Path to the OIDC client ID and client secret file "
@@ -213,7 +213,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "tuf_url",
             "rekor_root_pubkey",
             "oidc_issuer",
-            "credentials_file_path",
+            "oidc_client_secret",
             "ctfe_pubkey",
             "enable_interactive",
         )

@@ -352,9 +352,8 @@ class SigstoreSigningService(BaseModel):
         oidc_issuer (models.TextField):
             The OpenID Connect issuer to use for signing.
             Defaults to the public OAuth2 server URL (https://oauth2.sigstore.dev/auth).
-        credentials_file_path (models.TextField):
-            Path to the OIDC client ID and client secret file on the server
-            to authentify to Sigstore.
+        oidc_client_secret (models.EncryptedTextField):
+            The encrypted OIDC client secret to authentify to Sigstore.
         ctfe_pubkey (models.TextField):
             A PEM-encoded public key for the CT log.
         cert_identity (models.TextField):
@@ -383,7 +382,7 @@ class SigstoreSigningService(BaseModel):
     fulcio_url = models.TextField(default=PUBLIC_FULCIO_URL)
     tuf_url = models.TextField(default=PUBLIC_TUF_URL, null=True)
     oidc_issuer = models.TextField(default=PUBLIC_ISSUER_URL)
-    credentials_file_path = models.TextField(null=True)
+    oidc_client_secret = EncryptedTextField(null=True)
     ctfe_pubkey = models.TextField(null=True)
     enable_interactive = models.BooleanField(default=False)
 
@@ -449,15 +448,10 @@ class SigstoreSigningService(BaseModel):
             issuer = self.issuer
             identity_token = issuer.identity_token()
         else:
-            with open(self.credentials_file_path, "r") as credentials_file:
-                credentials = json.load(credentials_file)
-                client_id, client_secret = (
-                    credentials["keycloak_client_id"],
-                    credentials["keycloak_client_secret"],
-                )
+            client_secret = self.oidc_client_secret
             if isinstance(issuer, Keycloak):
                 identity_token = issuer.identity_token(
-                    client_id, client_secret, self.enable_interactive
+                    "sigstore", client_secret, self.enable_interactive
                 )
 
         if not identity_token:

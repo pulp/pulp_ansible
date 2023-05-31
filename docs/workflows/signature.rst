@@ -171,6 +171,7 @@ List of Sigstore configuration parameters:
 - fulcio_url: The URL of the Fulcio instance to use for getting signing certificates. Defaults to the Fulcio public good instance URL (https://fulcio.sigstore.dev).
 - tuf_url: The URL of the TUF metadata repository instance to use. Defaults to the public TUF instance URL (https://sigstore-tuf-root.storage.googleapis.com/).
 - oidc_issuer: The OpenID Connect issuer to use for signing. Defaults to the public OAuth2 server URL (https://oauth2.sigstore.dev/auth).
+- oidc_client_secret: The encrypted OIDC client secret to authentify to Sigstore.
 - ctfe_pubkey: A PEM-encoded public key for the CT log.
 - enable_interactive: Enable Sigstore's interactive browser flow. Defaults to False.
 
@@ -181,7 +182,7 @@ Once this information is entered in the logs, it is impossible to remove or alte
 Example use:
 
 .. code-block:: bash
-    pulpcore-manager add-sigstore-signing-service --from-file sigstore-signing-config.json
+    pulpcore-manager add-sigstore-signing-service --from-file sigstore-signing-config.json --oidc-client-secret="p6Hisft9nWQ1FdPExampleSecret"
 
 Pulp admins can also remove Sigstore signing services configured:
 
