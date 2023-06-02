@@ -2,12 +2,9 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.contrib.postgres.aggregates import ArrayAgg, JSONBAgg
 from django.db import DatabaseError, IntegrityError
-from django.db.models import F, Q, OuterRef, Exists, Subquery
-from django.db.models.expressions import Window
+from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
 from django.db.models.functions import JSONObject
-from django.db.models.functions.window import FirstValue
 from django.http import StreamingHttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
@@ -130,18 +127,7 @@ class AnsibleDistributionMixin:
         if "path" in self.kwargs:
             context["path"] = self.kwargs["path"]
 
-        distro_content = self._distro_content
         context["distro_base_path"] = self.kwargs["distro_base_path"]
-
-        # # switch for prefetch related
-        # context["marks"] = CollectionVersionMark.objects.filter(pk__in=distro_content)
-        # context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
-
-        # # annotate
-        # context["namespaces"] = AnsibleNamespaceMetadata.objects.filter(pk__in=distro_content)
-        # context["namespaces_map"] = {
-        #     n[0]: n[1] for n in context["namespaces"].values_list("name", "metadata_sha256")
-        # }
         return context
 
 
@@ -161,10 +147,36 @@ class CollectionVersionRetrieveMixin:
 
         repo_version = self._repository_version
 
-        collections = CollectionVersion.objects.select_related(
-            "content_ptr__contentartifact"
-        ).filter(namespace=self.kwargs["namespace"], name=self.kwargs["name"])
-        return filter_content_for_repo_version(collections, repo_version)
+        qs = (
+            filter_content_for_repo_version(CollectionVersion.objects, repo_version)
+            .select_related("content_ptr__contentartifact")
+            .prefetch_related(
+                Prefetch(
+                    "marks",
+                    queryset=filter_content_for_repo_version(
+                        CollectionVersionMark.objects, repo_version
+                    ),
+                )
+            )
+            .prefetch_related(
+                Prefetch(
+                    "signatures",
+                    queryset=filter_content_for_repo_version(
+                        CollectionVersionSignature.objects, repo_version
+                    ),
+                )
+            )
+            .annotate(
+                namespace_sha256=Subquery(
+                    filter_content_for_repo_version(AnsibleNamespaceMetadata.objects, repo_version)
+                    .filter(name=OuterRef("namespace"))
+                    .values("metadata_sha256"),
+                )
+            )
+            .filter(namespace=self.kwargs["namespace"], name=self.kwargs["name"])
+        )
+
+        return qs
 
     def retrieve(self, request, *args, **kwargs):
         """
@@ -266,7 +278,8 @@ class CollectionViewSet(
             Collection.objects.annotate(
                 version=Subquery(latest_cv_version_qs.values("version_info")[:1])
             )
-            .annotate(deprecated=Exists(deprecated_qs)).filter(version__isnull=False)
+            .annotate(deprecated=Exists(deprecated_qs))
+            .filter(version__isnull=False)
         )
 
         return qs

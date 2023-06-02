@@ -1,5 +1,4 @@
 from typing import List
-import semantic_version
 from django.conf import settings
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes
@@ -116,10 +115,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
 
     def get_marks(self, obj) -> List[str]:
         """Get a list of mark values filtering only those in the current repo."""
-        # The viewset adds "marks" to the context
-        return list(
-            obj.marks.filter(pk__in=self.context.get("marks", [])).values_list("value", flat=True)
-        )
+        return [x.value for x in obj.marks.all()]
 
     def get_href(self, obj) -> str:
         """
@@ -193,11 +189,7 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     """
 
     name = serializers.CharField(source="namespace")
-    metadata_sha256 = serializers.SerializerMethodField()
-
-    def get_metadata_sha256(self, obj):
-        """Return the `metadata_sha256` if present in the repository."""
-        return self.context["namespaces_map"].get(obj.namespace)
+    metadata_sha256 = serializers.CharField(source="namespace_sha256")
 
 
 class CollectionVersionSignatureSerializer(serializers.ModelSerializer):
@@ -236,7 +228,7 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
 
     metadata = CollectionMetadataSerializer(source="*", read_only=True)
     namespace = CollectionNamespaceSerializer(source="*", read_only=True)
-    signatures = serializers.SerializerMethodField()
+    signatures = CollectionVersionSignatureSerializer(many=True)
 
     class Meta:
         model = models.CollectionVersion
@@ -296,13 +288,6 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
         if not content_artifact.get().artifact:
             return content_artifact.get().remoteartifact_set.all()[0].url[-40:]
-
-    def get_signatures(self, obj):
-        """
-        Get the signatures.
-        """
-        filtered_signatures = obj.signatures.filter(pk__in=self.context.get("sigs", []))
-        return CollectionVersionSignatureSerializer(filtered_signatures, many=True).data
 
 
 class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
