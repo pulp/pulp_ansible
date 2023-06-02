@@ -23,7 +23,7 @@ def _get_distro_context(context):
 class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
 
-    deprecated = serializers.SerializerMethodField()
+    deprecated = serializers.BooleanField()
     created_at = serializers.SerializerMethodField()
     updated_at = serializers.SerializerMethodField()
     href = serializers.SerializerMethodField()
@@ -45,10 +45,6 @@ class CollectionSerializer(serializers.ModelSerializer):
             "download_count",
         )
         model = models.Collection
-
-    def get_deprecated(self, obj) -> bool:
-        """Get deprecated."""
-        return obj.pk in self.context["deprecated_collections"]
 
     def get_href(self, obj) -> str:
         """Get href."""
@@ -74,18 +70,11 @@ class CollectionSerializer(serializers.ModelSerializer):
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_updated_at(self, obj):
         """Get the timestamp of the highest version CollectionVersion's created timestamp."""
-        if obj.repo_version_added_at and obj.repo_version_removed_at:
-            return max(obj.repo_version_added_at, obj.repo_version_removed_at)
-
-        return obj.repo_version_added_at or obj.repo_version_removed_at
+        return obj.version["pulp_last_updated"]
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
-        available_versions = self.context["available_versions"][obj.pk]
-        version = sorted(
-            available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
-        )[0]
         ctx = _get_distro_context(self.context)
         href = reverse(
             settings.ANSIBLE_URL_NAMESPACE + "collection-versions-detail",
@@ -93,10 +82,10 @@ class CollectionSerializer(serializers.ModelSerializer):
                 **ctx,
                 "namespace": obj.namespace,
                 "name": obj.name,
-                "version": version,
+                "version": obj.version["version"],
             },
         )
-        return {"href": href, "version": version}
+        return {"href": href, "version": obj.version["version"]}
 
     def get_download_count(self, obj):
         """Get the download count of the collection"""

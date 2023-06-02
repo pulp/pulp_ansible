@@ -2,10 +2,11 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.contrib.postgres.aggregates import ArrayAgg
+from django.contrib.postgres.aggregates import ArrayAgg, JSONBAgg
 from django.db import DatabaseError, IntegrityError
-from django.db.models import F, Q
+from django.db.models import F, Q, OuterRef, Exists, Subquery
 from django.db.models.expressions import Window
+from django.db.models.functions import JSONObject
 from django.db.models.functions.window import FirstValue
 from django.http import StreamingHttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect
@@ -73,6 +74,8 @@ from pulp_ansible.app.viewsets import (
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
+from pulp_ansible.app.utils import filter_content_for_repo_version
+
 
 _CAN_VIEW_REPO_CONTENT = {
     "action": ["list", "retrieve", "download"],
@@ -128,13 +131,17 @@ class AnsibleDistributionMixin:
             context["path"] = self.kwargs["path"]
 
         distro_content = self._distro_content
-        context["marks"] = CollectionVersionMark.objects.filter(pk__in=distro_content)
-        context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
-        context["namespaces"] = AnsibleNamespaceMetadata.objects.filter(pk__in=distro_content)
-        context["namespaces_map"] = {
-            n[0]: n[1] for n in context["namespaces"].values_list("name", "metadata_sha256")
-        }
         context["distro_base_path"] = self.kwargs["distro_base_path"]
+
+        # # switch for prefetch related
+        # context["marks"] = CollectionVersionMark.objects.filter(pk__in=distro_content)
+        # context["sigs"] = CollectionVersionSignature.objects.filter(pk__in=distro_content)
+
+        # # annotate
+        # context["namespaces"] = AnsibleNamespaceMetadata.objects.filter(pk__in=distro_content)
+        # context["namespaces_map"] = {
+        #     n[0]: n[1] for n in context["namespaces"].values_list("name", "metadata_sha256")
+        # }
         return context
 
 
@@ -151,14 +158,13 @@ class CollectionVersionRetrieveMixin:
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs
             return CollectionVersion.objects.none()
-        distro_content = self._distro_content
+
+        repo_version = self._repository_version
 
         collections = CollectionVersion.objects.select_related(
             "content_ptr__contentartifact"
-        ).filter(
-            pk__in=distro_content, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
-        )
-        return collections
+        ).filter(namespace=self.kwargs["namespace"], name=self.kwargs["name"])
+        return filter_content_for_repo_version(collections, repo_version)
 
     def retrieve(self, request, *args, **kwargs):
         """
@@ -180,17 +186,7 @@ class CollectionFilter(BaseFilterSet):
 
     namespace = filters.CharFilter(field_name="namespace")
     name = filters.CharFilter(field_name="name")
-    deprecated = filters.BooleanFilter(field_name="deprecated", method="get_deprecated")
-
-    def get_deprecated(self, qs, name, value):
-        """Deprecated filter."""
-        deprecation = self.request.parser_context["view"]._deprecation
-        if value and deprecation:
-            return qs.filter(pk__in=deprecation)
-
-        if value is False and deprecation:
-            return qs.exclude(pk__in=deprecation)
-        return qs
+    deprecated = filters.BooleanFilter(field_name="deprecated")
 
     class Meta:
         model = Collection
@@ -234,20 +230,6 @@ class CollectionViewSet(
         """Return url pattern for RBAC."""
         return "pulp_ansible/v3/collections"
 
-    @property
-    def _deprecation(self):
-        """Return deprecated collecion ids."""
-        deprecations = Q()
-        for namespace, name in AnsibleCollectionDeprecated.objects.filter(
-            pk__in=self._distro_content
-        ).values_list("namespace", "name"):
-            deprecations |= Q(namespace=namespace, name=name)
-        collection_pks = []
-        if len(deprecations):
-            collection_pks = Collection.objects.filter(deprecations).values_list("pk", flat=True)
-        self.deprecated_collections_context = collection_pks  # needed by get__serializer_context
-        return collection_pks
-
     def get_queryset(self):
         """
         Returns a Collections queryset for specified distribution.
@@ -257,107 +239,46 @@ class CollectionViewSet(
             # and it fails when "path" is not on self.kwargs
             return Collection.objects.none()
         repo_version = self._repository_version
-        return Collection.objects.filter(
-            versions__in=repo_version.content,
+
+        deprecated_qs = filter_content_for_repo_version(
+            AnsibleCollectionDeprecated.objects, repo_version
+        ).filter(namespace=OuterRef("namespace"), name=OuterRef("name"))
+
+        latest_cv_version_qs = (
+            filter_content_for_repo_version(CollectionVersion.objects, repo_version)
+            .filter(collection=OuterRef("pk"))
+            .order_by(
+                "-version_major",
+                "-version_minor",
+                "-version_patch",
+                "-version_prerelease",
+                "-pulp_created",
+            )
+            .annotate(
+                version_info=JSONObject(
+                    version=F("version"), pulp_last_updated=F("pulp_last_updated"), default=None
+                )
+            )
+            .only("version_info")
         )
 
-    def append_context(self, queryset):
-        """Appending collection data to context."""
-        repo_version = self._repository_version
-        collections_qs = queryset.annotate(available_versions=ArrayAgg("versions__version"))
-        versions_context = {}
-        for collection_id, available_versions in collections_qs.values_list(
-            "pk", "available_versions"
-        ):
-            versions_context[collection_id] = available_versions
-
-        self.available_versions_context = versions_context  # needed by get__serializer_context
-        self._deprecation
-
-        collections = Collection.objects.filter(
-            pk__in=versions_context.keys(),
-            versions__version_memberships__repository=repo_version.repository,
-        ).annotate(
-            repo_version_added_at=Window(
-                expression=FirstValue(
-                    "versions__version_memberships__version_added__pulp_last_updated"
-                ),
-                partition_by=[F("versions__collection_id")],
-                order_by=F("versions__version_memberships__version_added__pulp_last_updated").desc(
-                    nulls_last=True
-                ),
-            ),
-            repo_version_removed_at=Window(
-                expression=FirstValue(
-                    "versions__version_memberships__version_removed__pulp_last_updated"
-                ),
-                partition_by=[F("versions__collection_id")],
-                order_by=F(
-                    "versions__version_memberships__version_removed__pulp_last_updated"
-                ).desc(nulls_last=True),
-            ),
+        qs = (
+            Collection.objects.annotate(
+                version=Subquery(latest_cv_version_qs.values("version_info")[:1])
+            )
+            .annotate(deprecated=Exists(deprecated_qs)).filter(version__isnull=False)
         )
 
-        return collections.distinct("versions__collection_id").only(
-            "pulp_created", "name", "namespace"
-        )
-
-    def filter_queryset(self, queryset):
-        """
-        Filter Repository related fields.
-        """
-        queryset = super().filter_queryset(queryset)
-
-        if self.paginator is None:
-            queryset = self.append_context(queryset)
-
-        return queryset
-
-    def paginate_queryset(self, queryset):
-        """Custom pagination."""
-        if self.paginator is None:
-            return None
-        paginator = self.paginator
-        # Making sure COUNT a lighter query (before append_context)
-        paginator.count = paginator.get_count(
-            queryset.model.objects.filter(pk__in=queryset).distinct("versions__collection_id")
-        )
-        paginator.limit = paginator.get_limit(self.request)
-        if paginator.limit is None:
-            return None
-
-        paginator.offset = paginator.get_offset(self.request)
-        paginator.request = self.request
-        if paginator.count > paginator.limit and paginator.template is not None:
-            paginator.display_page_controls = True
-
-        if paginator.count == 0 or paginator.offset > paginator.count:
-            return []
-        new_queryset = queryset[paginator.offset : paginator.offset + paginator.limit]
-        # Paginate query with appended context
-        return list(self.append_context(new_queryset))
+        return qs
 
     def get_object(self):
         """
         Returns a Collection object.
         """
         queryset = self.filter_queryset(self.get_queryset())
-        queryset = self.append_context(queryset)
         return get_object_or_404(
             queryset, namespace=self.kwargs["namespace"], name=self.kwargs["name"]
         )
-
-    def get_serializer_context(self, *args, **kwargs):
-        """
-        Return the serializer context.
-
-        This uses super() but also adds in the "highest_versions" data from get_queryset()
-        """
-        super_data = super().get_serializer_context()
-        if getattr(self, "available_versions_context", None):
-            super_data["available_versions"] = self.available_versions_context
-        super_data["deprecated_collections"] = getattr(self, "deprecated_collections_context", [])
-        return super_data
 
     @extend_schema(
         description="Trigger an asynchronous update task",
@@ -752,7 +673,9 @@ class AnsibleNamespaceViewSet(
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs
             return AnsibleNamespaceMetadata.objects.none()
-        return AnsibleNamespaceMetadata.objects.filter(pk__in=self._distro_content)
+        return filter_content_for_repo_version(
+            AnsibleNamespaceMetadata.objects, self._repository_version
+        )
 
     def create(self, request, *args, **kwargs):
         return self._create(request, data=request.data)
@@ -958,9 +881,9 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         """
         Returns a CollectionVersions queryset for specified distribution.
         """
-        distro_content = self._distro_content
-
-        return CollectionVersion.objects.select_related().filter(pk__in=distro_content)
+        return filter_content_for_repo_version(
+            CollectionVersion.objects.select_related(), self._repository_version
+        )
 
     @extend_schema(
         responses={202: list_serializer_class},
