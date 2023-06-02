@@ -372,6 +372,19 @@ class DownloadLog(BaseModel):
     )
 
 
+class CollectionDownloadCount(BaseModel):
+    """
+    Aggregate count of downloads per collection
+    """
+
+    namespace = models.CharField(max_length=64, editable=False)
+    name = models.CharField(max_length=64, editable=False)
+    download_count = models.IntegerField(default=0)
+
+    class Meta:
+        unique_together = ("namespace", "name")
+
+
 class RoleRemote(Remote, AutoAddObjPermsMixin):
     """
     A Remote for Ansible content.
