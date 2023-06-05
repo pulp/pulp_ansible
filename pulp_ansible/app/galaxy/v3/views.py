@@ -11,6 +11,7 @@ from django.utils.dateparse import parse_datetime
 from django_filters import filters
 from django.views.generic.base import RedirectView
 from django.conf import settings
+from django.core.cache import cache
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from jinja2 import Template
@@ -24,7 +25,7 @@ from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from pulpcore.plugin.models import Artifact, Content
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.viewsets import (
     BaseFilterSet,
@@ -150,6 +151,7 @@ class CollectionVersionRetrieveMixin:
         qs = (
             filter_content_for_repo_version(CollectionVersion.objects, repo_version)
             .select_related("content_ptr__contentartifact")
+            .select_related("collection")
             .prefetch_related(
                 Prefetch(
                     "marks",
@@ -158,12 +160,31 @@ class CollectionVersionRetrieveMixin:
                     ),
                 )
             )
-            .prefetch_related(
+            .filter(namespace=self.kwargs["namespace"], name=self.kwargs["name"])
+        )
+
+        return qs
+
+    def get_object(self):
+        """
+        This modifies the qs for get requests to add some extra lookups for the detail view
+        """
+        repo_version = self._repository_version
+        qs = self.get_queryset()
+        qs = (
+            qs.prefetch_related(
                 Prefetch(
                     "signatures",
                     queryset=filter_content_for_repo_version(
                         CollectionVersionSignature.objects, repo_version
                     ),
+                )
+            )
+            .prefetch_related(
+                Prefetch(
+                    "contentartifact_set",
+                    queryset=ContentArtifact.objects.select_related("artifact"),
+                    to_attr="artifacts",
                 )
             )
             .annotate(
@@ -173,20 +194,45 @@ class CollectionVersionRetrieveMixin:
                     .values("metadata_sha256"),
                 )
             )
-            .filter(namespace=self.kwargs["namespace"], name=self.kwargs["name"])
+            .select_related("collection")
         )
 
-        return qs
+        queryset = self.filter_queryset(qs)
 
+        # Perform the lookup filtering.
+        lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
+
+        assert lookup_url_kwarg in self.kwargs, (
+            "Expected view %s to be called with a URL keyword argument "
+            'named "%s". Fix your URL conf, or set the `.lookup_field` '
+            "attribute on the view correctly." % (self.__class__.__name__, lookup_url_kwarg)
+        )
+
+        filter_kwargs = {self.lookup_field: self.kwargs[lookup_url_kwarg]}
+        obj = get_object_or_404(queryset, **filter_kwargs)
+
+        # May raise a permission denied
+        self.check_object_permissions(self.request, obj)
+
+        return obj
+
+    # @method_decorator(cache_page(60*60*2))
     def retrieve(self, request, *args, **kwargs):
         """
         Returns a CollectionVersion object.
         """
+        repo_version = self._repository_version
+        # the contents of a repo version can be cached without worry because repo
+        # versions are immutable
+        cache_key = f"{repo_version.pk}{kwargs['namespace']}{kwargs['name']}{kwargs['version']}"
+
+        if data := cache.get(cache_key):
+            return Response(data)
+
         instance = self.get_object()
-
         context = self.get_serializer_context()
-
         serializer = self.get_serializer_class()(instance, context=context)
+        cache.set(cache_key, serializer.data)
 
         return Response(serializer.data)
 
@@ -814,23 +860,56 @@ class CollectionVersionViewSet(
         """
         Returns paginated CollectionVersions list.
         """
+
+        # there are too many potential permutations of query params to be able
+        # to cache all of them, so this will only cache queries that stick to
+        # limit/offset params, which the ansible-galaxy client uses
+        cache_request = True
+        for k in request.query_params.keys():
+            if k not in ("offset", "limit"):
+                cache_request = False
+                break
+
+        cache_key = "".join(
+            [
+                str(self._repository_version.pk),
+                kwargs["namespace"],
+                kwargs["name"],
+                str(request.query_params.get("offset", "0")),
+                str(request.query_params.get("limit", "0")),
+            ]
+        )
+
+        if cache_key in cache and cache_request:
+            return Response(cache.get(cache_key))
+
         queryset = self.get_queryset()
 
         # prevent OOMKILL ...
-        queryset = queryset.only("pk", "content_ptr_id")
+        queryset = queryset.only(
+            "pk",
+            "content_ptr_id",
+            "marks",
+            "namespace",
+            "name",
+            "version",
+            "pulp_created",
+            "pulp_last_updated",
+            "requires_ansible",
+            "collection",
+        )
 
         queryset = self.filter_queryset(queryset)
-
-        # This is -very- slow when the collection has many versions.
-        # queryset = sorted(
-        #    queryset, key=lambda obj: semantic_version.Version(obj.version), reverse=True
-        # )
 
         context = self.get_serializer_context()
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_list_serializer(page, many=True, context=context)
-            return self.get_paginated_response(serializer.data)
+            data = self.paginator.get_paginated_data(serializer.data)
+            if cache_request:
+                cache.add(cache_key, data)
+
+            return Response(data)
 
         serializer = self.get_list_serializer(queryset, many=True, context=context)
         return Response(serializer.data)

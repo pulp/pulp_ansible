@@ -52,20 +52,21 @@ class LimitOffsetPagination(pagination.LimitOffsetPagination):
         offset = self.offset - self.limit
         return replace_query_param(url, self.offset_query_param, offset)
 
+    def get_paginated_data(self, data):
+        return {
+            "meta": {"count": self.count},
+            "links": {
+                "first": self.get_first_link(),
+                "previous": self.get_previous_link(),
+                "next": self.get_next_link(),
+                "last": self.get_last_link(),
+            },
+            "data": data,
+        }
+
     def get_paginated_response(self, data):
         """Returns paginated response."""
-        return Response(
-            {
-                "meta": {"count": self.count},
-                "links": {
-                    "first": self.get_first_link(),
-                    "previous": self.get_previous_link(),
-                    "next": self.get_next_link(),
-                    "last": self.get_last_link(),
-                },
-                "data": data,
-            }
-        )
+        return Response(self.get_paginated_data(data))
 
     def get_paginated_response_schema(self, schema):
         """Returns paginated response schema."""

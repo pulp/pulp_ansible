@@ -6,7 +6,7 @@ from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
 from pulp_ansible.app import models, serializers as ansible_serializers
-from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
+from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin import serializers as core_serializers
 
 
@@ -99,7 +99,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
 
     href = serializers.SerializerMethodField()
     created_at = serializers.DateTimeField(source="collection.pulp_created")
-    updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
+    updated_at = serializers.DateTimeField(source="pulp_last_updated")
     marks = serializers.SerializerMethodField()
 
     class Meta:
@@ -249,16 +249,14 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get atrifact summary.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if content_artifact.get().artifact:
-            return ArtifactRefSerializer(content_artifact.get()).data
+        if obj.artifacts[0].artifact:
+            return ArtifactRefSerializer(obj.artifacts[0]).data
 
     def get_download_url(self, obj) -> str:
         """
         Get artifact download URL.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if content_artifact.get().artifact:
+        if obj.artifacts[0].artifact:
             distro_base_path = self.context.get("path", self.context["distro_base_path"])
             filename_path = obj.relative_path.lstrip("/")
 
@@ -277,17 +275,15 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get the git URL.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if not content_artifact.get().artifact:
-            return content_artifact.get().remoteartifact_set.all()[0].url[:-47]
+        if not obj.artifacts[0]:
+            return obj.artifacts[0].remoteartifact_set.all()[0].url[:-47]
 
     def get_git_commit_sha(self, obj) -> str:
         """
         Get the git commit sha.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if not content_artifact.get().artifact:
-            return content_artifact.get().remoteartifact_set.all()[0].url[-40:]
+        if not obj.artifacts[0].artifact:
+            return obj.artifacts[0].remoteartifact_set.all()[0].url[-40:]
 
 
 class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
