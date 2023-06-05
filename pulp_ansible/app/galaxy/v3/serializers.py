@@ -100,12 +100,10 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     def get_download_count(self, obj):
         """Get the download count of the collection"""
-        dlc_model = models.CollectionDownloadCount
-        if dlc_model.objects.filter(namespace=obj.namespace, name=obj.name).count() == 0:
+        qs = models.CollectionDownloadCount.objects.filter(namespace=obj.namespace, name=obj.name)
+        if qs.count() == 0:
             return 0
-        return (
-            dlc_model.objects.filter(namespace=obj.namespace, name=obj.name).first().download_count
-        )
+        return qs.first().download_count
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
