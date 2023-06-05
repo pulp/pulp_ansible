@@ -81,7 +81,7 @@ def test_collection_download_count(
         collection_detail = pulp_client.using_handler(api.json_handler).get(url)
 
         # Collection is installed twice in cli.test_collection_install
-        assert collection_detail["download_count"] == 0
+        assert collection_detail["download_count"] == 2
 
         temp_dir = str(
             ansible_dir_factory(install_scenario_distribution.client_url, pulp_admin_user)
@@ -106,7 +106,7 @@ def test_collection_download_count(
         assert path.exists(directory), "Could not find directory {}".format(directory)
 
         collection_detail = pulp_client.using_handler(api.json_handler).get(url)
-        assert collection_detail["download_count"] == 1
+        assert collection_detail["download_count"] == 3
 
         cmd = [
             "ansible-galaxy",
@@ -122,4 +122,4 @@ def test_collection_download_count(
         subprocess.run(cmd, cwd=temp_dir)
 
         collection_detail = pulp_client.using_handler(api.json_handler).get(url)
-        assert collection_detail["download_count"] == 2
+        assert collection_detail["download_count"] == 4
