@@ -1,5 +1,4 @@
 """Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
-from os import path
 import subprocess
 import pytest
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
@@ -61,9 +60,7 @@ def test_collection_download_count(
         # Collection is installed twice in cli.test_collection_install
         assert collection_detail.download_count == "2"
 
-        temp_dir = str(
-            ansible_dir_factory(install_scenario_distribution.client_url, pulp_admin_user)
-        )
+        temp_dir = ansible_dir_factory(install_scenario_distribution.client_url, pulp_admin_user)
 
         cmd = [
             "ansible-galaxy",
@@ -75,13 +72,11 @@ def test_collection_download_count(
             temp_dir,
         ]
 
-        directory = "{}/ansible_collections/{}".format(
-            temp_dir, ANSIBLE_DEMO_COLLECTION.replace(".", "/")
-        )
+        directory = temp_dir / "ansible_collections" / ANSIBLE_DEMO_COLLECTION.replace(".", "/")
 
-        assert not path.exists(directory), "Directory {} already exists".format(directory)
+        assert not directory.exists(), "Directory {} already exists".format(directory)
         subprocess.run(cmd, cwd=temp_dir)
-        assert path.exists(directory), "Could not find directory {}".format(directory)
+        assert directory.exists(), "Could not find directory {}".format(directory)
 
         collection_detail = galaxy_v3_collections_api_client.read(
             path=install_scenario_distribution.base_path,
