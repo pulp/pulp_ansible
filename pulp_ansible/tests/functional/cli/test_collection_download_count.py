@@ -41,8 +41,11 @@ def test_collection_download_count(
     galaxy_v3_collections_api_client,
     install_scenario_distribution,
     pulp_admin_user,
+    pulp_settings,
 ):
     """Test that the collection download counting functions."""
+    if not pulp_settings.ANSIBLE_COLLECT_DOWNLOAD_COUNT:
+        pytest.skip("ANSIBLE_COLLECT_DOWNLOAD_COUNT not enabled")
     with pulp_admin_user:
         collection_namespace = ANSIBLE_DEMO_COLLECTION.split(".")[0]
         collection_name = ANSIBLE_DEMO_COLLECTION.split(".")[1]
