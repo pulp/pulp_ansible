@@ -55,14 +55,20 @@ pulp_settings:
   allowed_export_paths: /tmp
   allowed_import_paths: /tmp
   ansible_api_hostname: https://pulp:443
-  ansible_collect_download_log: true
-  ansible_collect_download_count: true
   ansible_content_hostname: https://pulp:443/pulp/content
   ansible_signature_require_verification: false
-pulp_settings_azure: null
-pulp_settings_gcp: null
-pulp_settings_s3: null
-pulp_settings_stream: null
+pulp_settings_azure:
+  ansible_collect_download_log: true
+  ansible_collect_download_count: true
+pulp_settings_gcp:
+  ansible_collect_download_log: true
+  ansible_collect_download_count: true
+pulp_settings_s3:
+  ansible_collect_download_log: true
+  ansible_collect_download_count: true
+pulp_settings_stream:
+  ansible_collect_download_log: true
+  ansible_collect_download_count: true
 pulpprojectdotorg_key_id: aa499d7938ed
 pydocstyle: true
 pypi_username: pulp

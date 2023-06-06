@@ -66,7 +66,7 @@ services:
 VARSYAML
 
 cat >> vars/main.yaml << VARSYAML
-pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "https://pulp:443", "ansible_collect_download_count": true, "ansible_collect_download_log": true, "ansible_content_hostname": "https://pulp:443/pulp/content", "ansible_signature_require_verification": false}
+pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "https://pulp:443", "ansible_content_hostname": "https://pulp:443/pulp/content", "ansible_signature_require_verification": false}
 pulp_scheme: https
 
 pulp_container_tag: https
@@ -80,7 +80,7 @@ if [ "$TEST" == 'stream' ]; then
       - ./ssh/id_ed25519.pub:/home/foo/.ssh/keys/id_ed25519.pub\
     command: "foo::::storage"' vars/main.yaml
   sed -i -e '$a stream_test: true\
-pulp_scenario_settings: null\
+pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": true}\
 ' vars/main.yaml
 fi
 
@@ -97,7 +97,7 @@ if [ "$TEST" = "s3" ]; then
   sed -i -e '$a s3_test: true\
 minio_access_key: "'$MINIO_ACCESS_KEY'"\
 minio_secret_key: "'$MINIO_SECRET_KEY'"\
-pulp_scenario_settings: null\
+pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": true}\
 ' vars/main.yaml
   export PULP_API_ROOT="/rerouted/djnd/"
 fi
@@ -116,7 +116,7 @@ if [ "$TEST" = "azure" ]; then
       - ./azurite:/etc/pulp\
     command: "azurite-blob --blobHost 0.0.0.0 --cert /etc/pulp/azcert.pem --key /etc/pulp/azkey.pem"' vars/main.yaml
   sed -i -e '$a azure_test: true\
-pulp_scenario_settings: null\
+pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": true}\
 ' vars/main.yaml
 fi
 
