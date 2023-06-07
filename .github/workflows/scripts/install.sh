@@ -80,7 +80,7 @@ if [ "$TEST" == 'stream' ]; then
       - ./ssh/id_ed25519.pub:/home/foo/.ssh/keys/id_ed25519.pub\
     command: "foo::::storage"' vars/main.yaml
   sed -i -e '$a stream_test: true\
-pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": true}\
+pulp_scenario_settings: null\
 ' vars/main.yaml
 fi
 
@@ -116,7 +116,7 @@ if [ "$TEST" = "azure" ]; then
       - ./azurite:/etc/pulp\
     command: "azurite-blob --blobHost 0.0.0.0 --cert /etc/pulp/azcert.pem --key /etc/pulp/azkey.pem"' vars/main.yaml
   sed -i -e '$a azure_test: true\
-pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": true}\
+pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": false}\
 ' vars/main.yaml
 fi
 
