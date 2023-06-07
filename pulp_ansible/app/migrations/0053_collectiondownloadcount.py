@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                 ("pulp_last_updated", models.DateTimeField(auto_now=True, null=True)),
                 ("namespace", models.CharField(editable=False, max_length=64)),
                 ("name", models.CharField(editable=False, max_length=64)),
-                ("download_count", models.IntegerField(default=0)),
+                ("download_count", models.BigIntegerField(default=0)),
             ],
             options={
                 "unique_together": {("namespace", "name")},

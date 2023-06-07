@@ -379,7 +379,7 @@ class CollectionDownloadCount(BaseModel):
 
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
-    download_count = models.IntegerField(default=0)
+    download_count = models.BigIntegerField(default=0)
 
     class Meta:
         unique_together = ("namespace", "name")
