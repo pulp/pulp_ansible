@@ -37,11 +37,13 @@ def install_scenario_distribution(
 
 
 def get_current_download_count(api_client, path, namespace, name):
-    return int(api_client.read(
-        path=path,
-        namespace=namespace,
-        name=name,
-    ).download_count)
+    return int(
+        api_client.read(
+            path=path,
+            namespace=namespace,
+            name=name,
+        ).download_count
+    )
 
 
 def test_collection_download_count(
