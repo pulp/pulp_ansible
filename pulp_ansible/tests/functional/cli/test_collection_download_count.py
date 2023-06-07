@@ -36,6 +36,14 @@ def install_scenario_distribution(
     return ansible_distribution_factory(repo)
 
 
+def get_current_download_count(api_client, path, namespace, name):
+    return int(api_client.read(
+        path=path,
+        namespace=namespace,
+        name=name,
+    ).download_count)
+
+
 def test_collection_download_count(
     ansible_dir_factory,
     galaxy_v3_collections_api_client,
@@ -49,19 +57,12 @@ def test_collection_download_count(
     with pulp_admin_user:
         collection_namespace = ANSIBLE_DEMO_COLLECTION.split(".")[0]
         collection_name = ANSIBLE_DEMO_COLLECTION.split(".")[1]
-        collection_detail = galaxy_v3_collections_api_client.read(
+        download_count = get_current_download_count(
+            api_client=galaxy_v3_collections_api_client,
             path=install_scenario_distribution.base_path,
             namespace=collection_namespace,
             name=collection_name,
         )
-
-        collection_detail = galaxy_v3_collections_api_client.read(
-            path=install_scenario_distribution.base_path,
-            namespace=collection_namespace,
-            name=collection_name,
-        )
-        # Collection is installed twice in cli.test_collection_install
-        assert collection_detail.download_count == "2"
 
         temp_dir = ansible_dir_factory(install_scenario_distribution.client_url, pulp_admin_user)
 
@@ -81,13 +82,14 @@ def test_collection_download_count(
         subprocess.run(cmd, cwd=temp_dir)
         assert directory.exists(), "Could not find directory {}".format(directory)
 
-        collection_detail = galaxy_v3_collections_api_client.read(
+        assert (download_count + 1) == get_current_download_count(
+            api_client=galaxy_v3_collections_api_client,
             path=install_scenario_distribution.base_path,
             namespace=collection_namespace,
             name=collection_name,
         )
-        assert collection_detail.download_count == "3"
 
+        # TODO update to use a second collection version when available
         cmd = [
             "ansible-galaxy",
             "collection",
@@ -101,9 +103,9 @@ def test_collection_download_count(
 
         subprocess.run(cmd, cwd=temp_dir)
 
-        collection_detail = galaxy_v3_collections_api_client.read(
+        assert (download_count + 2) == get_current_download_count(
+            api_client=galaxy_v3_collections_api_client,
             path=install_scenario_distribution.base_path,
             namespace=collection_namespace,
             name=collection_name,
         )
-        assert collection_detail.download_count == "4"
