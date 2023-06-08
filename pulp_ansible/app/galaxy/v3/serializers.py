@@ -275,7 +275,7 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get the git URL.
         """
-        if not obj.artifacts[0]:
+        if not obj.artifacts[0].artifact:
             return obj.artifacts[0].remoteartifact_set.all()[0].url[:-47]
 
     def get_git_commit_sha(self, obj) -> str:
