@@ -9,7 +9,7 @@ def parse_versions(apps, *args, **kwargs):
 
     to_update = []
     fields = ["version_major", "version_minor", "version_patch", "version_prerelease"]
-    for cv in CollectionVersion.objects.all():
+    for cv in CollectionVersion.objects.all().only("version"):
         v = Version(cv.version)
 
         cv.version_major = v.major
