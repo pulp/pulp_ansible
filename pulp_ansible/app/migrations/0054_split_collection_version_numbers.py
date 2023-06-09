@@ -29,7 +29,7 @@ def parse_versions(apps, *args, **kwargs):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ansible', '0052_alter_ansiblecollectiondeprecated_content_ptr_and_more'),
+        ('ansible', '0053_collectiondownloadcount'),
     ]
 
     operations = [
