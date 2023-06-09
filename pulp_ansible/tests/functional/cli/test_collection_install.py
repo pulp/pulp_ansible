@@ -5,7 +5,6 @@ import subprocess
 import pytest
 
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
-from pulp_smash.pulp3.bindings import monitor_task
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION,
@@ -23,6 +22,7 @@ def install_scenario_distribution(
     ansible_repo_factory,
     ansible_collection_remote_factory,
     ansible_distribution_factory,
+    monitor_task,
 ):
     """Prepare a distribution to install from."""
     remote = ansible_collection_remote_factory(
@@ -39,8 +39,12 @@ def install_scenario_distribution(
     return ansible_distribution_factory(repo)
 
 
-def test_install_collection(install_scenario_distribution, pulp_admin_user, ansible_dir_factory):
+def test_install_collection(
+    install_scenario_distribution, pulp_admin_user, ansible_dir_factory, pulp_settings
+):
     """Test that the collection can be installed from Pulp."""
+    if not pulp_settings.ANSIBLE_COLLECT_DOWNLOAD_LOG:
+        pytest.skip("ANSIBLE_COLLECT_DOWNLOAD_LOG not enabled")
     with pulp_admin_user:
         collection_name = ANSIBLE_DEMO_COLLECTION
         collection_version = ANSIBLE_DEMO_COLLECTION_VERSION
@@ -79,6 +83,7 @@ def test_install_signed_collection(
     ascii_armored_detached_signing_service,
     gen_user,
     ansible_dir_factory,
+    monitor_task,
 ):
     """Test that the collection can be installed from Pulp."""
     user = gen_user(model_roles=["ansible.ansiblerepository_owner"])

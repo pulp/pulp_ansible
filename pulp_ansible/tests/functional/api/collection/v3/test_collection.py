@@ -243,6 +243,7 @@ def test_collection_detail(collection_artifact, collection_detail, pulp_dist):
     assert collection_detail["namespace"] == collection_artifact.namespace
     assert collection_detail["name"] == collection_artifact.name
     assert collection_detail["highest_version"]["version"] == "1.0.0"
+    assert collection_detail["download_count"] == 0
 
 
 def test_collection_version_list(

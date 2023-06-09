@@ -51,6 +51,7 @@ from pulp_ansible.app.models import (
     AnsibleDistribution,
     AnsibleNamespaceMetadata,
     Collection,
+    CollectionDownloadCount,
     CollectionVersion,
     CollectionVersionMark,
     CollectionVersionSignature,
@@ -666,6 +667,12 @@ class CollectionArtifactDownloadView(views.APIView):
 
         DownloadLog.objects.create(**log_params)
 
+    def count_download(filename):
+        ns, name, _ = filename.split("-", maxsplit=2)
+        collection, _ = CollectionDownloadCount.objects.get_or_create(namespace=ns, name=name)
+        collection.download_count = F("download_count") + 1
+        collection.save()
+
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
         return "pulp_ansible/v3/collections/download"
@@ -686,6 +693,9 @@ class CollectionArtifactDownloadView(views.APIView):
             CollectionArtifactDownloadView.log_download(
                 request, self.kwargs["filename"], distro_base_path
             )
+
+        if settings.ANSIBLE_COLLECT_DOWNLOAD_COUNT:
+            CollectionArtifactDownloadView.count_download(self.kwargs["filename"])
 
         if (
             distribution.content_guard

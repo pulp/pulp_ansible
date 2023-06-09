@@ -30,6 +30,7 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     versions_url = serializers.SerializerMethodField()
     highest_version = serializers.SerializerMethodField()
+    download_count = serializers.SerializerMethodField()
 
     class Meta:
         fields = (
@@ -41,6 +42,7 @@ class CollectionSerializer(serializers.ModelSerializer):
             "highest_version",
             "created_at",
             "updated_at",
+            "download_count",
         )
         model = models.Collection
 
@@ -95,6 +97,13 @@ class CollectionSerializer(serializers.ModelSerializer):
             },
         )
         return {"href": href, "version": version}
+
+    def get_download_count(self, obj):
+        """Get the download count of the collection"""
+        qs = models.CollectionDownloadCount.objects.filter(namespace=obj.namespace, name=obj.name)
+        if qs.count() == 0:
+            return 0
+        return qs.first().download_count
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
