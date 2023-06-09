@@ -189,7 +189,7 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     """
 
     name = serializers.CharField(source="namespace")
-    metadata_sha256 = serializers.CharField(source="namespace_sha256")
+    metadata_sha256 = serializers.CharField(source="namespace_sha256", allow_null=True)
 
 
 class CollectionVersionSignatureSerializer(serializers.ModelSerializer):
@@ -244,19 +244,26 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
             "git_commit_sha",
         )
 
+    def _get_artifact(self, obj):
+        # the unpaginated viewset uses an iterator, which doesn't seem to evaluate prefetch
+        if hasattr(obj, "artifacts"):
+            return obj.artifacts[0]
+        else:
+            return obj.contentartifact_set.get()
+
     @extend_schema_field(ArtifactRefSerializer)
     def get_artifact(self, obj):
         """
         Get atrifact summary.
         """
-        if obj.artifacts[0].artifact:
-            return ArtifactRefSerializer(obj.artifacts[0]).data
+        if self._get_artifact(obj).artifact:
+            return ArtifactRefSerializer(self._get_artifact(obj)).data
 
     def get_download_url(self, obj) -> str:
         """
         Get artifact download URL.
         """
-        if obj.artifacts[0].artifact:
+        if self._get_artifact(obj).artifact:
             distro_base_path = self.context.get("path", self.context["distro_base_path"])
             filename_path = obj.relative_path.lstrip("/")
 
@@ -275,15 +282,15 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get the git URL.
         """
-        if not obj.artifacts[0].artifact:
-            return obj.artifacts[0].remoteartifact_set.all()[0].url[:-47]
+        if not self._get_artifact(obj).artifact:
+            return self._get_artifact(obj).remoteartifact_set.all()[0].url[:-47]
 
     def get_git_commit_sha(self, obj) -> str:
         """
         Get the git commit sha.
         """
-        if not obj.artifacts[0].artifact:
-            return obj.artifacts[0].remoteartifact_set.all()[0].url[-40:]
+        if not self._get_artifact(obj).artifact:
+            return self._get_artifact(obj).remoteartifact_set.all()[0].url[-40:]
 
 
 class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
