@@ -1,7 +1,9 @@
+from django.db.models import Q
+from pulpcore.plugin.models import RepositoryVersion, RepositoryContent
+
+
 def filter_content_for_repo_version(qs, repo_version):
     """
-    A more efficient way to query content in a repository version.
-
     Returns a the given queryset, but filtered to only include content
     from the specified repository version.
 
@@ -9,47 +11,16 @@ def filter_content_for_repo_version(qs, repo_version):
         pulpcore.plugin.models.Content
     repo_version: repository version to return content from
 
-
-    This seems to be between 20% and 60% more efficient based on content
-    count and number number of items requested in the queryset.
-
-    The following times were derived from running qs.all(), qs[0:100] and
-    qs.count() 100 times and taking the average combined duration of all
-    three queries.
-
-    Content Count, New (sec),            Old (sec),            Ratio (old/new)
-    1,             0.007782800197601318, 0.007913367748260498, 1.0167764233109082
-    3,             0.006426279544830322, 0.008138771057128907, 1.2664825736807876
-    7,             0.006771342754364014, 0.009407508373260497, 1.3893120928190381
-    15,            0.006913270950317383, 0.008442227840423583, 1.2211625873040615
-    31,            0.007105729579925537, 0.00875568151473999,  1.2322002148063371
-    63,            0.008103742599487304, 0.009509673118591308, 1.1734915073922698
-    127,           0.010592341423034668, 0.01293123722076416,  1.2208100838444658
-    255,           0.013349044322967529, 0.015855000019073487, 1.1877254757326985
-    511,           0.021986784934997557, 0.027478094100952147, 1.2497549861059394
-    1023,          0.038573923110961916, 0.045265603065490725, 1.1734767795144792
-    2047,          0.06956990242004395,  0.08797399044036865,  1.2645409491766406
-    4095,          0.13377917528152466,  0.16426644325256348,  1.2278924795797364
-    8191,          0.2702700757980347,   0.38521403312683106,  1.425292948134927
-
-
-    Results, excluding qs.all():
-    Content Count, New (sec),            Old (sec),            Ratio (old/new)
-    1,             0.004808621406555176, 0.00502225399017334,  1.0444269917625324
-    3,             0.004438483715057373, 0.004858469963073731, 1.0946238118643021
-    7,             0.004538757801055908, 0.005136311054229736, 1.1316556818772774
-    15,            0.004505424499511718, 0.005299122333526612, 1.1761649394193403
-    31,            0.004602084159851074, 0.006075499057769776, 1.3201625278331246
-    63,            0.005164728164672851, 0.006840400695800781, 1.3244454456654007
-    127,           0.007201662063598633, 0.008730971813201904, 1.212355111375371
-    255,           0.007084805965423584, 0.008685107231140137, 1.225877924325183
-    511,           0.007927591800689698, 0.010698480606079102, 1.349524657052642
-    1023,          0.01072232961654663,  0.014668509960174561, 1.3680338587556766
-    2047,          0.016402604579925536, 0.024496512413024904, 1.4934525973396422
-    4095,          0.025542356967926026, 0.0399853777885437,   1.56545372217427
-    8191,          0.046061162948608396, 0.07391655683517456,  1.6047479504077031
-    16383,         0.08123507976531982,  0.15503086805343627,  1.9084226728318017
-    32767,         0.2031115198135376,   0.35589320182800294,  1.7522058923822907
+    This generally seems to be faster than repo_version.get_content()
     """
 
-    return qs.filter(pk__in=repo_version._content_relationships().values_list("content_id"))
+    repo_version_qs = RepositoryVersion.objects.filter(
+        repository=repo_version.repository, number__lte=repo_version.number
+    ).values_list("pk")
+
+    f = Q(version_added__in=repo_version_qs) & Q(
+        Q(version_removed=None) | ~Q(version_removed__in=repo_version_qs)
+    )
+    content_rel = RepositoryContent.objects.filter(f)
+
+    return qs.filter(pk__in=content_rel.values_list("content_id"))

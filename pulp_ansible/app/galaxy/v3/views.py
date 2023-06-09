@@ -216,7 +216,6 @@ class CollectionVersionRetrieveMixin:
 
         return obj
 
-    # @method_decorator(cache_page(60*60*2))
     def retrieve(self, request, *args, **kwargs):
         """
         Returns a CollectionVersion object.
@@ -907,7 +906,7 @@ class CollectionVersionViewSet(
             serializer = self.get_list_serializer(page, many=True, context=context)
             data = self.paginator.get_paginated_data(serializer.data)
             if cache_request:
-                cache.add(cache_key, data)
+                cache.set(cache_key, data)
 
             return Response(data)
 
