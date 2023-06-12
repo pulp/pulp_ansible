@@ -402,8 +402,10 @@ class SigstoreSigningService(BaseModel):
     def rekor_public_keys(self):
         """Get the Rekor instance public key."""
         if self.rekor_root_pubkey:
-            return bytes(self.rekor_root_pubkey, "utf-8")
-        return self.trust_updater.get_rekor_keys()
+            return [bytes(self.rekor_root_pubkey, "utf-8")]
+        if self.tuf_url:
+            return self.trust_updater.get_rekor_keys()
+        raise ValueError("No TUF URL or Rekor public key configured")
 
     @property
     def rekor(self):
@@ -411,7 +413,7 @@ class SigstoreSigningService(BaseModel):
         if self.rekor_url == self.PUBLIC_REKOR_URL:
             return RekorClient.production(self.trust_updater)
 
-        rekor_key = RekorKeyring(Keyring([self.rekor_public_keys]))
+        rekor_key = RekorKeyring(Keyring(self.rekor_public_keys))
         ctfe_key = CTKeyring(Keyring([self.ctfe_public_keys]))
         return RekorClient(
             self.rekor_url,
@@ -584,8 +586,10 @@ class SigstoreVerifyingService(BaseModel):
     def rekor_public_keys(self):
         """Get the Rekor instance public key."""
         if self.rekor_root_pubkey:
-            return bytes(self.rekor_root_pubkey, "utf-8")
-        return self.trust_updater.get_rekor_keys()
+            return [bytes(self.rekor_root_pubkey, "utf-8")]
+        if self.tuf_url:
+            return self.trust_updater.get_rekor_keys()
+        raise ValueError("No TUF URL or Rekor public key configured")
 
     @property
     def rekor(self):
@@ -593,7 +597,7 @@ class SigstoreVerifyingService(BaseModel):
         if self.rekor_url == self.PUBLIC_REKOR_URL:
             return RekorClient.production(self.trust_updater)
 
-        rekor_key = RekorKeyring(Keyring([self.rekor_public_keys]))
+        rekor_key = RekorKeyring(Keyring(self.rekor_public_keys))
         ctfe_key = CTKeyring(Keyring())
         return RekorClient(
             self.rekor_url,
