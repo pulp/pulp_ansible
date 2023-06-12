@@ -141,6 +141,9 @@ class Command(BaseCommand):
                 verify_options[option_name] = option_value
 
         verify_offline = _to_bool(verify_options["verify-offline"])
+        
+        if not (verify_options.get("tuf-url") or verify_options.get("rekor-root-pubkey")):
+            raise ValueError("No TUF URL or Rekor public key configured")
 
         try:
             SigstoreVerifyingService.objects.create(

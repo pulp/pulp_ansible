@@ -143,6 +143,9 @@ class Command(BaseCommand):
 
         enable_interactive = _to_bool(sign_options["enable-interactive"])
 
+        if not (sign_options.get("tuf-url") or sign_options.get("rekor-root-pubkey")):
+            raise ValueError("No TUF URL or Rekor public key configured")
+
         try:
             SigstoreSigningService.objects.create(
                 name=sign_options["name"],
