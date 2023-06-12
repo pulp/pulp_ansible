@@ -525,13 +525,13 @@ class SigstoreSigningService(BaseModel):
 
         return signing_result
 
-    def save(self, *args, **kwargs):
+    @hook(BEFORE_SAVE)
+    def format_pem_pubkeys(self):
         """Override the base `save` method to properly format PEM-encoded files."""
         if self.rekor_root_pubkey:
             self.rekor_root_pubkey = validate_and_format_pem_public_key(self.rekor_root_pubkey)
         if self.ctfe_pubkey:
             self.ctfe_pubkey = validate_and_format_pem_public_key(self.ctfe_pubkey)
-        super(SigstoreSigningService, self).save(*args, **kwargs)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -646,13 +646,13 @@ class SigstoreVerifyingService(BaseModel):
         )
         return self.verifier.verify(materials=verification_materials, policy=policy)
 
-    def save(self, *args, **kwargs):
+    @hook(BEFORE_SAVE)
+    def format_pem_pubkeys(self):
         """Override the base `save` method to properly format PEM-encoded files."""
-        if self.certificate_chain:
-            self.certificate_chain = validate_and_format_pem_public_key(self.certificate_chain)
         if self.rekor_root_pubkey:
             self.rekor_root_pubkey = validate_and_format_pem_public_key(self.rekor_root_pubkey)
-        super(SigstoreVerifyingService, self).save(*args, **kwargs)
+        if self.ctfe_pubkey:
+            self.ctfe_pubkey = validate_and_format_pem_public_key(self.ctfe_pubkey)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -943,11 +943,9 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
         related_name="ansible_repositories",
         null=True,
     )
-    sigstore_verifying_service = models.ForeignKey(
+    sigstore_verifying_service = models.ManyToManyField(
         SigstoreVerifyingService,
-        on_delete=models.SET_NULL,
         related_name="ansible_repositories",
-        null=True,
     )
 
     @property
