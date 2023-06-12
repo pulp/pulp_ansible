@@ -272,8 +272,6 @@ class CollectionViewSet(
         """
         Returns a Collections queryset for specified distribution.
         """
-        print("_____-------------____________-----------________-------")
-
         if getattr(self, "swagger_fake_view", False):
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs

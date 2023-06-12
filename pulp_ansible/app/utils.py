@@ -4,7 +4,7 @@ from pulpcore.plugin.models import RepositoryVersion, RepositoryContent
 
 def filter_content_for_repo_version(qs, repo_version):
     """
-    Returns a the given queryset, but filtered to only include content
+    Returns the given queryset, but filtered to only include content
     from the specified repository version.
 
     qs: Content queryset. Must be a model that is or inherits from
