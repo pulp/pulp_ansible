@@ -4,7 +4,7 @@ import semantic_version
 
 from django.db import DatabaseError, IntegrityError
 from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
-from django.db.models.functions import JSONObject
+from django.db.models.functions import Greatest
 from django.http import StreamingHttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
@@ -25,7 +25,7 @@ from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from pulpcore.plugin.models import Artifact, Content, ContentArtifact
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact, RepositoryContent
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.viewsets import (
     BaseFilterSet,
@@ -216,25 +216,6 @@ class CollectionVersionRetrieveMixin:
 
         return obj
 
-    def retrieve(self, request, *args, **kwargs):
-        """
-        Returns a CollectionVersion object.
-        """
-        repo_version = self._repository_version
-        # the contents of a repo version can be cached without worry because repo
-        # versions are immutable
-        cache_key = f"{repo_version.pk}{kwargs['namespace']}{kwargs['name']}{kwargs['version']}"
-
-        if data := cache.get(cache_key):
-            return Response(data)
-
-        instance = self.get_object()
-        context = self.get_serializer_context()
-        serializer = self.get_serializer_class()(instance, context=context)
-        cache.set(cache_key, serializer.data)
-
-        return Response(serializer.data)
-
 
 class CollectionFilter(BaseFilterSet):
     """
@@ -291,6 +272,8 @@ class CollectionViewSet(
         """
         Returns a Collections queryset for specified distribution.
         """
+        print("_____-------------____________-----------________-------")
+
         if getattr(self, "swagger_fake_view", False):
             # drf_spectacular get filter from get_queryset().model
             # and it fails when "path" is not on self.kwargs
@@ -311,20 +294,36 @@ class CollectionViewSet(
                 "-version_prerelease",
                 "-pulp_created",
             )
+            .only("version")
+        )
+
+        latest_version_modified_qs = (
+            RepositoryContent.objects.filter(
+                repository_id=repo_version.repository_id,
+                version_added__number__lte=repo_version.number,
+            )
+            .select_related("content__ansible_collectionversion")
+            .select_related("version_added")
+            .select_related("version_removed")
+            .filter(content__ansible_collectionversion__collection_id=OuterRef("pk"))
             .annotate(
-                version_info=JSONObject(
-                    version=F("version"), pulp_last_updated=F("pulp_last_updated"), default=None
+                last_updated=Greatest(
+                    "version_added__pulp_created", "version_removed__pulp_created"
                 )
             )
-            .only("version_info")
+            .order_by("-last_updated")
+            .only("last_updated")
         )
 
         qs = (
             Collection.objects.annotate(
-                version=Subquery(latest_cv_version_qs.values("version_info")[:1])
+                highest_version=Subquery(latest_cv_version_qs.values("version")[:1]),
+                latest_version_modified=Subquery(
+                    latest_version_modified_qs.values("last_updated")[:1]
+                ),
             )
             .annotate(deprecated=Exists(deprecated_qs))
-            .filter(version__isnull=False)
+            .filter(highest_version__isnull=False)
         )
 
         return qs
@@ -913,6 +912,28 @@ class CollectionVersionViewSet(
         serializer = self.get_list_serializer(queryset, many=True, context=context)
         return Response(serializer.data)
 
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Returns a CollectionVersion object.
+        """
+        repo_version = self._repository_version
+        # the contents of a repo version can be cached without worry because repo
+        # versions are immutable
+        cache_key = (
+            f"version-details-{repo_version.pk}"
+            f"{kwargs['namespace']}{kwargs['name']}{kwargs['version']}"
+        )
+
+        if data := cache.get(cache_key):
+            return Response(data)
+
+        instance = self.get_object()
+        context = self.get_serializer_context()
+        serializer = self.get_serializer_class()(instance, context=context)
+        cache.set(cache_key, serializer.data)
+
+        return Response(serializer.data)
+
     @extend_schema(
         description="Trigger an asynchronous delete task",
         responses={202: AsyncOperationResponseSerializer},
@@ -972,8 +993,20 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         """
         Returns a CollectionVersions queryset for specified distribution.
         """
-        return filter_content_for_repo_version(
-            CollectionVersion.objects.select_related(), self._repository_version
+        return (
+            filter_content_for_repo_version(
+                CollectionVersion.objects.select_related(), self._repository_version
+            )
+            .annotate(
+                namespace_sha256=Subquery(
+                    filter_content_for_repo_version(
+                        AnsibleNamespaceMetadata.objects, self._repository_version
+                    )
+                    .filter(name=OuterRef("namespace"))
+                    .values("metadata_sha256"),
+                )
+            )
+            .select_related("collection")
         )
 
     @extend_schema(
@@ -1016,6 +1049,28 @@ class CollectionVersionDocsViewSet(
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
         return "pulp_ansible/v3/collection-versions/docs"
+
+    def retrieve(self, request, *args, **kwargs):
+        """
+        Returns a CollectionVersion object.
+        """
+        repo_version = self._repository_version
+        # the contents of a repo version can be cached without worry because repo
+        # versions are immutable
+        cache_key = (
+            f"version-docs-{repo_version.pk}"
+            f"{kwargs['namespace']}{kwargs['name']}{kwargs['version']}"
+        )
+
+        if data := cache.get(cache_key):
+            return Response(data)
+
+        instance = self.get_object()
+        context = self.get_serializer_context()
+        serializer = self.get_serializer_class()(instance, context=context)
+        cache.set(cache_key, serializer.data)
+
+        return Response(serializer.data)
 
 
 class CollectionImportViewSet(

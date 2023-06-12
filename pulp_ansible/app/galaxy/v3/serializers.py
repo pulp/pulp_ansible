@@ -68,8 +68,10 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_updated_at(self, obj):
-        """Get the timestamp of the highest version CollectionVersion's created timestamp."""
-        return obj.version["pulp_last_updated"]
+        """Get the timestamp of the latest version CollectionVersion's created timestamp."""
+        # NOTE: this should reflect the last time the collection was updated, not the last
+        # time that the latest version was updated. See https://pulp.plan.io/issues/7775
+        return obj.latest_version_modified
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
@@ -81,10 +83,10 @@ class CollectionSerializer(serializers.ModelSerializer):
                 **ctx,
                 "namespace": obj.namespace,
                 "name": obj.name,
-                "version": obj.version["version"],
+                "version": obj.highest_version,
             },
         )
-        return {"href": href, "version": obj.version["version"]}
+        return {"href": href, "version": obj.highest_version}
 
     def get_download_count(self, obj):
         """Get the download count of the collection"""
