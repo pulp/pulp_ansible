@@ -295,10 +295,11 @@ class AnsibleRepositorySerializer(RepositorySerializer):
         queryset=SigstoreSigningService.objects.all(),
         many=True,
     )
-    sigstore_verifying_service = RelatedField(
+    sigstore_verifying_service = serializers.PrimaryKeyRelatedField(
         help_text=_("A Sigstore service used to verify the collection signatures"),
         queryset=SigstoreVerifyingService.objects.all(),
-        view_name="sigstore-verifying-services-detail",
+        many=True,
+        # view_name="sigstore-verifying-services-detail",
     )
 
     class Meta:
@@ -960,6 +961,10 @@ class CollectionVersionSigstoreSignatureSerializer(NoArtifactContentUploadSerial
         """
         Verify the signature is valid before creating it.
         """
+        if not "repository" in data:
+            raise serializers.ValidationError(
+                "'repository' field not set"
+            )
         data = super().validate(data)
 
         if "request" not in self.context:
