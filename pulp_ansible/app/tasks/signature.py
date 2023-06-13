@@ -97,7 +97,7 @@ class SigningDeclarativeVersion(DeclarativeVersion):
     def pipeline_stages(self, new_version):
         """The stages for the signing process."""
         pipeline = [
-            self.first_stage,  # CollectionSigningFirstStage or CollectionSigstoreSigningFirstStage
+            self.first_stage,  # CollectionSigningFirstStage
             ContentSaver(),
         ]
         return pipeline
