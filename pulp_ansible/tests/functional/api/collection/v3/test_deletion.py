@@ -203,7 +203,7 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             path=self.distribution.base_path,
             name=self.collection_name,
             namespace=self.collection_namespace,
-            body={"deprecated": True},
+            patched_collection={"deprecated": True},
         )
         monitor_task(result.task)
 

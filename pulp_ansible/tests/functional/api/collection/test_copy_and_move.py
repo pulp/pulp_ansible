@@ -66,7 +66,7 @@ def repo_with_kitted_out_collection(
         name=collection.name,
         namespace=collection.namespace,
         distro_base_path=distro.base_path,
-        body={"deprecated": True},
+        patched_collection={"deprecated": True},
     )
     monitor_task(task.task)
 
