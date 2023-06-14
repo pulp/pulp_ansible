@@ -359,9 +359,6 @@ class SigstoreSigningService(BaseModel):
         cert_identity (models.TextField):
             A unique identity string corresponding to the OIDC identity
             present as the SAN in the X509 certificate.
-        enable_interactive (models.BooleanField):
-            Enable Sigstore's interactive browser flow.
-            Defaults to False.
     """
 
     TYPE = "sigstore_signing_service"
@@ -384,7 +381,6 @@ class SigstoreSigningService(BaseModel):
     oidc_issuer = models.TextField(default=PUBLIC_ISSUER_URL)
     oidc_client_secret = EncryptedTextField(null=True)
     ctfe_pubkey = models.TextField(null=True)
-    enable_interactive = models.BooleanField(default=False)
 
     @property
     def fulcio(self):
@@ -453,7 +449,7 @@ class SigstoreSigningService(BaseModel):
             client_secret = self.oidc_client_secret
             if isinstance(issuer, Keycloak):
                 identity_token = issuer.identity_token(
-                    "sigstore", client_secret, self.enable_interactive
+                    "sigstore", client_secret,
                 )
 
         if not identity_token:

@@ -21,7 +21,6 @@ SIGSTORE_CONFIGURATION_FILE_SCHEMA = Schema(
         Optional("oidc-issuer"): str,
         Optional("ctfe-pubkey"): str,
         Optional("oidc-client-secret"): str,
-        Optional("enable-interactive"): bool,
     }
 )
 
@@ -33,21 +32,7 @@ DEFAULTS = {
     "rekor-root-pubkey": None,
     "ctfe-pubkey": None,
     "oidc-client-secret": None,
-    "enable-interactive": False,
 }
-
-
-# https://github.com/sigstore/sigstore-python/blob/55f98f663721be34a5e5b63fb72e740c3d580f66/sigstore/_cli.py#L64
-def _to_bool(val):
-    if isinstance(val, bool):
-        return val
-    val = val.lower()
-    if val in {"y", "yes", "true", "t", "on", "1"}:
-        return True
-    elif val in {"n", "no", "false", "f", "off", "0"}:
-        return False
-    else:
-        raise ValueError(f"can't coerce '{val}' to a boolean")
 
 
 class Command(BaseCommand):
@@ -115,12 +100,6 @@ class Command(BaseCommand):
             type=str,
             help=_("The OIDC client secret to use to authenticate to Sigstore."),
         )
-        sign_options.add_argument(
-            "--enable-interactive",
-            metavar="BOOL",
-            type=bool,
-            help=_("Enable Sigstore's interactive browser flow."),
-        )
 
     def handle(self, *args, **options):
         sign_options = {}
@@ -141,8 +120,6 @@ class Command(BaseCommand):
             if option_value:
                 sign_options[option_name] = option_value
 
-        enable_interactive = _to_bool(sign_options["enable-interactive"])
-
         if not (sign_options.get("tuf-url") or sign_options.get("rekor-root-pubkey")):
             raise ValueError("No TUF URL or Rekor public key configured")
 
@@ -156,7 +133,6 @@ class Command(BaseCommand):
                 fulcio_url=sign_options.get("fulcio-url"),
                 ctfe_pubkey=sign_options.get("ctfe-pubkey"),
                 oidc_client_secret=sign_options.get("oidc-client-secret"),
-                enable_interactive=enable_interactive,
             )
 
             print(
@@ -168,7 +144,6 @@ class Command(BaseCommand):
                 f"Rekor root public key: {sign_options.get('rekor-root-pubkey')}\n"
                 f"Fulcio instance URL: {sign_options['fulcio-url']}\n"
                 f"Certificate Transparency log public key: {sign_options.get('ctfe-pubkey')}\n"
-                f"Enable interactive signing: {enable_interactive}\n"
             )
 
         except IntegrityError as e:

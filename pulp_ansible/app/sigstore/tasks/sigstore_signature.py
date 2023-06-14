@@ -189,12 +189,11 @@ class CollectionSigstoreSigningFirstStage(Stage):
 
     async def sigstore_sign_collection_versions(self, collection_versions):
         """Signs the collection versions with Sigstore."""
-
         # Prepare ephemeral key pair and certificate and sign the collections asynchronously
         private_key = ec.generate_private_key(ec.SECP384R1())
         client_secret = self.sigstore_signing_service.oidc_client_secret
         identity_token = self.sigstore_signing_service.issuer.identity_token(
-            "sigstore", client_secret, self.sigstore_signing_service.enable_interactive
+            "sigstore", client_secret,
         )
         oidc_identity = Identity(identity_token)
 

@@ -48,68 +48,8 @@ class Keycloak(BaseIssuer):
         except ValueError as exc:
             raise KeycloakException(f"Keycloak returned invalid configuration: {exc}")
 
-    def identity_token(self, client_id, client_secret, enable_interactive):
+    def identity_token(self, client_id, client_secret):
         """Get an identity token from Keycloak token endpoint."""
-        # interactive mode is taken from the original sigstore python
-        # Issuer.identity_token() implementation at
-        # https://github.com/sigstore/sigstore-python/blob/v1.1.0/sigstore/oidc.py#L100
-        # This method works only on browser interaction and enables out-of-bond
-        # only if the former method fails.
-        if enable_interactive:
-            from sigstore._internal.oidc.oauth import _OAuthFlow
-
-            code: str
-            with _OAuthFlow(client_id, client_secret, self) as server:
-                # Launch web browser
-                if webbrowser.open(server.base_uri):
-                    print("Waiting for browser interaction...")
-                else:
-                    server.enable_oob()
-                    print(f"Go to the following link in a browser:\n\n\t{server.auth_endpoint}")
-
-                if not server.is_oob():
-                    # Wait until the redirect server populates the response
-                    while server.auth_response is None:
-                        time.sleep(0.1)
-
-                    auth_error = server.auth_response.get("error")
-                    if auth_error is not None:
-                        raise IdentityError(f"Error response from auth endpoint: {auth_error[0]}")
-                    code = server.auth_response["code"][0]
-                else:
-                    # In the out-of-band case, we wait until the user provides the code
-                    code = input("Enter verification code: ")
-
-            # Provide code to token endpoint
-            data = {
-                "grant_type": "authorization_code",
-                "redirect_uri": server.redirect_uri,
-                "code": code,
-                "code_verifier": server.oauth_session.code_verifier,
-            }
-            auth = (
-                client_id,
-                client_secret,
-            )
-            logging.debug(f"PAYLOAD: data={data}")
-            resp = requests.post(
-                self.oidc_config.token_endpoint,
-                data=data,
-                auth=auth,
-            )
-
-            try:
-                resp.raise_for_status()
-            except requests.HTTPError as http_error:
-                raise IdentityError from http_error
-
-            token_json = resp.json()
-            token_error = token_json.get("error")
-            if token_error is not None:
-                raise IdentityError(f"Error response from token endpoint: {token_error}")
-
-            return str(token_json["access_token"])
-
         data = {
             "client_id": client_id,
             "client_secret": client_secret,

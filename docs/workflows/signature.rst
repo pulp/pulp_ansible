@@ -159,7 +159,6 @@ Here is an example of configuration file:
         "tuf-url": "https://sigstore-tuf-root.storage.googleapis.com/",
         "oidc-issuer": "https://oauth2.sigstore.dev/auth",
         "ctfe-pubkey": "-----BEGIN PUBLIC KEY----- MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgL0oW2gouGy8n90I0JuAKD1tfiw4 B3rDKtWDuV6/oWkPb9u0/9CbDfdWqedgFsDIWaHu4PFfrkws7CX9ByHpJw== -----END PUBLIC KEY-----",
-        "enable-interactive": false
     }
 
 
@@ -173,7 +172,6 @@ List of Sigstore configuration parameters:
 - oidc_issuer: The OpenID Connect issuer to use for signing. Defaults to the public OAuth2 server URL (https://oauth2.sigstore.dev/auth).
 - oidc_client_secret: The encrypted OIDC client secret to authentify to Sigstore.
 - ctfe_pubkey: A PEM-encoded public key for the CT log.
-- enable_interactive: Enable Sigstore's interactive browser flow. Defaults to False.
 
 **Important note:** The URLs for Fulcio, Rekor and TUF all default to the Sigstore public instances.
 Using one of those instances for logging signatures or generating certificates means that information such as corporate emails or identities will be visible to the public.

@@ -197,12 +197,6 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
         allow_blank=True,
         required=False,
     )
-    enable_interactive = serializers.BooleanField(
-        help_text=_(
-            "Enable Sigstore's interactive browser flow. Defaults to 'false' if not specified."
-        ),
-        default=False,
-    )
 
     class Meta:
         model = SigstoreSigningService
@@ -215,7 +209,6 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "oidc_issuer",
             "oidc_client_secret",
             "ctfe_pubkey",
-            "enable_interactive",
         )
 
 
