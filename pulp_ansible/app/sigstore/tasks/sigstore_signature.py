@@ -114,23 +114,19 @@ def verify_sigstore_signature_upload(data):
 
     bundle = Bundle().from_json(sigstore_bundle) if sigstore_bundle != "null" else None
 
-    with tempfile.NamedTemporaryFile(dir=".", delete=False, mode="w") as manifest_file:
-        manifest_file.write(checksums)
-        manifest_file.flush()
-    with open(manifest_file.name, "rb", buffering=0) as manifest_io:
-        try:
-            verification_result = sigstore_verifying_service.sigstore_verify(
-                manifest=manifest_io,
-                signature=signature,
-                certificate=certificate,
-                sigstore_bundle=bundle,
-            )
-        except AttributeError as e:
-            log.error(
-                f"Error verifying sigstore signature for {collection}: "
-                f"Repository {repository} is not configured with a SigstoreVerifyingService."
-            )
-            raise e
+    try:
+        verification_result = sigstore_verifying_service.sigstore_verify(
+            manifest=checksums,
+            signature=signature,
+            certificate=certificate,
+            sigstore_bundle=bundle,
+        )
+    except AttributeError as e:
+        log.error(
+            f"Error verifying sigstore signature for {collection}: "
+            f"Repository {repository} is not configured with a SigstoreVerifyingService."
+        )
+        raise e
 
     if isinstance(verification_result, VerificationFailure):
         raise VerificationFailureException(
