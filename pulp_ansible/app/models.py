@@ -651,8 +651,6 @@ class SigstoreVerifyingService(BaseModel):
         """Override the base `save` method to properly format PEM-encoded files."""
         if self.rekor_root_pubkey:
             self.rekor_root_pubkey = validate_and_format_pem_public_key(self.rekor_root_pubkey)
-        if self.ctfe_pubkey:
-            self.ctfe_pubkey = validate_and_format_pem_public_key(self.ctfe_pubkey)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
