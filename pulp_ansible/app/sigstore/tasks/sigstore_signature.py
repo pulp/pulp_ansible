@@ -4,6 +4,7 @@ Tasks related to Sigstore content signature and verification.
 
 import aiofiles
 import asyncio
+import io
 import logging
 import os
 import re
@@ -224,41 +225,32 @@ class CollectionSigstoreSigningFirstStage(Stage):
         async with self.semaphore:
             async for collection_version in collection_versions:
                 # We create the checksums manifest to sign
-                async with aiofiles.tempfile.NamedTemporaryFile(
-                    dir=".", mode="w", delete=False
-                ) as manifest_file:
-                    manifest_data = await sync_to_async(_generate_checksum_manifest)(
-                        collection_version
-                    )
-                    await manifest_file.write(manifest_data)
-                async with aiofiles.open(manifest_file.name, mode="rb", buffering=0) as iofile:
-                    async with aiofiles.tempfile.NamedTemporaryFile(
-                        dir=".", mode="w", delete=False
-                    ) as manifest_content:
-                        content = await iofile.read()
-                        manifest_content.write(content)
-                    with open(manifest_content.name, "rb") as manifest_bytes:
-                        input_digest = sha256_streaming(manifest_bytes)
-                        result = await self.sigstore_signing_service.sigstore_asign(
-                            input_digest, private_key, cert
+                manifest_data = await sync_to_async(_generate_checksum_manifest)(collection_version)
+                input_digest = sha256_streaming(
+                    io.BytesIO(
+                        bytes(manifest_data, "utf-8")
                         )
-
-                        sig_data, cert_data, bundle_data = (
-                            result["signature"],
-                            result["certificate"],
-                            result["bundle"],
-                        )
-
-                    cv_signature = CollectionVersionSigstoreSignature(
-                        data=sig_data,
-                        sigstore_x509_certificate=cert_data,
-                        sigstore_bundle=bundle_data,
-                        signed_collection=collection_version,
-                        sigstore_signing_service=self.sigstore_signing_service,
                     )
-                    dc = DeclarativeContent(content=cv_signature)
-                    await self.progress_report.aincrement()
-                    await self.put(dc)
+                result = await self.sigstore_signing_service.sigstore_asign(
+                    input_digest, private_key, cert
+                )
+
+                sig_data, cert_data, bundle_data = (
+                    result["signature"],
+                    result["certificate"],
+                    result["bundle"],
+                )
+
+                cv_signature = CollectionVersionSigstoreSignature(
+                    data=sig_data,
+                    sigstore_x509_certificate=cert_data,
+                    sigstore_bundle=bundle_data,
+                    signed_collection=collection_version,
+                    sigstore_signing_service=self.sigstore_signing_service,
+                )
+                dc = DeclarativeContent(content=cv_signature)
+                await self.progress_report.aincrement()
+                await self.put(dc)
 
     async def run(self):
         """Sign collections with Sigstore if they have not been signed."""
