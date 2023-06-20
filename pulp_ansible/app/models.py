@@ -437,41 +437,6 @@ class SigstoreSigningService(BaseModel):
             self.rekor,
         )
 
-    def sigstore_sign(self, input_bytes):
-        """Sign collections with Sigstore."""
-        signing_result = {}
-        issuer = self.issuer
-
-        if isinstance(issuer, PublicIssuer):
-            issuer = self.issuer
-            identity_token = issuer.identity_token()
-        else:
-            client_secret = self.oidc_client_secret
-            if isinstance(issuer, Keycloak):
-                identity_token = issuer.identity_token(
-                    "sigstore", client_secret,
-                )
-
-        if not identity_token:
-            raise MissingIdentityToken(
-                "Sigstore signing failed: OIDC identity token could not be retrieved."
-            )
-
-        log.info("Signing artifact checksum file")
-
-        result = self.signer.sign(
-            input=input_bytes,
-            identity_token=identity_token,
-        )
-
-        log.info(f"Using ephemeral certificate: {result.cert_pem}")
-        log.info(f"Transparency log entry created at index: {result.log_entry.log_index}")
-        signing_result["signature"] = result.b64_signature
-        signing_result["certificate"] = result.cert_pem
-        signing_result["bundle"] = result._to_bundle().to_json()
-
-        return signing_result
-
     async def sigstore_asign(self, input_digest, private_key, cert):
         """Sign collections with Sigstore asynchronously."""
         b64_cert = base64.b64encode(cert.public_bytes(encoding=serialization.Encoding.PEM))
