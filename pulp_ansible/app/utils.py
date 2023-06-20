@@ -15,7 +15,7 @@ def filter_content_for_repo_version(qs, repo_version):
     """
 
     repo_version_qs = RepositoryVersion.objects.filter(
-        repository=repo_version.repository, number__lte=repo_version.number
+        repository=repo_version.repository_id, number__lte=repo_version.number
     ).values_list("pk")
 
     f = Q(version_added__in=repo_version_qs) & Q(

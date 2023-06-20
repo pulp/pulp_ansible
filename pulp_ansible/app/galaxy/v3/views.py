@@ -150,7 +150,6 @@ class CollectionVersionRetrieveMixin:
 
         qs = (
             filter_content_for_repo_version(CollectionVersion.objects, repo_version)
-            .select_related("content_ptr__contentartifact")
             .select_related("collection")
             .prefetch_related(
                 Prefetch(
