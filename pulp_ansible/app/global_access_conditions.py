@@ -1,6 +1,3 @@
-from pulp_ansible.app import models
-
-
 def v3_can_view_repo_content(request, view, action):
     """
     Check if the repo is private, only let users with view repository permissions
@@ -8,14 +5,11 @@ def v3_can_view_repo_content(request, view, action):
     """
 
     if "distro_base_path" in view.kwargs:
-        distro_base_path = view.kwargs["distro_base_path"]
-        distro = models.AnsibleDistribution.objects.select_related(
-            "repository", "repository_version"
-        ).get(base_path=distro_base_path)
-        if not (repo := distro.repository):
-            if not (repo_ver := distro.repository_version):
-                return False
-            repo = repo_ver.repository
+        repo_version = view._repository_version
+        repo = view._repository
+        if not repo or not repo_version:
+            return False
+
         repo = repo.cast()
 
         if repo.private:
@@ -39,14 +33,11 @@ def v3_can_modify_repo_content(request, view, action):
         return True
 
     if "distro_base_path" in view.kwargs:
-        distro_base_path = view.kwargs["distro_base_path"]
-        distro = models.AnsibleDistribution.objects.select_related(
-            "repository", "repository_version"
-        ).get(base_path=distro_base_path)
-        if not (repo := distro.repository):
-            if not (repo_ver := distro.repository_version):
-                return False
-            repo = repo_ver.repository
+        repo_version = view._repository_version
+        repo = view._repository
+        if not repo or not repo_version:
+            return False
+
         repo = repo.cast()
         return request.user.has_perm(permission, repo)
 

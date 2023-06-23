@@ -25,7 +25,13 @@ from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
 from rest_framework import status
 
-from pulpcore.plugin.models import Artifact, Content, ContentArtifact, RepositoryContent
+from pulpcore.plugin.models import (
+    Artifact,
+    Content,
+    ContentArtifact,
+    RepositoryContent,
+    Distribution,
+)
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.viewsets import (
     BaseFilterSet,
@@ -95,23 +101,46 @@ class AnsibleDistributionMixin:
     A mixin for ViewSets that use AnsibleDistribution.
     """
 
+    _repo_version = None
+    _repo = None
+
     @property
     def _repository_version(self):
         """Returns repository version."""
+        if self._repo_version:
+            return self._repo_version
+
         path = self.kwargs["distro_base_path"]
 
         context = getattr(self, "pulp_context", None)
         if context and context.get(path, None):
             return self.pulp_context[path]
 
-        distro = get_object_or_404(AnsibleDistribution, base_path=path)
-        if distro.repository_version:
+        # using Distribution instead of Ansible distribution allows us to save a join
+        distro = get_object_or_404(
+            Distribution.objects.only(
+                "base_path", "repository_version", "repository"
+            ).select_related("repository__ansible_ansiblerepository"),
+            base_path=path,
+        )
+        if distro.repository_version_id:
             self.pulp_context = {path: distro.repository_version}
+            self._repo_version = distro.repository_version
+            self._repo = self._repo_version.repository.cast()
             return distro.repository_version
 
         repo_version = distro.repository.latest_version() if distro.repository else None
         self.pulp_context = {path: repo_version}
+        self._repo = distro.repository.ansible_ansiblerepository
+        self._repo_version = repo_version
         return repo_version
+
+    @property
+    def _repository(self):
+        if self._repo:
+            return self._repo
+        self._repo_version
+        return self._repo
 
     @property
     def _distro_content(self):
@@ -312,6 +341,10 @@ class CollectionViewSet(
             .only("last_updated")
         )
 
+        download_count_qs = CollectionDownloadCount.objects.filter(
+            name=OuterRef("name"), namespace=OuterRef("namespace")
+        )
+
         qs = (
             Collection.objects.annotate(
                 highest_version=Subquery(latest_cv_version_qs.values("version")[:1]),
@@ -319,7 +352,10 @@ class CollectionViewSet(
                     latest_version_modified_qs.values("last_updated")[:1]
                 ),
             )
-            .annotate(deprecated=Exists(deprecated_qs))
+            .annotate(
+                deprecated=Exists(deprecated_qs),
+                download_count=Subquery(download_count_qs.values("download_count")[:1]),
+            )
             .filter(highest_version__isnull=False)
         )
 
@@ -471,7 +507,10 @@ class UnpaginatedCollectionViewSet(CollectionViewSet):
 
 
 class CollectionUploadViewSet(
-    ExceptionHandlerMixin, UploadGalaxyCollectionMixin, SingleArtifactContentUploadViewSet
+    ExceptionHandlerMixin,
+    UploadGalaxyCollectionMixin,
+    SingleArtifactContentUploadViewSet,
+    AnsibleDistributionMixin,
 ):
     """
     ViewSet for Collection Uploads.
@@ -581,7 +620,7 @@ class LegacyCollectionUploadViewSet(CollectionUploadViewSet):
         return super().create(request, distro_base_path=path)
 
 
-class CollectionArtifactDownloadView(views.APIView):
+class CollectionArtifactDownloadView(views.APIView, AnsibleDistributionMixin):
     """Collection download endpoint."""
 
     action = "download"
@@ -1003,6 +1042,13 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
                     .values("metadata_sha256"),
                 )
             )
+            .prefetch_related(
+                Prefetch(
+                    "contentartifact_set",
+                    queryset=ContentArtifact.objects.select_related("artifact"),
+                    to_attr="artifacts",
+                )
+            )
             .select_related("collection")
         )
 
@@ -1013,7 +1059,7 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         """
         Returns paginated CollectionVersions list.
         """
-        queryset = self.get_queryset().iterator()
+        queryset = self.get_queryset().iterator(chunk_size=100)
 
         context = self.get_serializer_context()
         cvs_template_string = (
@@ -1071,7 +1117,10 @@ class CollectionVersionDocsViewSet(
 
 
 class CollectionImportViewSet(
-    ExceptionHandlerMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet
+    ExceptionHandlerMixin,
+    mixins.RetrieveModelMixin,
+    viewsets.GenericViewSet,
+    AnsibleDistributionMixin,
 ):
     """
     ViewSet for CollectionImports.
@@ -1261,7 +1310,7 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
     return GeneratedRedirectView.as_view(actions, url=url)
 
 
-class ClientConfigurationView(views.APIView):
+class ClientConfigurationView(views.APIView, AnsibleDistributionMixin):
     """Return configurations for the ansible-galaxy client."""
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY

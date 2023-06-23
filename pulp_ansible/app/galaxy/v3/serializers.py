@@ -90,17 +90,15 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     def get_download_count(self, obj):
         """Get the download count of the collection"""
-        qs = models.CollectionDownloadCount.objects.filter(namespace=obj.namespace, name=obj.name)
-        if qs.count() == 0:
-            return 0
-        return qs.first().download_count
+
+        return obj.download_count or 0
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
     """A serializer for a CollectionVersion list item."""
 
     href = serializers.SerializerMethodField()
-    created_at = serializers.DateTimeField(source="collection.pulp_created")
+    created_at = serializers.DateTimeField(source="pulp_created")
     updated_at = serializers.DateTimeField(source="pulp_last_updated")
     marks = serializers.SerializerMethodField()
 
@@ -246,26 +244,20 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
             "git_commit_sha",
         )
 
-    def _get_artifact(self, obj):
-        # the unpaginated viewset uses an iterator, which doesn't seem to evaluate prefetch
-        if hasattr(obj, "artifacts"):
-            return obj.artifacts[0]
-        else:
-            return obj.contentartifact_set.get()
-
     @extend_schema_field(ArtifactRefSerializer)
     def get_artifact(self, obj):
         """
-        Get atrifact summary.
+        Get artifact summary.
         """
-        if self._get_artifact(obj).artifact:
-            return ArtifactRefSerializer(self._get_artifact(obj)).data
+        ca = obj.artifacts[0]
+        if ca.artifact:
+            return ArtifactRefSerializer(ca).data
 
     def get_download_url(self, obj) -> str:
         """
         Get artifact download URL.
         """
-        if self._get_artifact(obj).artifact:
+        if obj.artifacts[0].artifact:
             distro_base_path = self.context.get("path", self.context["distro_base_path"])
             filename_path = obj.relative_path.lstrip("/")
 
@@ -284,15 +276,17 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get the git URL.
         """
-        if not self._get_artifact(obj).artifact:
-            return self._get_artifact(obj).remoteartifact_set.all()[0].url[:-47]
+        ca = obj.artifacts[0]
+        if not ca.artifact:
+            return ca.remoteartifact_set.all()[0].url[:-47]
 
     def get_git_commit_sha(self, obj) -> str:
         """
         Get the git commit sha.
         """
-        if not self._get_artifact(obj).artifact:
-            return self._get_artifact(obj).remoteartifact_set.all()[0].url[-40:]
+        ca = obj.artifacts[0]
+        if not ca.artifact:
+            return ca.remoteartifact_set.all()[0].url[-40:]
 
 
 class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):

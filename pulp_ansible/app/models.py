@@ -393,8 +393,8 @@ class CollectionDownloadCount(BaseModel):
     Aggregate count of downloads per collection
     """
 
-    namespace = models.CharField(max_length=64, editable=False)
-    name = models.CharField(max_length=64, editable=False)
+    namespace = models.CharField(max_length=64, editable=False, db_index=True)
+    name = models.CharField(max_length=64, editable=False, db_index=True)
     download_count = models.BigIntegerField(default=0)
 
     class Meta:

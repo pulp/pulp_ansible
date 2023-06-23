@@ -61,4 +61,14 @@ class Migration(migrations.Migration):
             code=parse_versions,
             reverse_code=migrations.RunPython.noop,
         ),
+        migrations.AlterField(
+            model_name="collectiondownloadcount",
+            name="name",
+            field=models.CharField(db_index=True, editable=False, max_length=64),
+        ),
+        migrations.AlterField(
+            model_name="collectiondownloadcount",
+            name="namespace",
+            field=models.CharField(db_index=True, editable=False, max_length=64),
+        ),
     ]
