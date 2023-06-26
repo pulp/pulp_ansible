@@ -18,8 +18,10 @@ def filter_content_for_repo_version(qs, repo_version):
         repository=repo_version.repository_id, number__lte=repo_version.number
     ).values_list("pk")
 
-    f = Q(version_added__in=repo_version_qs) & Q(
-        Q(version_removed=None) | ~Q(version_removed__in=repo_version_qs)
+    f = (
+        Q(repository=repo_version.repository_id)
+        & Q(version_added__in=repo_version_qs)
+        & Q(Q(version_removed=None) | ~Q(version_removed__in=repo_version_qs))
     )
     content_rel = RepositoryContent.objects.filter(f)
 
