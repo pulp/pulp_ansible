@@ -2,6 +2,8 @@ import hashlib
 import json
 from logging import getLogger
 
+from semantic_version import Version
+
 from django.conf import settings
 from django.db import models
 from django.db.models import UniqueConstraint, Q
@@ -175,8 +177,13 @@ class CollectionVersion(Content):
     name = models.CharField(max_length=64, editable=False)
     namespace = models.CharField(max_length=64, editable=False)
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
-    version = models.CharField(max_length=128, editable=False)
     requires_ansible = models.CharField(null=True, max_length=255)
+
+    version = models.CharField(max_length=128, editable=False)
+    version_major = models.IntegerField()
+    version_minor = models.IntegerField()
+    version_patch = models.IntegerField()
+    version_prerelease = models.CharField(max_length=128)
 
     is_highest = models.BooleanField(editable=False, default=False)
 
@@ -195,6 +202,15 @@ class CollectionVersion(Content):
     #   back and forth, which causes an UPDATE operation and then the
     #   search_vector is built.
     search_vector = psql_search.SearchVectorField(default="")
+
+    @hook(BEFORE_SAVE)
+    def calculate_version_parts(self):
+        v = Version(self.version)
+
+        self.version_major = v.major
+        self.version_minor = v.minor
+        self.version_patch = v.patch
+        self.version_prerelease = ".".join(v.prerelease)
 
     @property
     def relative_path(self):
@@ -377,8 +393,8 @@ class CollectionDownloadCount(BaseModel):
     Aggregate count of downloads per collection
     """
 
-    namespace = models.CharField(max_length=64, editable=False)
-    name = models.CharField(max_length=64, editable=False)
+    namespace = models.CharField(max_length=64, editable=False, db_index=True)
+    name = models.CharField(max_length=64, editable=False, db_index=True)
     download_count = models.BigIntegerField(default=0)
 
     class Meta:

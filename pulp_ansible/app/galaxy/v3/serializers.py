@@ -1,5 +1,4 @@
 from typing import List
-import semantic_version
 from django.conf import settings
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes
@@ -7,7 +6,7 @@ from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
 from pulp_ansible.app import models, serializers as ansible_serializers
-from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
+from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin import serializers as core_serializers
 
 
@@ -23,7 +22,7 @@ def _get_distro_context(context):
 class CollectionSerializer(serializers.ModelSerializer):
     """A serializer for a Collection."""
 
-    deprecated = serializers.SerializerMethodField()
+    deprecated = serializers.BooleanField()
     created_at = serializers.SerializerMethodField()
     updated_at = serializers.SerializerMethodField()
     href = serializers.SerializerMethodField()
@@ -45,10 +44,6 @@ class CollectionSerializer(serializers.ModelSerializer):
             "download_count",
         )
         model = models.Collection
-
-    def get_deprecated(self, obj) -> bool:
-        """Get deprecated."""
-        return obj.pk in self.context["deprecated_collections"]
 
     def get_href(self, obj) -> str:
         """Get href."""
@@ -73,19 +68,14 @@ class CollectionSerializer(serializers.ModelSerializer):
 
     @extend_schema_field(OpenApiTypes.DATETIME)
     def get_updated_at(self, obj):
-        """Get the timestamp of the highest version CollectionVersion's created timestamp."""
-        if obj.repo_version_added_at and obj.repo_version_removed_at:
-            return max(obj.repo_version_added_at, obj.repo_version_removed_at)
-
-        return obj.repo_version_added_at or obj.repo_version_removed_at
+        """Get the timestamp of the latest version CollectionVersion's created timestamp."""
+        # NOTE: this should reflect the last time the collection was updated, not the last
+        # time that the latest version was updated. See https://pulp.plan.io/issues/7775
+        return obj.latest_version_modified
 
     @extend_schema_field(OpenApiTypes.OBJECT)
     def get_highest_version(self, obj):
         """Get a highest version and its link."""
-        available_versions = self.context["available_versions"][obj.pk]
-        version = sorted(
-            available_versions, key=lambda ver: semantic_version.Version(ver), reverse=True
-        )[0]
         ctx = _get_distro_context(self.context)
         href = reverse(
             settings.ANSIBLE_URL_NAMESPACE + "collection-versions-detail",
@@ -93,25 +83,23 @@ class CollectionSerializer(serializers.ModelSerializer):
                 **ctx,
                 "namespace": obj.namespace,
                 "name": obj.name,
-                "version": version,
+                "version": obj.highest_version,
             },
         )
-        return {"href": href, "version": version}
+        return {"href": href, "version": obj.highest_version}
 
     def get_download_count(self, obj):
         """Get the download count of the collection"""
-        qs = models.CollectionDownloadCount.objects.filter(namespace=obj.namespace, name=obj.name)
-        if qs.count() == 0:
-            return 0
-        return qs.first().download_count
+
+        return obj.download_count or 0
 
 
 class CollectionVersionListSerializer(serializers.ModelSerializer):
     """A serializer for a CollectionVersion list item."""
 
     href = serializers.SerializerMethodField()
-    created_at = serializers.DateTimeField(source="collection.pulp_created")
-    updated_at = serializers.DateTimeField(source="collection.pulp_last_updated")
+    created_at = serializers.DateTimeField(source="pulp_created")
+    updated_at = serializers.DateTimeField(source="pulp_last_updated")
     marks = serializers.SerializerMethodField()
 
     class Meta:
@@ -127,10 +115,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
 
     def get_marks(self, obj) -> List[str]:
         """Get a list of mark values filtering only those in the current repo."""
-        # The viewset adds "marks" to the context
-        return list(
-            obj.marks.filter(pk__in=self.context.get("marks", [])).values_list("value", flat=True)
-        )
+        return [x.value for x in obj.marks.all()]
 
     def get_href(self, obj) -> str:
         """
@@ -204,11 +189,7 @@ class CollectionNamespaceSerializer(serializers.Serializer):
     """
 
     name = serializers.CharField(source="namespace")
-    metadata_sha256 = serializers.SerializerMethodField()
-
-    def get_metadata_sha256(self, obj):
-        """Return the `metadata_sha256` if present in the repository."""
-        return self.context["namespaces_map"].get(obj.namespace)
+    metadata_sha256 = serializers.CharField(source="namespace_sha256", allow_null=True)
 
 
 class CollectionVersionSignatureSerializer(serializers.ModelSerializer):
@@ -247,7 +228,7 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
 
     metadata = CollectionMetadataSerializer(source="*", read_only=True)
     namespace = CollectionNamespaceSerializer(source="*", read_only=True)
-    signatures = serializers.SerializerMethodField()
+    signatures = CollectionVersionSignatureSerializer(many=True)
 
     class Meta:
         model = models.CollectionVersion
@@ -266,18 +247,17 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
     @extend_schema_field(ArtifactRefSerializer)
     def get_artifact(self, obj):
         """
-        Get atrifact summary.
+        Get artifact summary.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if content_artifact.get().artifact:
-            return ArtifactRefSerializer(content_artifact.get()).data
+        ca = obj.artifacts[0]
+        if ca.artifact:
+            return ArtifactRefSerializer(ca).data
 
     def get_download_url(self, obj) -> str:
         """
         Get artifact download URL.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if content_artifact.get().artifact:
+        if obj.artifacts[0].artifact:
             distro_base_path = self.context.get("path", self.context["distro_base_path"])
             filename_path = obj.relative_path.lstrip("/")
 
@@ -296,24 +276,17 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
         """
         Get the git URL.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if not content_artifact.get().artifact:
-            return content_artifact.get().remoteartifact_set.all()[0].url[:-47]
+        ca = obj.artifacts[0]
+        if not ca.artifact:
+            return ca.remoteartifact_set.all()[0].url[:-47]
 
     def get_git_commit_sha(self, obj) -> str:
         """
         Get the git commit sha.
         """
-        content_artifact = ContentArtifact.objects.select_related("artifact").filter(content=obj)
-        if not content_artifact.get().artifact:
-            return content_artifact.get().remoteartifact_set.all()[0].url[-40:]
-
-    def get_signatures(self, obj):
-        """
-        Get the signatures.
-        """
-        filtered_signatures = obj.signatures.filter(pk__in=self.context.get("sigs", []))
-        return CollectionVersionSignatureSerializer(filtered_signatures, many=True).data
+        ca = obj.artifacts[0]
+        if not ca.artifact:
+            return ca.remoteartifact_set.all()[0].url[-40:]
 
 
 class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):

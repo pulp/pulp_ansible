@@ -1,5 +1,4 @@
 import pytest
-from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import gen_distribution
 from pulp_ansible.tests.functional.utils import iterate_all
 
@@ -16,6 +15,7 @@ def repo_with_kitted_out_collection(
     content_api_client,
     ansible_collection_signatures_client,
     ansible_collection_mark_client,
+    monitor_task,
 ):
     """
     Create a repo that has a collection with all the possible associated content.
@@ -66,7 +66,7 @@ def repo_with_kitted_out_collection(
         name=collection.name,
         namespace=collection.namespace,
         distro_base_path=distro.base_path,
-        body={"deprecated": True},
+        patched_collection={"deprecated": True},
     )
     monitor_task(task.task)
 
@@ -120,9 +120,7 @@ def repo_with_kitted_out_collection(
 
 @pytest.fixture
 def repo_with_one_out_collection(
-    build_and_upload_collection,
-    ansible_repo,
-    ansible_repo_api_client,
+    build_and_upload_collection, ansible_repo, ansible_repo_api_client, monitor_task
 ):
     """Create a distro serving two collections, one signed, one unsigned."""
     collection, collection_url = build_and_upload_collection()
@@ -141,6 +139,7 @@ def test_copy_with_all_content(
     ansible_repo_factory,
     ansible_repo_api_client,
     content_api_client,
+    monitor_task,
 ):
     """
     Test copying a collection with all it's associated content
@@ -182,6 +181,7 @@ def test_move_with_all_content(
     ansible_repo_factory,
     ansible_repo_api_client,
     content_api_client,
+    monitor_task,
 ):
     """
     Test moving a collection with all it's associated content
@@ -226,6 +226,7 @@ def test_copy_and_sign(
     repo_with_one_out_collection,
     ansible_collection_signatures_client,
     ansible_collection_version_api_client,
+    monitor_task,
 ):
     """Verify that you can copy and sign a collection."""
     src_repo, collection_url = repo_with_one_out_collection
@@ -268,6 +269,7 @@ def test_move_and_sign(
     repo_with_one_out_collection,
     ansible_collection_signatures_client,
     ansible_collection_version_api_client,
+    monitor_task,
 ):
     """Verify that you can move and sign a collection."""
     src_repo, collection_url = repo_with_one_out_collection
