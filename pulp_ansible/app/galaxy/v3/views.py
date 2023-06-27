@@ -12,6 +12,7 @@ from django_filters import filters
 from django.views.generic.base import RedirectView
 from django.conf import settings
 from django.core.cache import cache
+from django.db.utils import InternalError as DatabaseInternalError
 
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from jinja2 import Template
@@ -679,13 +680,30 @@ class CollectionArtifactDownloadView(views.APIView, AnsibleDistributionMixin):
         if request.user.is_authenticated:
             log_params["user"] = request.user
 
-        DownloadLog.objects.create(**log_params)
+        try:
+            DownloadLog.objects.create(**log_params)
+        except DatabaseInternalError as e:
+            # handle a read-only replica scenario
+            msg = str(e)
+            if "read-only" in msg:
+                return
+            raise
 
     def count_download(filename):
         ns, name, _ = filename.split("-", maxsplit=2)
-        collection, _ = CollectionDownloadCount.objects.get_or_create(namespace=ns, name=name)
-        collection.download_count = F("download_count") + 1
-        collection.save()
+        try:
+            collection, created = CollectionDownloadCount.objects.get_or_create(
+                namespace=ns, name=name, defaults={"download_count": 1}
+            )
+            if not created:
+                collection.download_count = F("download_count") + 1
+                collection.save()
+        except DatabaseInternalError as e:
+            # handle a read-only replica scenario
+            msg = str(e)
+            if "read-only" in msg:
+                return
+            raise
 
     def urlpattern(*args, **kwargs):
         """Return url pattern for RBAC."""
