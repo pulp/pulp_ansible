@@ -1,0 +1,1 @@
+Wrapped db writes with try/except for collection download logs with read-only databases.
