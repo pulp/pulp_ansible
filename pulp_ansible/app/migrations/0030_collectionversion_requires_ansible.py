@@ -25,12 +25,19 @@ def set_requires_ansible_and_manifest_and_files_json(apps, schema_editor):
                     runtime_yaml = yaml.safe_load(runtime_metadata)
                 except YAMLError:
                     log.warning(
-                        "CollectionVersion: {namespace}.{name}-{version} - meta/runtime.yml is invalid yaml".format(
+                        "CollectionVersion: '{namespace}.{name}-{version}' - 'meta/runtime.yml' is invalid yaml.".format(
                             namespace=collection_version.namespace, name=collection_version.name, version=collection_version.version
                         )
                     )
                 else:
-                    collection_version.requires_ansible = runtime_yaml.get("requires_ansible")
+                    try:
+                        collection_version.requires_ansible = runtime_yaml.get("requires_ansible")
+                    except AttributeError:
+                        log.warning(
+                            "CollectionVersion: '{namespace}.{name}-{version}' - 'meta/runtime.yml' is missing key 'requires_ansible'.".format(
+                                namespace=collection_version.namespace, name=collection_version.name, version=collection_version.version
+                            )
+                        )
 
             manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name, raise_exc=False)
             if manifest:
@@ -38,7 +45,7 @@ def set_requires_ansible_and_manifest_and_files_json(apps, schema_editor):
                     collection_version.manifest = json.load(manifest)
                 except JSONDecodeError:
                     log.warning(
-                        "CollectionVersion: {namespace}.{name}-{version} - MANIFEST.json is invalid json".format(
+                        "CollectionVersion: '{namespace}.{name}-{version}' - 'MANIFEST.json' is invalid json.".format(
                             namespace=collection_version.namespace, name=collection_version.name, version=collection_version.version
                         )
                     )
@@ -49,7 +56,7 @@ def set_requires_ansible_and_manifest_and_files_json(apps, schema_editor):
                     collection_version.files = json.load(files)
                 except JSONDecodeError:
                     log.warning(
-                        "CollectionVersion: {namespace}.{name}-{version} - FILES.json is invalid json".format(
+                        "CollectionVersion: '{namespace}.{name}-{version}' - 'FILES.json' is invalid json.".format(
                             namespace=collection_version.namespace, name=collection_version.name, version=collection_version.version
                         )
                     )
