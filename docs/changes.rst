@@ -1,4 +1,4 @@
-.. _pulp-ansible-changes:
+.. _pulp_ansible-changes:
 
 .. include:: ../CHANGES.rst
 
