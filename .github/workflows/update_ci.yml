@@ -31,12 +31,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
         with:
-          fetch-depth: 1
+          path: pulp_ansible
 
       - uses: actions/checkout@v3
         with:
           repository: pulp/plugin_template
-          path: ../plugin_template
+          path: plugin_template
 
       - uses: actions/setup-python@v3
         with:
@@ -57,17 +57,20 @@ jobs:
         id: vars
         run: echo short_ref=${GITHUB_REF#refs/*/} >> $GITHUB_OUTPUT
       - name: Dispatching
+        working-directory: pulp_ansible
         if: github.event_name == 'schedule' || github.event.inputs.all_branches == 'yes'
         run: python .ci/scripts/update_ci_branches.py 0.10 0.13 0.15 0.16 0.17
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
 
       - name: Run update
+        working-directory: pulp_ansible
         run: |
           .github/workflows/scripts/update_ci.sh
 
       - name: Create Pull Request for CI files
         uses: peter-evans/create-pull-request@v4
+        working-directory: pulp_ansible
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
           committer: pulpbot <pulp-infra@redhat.com>
