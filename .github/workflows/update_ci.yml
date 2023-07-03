@@ -15,11 +15,6 @@ on:
     - cron: '30 2 * * 0'
   
   workflow_dispatch:
-    inputs:
-      all_branches:
-        description: "Run on all branches"
-        default: 'no'
-        required: false
 
 jobs:
   update:
@@ -29,10 +24,6 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v3
-        with:
-          path: pulp_ansible
-
       - uses: actions/checkout@v3
         with:
           repository: pulp/plugin_template
@@ -52,16 +43,11 @@ jobs:
         run: |
           git config --global user.name 'pulpbot'
           git config --global user.email 'pulp-infra@redhat.com'
-
-      - name: Set short_ref
-        id: vars
-        run: echo short_ref=${GITHUB_REF#refs/*/} >> $GITHUB_OUTPUT
-      - name: Dispatching
-        working-directory: pulp_ansible
-        if: github.event_name == 'schedule' || github.event.inputs.all_branches == 'yes'
-        run: python .ci/scripts/update_ci_branches.py 0.10 0.13 0.15 0.16 0.17
-        env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+      - uses: actions/checkout@v3
+        with:
+          path: pulp_ansible
+          ref: main
+          depth: 0
 
       - name: Run update
         working-directory: pulp_ansible
@@ -69,15 +55,151 @@ jobs:
           .github/workflows/scripts/update_ci.sh
 
       - name: Create Pull Request for CI files
-        uses: peter-evans/create-pull-request@v4
-        working-directory: pulp_ansible
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
+          path: pulp_ansible
           committer: pulpbot <pulp-infra@redhat.com>
           author: pulpbot <pulp-infra@redhat.com>
-          title: 'Update CI files from ${{ steps.vars.outputs.short_ref }} branch'
+          title: 'Update CI files for branch main'
           body: '[noissue]'
-          branch: 'create-pull-request/${{ steps.vars.outputs.short_ref }}/patch'
+          branch: 'update-ci/main'
+          base: 'main'
+          commit-message: |
+            Update CI files
+
+            [noissue]
+          delete-branch: true
+      - uses: actions/checkout@v3
+        with:
+          path: pulp_ansible
+          ref: 0.10
+          depth: 0
+
+      - name: Run update
+        working-directory: pulp_ansible
+        run: |
+          .github/workflows/scripts/update_ci.sh
+
+      - name: Create Pull Request for CI files
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: pulp_ansible
+          committer: pulpbot <pulp-infra@redhat.com>
+          author: pulpbot <pulp-infra@redhat.com>
+          title: 'Update CI files for branch 0.10'
+          body: '[noissue]'
+          branch: 'update-ci/0.10'
+          base: '0.10'
+          commit-message: |
+            Update CI files
+
+            [noissue]
+          delete-branch: true
+      - uses: actions/checkout@v3
+        with:
+          path: pulp_ansible
+          ref: 0.13
+          depth: 0
+
+      - name: Run update
+        working-directory: pulp_ansible
+        run: |
+          .github/workflows/scripts/update_ci.sh
+
+      - name: Create Pull Request for CI files
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: pulp_ansible
+          committer: pulpbot <pulp-infra@redhat.com>
+          author: pulpbot <pulp-infra@redhat.com>
+          title: 'Update CI files for branch 0.13'
+          body: '[noissue]'
+          branch: 'update-ci/0.13'
+          base: '0.13'
+          commit-message: |
+            Update CI files
+
+            [noissue]
+          delete-branch: true
+      - uses: actions/checkout@v3
+        with:
+          path: pulp_ansible
+          ref: 0.15
+          depth: 0
+
+      - name: Run update
+        working-directory: pulp_ansible
+        run: |
+          .github/workflows/scripts/update_ci.sh
+
+      - name: Create Pull Request for CI files
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: pulp_ansible
+          committer: pulpbot <pulp-infra@redhat.com>
+          author: pulpbot <pulp-infra@redhat.com>
+          title: 'Update CI files for branch 0.15'
+          body: '[noissue]'
+          branch: 'update-ci/0.15'
+          base: '0.15'
+          commit-message: |
+            Update CI files
+
+            [noissue]
+          delete-branch: true
+      - uses: actions/checkout@v3
+        with:
+          path: pulp_ansible
+          ref: 0.16
+          depth: 0
+
+      - name: Run update
+        working-directory: pulp_ansible
+        run: |
+          .github/workflows/scripts/update_ci.sh
+
+      - name: Create Pull Request for CI files
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: pulp_ansible
+          committer: pulpbot <pulp-infra@redhat.com>
+          author: pulpbot <pulp-infra@redhat.com>
+          title: 'Update CI files for branch 0.16'
+          body: '[noissue]'
+          branch: 'update-ci/0.16'
+          base: '0.16'
+          commit-message: |
+            Update CI files
+
+            [noissue]
+          delete-branch: true
+      - uses: actions/checkout@v3
+        with:
+          path: pulp_ansible
+          ref: 0.17
+          depth: 0
+
+      - name: Run update
+        working-directory: pulp_ansible
+        run: |
+          .github/workflows/scripts/update_ci.sh
+
+      - name: Create Pull Request for CI files
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.RELEASE_TOKEN }}
+          path: pulp_ansible
+          committer: pulpbot <pulp-infra@redhat.com>
+          author: pulpbot <pulp-infra@redhat.com>
+          title: 'Update CI files for branch 0.17'
+          body: '[noissue]'
+          branch: 'update-ci/0.17'
+          base: '0.17'
           commit-message: |
             Update CI files
 
