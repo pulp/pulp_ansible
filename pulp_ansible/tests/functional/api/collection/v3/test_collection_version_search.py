@@ -1434,3 +1434,92 @@ def test_cross_repo_search_index_on_distribution_with_repository_and_deprecation
 
     # did it get properly marked as deprecated?
     assert resp.data[0].is_deprecated, resp
+
+
+def test_cross_repo_search_index_with_updated_namespace_metadata(
+    add_to_cleanup,
+    ansible_distro_api_client,
+    ansible_namespaces_api_client,
+    ansible_repo_api_client,
+    build_and_upload_collection,
+    galaxy_v3_collections_api_client,
+    galaxy_v3_default_search_api_client,
+    galaxy_v3_plugin_namespaces_api_client,
+    gen_object_with_cleanup,
+    monitor_task,
+    random_image_factory,
+):
+    """Make sure namespace metdata updates are reflected in the index."""
+
+    # make a repo
+    pulp_repo = gen_object_with_cleanup(ansible_repo_api_client, {"name": str(uuid.uuid4())})
+
+    # make a distro that points at the repository
+    distro = gen_object_with_cleanup(
+        ansible_distro_api_client,
+        {
+            "name": pulp_repo.name,
+            "base_path": pulp_repo.name,
+            "repository": pulp_repo.pulp_href,
+        },
+    )
+    dist_id = distro.pulp_href.split("/")[-2]
+    distro_kwargs = {"path": distro.base_path, "distro_base_path": distro.base_path}
+
+    # define col namespace
+    namespace_name = randstr()
+
+    # define col name
+    collection_name = randstr()
+
+    # make namespace metadata
+    task = galaxy_v3_plugin_namespaces_api_client.create(
+        name=namespace_name, description="hello", company="Testing Co.", **distro_kwargs
+    )
+    result = monitor_task(task.task)
+    namespace_href = [x for x in result.created_resources if "namespaces" in x][0]
+    add_to_cleanup(galaxy_v3_plugin_namespaces_api_client, namespace_href)
+
+    # make and publish a collection
+    build_and_upload_collection(
+        ansible_repo=pulp_repo, config={"namespace": namespace_name, "name": collection_name}
+    )
+
+    # make sure the CV was indexed
+    resp = galaxy_v3_default_search_api_client.list(limit=1000, distribution=[dist_id])
+    assert resp.meta.count == 1, resp
+
+    # did it get all the metadata?
+    cv = resp.data[0]
+    assert cv.namespace_metadata.pulp_href == namespace_href
+    assert cv.namespace_metadata.avatar_url is None
+    # assert cv.namespace_metadata.avatar_sha256 is None
+    assert cv.namespace_metadata.company == "Testing Co."
+    assert cv.namespace_metadata.description == "hello"
+    assert cv.namespace_metadata.name == namespace_name
+
+    # update the namespace metadata with an avatar
+    avatar_path = random_image_factory()
+    task2 = galaxy_v3_plugin_namespaces_api_client.create(
+        name=namespace_name,
+        description="hello 2",
+        company="Testing Co. redux",
+        avatar=avatar_path,
+        **distro_kwargs,
+    )
+    result2 = monitor_task(task2.task)
+    namespace2_href = [x for x in result2.created_resources if "namespaces" in x][0]
+    add_to_cleanup(galaxy_v3_plugin_namespaces_api_client, namespace2_href)
+
+    # make sure the CV was re-indexed
+    resp2 = galaxy_v3_default_search_api_client.list(limit=1000, distribution=[dist_id])
+    assert resp2.meta.count == 1, resp2
+
+    # did it get all the NEW metadata?
+    cv2 = resp2.data[0]
+    assert cv2.namespace_metadata.pulp_href == namespace2_href
+    assert cv2.namespace_metadata.avatar_url is not None
+    # assert cv2.namespace_metadata.avatar_sha256 is not None
+    assert cv2.namespace_metadata.company == "Testing Co. redux"
+    assert cv2.namespace_metadata.description == "hello 2"
+    assert cv2.namespace_metadata.name == namespace_name
