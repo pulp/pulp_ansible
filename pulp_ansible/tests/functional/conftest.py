@@ -2,7 +2,10 @@ import uuid
 
 import pytest
 
-from orionutils.generator import build_collection
+import numpy as np
+from PIL import Image
+
+from orionutils.generator import build_collection, randstr
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_smash.pulp3.bindings import monitor_task
 
@@ -285,3 +288,17 @@ def ansible_dir_factory(tmp_path):
         return tmp_path
 
     return _ansible_dir_factory
+
+
+@pytest.fixture
+def random_image_factory(tmp_path):
+    """Factory to produce a random 100x100 image."""
+
+    def _random_image():
+        imarray = np.random.rand(100, 100, 3) * 255
+        im = Image.fromarray(imarray.astype("uint8")).convert("RGBA")
+        path = tmp_path / f"{randstr()}.png"
+        im.save(path)
+        return path
+
+    return _random_image

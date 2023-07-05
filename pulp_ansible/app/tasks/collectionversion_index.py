@@ -39,7 +39,6 @@ def get_highest_version_string_from_cv_objects(cv_objects):
 
 def compute_repository_changes(repository_version):
     """Use the previous version to make a list of namespace(s).name(s) changed."""
-
     # Figure out what the previous repo version is
     repository = repository_version.repository
     previous_number = repository_version.number - 1
@@ -56,6 +55,7 @@ def compute_repository_changes(repository_version):
     cv_type = CollectionVersion.get_pulp_type()
     deprecation_type = AnsibleCollectionDeprecated.get_pulp_type()
     signature_type = CollectionVersionSignature.get_pulp_type()
+    metadata_type = AnsibleNamespaceMetadata.get_pulp_type()
 
     for func in [repository_version.added, repository_version.removed]:
         for modified in func(base_version=previous_version):
@@ -70,6 +70,9 @@ def compute_repository_changes(repository_version):
                 changed_collections.add(
                     (signature.signed_collection.namespace, signature.signed_collection.name)
                 )
+            elif modified.pulp_type == metadata_type:
+                metadata = modified.ansible_ansiblenamespacemetadata
+                changed_collections.add((metadata.name, "*"))
 
     return changed_collections
 
@@ -134,6 +137,8 @@ def update_index(distribution=None, repository=None, repository_version=None, is
 
     # What has changed between this version and the last?
     changed_collections = compute_repository_changes(repository_version)
+    if not changed_collections:
+        return
 
     # get all CVs in this repository version
     cvs_pks = repository_version.content.filter(pulp_type="ansible.collection_version").values_list(
@@ -154,9 +159,14 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     deprecations = AnsibleCollectionDeprecated.objects.filter(pk__in=deprecations)
     deprecations_set = {(x.namespace, x.name) for x in deprecations}
 
-    # find all namespaces in the repo version
-    namespaces = repository_version.get_content(content_qs=AnsibleNamespaceMetadata.objects).all()
-    namespaces = {x.name: x for x in namespaces}
+    # find all the most recent namespace metadata in the repo version
+    namespaces = {}
+    for ns in repository_version.get_content(content_qs=AnsibleNamespaceMetadata.objects).all():
+        if ns.name not in namespaces:
+            namespaces[ns.name] = ns
+            continue
+        if namespaces[ns.name].timestamp_of_interest < ns.timestamp_of_interest:
+            namespaces[ns.name] = ns
 
     # map out the namespace(s).name(s) for everything in the repo version
     colset = set(cvs.values_list("namespace", "name").distinct())
@@ -175,7 +185,10 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     for colkey in colset:
         namespace, name = colkey
 
-        if changed_collections is not None and (namespace, name) not in changed_collections:
+        if (namespace, name) not in changed_collections and (
+            namespace,
+            "*",
+        ) not in changed_collections:
             continue
 
         # get all the versions for this collection
