@@ -39,6 +39,19 @@ Bugfixes
 ----
 
 
+0.17.3 (2023-07-05)
+===================
+
+Bugfixes
+--------
+
+- Fixed updated namespacemetadata in x-repo search indexing.
+  `#1494 <https://github.com/pulp/pulp_ansible/issues/1494>`__
+
+
+----
+
+
 0.17.2 (2023-05-30)
 ===================
 
