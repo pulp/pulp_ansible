@@ -1,11 +1,10 @@
 from django.contrib.postgres.search import SearchQuery
 from django.db.models import fields as db_fields
 from django.db.models import Q
-from django.db.models.expressions import F, Func
+from django.db.models.expressions import F, Func, RawSQL
 from django_filters import (
     filters,
     FilterSet,
-    OrderingFilter,
 )
 import semantic_version
 from rest_framework.exceptions import ValidationError
@@ -15,6 +14,16 @@ from pulpcore.plugin.viewsets import LabelFilter
 
 from pulpcore.plugin.models import RepositoryVersion
 from pulp_ansible.app import models
+
+
+class SemanticVersionOrderingFilter(filters.OrderingFilter):
+    def filter(self, qs, value):
+        if value is not None and any(v in ["version", "-version"] for v in value):
+            return qs.annotate(
+                version_compare=RawSQL("string_to_array(version, '.')::int[]", [])
+            ).order_by(f"{value[0]}_compare")
+
+        return super().filter(qs, value)
 
 
 class CollectionVersionSearchFilter(FilterSet):
@@ -49,7 +58,7 @@ class CollectionVersionSearchFilter(FilterSet):
     keywords = filters.CharFilter(field_name="q", method="filter_by_q")
     repository_label = LabelFilter(label_field_name="repository__pulp_labels")
 
-    order_by = OrderingFilter(
+    order_by = SemanticVersionOrderingFilter(
         choices=(
             ("pulp_created", "by CV created"),
             ("-pulp_created", "by CV created (descending)"),
@@ -64,7 +73,6 @@ class CollectionVersionSearchFilter(FilterSet):
             "collection_version__pulp_created": "pulp_created",
             "collection_version__namespace": "namespace",
             "collection_version__name": "name",
-            "collection_version__version": "version",
         },
     )
 
