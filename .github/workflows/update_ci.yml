@@ -7,7 +7,7 @@
 
 
 ---
-name: CI Update
+name: Ansible CI Update
 on:
   schedule:
     # * is a special character in YAML so you have to quote this string
@@ -66,33 +66,6 @@ jobs:
           body: '[noissue]'
           branch: 'update-ci/main'
           base: 'main'
-          commit-message: |
-            Update CI files
-
-            [noissue]
-          delete-branch: true
-      - uses: actions/checkout@v3
-        with:
-          path: pulp_ansible
-          ref: '0.10'
-          fetch-depth: 0
-
-      - name: Run update
-        working-directory: pulp_ansible
-        run: |
-          ../plugin_template/scripts/update_ci.sh
-
-      - name: Create Pull Request for CI files
-        uses: peter-evans/create-pull-request@v4
-        with:
-          token: ${{ secrets.RELEASE_TOKEN }}
-          path: pulp_ansible
-          committer: pulpbot <pulp-infra@redhat.com>
-          author: pulpbot <pulp-infra@redhat.com>
-          title: 'Update CI files for branch 0.10'
-          body: '[noissue]'
-          branch: 'update-ci/0.10'
-          base: '0.10'
           commit-message: |
             Update CI files
 
