@@ -1,7 +1,7 @@
 from django.contrib.postgres.search import SearchQuery
 from django.db.models import fields as db_fields
 from django.db.models import Q
-from django.db.models.expressions import F, Func, RawSQL
+from django.db.models.expressions import F, Func
 from django_filters import (
     filters,
     FilterSet,
@@ -19,10 +19,18 @@ from pulp_ansible.app import models
 class SemanticVersionOrderingFilter(filters.OrderingFilter):
     def filter(self, qs, value):
         if value is not None and any(v in ["version", "-version"] for v in value):
-            return qs.annotate(
-                version_compare=RawSQL("string_to_array(version, '.')::int[]", [])
-            ).order_by(f"{value[0]}_compare")
+            order = ""
+            reverse_order = "-"
+            if "-version" in value:
+                order = "-"
+                reverse_order = ""
 
+            return qs.order_by(
+                f"{order}collection_version__version_major",
+                f"{order}collection_version__version_minor",
+                f"{order}collection_version__version_patch",
+                f"{reverse_order}collection_version__version_prerelease",
+            )
         return super().filter(qs, value)
 
 
