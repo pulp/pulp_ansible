@@ -15,7 +15,7 @@ from pulpcore.plugin.actions import ModifyRepositoryActionMixin
 from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
-from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.tasking import dispatch, add_and_remove
 from pulpcore.plugin.viewsets import (
     DistributionViewSet,
     BaseFilterSet,
@@ -50,6 +50,7 @@ from .models import (
     CollectionRemote,
     Role,
     Tag,
+    CrossRepositoryCollectionVersionIndex,
 )
 from .serializers import (
     AnsibleDistributionSerializer,
@@ -71,10 +72,11 @@ from .serializers import (
     RoleSerializer,
     TagSerializer,
     CollectionVersionCopyMoveSerializer,
+    AnsibleRepositoryRejectSerializer,
 )
 from .tasks.collections import sync as collection_sync
 from .tasks.collections import rebuild_repository_collection_versions_metadata
-from .tasks.copy import copy_content, copy_or_move_and_sign
+from .tasks.copy import copy_content, copy_or_move_and_sign, move_collection
 from .tasks.roles import synchronize as role_sync
 from .tasks.git import synchronize as git_sync
 from .tasks.mark import mark, unmark
@@ -644,7 +646,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 # TODO: create a custom access condition to ensure user has perms on dest repos
             },
             {
-                "action": ["move_collection_version"],
+                "action": ["move_collection_version", "reject"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
@@ -906,6 +908,67 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         needed.
         """
         return self._handle_mark_task(request, unmark)
+
+    @extend_schema(
+        description="Trigger an asynchronous task to reject Ansible collection.",
+        responses={202: AsyncOperationResponseSerializer},
+    )
+    @action(detail=True, methods=["post"], serializer_class=AnsibleRepositoryRejectSerializer)
+    def reject(self, request, pk):
+        """
+        Dispatches the reject task.
+
+        Reject (move) collection from current repository to the rejected repository
+        If copy of the collection already exists in rejected repo, remove collection
+        from current repository.while retaining the copy in the rejected repository
+        """
+
+        serializer = AnsibleRepositoryRejectSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        src_repo = AnsibleRepository.objects.get(pk=pk)
+
+        pulp_labels = src_repo.pulp_labels
+        if hasattr(pulp_labels, "pipeline") or pulp_labels["pipeline"] == "rejected":
+            raise DRFValidationError(detail=_("Source repository cannot be rejected repository."))
+
+        try:
+            rejected_repo = AnsibleRepository.objects.get(pulp_labels__pipeline="rejected")
+        except AnsibleRepository.DoesNotExist:
+            raise DRFValidationError(
+                detail=_("No rejected repositories were found within the system.")
+            )
+
+        cv_pk = data["collection_version"].pk
+        cvis = CrossRepositoryCollectionVersionIndex.objects.filter(collection_version__pk=cv_pk)
+
+        base_version_pk = RepositoryVersion.objects.get(repository__pk=pk).pk
+
+        rejected_collection = cvis.filter(repository__pulp_labels__pipeline="rejected").first()
+        if rejected_collection:
+            # collection exists in rejected repo, remove it from source repo
+            task = dispatch(
+                add_and_remove,
+                exclusive_resources=[src_repo],
+                kwargs={
+                    "repository_pk": pk,
+                    "base_version_pk": base_version_pk,
+                    "add_content_units": [],
+                    "remove_content_units": [cv_pk],
+                },
+            )
+            return OperationPostponedResponse(task, request)
+
+        task = dispatch(
+            move_collection,
+            exclusive_resources=[rejected_repo],
+            shared_resources=[src_repo],
+            kwargs={"cv_pk_list": [cv_pk], "src_repo_pk": pk, "dest_repo_list": [rejected_repo.pk]},
+        )
+        return OperationPostponedResponse(task, request)
 
 
 class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):

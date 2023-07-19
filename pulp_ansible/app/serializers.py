@@ -953,6 +953,22 @@ class AnsibleRepositoryMarkSerializer(serializers.Serializer):
         return value
 
 
+class AnsibleRepositoryRejectSerializer(serializers.Serializer):
+    collection_version = DetailRelatedField(
+        required=True,
+        view_name=r"content-ansible/collection_versions-detail",
+        queryset=CollectionVersion.objects.all(),
+        help_text=_("A collection version HREF to be rejected."),
+    )
+
+    rejected_repository = DetailRelatedField(
+        required=False,
+        view_name="repositories-ansible/ansible-detail",
+        queryset=AnsibleRepository.objects.all(),
+        help_text=_("Targeted rejected repository HREF."),
+    )
+
+
 class AnsibleRepositorySignatureSerializer(serializers.Serializer):
     """
     A serializer for the signing action.
