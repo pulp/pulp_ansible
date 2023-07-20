@@ -1,5 +1,5 @@
 from django.contrib.postgres.search import SearchQuery
-from django.db.models import fields as db_fields
+from django.db.models import fields as db_fields, Case, When, Value
 from django.db.models import Q
 from django.db.models.expressions import F, Func
 from django_filters import (
@@ -20,16 +20,21 @@ class SemanticVersionOrderingFilter(filters.OrderingFilter):
     def filter(self, qs, value):
         if value is not None and any(v in ["version", "-version"] for v in value):
             order = ""
-            reverse_order = "-"
+            prerelease_order = F("prerelease").asc(nulls_last=False)
             if "-version" in value:
                 order = "-"
-                reverse_order = ""
+                prerelease_order = F("prerelease").desc(nulls_last=False)
 
-            return qs.order_by(
+            return qs.annotate(
+                prerelease=Case(
+                    When(collection_version__version_prerelease="", then=Value(None)),
+                    default=F("collection_version__version_prerelease"),
+                )
+            ).order_by(
                 f"{order}collection_version__version_major",
                 f"{order}collection_version__version_minor",
                 f"{order}collection_version__version_patch",
-                f"{reverse_order}collection_version__version_prerelease",
+                prerelease_order,
             )
         return super().filter(qs, value)
 
