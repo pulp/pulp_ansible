@@ -13,6 +13,31 @@ Changelog
 
 .. towncrier release notes start
 
+0.19.0 (2023-07-20)
+===================
+
+Features
+--------
+
+- Exposes collection download count in the api.
+  Download count controlled by new setting ANSIBLE_COLLECT_DOWNLOAD_COUNT.
+  `#1478 <https://github.com/pulp/pulp_ansible/issues/1478>`__
+
+
+Bugfixes
+--------
+
+- Fixed the migration 0030 in face of collections without runtime.yml.
+  `#1480 <https://github.com/pulp/pulp_ansible/issues/1480>`__
+- Wrapped db writes with try/except for collection download logs with read-only databases.
+  `#1491 <https://github.com/pulp/pulp_ansible/issues/1491>`__
+- Fixed updated namespacemetadata in x-repo search indexing.
+  `#1494 <https://github.com/pulp/pulp_ansible/issues/1494>`__
+
+
+----
+
+
 0.18.0 (2023-05-25)
 ===================
 
