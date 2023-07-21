@@ -43,6 +43,7 @@ def get_queryset_annotated_with_task_sync_task(qs):
                 error=F("error"),
             )
         )
+        .order_by("-pulp_created")
         .values("task")[:1]
     )
 
