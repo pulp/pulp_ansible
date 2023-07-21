@@ -1,0 +1,1 @@
+Refactor ``last_sync_task`` in AnsibleRepository model due to performance issues.

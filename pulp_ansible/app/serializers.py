@@ -25,7 +25,6 @@ from pulpcore.plugin.serializers import (
     DistributionSerializer,
     RepositoryVersionRelatedField,
     validate_unknown_fields,
-    TaskSerializer,
 )
 from pulpcore.plugin.util import get_url
 from rest_framework.exceptions import ValidationError
@@ -137,12 +136,13 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     last_synced_metadata_time = serializers.DateTimeField(
         help_text=_("Last synced metadata time."), allow_null=True, required=False
     )
-    last_sync_task = TaskSerializer(read_only=True)
     gpgkey = serializers.CharField(
         help_text="Gpg public key to verify collection signatures against",
         required=False,
         allow_null=True,
     )
+
+    last_sync_task = serializers.SerializerMethodField()
 
     class Meta:
         fields = RepositorySerializer.Meta.fields + (
@@ -152,6 +152,12 @@ class AnsibleRepositorySerializer(RepositorySerializer):
             "private",
         )
         model = AnsibleRepository
+
+    def get_last_sync_task(self, obj):
+        if hasattr(obj, "last_sync_task"):
+            return obj.last_sync_task
+
+        return None
 
 
 class AnsibleRepositorySyncURLSerializer(RepositorySyncURLSerializer):
@@ -225,7 +231,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
         default=False,
     )
 
-    last_sync_task = TaskSerializer(read_only=True)
+    last_sync_task = serializers.SerializerMethodField()
 
     def validate(self, data):
         """
@@ -270,6 +276,12 @@ class CollectionRemoteSerializer(RemoteSerializer):
             )
 
         return data
+
+    def get_last_sync_task(self, obj):
+        if hasattr(obj, "last_sync_task"):
+            return obj.last_sync_task
+
+        return None
 
     class Meta:
         fields = RemoteSerializer.Meta.fields + (
