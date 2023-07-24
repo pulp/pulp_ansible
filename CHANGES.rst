@@ -13,6 +13,31 @@ Changelog
 
 .. towncrier release notes start
 
+0.19.0 (2023-07-20)
+===================
+
+Features
+--------
+
+- Exposes collection download count in the api.
+  Download count controlled by new setting ANSIBLE_COLLECT_DOWNLOAD_COUNT.
+  `#1478 <https://github.com/pulp/pulp_ansible/issues/1478>`__
+
+
+Bugfixes
+--------
+
+- Fixed the migration 0030 in face of collections without runtime.yml.
+  `#1480 <https://github.com/pulp/pulp_ansible/issues/1480>`__
+- Wrapped db writes with try/except for collection download logs with read-only databases.
+  `#1491 <https://github.com/pulp/pulp_ansible/issues/1491>`__
+- Fixed updated namespacemetadata in x-repo search indexing.
+  `#1494 <https://github.com/pulp/pulp_ansible/issues/1494>`__
+
+
+----
+
+
 0.18.0 (2023-05-25)
 ===================
 
@@ -958,6 +983,60 @@ Bugfixes
 ----
 
 
+0.7.0 (2021-02-11)
+==================
+
+Features
+--------
+
+- Ansible export/import is now available as a tech preview feature
+  `#6738 <https://pulp.plan.io/issues/6738>`_
+- Expose MANIFEST.json and FILES.json at CollectionVersion endpoint
+  `#7572 <https://pulp.plan.io/issues/7572>`_
+- Introduce a new ``v3/`` endpoint returning publication time
+  `#7939 <https://pulp.plan.io/issues/7939>`_
+- Introduces a new ``v3/collections/all/`` endpoint returning all collections unpaginated.
+  `#7940 <https://pulp.plan.io/issues/7940>`_
+- Introduces a new ``v3/collection_versions/all/`` endpoint returning all collections versions
+  unpaginated.
+  `#7941 <https://pulp.plan.io/issues/7941>`_
+- Improve sync performance with no-op when possible. To disable the no-op optimization use the
+  ``optimize=False`` option on the ``sync`` call.
+  `#7942 <https://pulp.plan.io/issues/7942>`_
+- Adds the ``requires_ansible`` attribute to the Galaxy V3 CollectionVersion APIs.
+  This documents the version of Ansible required to use the collection.
+  `#7949 <https://pulp.plan.io/issues/7949>`_
+- Field ``updated_at`` from Galaxy v3 Collections endpoint using latest instead of highest version
+  `#8012 <https://pulp.plan.io/issues/8012>`_
+- Efficient sync with unpaginated metadata endpoints if they are available.
+  `#8177 <https://pulp.plan.io/issues/8177>`_
+
+
+Bugfixes
+--------
+
+- Make collection namespace max_length consistent in models
+  `#8078 <https://pulp.plan.io/issues/8078>`_
+
+
+Improved Documentation
+----------------------
+
+- Move official docs site to https://docs.pulpproject.org/pulp_ansible/.
+  `#7926 <https://pulp.plan.io/issues/7926>`_
+- Updated Roles and Collections workflows to use Pulp-CLI commands
+  `#8076 <https://pulp.plan.io/issues/8076>`_
+
+
+Misc
+----
+
+- `#8216 <https://pulp.plan.io/issues/8216>`_
+
+
+----
+
+
 0.6.2 (2021-03-03)
 ==================
 
@@ -966,6 +1045,52 @@ Bugfixes
 
 - Use DRF token when no ``auth_url`` is provided
   `#8290 <https://pulp.plan.io/issues/8290>`_
+
+
+----
+
+
+0.6.1 (2021-01-15)
+==================
+
+Bugfixes
+--------
+
+- Allow updating ``auth_url`` on CollectionRemote when ``token`` is already set
+  `#7957 <https://pulp.plan.io/issues/7957>`_
+- Fixed create_task calls for Python 3.6 in collections tasks
+  `#8098 <https://pulp.plan.io/issues/8098>`_
+
+
+----
+
+
+0.6.0 (2020-12-01)
+==================
+
+Features
+--------
+
+- Enable filter by name/namespace on Collections V3 endpoint
+  `#7873 <https://pulp.plan.io/issues/7873>`_
+
+
+Bugfixes
+--------
+
+- Allows a requirements.yml collection version specification to be respected during sync.
+  `#7739 <https://pulp.plan.io/issues/7739>`_
+- Allow requirements.yml with different sources to sync correctly.
+  `#7741 <https://pulp.plan.io/issues/7741>`_
+- Increased collection tag field length from 32 to 64, which allows sync to work for longer tag names
+  used on galaxy.ansible.com.
+  `#7827 <https://pulp.plan.io/issues/7827>`_
+
+
+Misc
+----
+
+- `#7777 <https://pulp.plan.io/issues/7777>`_
 
 
 ----
@@ -1035,106 +1160,6 @@ Bugfixes
 
 - Use DRF token when no ``auth_url`` is provided
   `#8290 <https://pulp.plan.io/issues/8290>`_
-
-
-----
-
-
-0.7.0 (2021-02-11)
-==================
-
-Features
---------
-
-- Ansible export/import is now available as a tech preview feature
-  `#6738 <https://pulp.plan.io/issues/6738>`_
-- Expose MANIFEST.json and FILES.json at CollectionVersion endpoint
-  `#7572 <https://pulp.plan.io/issues/7572>`_
-- Introduce a new ``v3/`` endpoint returning publication time
-  `#7939 <https://pulp.plan.io/issues/7939>`_
-- Introduces a new ``v3/collections/all/`` endpoint returning all collections unpaginated.
-  `#7940 <https://pulp.plan.io/issues/7940>`_
-- Introduces a new ``v3/collection_versions/all/`` endpoint returning all collections versions
-  unpaginated.
-  `#7941 <https://pulp.plan.io/issues/7941>`_
-- Improve sync performance with no-op when possible. To disable the no-op optimization use the
-  ``optimize=False`` option on the ``sync`` call.
-  `#7942 <https://pulp.plan.io/issues/7942>`_
-- Adds the ``requires_ansible`` attribute to the Galaxy V3 CollectionVersion APIs.
-  This documents the version of Ansible required to use the collection.
-  `#7949 <https://pulp.plan.io/issues/7949>`_
-- Field ``updated_at`` from Galaxy v3 Collections endpoint using latest instead of highest version
-  `#8012 <https://pulp.plan.io/issues/8012>`_
-- Efficient sync with unpaginated metadata endpoints if they are available.
-  `#8177 <https://pulp.plan.io/issues/8177>`_
-
-
-Bugfixes
---------
-
-- Make collection namespace max_length consistent in models
-  `#8078 <https://pulp.plan.io/issues/8078>`_
-
-
-Improved Documentation
-----------------------
-
-- Move official docs site to https://docs.pulpproject.org/pulp_ansible/.
-  `#7926 <https://pulp.plan.io/issues/7926>`_
-- Updated Roles and Collections workflows to use Pulp-CLI commands
-  `#8076 <https://pulp.plan.io/issues/8076>`_
-
-
-Misc
-----
-
-- `#8216 <https://pulp.plan.io/issues/8216>`_
-
-
-----
-
-
-0.6.1 (2021-01-15)
-==================
-
-Bugfixes
---------
-
-- Allow updating ``auth_url`` on CollectionRemote when ``token`` is already set
-  `#7957 <https://pulp.plan.io/issues/7957>`_
-- Fixed create_task calls for Python 3.6 in collections tasks
-  `#8098 <https://pulp.plan.io/issues/8098>`_
-
-
-----
-
-
-0.6.0 (2020-12-01)
-==================
-
-Features
---------
-
-- Enable filter by name/namespace on Collections V3 endpoint
-  `#7873 <https://pulp.plan.io/issues/7873>`_
-
-
-Bugfixes
---------
-
-- Allows a requirements.yml collection version specification to be respected during sync.
-  `#7739 <https://pulp.plan.io/issues/7739>`_
-- Allow requirements.yml with different sources to sync correctly.
-  `#7741 <https://pulp.plan.io/issues/7741>`_
-- Increased collection tag field length from 32 to 64, which allows sync to work for longer tag names
-  used on galaxy.ansible.com.
-  `#7827 <https://pulp.plan.io/issues/7827>`_
-
-
-Misc
-----
-
-- `#7777 <https://pulp.plan.io/issues/7777>`_
 
 
 ----
