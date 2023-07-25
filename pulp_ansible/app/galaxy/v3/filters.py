@@ -19,23 +19,20 @@ from pulp_ansible.app import models
 class SemanticVersionOrderingFilter(filters.OrderingFilter):
     def filter(self, qs, value):
         if value is not None and any(v in ["version", "-version"] for v in value):
-            order = ""
-            prerelease_order = F("prerelease").asc(nulls_last=False)
-            if "-version" in value:
-                order = "-"
-                prerelease_order = F("prerelease").desc(nulls_last=False)
+            order = "-" if "-version" in value else ""
 
             return qs.annotate(
                 prerelease=Case(
                     When(collection_version__version_prerelease="", then=Value(None)),
-                    default=F("collection_version__version_prerelease"),
-                )
+                    default="collection_version__version_prerelease",
+                ),
             ).order_by(
                 f"{order}collection_version__version_major",
                 f"{order}collection_version__version_minor",
                 f"{order}collection_version__version_patch",
-                prerelease_order,
+                f"{order}prerelease",
             )
+
         return super().filter(qs, value)
 
 
