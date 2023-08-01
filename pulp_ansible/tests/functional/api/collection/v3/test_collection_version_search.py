@@ -1561,7 +1561,9 @@ def test_cross_repo_search_semantic_version_ordering(
     for version in versions:
         build_and_upload_collection(ansible_repo=pulp_repo, config={"version": version})
 
-    resp = galaxy_v3_default_search_api_client.list(limit=1000, order_by=["version"])
+    resp = galaxy_v3_default_search_api_client.list(
+        limit=1000, order_by=["version"], repository_name=[pulp_repo.name]
+    )
 
     built_collection_versions = [col.collection_version.version for col in resp.data]
 
