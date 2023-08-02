@@ -1548,9 +1548,9 @@ def test_cross_repo_search_semantic_version_ordering(
         "2.0.0",
         "1.22.2",
         "1.22.1",
+        "1.22.1-rc",
         "1.22.1-pre",
         "1.22.1-dev",
-        "1.22.1-rc",
         "1.22.1-beta",
         "1.22.1-alpha",
         "1.1.0",
@@ -1562,11 +1562,26 @@ def test_cross_repo_search_semantic_version_ordering(
         build_and_upload_collection(ansible_repo=pulp_repo, config={"version": version})
 
     resp = galaxy_v3_default_search_api_client.list(
-        limit=1000, order_by=["version"], repository_name=[pulp_repo.name]
+        limit=1000, order_by=["-version"], repository_name=[pulp_repo.name]
     )
 
     built_collection_versions = [col.collection_version.version for col in resp.data]
 
-    versions.sort(key=Version)
+    versions.sort(key=Version, reverse=True)
+
+    # Make sure versions are correctly sorted according to Semantic Versioning.
+    assert versions == [
+        "2.0.0",
+        "1.22.2",
+        "1.22.1",
+        "1.22.1-rc",
+        "1.22.1-pre",
+        "1.22.1-dev",
+        "1.22.1-beta",
+        "1.22.1-alpha",
+        "1.1.0",
+        "1.0.1",
+        "1.0.0",
+    ]
 
     assert versions == built_collection_versions
