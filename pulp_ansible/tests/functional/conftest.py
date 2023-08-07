@@ -1,9 +1,8 @@
 import uuid
-
 import pytest
-
 import numpy as np
 from PIL import Image
+import time
 
 from orionutils.generator import build_collection, randstr
 
@@ -230,12 +229,17 @@ def ansible_distribution_factory(ansible_distro_api_client, gen_object_with_clea
 
 
 @pytest.fixture(scope="class")
-def ansible_role_remote_factory(ansible_remote_role_api_client, gen_object_with_cleanup):
+def ansible_role_remote_factory(
+    bindings_cfg, ansible_remote_role_api_client, gen_object_with_cleanup
+):
     """A factory to generate an Ansible Collection Remote with auto-cleanup."""
 
     def _ansible_role_remote_factory(**kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
         kwargs.setdefault("url", ANSIBLE_GALAXY_URL)
+        if kwargs.pop("include_pulp_auth", False):
+            kwargs["username"] = bindings_cfg.username
+            kwargs["password"] = bindings_cfg.password
         return gen_object_with_cleanup(ansible_remote_role_api_client, kwargs)
 
     return _ansible_role_remote_factory
@@ -243,23 +247,31 @@ def ansible_role_remote_factory(ansible_remote_role_api_client, gen_object_with_
 
 @pytest.fixture(scope="class")
 def ansible_collection_remote_factory(
-    ansible_remote_collection_api_client, gen_object_with_cleanup
+    bindings_cfg, ansible_remote_collection_api_client, gen_object_with_cleanup
 ):
     """A factory to generate an Ansible Collection Remote with auto-cleanup."""
 
     def _ansible_collection_remote_factory(**kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
+        if kwargs.pop("include_pulp_auth", False):
+            kwargs["username"] = bindings_cfg.username
+            kwargs["password"] = bindings_cfg.password
         return gen_object_with_cleanup(ansible_remote_collection_api_client, kwargs)
 
     return _ansible_collection_remote_factory
 
 
 @pytest.fixture(scope="class")
-def ansible_git_remote_factory(ansible_remote_git_api_client, gen_object_with_cleanup):
+def ansible_git_remote_factory(
+    bindings_cfg, ansible_remote_git_api_client, gen_object_with_cleanup
+):
     """A factory to generate an Ansible Git Remote with auto-cleanup."""
 
     def _ansible_git_remote_factory(**kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
+        if kwargs.pop("include_pulp_auth", False):
+            kwargs["username"] = bindings_cfg.username
+            kwargs["password"] = bindings_cfg.password
         return gen_object_with_cleanup(ansible_remote_git_api_client, kwargs)
 
     return _ansible_git_remote_factory
@@ -285,21 +297,24 @@ def build_and_upload_collection(ansible_collection_version_api_client, monitor_t
 
 
 @pytest.fixture
-def ansible_dir_factory(tmp_path):
+def ansible_dir_factory(tmp_path, bindings_cfg):
     """A factory to create a local ansible.cfg file with authentication"""
 
-    def _ansible_dir_factory(server, user):
+    def _ansible_dir_factory(server):
+        username = bindings_cfg.username
+        password = bindings_cfg.password
+
         ansible_cfg = (
             "[galaxy]\nserver_list = pulp_ansible\n\n"
             "[galaxy_server.pulp_ansible]\n"
-            "url = {}\n"
-            "username = {}\n"
-            "password = {}"
-        ).format(server, user.username, user.password)
+            f"url = {server}\n"
+        )
 
-        cfg_file = "{}/ansible.cfg".format(tmp_path)
-        with open(cfg_file, "w", encoding="utf8") as f:
-            f.write(ansible_cfg)
+        if username is not None and password is not None:
+            ansible_cfg += f"username = {username}\npassword = {password}\n"
+
+        cfg_file = tmp_path / "ansible.cfg"
+        cfg_file.write_text(ansible_cfg, encoding="UTF_8")
         return tmp_path
 
     return _ansible_dir_factory
@@ -317,3 +332,23 @@ def random_image_factory(tmp_path):
         return path
 
     return _random_image
+
+
+# Utility fixtures
+
+
+@pytest.fixture(scope="session")
+def wait_tasks(tasks_api_client):
+    """Polls the Task API until all tasks for a resource are in a completed state."""
+
+    def _wait_tasks(resource):
+        pending_tasks = tasks_api_client.list(
+            state__in=["running", "waiting"], reserved_resources=resource
+        )
+        while pending_tasks.count:
+            time.sleep(1)
+            pending_tasks = tasks_api_client.list(
+                state__in=["running", "waiting"], reserved_resources=resource
+            )
+
+    return _wait_tasks

@@ -5,7 +5,6 @@ import pytest
 @pytest.mark.parallel
 @pytest.mark.parametrize("repo_kwargs", [{}, {"retain_repo_versions": 1}])
 def test_deprecation(
-    bindings_cfg,
     ansible_remote_collection_api_client,
     galaxy_v3_collections_api_client,
     ansible_collection_remote_factory,
@@ -49,8 +48,7 @@ def test_deprecation(
         url=first_distribution.client_url,
         requirements_file=requirements,
         sync_dependencies=False,
-        username=bindings_cfg.username,
-        password=bindings_cfg.password,
+        include_pulp_auth=True,
     )
 
     second_repo = ansible_sync_factory(
