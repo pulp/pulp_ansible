@@ -21,10 +21,6 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_REPO_PATH,
 )
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-from pulp_smash.pulp3.bindings import delete_orphans
-from pulp_smash.pulp3.bindings import monitor_task
-
 from orionutils.generator import build_collection
 
 
@@ -260,7 +256,7 @@ def test_collection_version_list(
 
 
 def test_collection_version_filter_by_q(
-    pulp_client, pulp_dist, ansible_collection_version_api_client
+    pulp_client, pulp_dist, ansible_collection_version_api_client, monitor_task, delete_orphans_pre
 ):
     """Verify successive imports do not aggregate tags into search vectors."""
 
@@ -273,9 +269,6 @@ def test_collection_version_filter_by_q(
         }
         resp = ansible_collection_version_api_client.create(**body)
         monitor_task(resp.task)
-
-    # required for sequential runs to get around constraint errors
-    delete_orphans()
 
     # make&publish 2 collections with each having unique tags
     specs = [("tag1", "ns1", "col1"), ("tag2", "ns1", "col2")]

@@ -4,10 +4,16 @@ import uuid
 from pulp_ansible.tests.functional.constants import ANSIBLE_GALAXY_URL
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 
-from pulp_smash.pulp3.bindings import monitor_task
-from pulp_smash.pulp3.utils import gen_distribution, gen_repo
-
 from pulpcore.client.pulp_ansible import ApiException, AsyncOperationResponse
+
+
+# TODO Find a way to make the factories work with try_action
+def gen_repo():
+    return {"name": str(uuid.uuid4())}
+
+
+def gen_distribution():
+    return {"name": str(uuid.uuid4()), "base_path": str(uuid.uuid4())}
 
 
 @pytest.fixture()
@@ -27,21 +33,25 @@ def gen_users(gen_user):
     return _gen_users
 
 
-def try_action(user, client, action, outcome, *args, **kwargs):
-    action_api = getattr(client, f"{action}_with_http_info")
-    try:
-        with user:
-            response, status, _ = action_api(*args, **kwargs, _return_http_data_only=False)
-        if isinstance(response, AsyncOperationResponse):
-            response = monitor_task(response.task)
-    except ApiException as e:
-        assert e.status == outcome, f"{e}"
-    else:
-        assert status == outcome, f"User performed {action} when they shouldn't been able to"
-        return response
+@pytest.fixture()
+def try_action(monitor_task):
+    def _try_action(user, client, action, outcome, *args, **kwargs):
+        action_api = getattr(client, f"{action}_with_http_info")
+        try:
+            with user:
+                response, status, _ = action_api(*args, **kwargs, _return_http_data_only=False)
+            if isinstance(response, AsyncOperationResponse):
+                response = monitor_task(response.task)
+        except ApiException as e:
+            assert e.status == outcome, f"{e}"
+        else:
+            assert status == outcome, f"User performed {action} when they shouldn't been able to"
+            return response
+
+    return _try_action
 
 
-def test_ansible_repository_rbac(ansible_repo_api_client, gen_users):
+def test_ansible_repository_rbac(ansible_repo_api_client, gen_users, try_action):
     user_creator, user_reader, user_helpless = gen_users("ansiblerepository")
 
     # List testing
@@ -78,7 +88,11 @@ def test_ansible_repository_rbac(ansible_repo_api_client, gen_users):
 
 
 def test_ansible_repository_version_repair(
-    ansible_repo_api_client, ansible_repo_version_api_client, gen_users, gen_object_with_cleanup
+    ansible_repo_api_client,
+    ansible_repo_version_api_client,
+    gen_users,
+    gen_object_with_cleanup,
+    try_action,
 ):
     """Test the repository version repair action"""
     user_creator, user_reader, user_helpless = gen_users("ansiblerepository")
@@ -97,6 +111,7 @@ def test_repository_apis(
     ansible_remote_collection_api_client,
     gen_users,
     gen_object_with_cleanup,
+    try_action,
 ):
     """Test repository specific actions, modify, sync and rebuild_metadata."""
     user_creator, user_reader, user_helpless = gen_users(["ansiblerepository", "collectionremote"])
@@ -150,7 +165,9 @@ def test_repository_apis(
     )
 
 
-def test_repository_role_management(gen_users, ansible_repo_api_client, gen_object_with_cleanup):
+def test_repository_role_management(
+    gen_users, ansible_repo_api_client, gen_object_with_cleanup, try_action
+):
     """Check repository role management apis."""
     user_creator, user_reader, user_helpless = gen_users("ansiblerepository")
 
@@ -199,6 +216,7 @@ def test_ansible_distribution_rbac(
     ansible_distribution_factory,
     gen_object_with_cleanup,
     gen_users,
+    try_action,
 ):
     user_creator, user_reader, user_helpless = gen_users(
         ["ansibledistribution", "ansiblerepository"]
@@ -248,6 +266,7 @@ def test_ansible_distribution_role_management(
     ansible_distribution_factory,
     gen_object_with_cleanup,
     gen_users,
+    try_action,
 ):
     user_creator, user_reader, user_helpless = gen_users(
         ["ansibledistribution", "ansiblerepository"]
@@ -320,6 +339,7 @@ def test_remotes_rbac(
     ansible_remote_git_api_client,
     ansible_remote_role_api_client,
     gen_users,
+    try_action,
     remote,
 ):
     REMOTE_APIS = {
@@ -389,6 +409,7 @@ def test_remotes_role_management(
     ansible_remote_git_api_client,
     ansible_remote_role_api_client,
     gen_users,
+    try_action,
     remote,
 ):
     REMOTE_APIS = {

@@ -5,13 +5,10 @@ NOTE: assumes ALLOWED_EXPORT_PATHS setting contains "/tmp" - all tests will fail
 the case.
 """
 import pytest
-
-from pulp_smash.utils import uuid4
-from pulp_smash.pulp3.bindings import monitor_task, monitor_task_group
-
-from pulp_ansible.tests.functional.utils import gen_ansible_remote
+import uuid
 
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
 
 @pytest.mark.parallel
@@ -19,8 +16,7 @@ def test_export_then_import(
     gen_object_with_cleanup,
     ansible_repo_factory,
     ansible_collection_remote_factory,
-    ansible_remote_collection_api_client,
-    ansible_remote_role_api_client,
+    ansible_role_remote_factory,
     ansible_repo_api_client,
     ansible_repo_version_api_client,
     exporters_pulp_api_client,
@@ -28,6 +24,8 @@ def test_export_then_import(
     importers_pulp_api_client,
     importers_pulp_imports_api_client,
     ascii_armored_detached_signing_service,
+    monitor_task,
+    monitor_task_group,
 ):
     """Issue and evaluate a PulpExport (tests both Create and Read)."""
     # Prepare content
@@ -35,7 +33,7 @@ def test_export_then_import(
         url="https://galaxy.ansible.com",
         requirements_file="collections:\n  - testing.k8s_demo_collection",
     )
-    remote_b = gen_object_with_cleanup(ansible_remote_role_api_client, gen_ansible_remote())
+    remote_b = ansible_role_remote_factory(url=ANSIBLE_FIXTURE_URL)
     repo_a = ansible_repo_factory()
     repo_b = ansible_repo_factory()
     sync_response_a = ansible_repo_api_client.sync(
@@ -65,8 +63,8 @@ def test_export_then_import(
     exporter = gen_object_with_cleanup(
         exporters_pulp_api_client,
         {
-            "name": uuid4(),
-            "path": "/tmp/{}/".format(uuid4()),
+            "name": str(uuid.uuid4()),
+            "path": f"/tmp/{uuid.uuid4()}/",
             "repositories": [repo.pulp_href for repo in [repo_a, repo_b]],
         },
     )
@@ -88,7 +86,7 @@ def test_export_then_import(
     repo_d = ansible_repo_factory()
     repo_mapping = {repo_a.name: repo_c.name, repo_b.name: repo_d.name}
     importer = gen_object_with_cleanup(
-        importers_pulp_api_client, {"name": uuid4(), "repo_mapping": repo_mapping}
+        importers_pulp_api_client, {"name": str(uuid.uuid4()), "repo_mapping": repo_mapping}
     )
 
     # Import

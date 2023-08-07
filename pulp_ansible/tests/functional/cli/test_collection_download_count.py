@@ -8,7 +8,6 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION_VERSION,
     GALAXY_ANSIBLE_BASE_URL,
 )
-from pulp_ansible.tests.functional.utils import gen_ansible_remote
 
 
 @pytest.fixture
@@ -23,7 +22,7 @@ def install_scenario_distribution(
     """Prepare a distribution to install from."""
     collection_requirements = f"collections:\n  - {ANSIBLE_DEMO_COLLECTION}"
     remote = ansible_collection_remote_factory(
-        **gen_ansible_remote(url=GALAXY_ANSIBLE_BASE_URL, requirements_file=collection_requirements)
+        url=GALAXY_ANSIBLE_BASE_URL, requirements_file=collection_requirements
     )
     repo = ansible_repo_factory(remote=remote.pulp_href)
 

@@ -1,10 +1,11 @@
 """Tests that Collections can be uploaded to  Pulp with the ansible-galaxy CLI."""
 
+import requests
+import os
 import random
 import string
 import subprocess
 import tempfile
-import os
 
 from pulpcore.client.pulp_ansible import (
     DistributionsAnsibleApi,
@@ -16,7 +17,6 @@ from pulpcore.client.pulp_ansible import (
 )
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
-from pulp_smash.utils import http_get, uuid4
 
 from pulp_ansible.tests.functional.utils import gen_ansible_client, wait_tasks
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
@@ -53,28 +53,47 @@ class InstallCollectionTestCase(PulpTestCase):
 
         with tempfile.TemporaryDirectory() as temp_dir:
             collection_name = "".join([random.choice(string.ascii_lowercase) for i in range(26)])
-            cmd = "ansible-galaxy collection init --init-path {} pulp.{}".format(
-                temp_dir, collection_name
+            subprocess.run(
+                (
+                    "ansible-galaxy",
+                    "collection",
+                    "init",
+                    "--init-path",
+                    temp_dir,
+                    f"pulp.{collection_name}",
+                )
             )
-            subprocess.run(cmd.split())
 
             collection_meta = os.path.join(temp_dir, f"pulp/{collection_name}/meta")
             os.mkdir(collection_meta)
             with open(os.path.join(collection_meta, "runtime.yml"), "w") as runtime:
                 runtime.write('requires_ansible: ">=2.9"')
 
-            cmd = "ansible-galaxy collection build --output-path {} {}{}".format(
-                temp_dir, temp_dir, "/pulp/" + collection_name + "/"
+            subprocess.run(
+                (
+                    "ansible-galaxy",
+                    "collection",
+                    "build",
+                    "--output-path",
+                    temp_dir,
+                    f"{temp_dir}/pulp/{collection_name}/",
+                )
             )
-            subprocess.run(cmd.split())
 
             repo_version = self.repo_versions_api.read(repo.latest_version_href)
             self.assertEqual(repo_version.number, 0)  # We uploaded 1 collection
 
-            cmd = "ansible-galaxy collection publish -c -s {} {}{}".format(
-                distribution.client_url, temp_dir, "/pulp-" + collection_name + "-1.0.0.tar.gz"
+            subprocess.run(
+                (
+                    "ansible-galaxy",
+                    "collection",
+                    "publish",
+                    "-c",
+                    "-s",
+                    distribution.client_url,
+                    f"{temp_dir}/pulp-{collection_name}-1.0.0.tar.gz",
+                )
             )
-            subprocess.run(cmd.split())
             wait_tasks()
 
         repo = self.repo_api.read(repo.pulp_href)
@@ -99,19 +118,26 @@ class InstallCollectionTestCase(PulpTestCase):
         collections = self.collections_v3api.list(distribution.base_path)
         self.assertEqual(collections.meta.count, 0)
 
-        temp_path = f"/tmp/{uuid4()}"
-        subprocess.run(f"mkdir -p {temp_path}".split())
+        with tempfile.TemporaryDirectory() as temp_dir:
+            dl_collection = requests.get(
+                "https://galaxy.ansible.com/download/pulp-squeezer-0.0.9.tar.gz"
+            )
+            collection_path = f"{temp_dir}/pulp-squeezer-0.0.9.tar.gz"
+            with open(collection_path, "wb") as f:
+                f.write(dl_collection.content)
 
-        content = http_get("https://galaxy.ansible.com/download/pulp-squeezer-0.0.9.tar.gz")
-        collection_path = f"{temp_path}/pulp-squeezer-0.0.9.tar.gz"
-        with open(collection_path, "wb") as f:
-            f.write(content)
-
-        cmd = "ansible-galaxy collection publish -c -s {} {}".format(
-            distribution.client_url, collection_path
-        )
-        subprocess.run(cmd.split())
-        wait_tasks()
+            subprocess.run(
+                (
+                    "ansible-galaxy",
+                    "collection",
+                    "publish",
+                    "-c",
+                    "-s",
+                    distribution.client_url,
+                    collection_path,
+                )
+            )
+            wait_tasks()
 
         collections = self.collections_v3api.list(distribution.base_path)
         self.assertEqual(collections.meta.count, 1)

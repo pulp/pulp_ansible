@@ -4,10 +4,6 @@ import subprocess
 
 from os import path
 
-from pulp_ansible.tests.functional.utils import gen_ansible_remote
-
-from pulp_smash.pulp3.utils import gen_repo
-
 
 @pytest.fixture
 def sync_and_count(
@@ -34,8 +30,9 @@ def sync_and_count(
 
 @pytest.mark.parallel
 def test_sync_collection_from_git(
-    ansible_repo_api_client,
+    bindings_cfg,
     sync_and_count,
+    ansible_repo_factory,
     ansible_distribution_factory,
     gen_user,
     gen_object_with_cleanup,
@@ -43,20 +40,20 @@ def test_sync_collection_from_git(
     pulp_admin_user,
 ):
     """Sync collections from Git repositories and then install one of them."""
-    body = gen_ansible_remote(
-        url="https://github.com/pulp/pulp_installer.git", include_pulp_auth=True
-    )
+    body = {
+        "url": "https://github.com/pulp/pulp_installer.git",
+        "username": bindings_cfg.username,
+        "password": bindings_cfg.password,
+    }
 
-    repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+    repo = ansible_repo_factory()
     count = sync_and_count(body, repo=repo)
     assert count == 1
 
-    body.pop("name")  # Forces a new remote to be created
     count = sync_and_count(body, repo=repo)
     assert count == 1
 
-    body = gen_ansible_remote(url="https://github.com/pulp/squeezer.git")
-
+    body = {"url": "https://github.com/pulp/squeezer.git"}
     count = sync_and_count(body, repo=repo)
     assert count == 2
 
@@ -89,11 +86,11 @@ def test_sync_metadata_only_collection_from_git(
     galaxy_v3_collection_versions_api_client,
 ):
     """Sync collections from Git repositories with metadata_only=True."""
-    body = gen_ansible_remote(
-        url="https://github.com/ansible-collections/amazon.aws/",
-        metadata_only=True,
-        git_ref="2.1.0",
-    )
+    body = {
+        "url": "https://github.com/ansible-collections/amazon.aws/",
+        "metadata_only": True,
+        "git_ref": "2.1.0",
+    }
     count = sync_and_count(body, repo=ansible_repo)
     assert count == 1
 
@@ -117,11 +114,11 @@ def test_sync_collection_from_git_commit_sha(
     galaxy_v3_collection_versions_api_client,
 ):
     """Sync collections from Git repositories with git_ref that is a commit sha."""
-    body = gen_ansible_remote(
-        url="https://github.com/ansible-collections/amazon.aws/",
-        metadata_only=True,
-        git_ref="d0b54fc082cb63f63d34246c8fe668e19e74777c",
-    )
+    body = {
+        "url": "https://github.com/ansible-collections/amazon.aws/",
+        "metadata_only": True,
+        "git_ref": "d0b54fc082cb63f63d34246c8fe668e19e74777c",
+    }
 
     count = sync_and_count(body, repo=ansible_repo)
     assert count == 1
@@ -140,6 +137,7 @@ def test_sync_collection_from_git_commit_sha(
 
 @pytest.mark.parallel
 def test_sync_metadata_only_collection_from_pulp(
+    bindings_cfg,
     ansible_sync_factory,
     ansible_repo_factory,
     ansible_distribution_factory,
@@ -159,13 +157,13 @@ def test_sync_metadata_only_collection_from_pulp(
     Assert content is added to the second repository.
 
     """
-    body = gen_ansible_remote(
+    amazon_remote = ansible_git_remote_factory(
         url="https://github.com/ansible-collections/amazon.aws/",
         metadata_only=True,
         git_ref="2.1.0",
-        include_pulp_auth=True,
+        username=bindings_cfg.username,
+        password=bindings_cfg.password,
     )
-    amazon_remote = ansible_git_remote_factory(**body)
 
     first_repo = ansible_repo_factory()
     first_repo = ansible_sync_factory(first_repo, remote=amazon_remote.pulp_href)
@@ -179,13 +177,13 @@ def test_sync_metadata_only_collection_from_pulp(
     distribution = ansible_distribution_factory(first_repo)
 
     requirements_file = "collections:\n  - amazon.aws"
-    second_body = gen_ansible_remote(
+    second_remote = ansible_collection_remote_factory(
         url=distribution.client_url,
         requirements_file=requirements_file,
         sync_dependencies=False,
-        include_pulp_auth=True,
+        username=bindings_cfg.username,
+        password=bindings_cfg.password,
     )
-    second_remote = ansible_collection_remote_factory(**second_body)
 
     second_repo = ansible_repo_factory(remote=second_remote.pulp_href)
     second_repo = ansible_sync_factory(second_repo)
