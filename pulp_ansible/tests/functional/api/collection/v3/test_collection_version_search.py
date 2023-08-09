@@ -490,7 +490,6 @@ def create_repos_and_dists(
     return created_dists, created_repos
 
 
-@pytest.mark.pulp_on_localhost
 @pytest.fixture()
 def search_specs(
     tmp_path,
@@ -764,12 +763,10 @@ class TestCrossRepoSearchFilters:
 
         assert len(skeys) == len(rkeys), comparison
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_all(self, galaxy_v3_default_search_api_client, search_specs):
         """Get everything."""
         self._run_search(galaxy_v3_default_search_api_client, search_specs, [], {})
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_pulp_label(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -781,7 +778,6 @@ class TestCrossRepoSearchFilters:
             {"repository_label": "special"},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_pulp_label_value(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -793,7 +789,6 @@ class TestCrossRepoSearchFilters:
             {"repository_label": "galaxy_type=sync_repo"},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_repoid(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -810,7 +805,6 @@ class TestCrossRepoSearchFilters:
             {"repository": repo_ids},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_base_path(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -826,7 +820,6 @@ class TestCrossRepoSearchFilters:
             {"distribution_base_path": base_paths},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_distid(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -842,7 +835,6 @@ class TestCrossRepoSearchFilters:
             {"distribution": dist_ids},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_namespace(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -854,7 +846,6 @@ class TestCrossRepoSearchFilters:
             {"namespace": "foo"},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_name(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -867,7 +858,6 @@ class TestCrossRepoSearchFilters:
         )
 
     # @pytest.mark.skip(reason="pulp_ansible includes pre-releases in is_highest")
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_highest(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -879,7 +869,6 @@ class TestCrossRepoSearchFilters:
             {"highest": True},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_q(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -891,7 +880,6 @@ class TestCrossRepoSearchFilters:
             {"q": "gifts"},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_keywords(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -903,7 +891,6 @@ class TestCrossRepoSearchFilters:
             {"keywords": "gifts"},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_dependency(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -915,7 +902,6 @@ class TestCrossRepoSearchFilters:
             {"dependency": "foo.bar"},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_version(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -927,7 +913,6 @@ class TestCrossRepoSearchFilters:
             {"version": "1.0.1"},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_deprecated(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -939,7 +924,6 @@ class TestCrossRepoSearchFilters:
             {"deprecated": True},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_not_deprecated(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -951,7 +935,6 @@ class TestCrossRepoSearchFilters:
             {"deprecated": False},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_signed(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
@@ -963,7 +946,6 @@ class TestCrossRepoSearchFilters:
             {"signed": True},
         )
 
-    @pytest.mark.pulp_on_localhost
     def test_collection_version_search_by_not_signed(
         self, galaxy_v3_default_search_api_client, search_specs
     ):

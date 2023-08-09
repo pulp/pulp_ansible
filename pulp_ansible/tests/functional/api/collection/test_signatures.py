@@ -14,7 +14,6 @@ from pulp_ansible.tests.functional.utils import (
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 
-@pytest.mark.pulp_on_localhost
 def test_upload_then_sign_then_try_to_upload_duplicate_signature(
     build_and_upload_collection,
     ansible_collections_api_client,
@@ -67,7 +66,6 @@ def test_upload_then_sign_then_try_to_upload_duplicate_signature(
         monitor_task(task.task)
 
 
-@pytest.mark.pulp_on_localhost
 def test_sign_locally_then_upload_signature(
     build_and_upload_collection,
     sign_with_ascii_armored_detached_signing_service,
@@ -167,7 +165,6 @@ def distro_serving_one_signed_one_unsigned_collection(
     return ansible_distro_api_client.read(distro_href)
 
 
-@pytest.mark.pulp_on_localhost
 def test_sync_signatures(
     ansible_repo_factory,
     distro_serving_one_signed_one_unsigned_collection,
@@ -194,7 +191,6 @@ def test_sync_signatures(
     assert len(content_response["ansible.collection_signature"]) == 1
 
 
-@pytest.mark.pulp_on_localhost
 def test_sync_signatures_only(
     ansible_repo_factory,
     distro_serving_one_signed_one_unsigned_collection,

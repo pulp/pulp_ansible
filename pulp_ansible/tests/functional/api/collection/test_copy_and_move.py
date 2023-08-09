@@ -1,5 +1,4 @@
 import pytest
-from pulp_smash.pulp3.utils import gen_distribution
 from pulp_ansible.tests.functional.utils import iterate_all
 
 
@@ -9,12 +8,12 @@ def repo_with_kitted_out_collection(
     ascii_armored_detached_signing_service,
     ansible_repo,
     ansible_repo_api_client,
-    ansible_distro_api_client,
     galaxy_v3_plugin_namespaces_api_client,
     galaxy_v3_content_collection_index_api,
     content_api_client,
     ansible_collection_signatures_client,
     ansible_collection_mark_client,
+    ansible_distribution_factory,
     monitor_task,
 ):
     """
@@ -50,9 +49,7 @@ def repo_with_kitted_out_collection(
 
     # Not gonna bother adding these to the first collection
     # Create a distro for the repo
-    body = gen_distribution(repository=ansible_repo.pulp_href)
-    distro_href = monitor_task(ansible_distro_api_client.create(body).task).created_resources[0]
-    distro = ansible_distro_api_client.read(distro_href)
+    distro = ansible_distribution_factory(repository=ansible_repo)
 
     # Add a namespace for the collection
     kwargs = {"path": distro.base_path, "distro_base_path": distro.base_path}

@@ -4,5 +4,6 @@ orionutils
 pytest
 dynaconf
 numpy
+requests
 pulpcore-client
 pulp-ansible-client

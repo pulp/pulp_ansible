@@ -1,10 +1,8 @@
 import pytest
-from pulp_smash.pulp3.bindings import monitor_task
 from pulp_smash.pulp3.utils import (
     get_added_content_summary,
     get_content,
     get_content_summary,
-    gen_distribution,
     get_removed_content_summary,
 )
 from pulp_ansible.tests.functional.utils import (
@@ -18,6 +16,7 @@ def test_add_mark_to_collection_version(
     ansible_repo_api_client,
     ansible_repo,
     ansible_collection_mark_client,
+    monitor_task,
 ):
     """Test adding a mark to a collection version.
 
@@ -72,7 +71,8 @@ def distro_serving_one_marked_one_unmarked_collection(
     build_and_upload_collection,
     ansible_repo,
     ansible_repo_api_client,
-    ansible_distro_api_client,
+    ansible_distribution_factory,
+    monitor_task,
 ):
     """Create a distro serving two collections, one marked, one unmarked."""
     collections = []
@@ -86,18 +86,16 @@ def distro_serving_one_marked_one_unmarked_collection(
     body = {"content_units": collections[:1], "value": "marked-on-sync-test"}
     monitor_task(ansible_repo_api_client.mark(ansible_repo.pulp_href, body).task)
 
-    body = gen_distribution(repository=ansible_repo.pulp_href)
-    distro_href = monitor_task(ansible_distro_api_client.create(body).task).created_resources[0]
-    return ansible_distro_api_client.read(distro_href)
+    return ansible_distribution_factory(ansible_repo)
 
 
-@pytest.mark.pulp_on_localhost
 def test_sync_marks(
     ansible_repo_factory,
     distro_serving_one_marked_one_unmarked_collection,
     ansible_remote_collection_api_client,
     gen_object_with_cleanup,
     ansible_repo_api_client,
+    monitor_task,
 ):
     """Test that marks are also synced."""
     distro = distro_serving_one_marked_one_unmarked_collection

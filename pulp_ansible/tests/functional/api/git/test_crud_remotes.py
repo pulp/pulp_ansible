@@ -1,19 +1,14 @@
 """Tests that CRUD remotes."""
 import pytest
-from pulp_smash.pulp3.bindings import monitor_task
-
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
-)
 from pulpcore.client.pulp_ansible import ApiException
 
 
 @pytest.mark.parallel
-def test_crud_git_remote(ansible_remote_git_api_client, gen_object_with_cleanup):
+def test_crud_git_remote(ansible_remote_git_api_client, ansible_git_remote_factory, monitor_task):
     """Create, Read, Partial Update, and Delete an Ansible Git remote."""
     # Create Git remote
-    body = gen_ansible_remote(url="https://github.com/geerlingguy/ansible-role-adminer.git")
-    remote = gen_object_with_cleanup(ansible_remote_git_api_client, body)
+    body = {"url": "https://github.com/geerlingguy/ansible-role-adminer.git"}
+    remote = ansible_git_remote_factory(**body)
 
     # Read Git remote
     remote = ansible_remote_git_api_client.read(remote.pulp_href)
@@ -41,9 +36,10 @@ def test_crud_git_remote(ansible_remote_git_api_client, gen_object_with_cleanup)
 @pytest.mark.parallel
 def test_git_metadata_only_remote(ansible_git_remote_factory):
     """Create a remote where `metadata_only` is set to True."""
-    body = gen_ansible_remote(
-        url="https://github.com/geerlingguy/ansible-role-adminer.git", metadata_only=True
-    )
+    body = {
+        "url": "https://github.com/geerlingguy/ansible-role-adminer.git",
+        "metadata_only": True,
+    }
     remote = ansible_git_remote_factory(**body)
     for k, v in body.items():
         assert body[k] == getattr(remote, k)
