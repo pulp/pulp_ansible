@@ -428,7 +428,9 @@ def _update_highest_version(collection_version, save=False):
     If this version is the first version in collection, is_highest is set to True.
     If this version is greater than the highest version in collection, set is_highest
     equals False on the last highest version and True on this version.
-    Otherwise does nothing.
+    Otherwise does nothing. The collection version is updated to the database if `save=True`,
+    otherwise only the `is_highest` field is updated on the instance. This is an optimization
+    to prevent double saving when this method is called during syncs and uploads.
     """
 
     def is_new_highest(new, old):
@@ -447,7 +449,7 @@ def _update_highest_version(collection_version, save=False):
                 collection_version.save(update_fields=["is_highest"])
             return
 
-        # compute highest from the whole list ...
+        # previous highest must have been removed, re-compute highest from the whole list ...
         highest = None
         for cv in collection_version.collection.versions.all():
             sv = Version(cv.version)
@@ -461,6 +463,11 @@ def _update_highest_version(collection_version, save=False):
 
     # exit if the new CV is not higher
     if not is_new_highest(Version(collection_version.version), Version(last_highest.version)):
+        # ensure that this collection_version doesn't have is_highest improperly set
+        if collection_version.is_highest:
+            collection_version.is_highest = False
+            if save:
+                collection_version.save(update_fields=["is_highest"])
         return
 
     last_highest.is_highest = False
