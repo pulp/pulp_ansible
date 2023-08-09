@@ -296,6 +296,7 @@ class SigstoreSignatureFilter(ContentFilter):
         model = CollectionVersionSigstoreSignature
         fields = {
             "signed_collection": ["exact"],
+            "sigstore_bundle_sha256_hash": ["exact", "in"],
             "sigstore_signing_service": ["exact"],
         }
 
