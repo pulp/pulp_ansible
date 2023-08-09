@@ -1,0 +1,1 @@
+Fixed a sporadic sync error when re-syncing a repository with new collection versions.
