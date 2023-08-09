@@ -10,7 +10,7 @@ from urllib.parse import urljoin
 from uuid import uuid4
 
 import yaml
-from aiohttp.client_exceptions import ClientResponseError
+from aiohttp.client_exceptions import ClientError, ClientResponseError
 from asgiref.sync import sync_to_async
 from async_lru import alru_cache
 from django.conf import settings
@@ -496,7 +496,7 @@ class AnsibleDeclarativeVersion(DeclarativeVersion):
             ArtifactSaver(),
             QueryExistingContents(),
             DocsBlobDownloader(),
-            CollectionContentSaver(new_version),
+            AnsibleContentSaver(new_version),
             RemoteArtifactSaver(),
             ResolveContentFutures(),
         ]
@@ -726,8 +726,8 @@ class CollectionSyncFirstStage(Stage):
 
             da = (
                 [
-                    DeclarativeArtifact(
-                        Artifact(sha256=namespace["avatar_sha256"]),
+                    DeclarativeFailsafeArtifact(
+                        Artifact(sha256=namespace.get("avatar_sha256")),
                         url=url,
                         remote=self.remote,
                         relative_path=f"{name}-avatar",
@@ -1074,6 +1074,25 @@ class CollectionSyncFirstStage(Stage):
             pb.total = pb.done
 
 
+class DeclarativeFailsafeArtifact(DeclarativeArtifact):
+    """
+    Special handling for downloading Namespace Avatar Artifacts.
+    """
+
+    async def download(self):
+        """Allow download to fail, but not stop the sync."""
+        artifact_copy = self.artifact
+        try:
+            return await super().download()
+        except ClientError as e:
+            # Reset DA so that future stages can properly handle it
+            self.artifact = artifact_copy
+            self.deferred_download = True
+            name = self.extra_data.get("namespace")
+            log.info(f"Failed to download namespace avatar: {name} - {e}, Skipping")
+            return None
+
+
 class DocsBlobDownloader(ArtifactDownloader):
     """
     Stage for downloading docs_blob.
@@ -1114,7 +1133,7 @@ class DocsBlobDownloader(ArtifactDownloader):
         return downloaded
 
 
-class CollectionContentSaver(ContentSaver):
+class AnsibleContentSaver(ContentSaver):
     """
     A modification of ContentSaver stage that additionally saves Ansible plugin specific items.
 
@@ -1149,6 +1168,15 @@ class CollectionContentSaver(ContentSaver):
                 name = d_content.content.name
                 namespace, created = AnsibleNamespace.objects.get_or_create(name=name)
                 d_content.content.namespace = namespace
+                if d_content.d_artifacts:
+                    da = d_content.d_artifacts[0]
+                    # Check to see if avatar failed to download, update metadata if so
+                    if da.deferred_download:
+                        d_content.d_artifacts = None
+                        d_content.content.avatar_sha256 = None
+                    # Check to see if upstream didn't have avatar_sha256 set
+                    elif d_content.content.avatar_sha256 is None:
+                        d_content.content.avatar_sha256 = da.artifact.sha256
 
     def _post_save(self, batch):
         """
