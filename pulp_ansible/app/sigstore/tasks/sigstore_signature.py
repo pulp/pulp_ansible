@@ -2,7 +2,6 @@
 Tasks related to Sigstore content signature and verification.
 """
 
-import aiofiles
 import asyncio
 import io
 import logging
@@ -10,10 +9,6 @@ import os
 import re
 import tarfile
 import tempfile
-import cryptography.x509 as x509
-from cryptography.hazmat.primitives import hashes
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.x509.oid import NameOID
 from distlib.manifest import DistlibException
 from gettext import gettext as _
 
@@ -23,8 +18,6 @@ from ansible_sign.checksum import (
 from ansible_sign.checksum.differ import DistlibManifestChecksumFileExistenceDiffer
 
 from sigstore.verify.models import VerificationFailure
-from sigstore._internal.oidc import Identity
-from sigstore._internal.sct import verify_sct
 from sigstore._utils import sha256_streaming
 from sigstore_protobuf_specs.dev.sigstore.bundle.v1 import Bundle
 
@@ -92,8 +85,10 @@ def _generate_checksum_manifest(collection_version):
 
 
 def verify_sigstore_signature_upload(data):
-    # Check that the provided signature materials correspond to the collection content on upload.
-    """The task code for verifying Sigstore signature upload."""
+    """
+    The task code for verifying that the provided signature materials
+    correspond to the collection content on upload.
+    """
     collection = data["signed_collection"]
     repository = data.get("repository")
     if repository:
@@ -138,8 +133,6 @@ def verify_sigstore_signature_upload(data):
 
     log.info(f"Validated Sigstore signature for collection {collection}")
 
-    data["data"] = signature
-    data["sigstore_x509_certificate"] = certificate
     data["sigstore_signing_service"] = sigstore_signing_service
 
     return data
@@ -186,71 +179,34 @@ class CollectionSigstoreSigningFirstStage(Stage):
 
     async def sigstore_sign_collection_versions(self, collection_versions):
         """Signs the collection versions with Sigstore."""
-        # Prepare ephemeral key pair and certificate and sign the collections asynchronously
-        private_key = ec.generate_private_key(ec.SECP384R1())
+        # Get an OIDC token to authenticate to Fulcio
         client_secret = self.sigstore_signing_service.oidc_client_secret
-        identity_token = self.sigstore_signing_service.issuer.identity_token(
+
+        identity = self.sigstore_signing_service.issuer.identity_token(
             "sigstore", client_secret,
         )
-        oidc_identity = Identity(identity_token)
 
-        # Build an X.509 Certificiate Signing Request
-        builder = (
-            x509.CertificateSigningRequestBuilder()
-            .subject_name(
-                x509.Name(
-                    [
-                        x509.NameAttribute(NameOID.EMAIL_ADDRESS, oidc_identity.proof),
-                    ]
-                )
-            )
-            .add_extension(
-                x509.BasicConstraints(ca=False, path_length=None),
-                critical=True,
-            )
-        )
-        certificate_request = builder.sign(private_key, hashes.SHA256())
-        certificate_response = self.sigstore_signing_service.fulcio.signing_cert.post(
-            certificate_request, identity_token
-        )
+        signing_ctx = self.sigstore_signing_service.signing_context
 
-        # Verify the SCT
-        sct = certificate_response.sct
-        cert = certificate_response.cert
-        chain = certificate_response.chain
+        with signing_ctx.signer(identity) as signer:
+            # Limits the number of subprocesses spawned/running at one time
+            async with self.semaphore:
+                async for collection_version in collection_versions:
+                    # We create the checksums manifest to sign
+                    manifest_data = await sync_to_async(_generate_checksum_manifest)(collection_version)
+                    input_digest = io.BytesIO(manifest_data.encode("utf-8"))
 
-        verify_sct(sct, cert, chain, self.sigstore_signing_service.rekor._ct_keyring)
+                    signing_result = await sync_to_async(signer.sign)(input_=input_digest)
+                    bundle_data = signing_result._to_bundle().to_json()
 
-        # Limits the number of subprocesses spawned/running at one time
-        async with self.semaphore:
-            async for collection_version in collection_versions:
-                # We create the checksums manifest to sign
-                manifest_data = await sync_to_async(_generate_checksum_manifest)(collection_version)
-                input_digest = sha256_streaming(
-                    io.BytesIO(
-                        bytes(manifest_data, "utf-8")
-                        )
+                    cv_signature = CollectionVersionSigstoreSignature(
+                        sigstore_bundle=bundle_data,
+                        signed_collection=collection_version,
+                        sigstore_signing_service=self.sigstore_signing_service,
                     )
-                result = await self.sigstore_signing_service.sigstore_asign(
-                    input_digest, private_key, cert
-                )
-
-                sig_data, cert_data, bundle_data = (
-                    result["signature"],
-                    result["certificate"],
-                    result["bundle"],
-                )
-
-                cv_signature = CollectionVersionSigstoreSignature(
-                    data=sig_data,
-                    sigstore_x509_certificate=cert_data,
-                    sigstore_bundle=bundle_data,
-                    signed_collection=collection_version,
-                    sigstore_signing_service=self.sigstore_signing_service,
-                )
-                dc = DeclarativeContent(content=cv_signature)
-                await self.progress_report.aincrement()
-                await self.put(dc)
+                    dc = DeclarativeContent(content=cv_signature)
+                    await self.progress_report.aincrement()
+                    await self.put(dc)
 
     async def run(self):
         """Sign collections with Sigstore if they have not been signed."""

@@ -1,17 +1,8 @@
-import aiohttp
-import base64
 import hashlib
 import json
 import tempfile
-from cryptography.hazmat.primitives import (
-    hashes,
-    serialization,
-)
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.utils import Prehashed
 from cryptography.x509 import load_pem_x509_certificates
 from logging import getLogger
-from urllib.parse import urljoin
 
 from semantic_version import Version
 
@@ -43,10 +34,8 @@ from pulpcore.plugin.models import (
     EncryptedTextField,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
-from pulpcore.plugin.sync import sync_to_async
 
-from pulp_ansible.app.sigstore.exceptions import MissingIdentityToken
-from pulp_ansible.app.sigstore.issuers.keycloak import Keycloak
+from pulp_ansible.app.sigstore.issuers.oidc_client_credentials_issuer import NonInteractiveIssuer
 from pulp_ansible.app.sigstore.utils import validate_and_format_pem_public_key
 
 from sigstore._internal.ctfe import CTKeyring
@@ -54,17 +43,12 @@ from sigstore._internal.fulcio.client import FulcioClient
 from sigstore._internal.keyring import Keyring
 from sigstore._internal.rekor.client import (
     RekorClient,
-    RekorClientError,
     RekorKeyring,
 )
 from sigstore._internal.tuf import TrustUpdater
-from sigstore._utils import PEMCert
-from sigstore.oidc import Issuer as PublicIssuer
 from sigstore.sign import (
-    Signer,
-    SigningResult,
+    SigningContext,
 )
-from sigstore.transparency import LogEntry
 from sigstore.verify.verifier import (
     Verifier,
     VerificationMaterials,
@@ -420,9 +404,7 @@ class SigstoreSigningService(BaseModel):
     @property
     def issuer(self):
         """Get an OIDC issuer instance."""
-        if self.oidc_issuer in self.PUBLIC_OIDC_ISSUERS:
-            return PublicIssuer(self.oidc_issuer)
-        return Keycloak(self.oidc_issuer)
+        return NonInteractiveIssuer(self.oidc_issuer)
 
     @property
     def trust_updater(self):
@@ -430,61 +412,12 @@ class SigstoreSigningService(BaseModel):
         return TrustUpdater(self.tuf_url)
 
     @property
-    def signer(self):
-        """Get a Signer instance."""
-        return Signer(
-            self.fulcio,
-            self.rekor,
+    def signing_context(self):
+        """Get a SigningContext instance."""
+        return SigningContext(
+            fulcio=self.fulcio,
+            rekor=self.rekor,
         )
-
-    async def sigstore_asign(self, input_digest, private_key, cert):
-        """Sign collections with Sigstore asynchronously."""
-        b64_cert = base64.b64encode(cert.public_bytes(encoding=serialization.Encoding.PEM))
-        signing_result = {}
-        artifact_signature = await sync_to_async(private_key.sign)(
-            input_digest, ec.ECDSA(Prehashed(hashes.SHA256()))
-        )
-        b64_artifact_signature = base64.b64encode(artifact_signature).decode()
-        rekor_post_entry_payload = {
-            "kind": "hashedrekord",
-            "apiVersion": "0.0.1",
-            "spec": {
-                "signature": {
-                    "content": b64_artifact_signature,
-                    "publicKey": {"content": b64_cert.decode()},
-                },
-                "data": {"hash": {"algorithm": "sha256", "value": input_digest.hex()}},
-            },
-        }
-
-        rekor_post_entries_url = urljoin(self.rekor.url, "log/entries/")
-
-        async with aiohttp.ClientSession(
-            headers={"Content-Type": "application/json", "Accept": "application/json"}
-        ) as session:
-            try:
-                async with session.post(
-                    rekor_post_entries_url, json=rekor_post_entry_payload
-                ) as resp:
-                    rekor_response = await resp.json()
-            except aiohttp.web.HTTPError as http_error:
-                raise RekorClientError from http_error
-
-        log_entry = LogEntry._from_response(rekor_response)
-        log.info(f"Transparency log entry created with index: {log_entry.log_index}")
-
-        result = SigningResult(
-            input_digest=input_digest.hex(),
-            cert_pem=PEMCert(cert.public_bytes(encoding=serialization.Encoding.PEM).decode()),
-            b64_signature=b64_artifact_signature,
-            log_entry=log_entry,
-        )
-
-        signing_result["signature"] = result.b64_signature
-        signing_result["certificate"] = result.cert_pem
-        signing_result["bundle"] = result._to_bundle().to_json()
-
-        return signing_result
 
     @hook(BEFORE_SAVE)
     def format_pem_pubkeys(self):
@@ -621,12 +554,13 @@ class CollectionVersionSigstoreSignature(Content):
     """
     A content type representing a Sigstore signature attached to a content unit.
     Fields:
-        data (models.CharField):
-            A signature, base64 encoded.
-        sigstore_x509_certificate (models.TextField):
-            The ephemeral PEM-encoded signing certificate generated by Sigstore.
         sigstore_bundle (models.JSONField):
             An optional Sigstore bundle used for offline verification.
+        sigstore_bundle_sha256_hash (CharField):
+            A sha256 hash value for the Sigstore bundle.
+            Fixes error related to index row size exceeding btree version 4
+            maximum 2704 for indexes when creating unique_together constraint.
+            See https://code.djangoproject.com/ticket/14904#no1
     Relations:
         signed_collection (models.ForeignKey):
             A collection version this signature is relevant to.
@@ -636,9 +570,8 @@ class CollectionVersionSigstoreSignature(Content):
 
     TYPE = "collection_sigstore_signatures"
 
-    data = models.CharField(max_length=256)
-    sigstore_x509_certificate = models.TextField()
     sigstore_bundle = models.JSONField(null=True)
+    sigstore_bundle_sha256_hash = models.CharField(max_length=64, unique=True, db_index=True, null=True)
     signed_collection = models.ForeignKey(
         CollectionVersion, on_delete=models.CASCADE, related_name="sigstore_signatures"
     )
@@ -649,9 +582,15 @@ class CollectionVersionSigstoreSignature(Content):
         null=True,
     )
 
+    def save(self, *args, **kwargs):
+        if self.sigstore_bundle:
+            hash_value = hashlib.sha256(json.dumps(self.sigstore_bundle, sort_keys=True).encode('utf-8')).hexdigest()
+            self.sigstore_bundle_hash = hash_value
+        super().save(*args, **kwargs)
+
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("sigstore_x509_certificate", "signed_collection")
+        unique_together = ("sigstore_bundle_sha256_hash", "signed_collection")
 
 
 class AnsibleNamespaceMetadata(Content):
