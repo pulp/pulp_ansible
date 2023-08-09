@@ -408,11 +408,10 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
     @action(detail=True, methods=["get"], serializer_class=None)
     def avatar(self, request, pk):
         """
-        Dispatches a collection version rebuild task.
+        Tries to find a redirect link to the Namespace's avatar
         """
         ns = self.get_object()
-        artifact = ns.avatar_artifact
-        if artifact:
+        if artifact := ns.avatar_artifact:
             return HttpResponseRedirect(get_artifact_url(artifact))
 
         return HttpResponseNotFound()
