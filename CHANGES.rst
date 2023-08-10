@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.17.4 (2023-08-10)
+===================
+
+Bugfixes
+--------
+
+- Stopped collection sync from failing if a namespace's avatar url was unreachable.
+  `#1543 <https://github.com/pulp/pulp_ansible/issues/1543>`__
+- Fixed a sporadic sync error when re-syncing a repository with new collection versions.
+  `#1547 <https://github.com/pulp/pulp_ansible/issues/1547>`__
+
+
+----
+
+
 0.17.3 (2023-07-05)
 ===================
 
