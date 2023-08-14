@@ -1505,3 +1505,51 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
     assert cv2.namespace_metadata.company == "Testing Co. redux"
     assert cv2.namespace_metadata.description == "hello 2"
     assert cv2.namespace_metadata.name == namespace_name
+
+
+def test_cross_repo_search_semantic_version_ordering(
+    ansible_distro_api_client,
+    ansible_repo_api_client,
+    build_and_upload_collection,
+    galaxy_v3_default_search_api_client,
+    gen_object_with_cleanup,
+):
+    """Make sure collections are properly sorted using the order_by='version' parameter."""
+    pulp_repo = gen_object_with_cleanup(ansible_repo_api_client, {"name": str(uuid.uuid4())})
+
+    gen_object_with_cleanup(
+        ansible_distro_api_client,
+        {
+            "name": pulp_repo.name,
+            "base_path": pulp_repo.name,
+            "repository": pulp_repo.pulp_href,
+        },
+    )
+
+    versions = [
+        "2.0.0",
+        "1.22.2",
+        "1.22.1",
+        "1.22.1-rc",
+        "1.22.1-pre",
+        "1.22.1-dev",
+        "1.22.1-beta",
+        "1.22.1-alpha",
+        "1.1.0",
+        "1.0.1",
+        "1.0.0",
+    ]
+
+    for version in versions:
+        build_and_upload_collection(ansible_repo=pulp_repo, config={"version": version})
+
+    resp = galaxy_v3_default_search_api_client.list(
+        limit=1000, order_by=["-version"], repository_name=[pulp_repo.name]
+    )
+
+    built_collection_versions = [col.collection_version.version for col in resp.data]
+
+    # Make sure versions are correctly sorted according to Semantic Versioning.
+    assert versions == sorted(versions, key=Version, reverse=True)
+
+    assert versions == built_collection_versions

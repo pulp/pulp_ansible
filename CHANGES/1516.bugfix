@@ -1,0 +1,1 @@
+Fixed ordering by version in the ``/ansible/search/collection-versions/`` endpoint.
