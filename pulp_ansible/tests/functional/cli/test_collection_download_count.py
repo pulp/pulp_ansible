@@ -49,64 +49,63 @@ def test_collection_download_count(
     ansible_dir_factory,
     galaxy_v3_collections_api_client,
     install_scenario_distribution,
-    pulp_admin_user,
     pulp_settings,
 ):
     """Test that the collection download counting functions."""
     if not pulp_settings.ANSIBLE_COLLECT_DOWNLOAD_COUNT:
         pytest.skip("ANSIBLE_COLLECT_DOWNLOAD_COUNT not enabled")
-    with pulp_admin_user:
-        collection_namespace = ANSIBLE_DEMO_COLLECTION.split(".")[0]
-        collection_name = ANSIBLE_DEMO_COLLECTION.split(".")[1]
-        download_count = get_current_download_count(
-            api_client=galaxy_v3_collections_api_client,
-            path=install_scenario_distribution.base_path,
-            namespace=collection_namespace,
-            name=collection_name,
-        )
 
-        temp_dir = ansible_dir_factory(install_scenario_distribution.client_url, pulp_admin_user)
+    collection_namespace = ANSIBLE_DEMO_COLLECTION.split(".")[0]
+    collection_name = ANSIBLE_DEMO_COLLECTION.split(".")[1]
+    download_count = get_current_download_count(
+        api_client=galaxy_v3_collections_api_client,
+        path=install_scenario_distribution.base_path,
+        namespace=collection_namespace,
+        name=collection_name,
+    )
 
-        cmd = [
-            "ansible-galaxy",
-            "collection",
-            "install",
-            f"{ANSIBLE_DEMO_COLLECTION}:{ANSIBLE_DEMO_COLLECTION_VERSION}",
-            "-c",
-            "-p",
-            temp_dir,
-        ]
+    temp_dir = ansible_dir_factory(install_scenario_distribution.client_url)
 
-        directory = temp_dir / "ansible_collections" / ANSIBLE_DEMO_COLLECTION.replace(".", "/")
+    cmd = [
+        "ansible-galaxy",
+        "collection",
+        "install",
+        f"{ANSIBLE_DEMO_COLLECTION}:{ANSIBLE_DEMO_COLLECTION_VERSION}",
+        "-c",
+        "-p",
+        temp_dir,
+    ]
 
-        assert not directory.exists(), "Directory {} already exists".format(directory)
-        subprocess.run(cmd, cwd=temp_dir)
-        assert directory.exists(), "Could not find directory {}".format(directory)
+    directory = temp_dir / "ansible_collections" / ANSIBLE_DEMO_COLLECTION.replace(".", "/")
 
-        assert (download_count + 1) == get_current_download_count(
-            api_client=galaxy_v3_collections_api_client,
-            path=install_scenario_distribution.base_path,
-            namespace=collection_namespace,
-            name=collection_name,
-        )
+    assert not directory.exists(), "Directory {} already exists".format(directory)
+    subprocess.run(cmd, cwd=temp_dir)
+    assert directory.exists(), "Could not find directory {}".format(directory)
 
-        # TODO update to use a second collection version when available
-        cmd = [
-            "ansible-galaxy",
-            "collection",
-            "install",
-            f"{ANSIBLE_DEMO_COLLECTION}:{ANSIBLE_DEMO_COLLECTION_VERSION}",
-            "-c",
-            "-f",
-            "-p",
-            temp_dir,
-        ]
+    assert (download_count + 1) == get_current_download_count(
+        api_client=galaxy_v3_collections_api_client,
+        path=install_scenario_distribution.base_path,
+        namespace=collection_namespace,
+        name=collection_name,
+    )
 
-        subprocess.run(cmd, cwd=temp_dir)
+    # TODO update to use a second collection version when available
+    cmd = [
+        "ansible-galaxy",
+        "collection",
+        "install",
+        f"{ANSIBLE_DEMO_COLLECTION}:{ANSIBLE_DEMO_COLLECTION_VERSION}",
+        "-c",
+        "-f",
+        "-p",
+        temp_dir,
+    ]
 
-        assert (download_count + 2) == get_current_download_count(
-            api_client=galaxy_v3_collections_api_client,
-            path=install_scenario_distribution.base_path,
-            namespace=collection_namespace,
-            name=collection_name,
-        )
+    subprocess.run(cmd, cwd=temp_dir)
+
+    assert (download_count + 2) == get_current_download_count(
+        api_client=galaxy_v3_collections_api_client,
+        path=install_scenario_distribution.base_path,
+        namespace=collection_namespace,
+        name=collection_name,
+    )

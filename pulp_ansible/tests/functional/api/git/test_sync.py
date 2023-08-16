@@ -2,8 +2,6 @@
 import pytest
 import subprocess
 
-from os import path
-
 
 @pytest.fixture
 def sync_and_count(
@@ -30,20 +28,17 @@ def sync_and_count(
 
 @pytest.mark.parallel
 def test_sync_collection_from_git(
-    bindings_cfg,
     sync_and_count,
     ansible_repo_factory,
     ansible_distribution_factory,
     gen_user,
     gen_object_with_cleanup,
     ansible_dir_factory,
-    pulp_admin_user,
 ):
     """Sync collections from Git repositories and then install one of them."""
     body = {
         "url": "https://github.com/pulp/pulp_installer.git",
-        "username": bindings_cfg.username,
-        "password": bindings_cfg.password,
+        "include_pulp_auth": True,
     }
 
     repo = ansible_repo_factory()
@@ -62,20 +57,29 @@ def test_sync_collection_from_git(
 
     collection_name = "pulp.squeezer"
 
-    temp_dir = ansible_dir_factory(distribution.client_url, pulp_admin_user)
-    with temp_dir:
-        # The install command needs --pre so a pre-release collection versions install
-        cmd = "ansible-galaxy collection install --pre {} -c -p {}".format(
-            collection_name, temp_dir
-        )
+    ansible_dir = ansible_dir_factory(distribution.client_url)
 
-        directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
+    directory = ansible_dir / "ansible_collections" / collection_name.replace(".", "/")
 
-        assert not path.exists(directory), "Directory {} already exists".format(directory)
+    assert not directory.exists(), f"Directory {directory} already exists"
 
-        subprocess.run(cmd.split(), cwd=temp_dir)
+    # The install command needs --pre so a pre-release collection versions install
+    subprocess.run(
+        (
+            "ansible-galaxy",
+            "collection",
+            "install",
+            "--pre",
+            collection_name,
+            "-c",
+            "-p",
+            ansible_dir,
+        ),
+        cwd=ansible_dir,
+        check=True,
+    )
 
-        assert path.exists(directory), "Could not find directory {}".format(directory)
+    assert directory.exists(), f"Could not find directory {directory}"
 
 
 @pytest.mark.parallel
@@ -137,7 +141,6 @@ def test_sync_collection_from_git_commit_sha(
 
 @pytest.mark.parallel
 def test_sync_metadata_only_collection_from_pulp(
-    bindings_cfg,
     ansible_sync_factory,
     ansible_repo_factory,
     ansible_distribution_factory,
@@ -161,8 +164,7 @@ def test_sync_metadata_only_collection_from_pulp(
         url="https://github.com/ansible-collections/amazon.aws/",
         metadata_only=True,
         git_ref="2.1.0",
-        username=bindings_cfg.username,
-        password=bindings_cfg.password,
+        include_pulp_auth=True,
     )
 
     first_repo = ansible_repo_factory()
@@ -181,8 +183,7 @@ def test_sync_metadata_only_collection_from_pulp(
         url=distribution.client_url,
         requirements_file=requirements_file,
         sync_dependencies=False,
-        username=bindings_cfg.username,
-        password=bindings_cfg.password,
+        include_pulp_auth=True,
     )
 
     second_repo = ansible_repo_factory(remote=second_remote.pulp_href)

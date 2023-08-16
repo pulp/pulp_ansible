@@ -3,7 +3,7 @@ import tarfile
 
 import pytest
 
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
+from pulpcore.tests.functional.utils import PulpTaskError
 from pulp_smash.pulp3.utils import get_content_summary
 
 from pulp_ansible.tests.functional.utils import (
@@ -16,13 +16,13 @@ from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 def test_upload_then_sign_then_try_to_upload_duplicate_signature(
     build_and_upload_collection,
-    ansible_collections_api_client,
     ansible_repo_api_client,
     ansible_repo,
     ascii_armored_detached_signing_service,
     tmp_path,
     sign_with_ascii_armored_detached_signing_service,
     ansible_collection_signatures_client,
+    monitor_task,
 ):
     """Test server signing of collections, and that a duplicate signature can't be uploaded."""
     collection, collection_url = build_and_upload_collection()
@@ -70,11 +70,11 @@ def test_sign_locally_then_upload_signature(
     build_and_upload_collection,
     sign_with_ascii_armored_detached_signing_service,
     tmp_path,
-    ansible_collections_api_client,
     ansible_collection_signatures_client,
     ansible_repo_factory,
     pulp_trusted_public_key_fingerprint,
     pulp_trusted_public_key,
+    monitor_task,
 ):
     """Test uploading a locally produced Collection Signature."""
     repository = ansible_repo_factory(gpgkey=pulp_trusted_public_key)
@@ -144,6 +144,7 @@ def distro_serving_one_signed_one_unsigned_collection(
     ansible_repo,
     ansible_repo_api_client,
     ansible_distro_api_client,
+    monitor_task,
 ):
     """Create a distro serving two collections, one signed, one unsigned."""
     collections = []
@@ -171,6 +172,7 @@ def test_sync_signatures(
     ansible_remote_collection_api_client,
     gen_object_with_cleanup,
     ansible_repo_api_client,
+    monitor_task,
 ):
     """Test that signatures are also synced."""
     distro = distro_serving_one_signed_one_unsigned_collection
@@ -193,18 +195,19 @@ def test_sync_signatures(
 
 def test_sync_signatures_only(
     ansible_repo_factory,
+    ansible_collection_remote_factory,
     distro_serving_one_signed_one_unsigned_collection,
-    ansible_remote_collection_api_client,
     ansible_repo_api_client,
-    gen_object_with_cleanup,
+    monitor_task,
 ):
     """Test that only collections with a signatures are synced when specified."""
     distro = distro_serving_one_signed_one_unsigned_collection
     new_repo = ansible_repo_factory()
 
     # Create Remote
-    body = gen_ansible_remote(distro.client_url, signed_only=True, include_pulp_auth=True)
-    remote = gen_object_with_cleanup(ansible_remote_collection_api_client, body)
+    remote = ansible_collection_remote_factory(
+        url=distro.client_url, signed_only=True, include_pulp_auth=True
+    )
 
     # Sync
     repository_sync_data = AnsibleRepositorySyncURL(remote=remote.pulp_href)
