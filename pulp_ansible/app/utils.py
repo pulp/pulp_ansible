@@ -1,6 +1,6 @@
-from django.db.models import Q, fields, OuterRef, Subquery, F
+from django.db.models import Q, OuterRef, Subquery, CharField
 from pulpcore.plugin.models import RepositoryVersion, RepositoryContent, Task
-from django.db.models.functions import JSONObject, Cast
+from django.db.models.functions import Cast, JSONObject
 
 
 def filter_content_for_repo_version(qs, repo_version):
@@ -32,21 +32,19 @@ def filter_content_for_repo_version(qs, repo_version):
 def get_queryset_annotated_with_task_sync_task(qs):
     tasks = (
         Task.objects.filter(
-            name__contains="sync", reserved_resources_record__icontains=OuterRef("outer_pk")
+            name__contains="sync",
+            reserved_resources_record__icontains=Cast(OuterRef("pk"), output_field=CharField()),
         )
-        .annotate(
-            task=JSONObject(
-                pk=F("pk"),
-                state=F("state"),
-                pulp_created=F("pulp_created"),
-                finished_at=F("finished_at"),
-                error=F("error"),
+        .values(
+            json=JSONObject(
+                pk="pk",
+                state="state",
+                pulp_created="pulp_created",
+                finished_at="finished_at",
+                error="error",
             )
         )
-        .order_by("-pulp_created")
-        .values("task")[:1]
+        .order_by("-pulp_created")[:1]
     )
 
-    return qs.annotate(outer_pk=Cast("pk", output_field=fields.CharField())).annotate(
-        last_sync_task=Subquery(tasks)
-    )
+    return qs.annotate(last_sync_task=Subquery(tasks))
