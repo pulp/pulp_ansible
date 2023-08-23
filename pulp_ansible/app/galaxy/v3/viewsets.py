@@ -7,6 +7,7 @@ from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSearchListSerializer,
 )
+from pulp_ansible.app.galaxy.mixins import GalaxyAuthMixin
 
 from pulpcore.plugin.util import get_url
 
@@ -61,7 +62,7 @@ from pulpcore.plugin.viewsets import OperationPostponedResponse
         ],
     )
 )
-class CollectionVersionSearchViewSet(viewsets.ModelViewSet):
+class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
     """
     A viewset for cross-repo searches.
     """

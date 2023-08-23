@@ -71,7 +71,7 @@ from pulp_ansible.app.serializers import (
     CollectionVersionUploadSerializer,
 )
 
-from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
+from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin, GalaxyAuthMixin
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import (
     CollectionVersionFilter,
@@ -261,6 +261,7 @@ class CollectionFilter(BaseFilterSet):
 
 
 class CollectionViewSet(
+    GalaxyAuthMixin,
     ExceptionHandlerMixin,
     AnsibleDistributionMixin,
     mixins.ListModelMixin,
@@ -508,6 +509,7 @@ class UnpaginatedCollectionViewSet(CollectionViewSet):
 
 
 class CollectionUploadViewSet(
+    GalaxyAuthMixin,
     ExceptionHandlerMixin,
     UploadGalaxyCollectionMixin,
     SingleArtifactContentUploadViewSet,
@@ -621,7 +623,7 @@ class LegacyCollectionUploadViewSet(CollectionUploadViewSet):
         return super().create(request, distro_base_path=path)
 
 
-class CollectionArtifactDownloadView(views.APIView, AnsibleDistributionMixin):
+class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDistributionMixin):
     """Collection download endpoint."""
 
     action = "download"
@@ -745,7 +747,7 @@ class CollectionArtifactDownloadView(views.APIView, AnsibleDistributionMixin):
     delete=extend_schema(responses={202: AsyncOperationResponseSerializer}),
 )
 class AnsibleNamespaceViewSet(
-    ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.ModelViewSet
+    GalaxyAuthMixin, ExceptionHandlerMixin, AnsibleDistributionMixin, viewsets.ModelViewSet
 ):
     serializer_class = AnsibleNamespaceMetadataSerializer
     lookup_field = "name"
@@ -866,6 +868,7 @@ class AnsibleNamespaceViewSet(
 
 
 class CollectionVersionViewSet(
+    GalaxyAuthMixin,
     CollectionVersionRetrieveMixin,
     ExceptionHandlerMixin,
     AnsibleDistributionMixin,
@@ -1092,6 +1095,7 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
 
 
 class CollectionVersionDocsViewSet(
+    GalaxyAuthMixin,
     CollectionVersionRetrieveMixin,
     ExceptionHandlerMixin,
     AnsibleDistributionMixin,
@@ -1135,6 +1139,7 @@ class CollectionVersionDocsViewSet(
 
 
 class CollectionImportViewSet(
+    GalaxyAuthMixin,
     ExceptionHandlerMixin,
     mixins.RetrieveModelMixin,
     viewsets.GenericViewSet,
@@ -1184,6 +1189,7 @@ class CollectionImportViewSet(
 
 
 class RepoMetadataViewSet(
+    GalaxyAuthMixin,
     ExceptionHandlerMixin,
     AnsibleDistributionMixin,
     mixins.RetrieveModelMixin,
@@ -1328,7 +1334,7 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
     return GeneratedRedirectView.as_view(actions, url=url)
 
 
-class ClientConfigurationView(views.APIView, AnsibleDistributionMixin):
+class ClientConfigurationView(GalaxyAuthMixin, views.APIView, AnsibleDistributionMixin):
     """Return configurations for the ansible-galaxy client."""
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
