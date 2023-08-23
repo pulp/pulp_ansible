@@ -15,6 +15,7 @@ from pulpcore.client.pulp_ansible import (
     ContentCollectionSignaturesApi,
     ContentCollectionVersionsApi,
     ContentNamespacesApi,
+    ContentRolesApi,
     DistributionsAnsibleApi,
     PulpAnsibleApiV3CollectionsVersionsApi,
     RepositoriesAnsibleApi,
@@ -33,7 +34,7 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi,
 )
 
-from pulp_ansible.tests.functional.constants import ANSIBLE_GALAXY_URL
+from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
 
 # Bindings API Fixtures
@@ -130,6 +131,12 @@ def ansible_remote_git_api_client(ansible_bindings_client):
 def ansible_namespaces_api_client(ansible_bindings_client):
     """Provides the Ansible Content Namespaces API client object."""
     return ContentNamespacesApi(ansible_bindings_client)
+
+
+@pytest.fixture(scope="session")
+def ansible_roles_api_client(ansible_bindings_client):
+    """Provides the Ansible Content Roles API client object."""
+    return ContentRolesApi(ansible_bindings_client)
 
 
 @pytest.fixture(scope="session")
@@ -236,7 +243,7 @@ def ansible_role_remote_factory(
 
     def _ansible_role_remote_factory(**kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
-        kwargs.setdefault("url", ANSIBLE_GALAXY_URL)
+        kwargs.setdefault("url", ANSIBLE_FIXTURE_URL)
         if kwargs.pop("include_pulp_auth", False):
             kwargs["username"] = bindings_cfg.username
             kwargs["password"] = bindings_cfg.password

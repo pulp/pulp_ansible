@@ -5,6 +5,7 @@ import uuid
 from pulpcore.client.pulp_ansible import ApiException
 
 
+@pytest.mark.parallel
 def test_crud_role_remote(
     ansible_remote_role_api_client, ansible_role_remote_factory, monitor_task
 ):
@@ -48,6 +49,7 @@ def test_crud_role_remote(
     monitor_task(ansible_remote_role_api_client.delete(remote.pulp_href).task)
 
 
+@pytest.mark.parallel
 def test_role_remote_no_url(ansible_role_remote_factory):
     """Verify whether is possible to create a remote without a URL."""
     with pytest.raises(ApiException):
