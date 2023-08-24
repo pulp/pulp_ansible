@@ -29,8 +29,8 @@ def filter_content_for_repo_version(qs, repo_version):
     return qs.filter(pk__in=content_rel.values_list("content_id"))
 
 
-def get_queryset_annotated_with_task_sync_task(qs):
-    tasks = (
+def get_queryset_annotated_with_last_sync_task(qs):
+    last_task = (
         Task.objects.filter(
             name__contains="sync",
             reserved_resources_record__icontains=Cast(OuterRef("pk"), output_field=CharField()),
@@ -47,4 +47,4 @@ def get_queryset_annotated_with_task_sync_task(qs):
         .order_by("-pulp_created")[:1]
     )
 
-    return qs.annotate(last_sync_task=Subquery(tasks))
+    return qs.annotate(last_sync_task=Subquery(last_task))
