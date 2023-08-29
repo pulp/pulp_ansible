@@ -419,11 +419,6 @@ class RoleRemote(Remote, AutoAddObjPermsMixin):
         permissions = [("manage_roles_roleremote", "Can manage roles on role remotes")]
 
 
-def _get_last_sync_task(pk):
-    sync_tasks = Task.objects.filter(name__contains="sync", reserved_resources_record__icontains=pk)
-    return sync_tasks.order_by("-pulp_created").first()
-
-
 class CollectionRemote(Remote, AutoAddObjPermsMixin):
     """
     A Remote for Collection content.
@@ -457,10 +452,6 @@ class CollectionRemote(Remote, AutoAddObjPermsMixin):
         except AttributeError:
             self._download_factory = AnsibleDownloaderFactory(self)
             return self._download_factory
-
-    @property
-    def last_sync_task(self):
-        return _get_last_sync_task(self.pk)
 
     @hook(
         AFTER_UPDATE,
@@ -533,10 +524,6 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     last_synced_metadata_time = models.DateTimeField(null=True)
     gpgkey = models.TextField(null=True)
     private = models.BooleanField(default=False)
-
-    @property
-    def last_sync_task(self):
-        return _get_last_sync_task(self.pk)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"

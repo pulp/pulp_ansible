@@ -36,6 +36,7 @@ from pulpcore.plugin.viewsets import (
 )
 from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units, get_artifact_url
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
+from pulp_ansible.app.utils import get_queryset_annotated_with_last_sync_task
 from .models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
@@ -554,6 +555,14 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
     queryset = AnsibleRepository.objects.all()
     serializer_class = AnsibleRepositorySerializer
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        action = getattr(self, "action", "")
+        if action == "list" or action == "retrieve":
+            qs = get_queryset_annotated_with_last_sync_task(qs)
+
+        return qs
+
     queryset_filtering_required_permission = "ansible.view_ansiblerepository"
 
     DEFAULT_ACCESS_POLICY = {
@@ -986,6 +995,14 @@ class CollectionRemoteViewSet(RemoteViewSet, RolesMixin):
     queryset = CollectionRemote.objects.all()
     serializer_class = CollectionRemoteSerializer
     filterset_class = CollectionRemoteFilter
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        action = getattr(self, "action", "")
+        if action == "list" or action == "retrieve":
+            qs = get_queryset_annotated_with_last_sync_task(qs)
+
+        return qs
 
     queryset_filtering_required_permission = "ansible.view_collectionremote"
 
