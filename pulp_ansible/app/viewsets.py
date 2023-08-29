@@ -557,7 +557,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
 
     def get_queryset(self):
         qs = super().get_queryset()
-        if getattr(self, "action", "") == "list":
+        action = getattr(self, "action", "")
+        if action == "list" or action == "retrieve":
             qs = get_queryset_annotated_with_last_sync_task(qs)
 
         return qs
@@ -997,7 +998,8 @@ class CollectionRemoteViewSet(RemoteViewSet, RolesMixin):
 
     def get_queryset(self):
         qs = super().get_queryset()
-        if getattr(self, "action", "") == "list":
+        action = getattr(self, "action", "")
+        if action == "list" or action == "retrieve":
             qs = get_queryset_annotated_with_last_sync_task(qs)
 
         return qs
