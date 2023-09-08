@@ -67,7 +67,7 @@ ANSIBLE_URL_NAMESPACE
 ^^^^^^^^^^^^^^^^^^^^^
 
    The Django URL namespace to be used when generating URLs that are returned by the galaxy
-   APIs. Setting this allows for the galaxy APIs to redirect requests to django URLs in other apps.
+   APIs. Setting this allows for the Galaxy APIs to redirect requests to django URLs in other apps.
    This defaults to the pulp ansible URL router.
 
 
@@ -76,3 +76,19 @@ ANSIBLE_COLLECT_DOWNLOAD_LOG
 
    A flag to activate collecting download logs about collections consumed. You can dump the
    collected information using ``pulpcore-manager download-log``.
+
+
+ANSIBLE_AUTHENTICATION_CLASSES
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   A list of authentication classes to be used to authenticate requests to the Galaxy API. Defaults
+   to ``REST_FRAMEWORK__DEFAULT_AUTHENTICATION_CLASSES``. See `authentication docs
+   <https://www.django-rest-framework.org/api-guide/authentication/#api-reference>`_ for more.
+
+
+ANSIBLE_PERMISSION_CLASSES
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+   A list of permission classes to be used to authorize requests to the Galaxy API. Defaults to
+   ``REST_FRAMEWORK__DEFAULT_PERMISSION_CLASSES``. See `authorization docs
+   <https://www.django-rest-framework.org/api-guide/permissions/#api-reference>`_ for more.
