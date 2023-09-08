@@ -448,7 +448,7 @@ class RoleRemoteViewSet(RemoteViewSet, RolesMixin):
                 "condition": "has_model_or_obj_perms:ansible.delete_roleremote",
             },
             {
-                "action": ["update", "partial_update"],
+                "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": "has_model_or_obj_perms:ansible.change_roleremote",
@@ -513,7 +513,7 @@ class GitRemoteViewSet(RemoteViewSet, RolesMixin):
                 "condition": "has_model_or_obj_perms:ansible.delete_gitremote",
             },
             {
-                "action": ["update", "partial_update"],
+                "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": "has_model_or_obj_perms:ansible.change_gitremote",
@@ -585,7 +585,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "condition": "has_model_or_obj_perms:ansible.delete_ansiblerepository",
             },
             {
-                "action": ["update", "partial_update"],
+                "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
@@ -1026,7 +1026,7 @@ class CollectionRemoteViewSet(RemoteViewSet, RolesMixin):
                 "condition": "has_model_or_obj_perms:ansible.delete_collectionremote",
             },
             {
-                "action": ["update", "partial_update"],
+                "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": "has_model_or_obj_perms:ansible.change_collectionremote",
@@ -1152,7 +1152,7 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
                 ],
             },
             {
-                "action": ["update", "partial_update"],
+                "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
