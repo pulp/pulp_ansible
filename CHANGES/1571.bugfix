@@ -1,0 +1,1 @@
+Prevented a race condition that lead to contraint violations when calculating the highest version of a collection.

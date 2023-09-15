@@ -48,7 +48,7 @@ class Role(Content):
 
     namespace = models.CharField(max_length=64)
     name = models.CharField(max_length=64)
-    version = models.CharField(max_length=128)
+    version = models.CharField(max_length=128, db_collation="pulp_ansible_semver")
 
     @property
     def relative_path(self):
@@ -179,7 +179,7 @@ class CollectionVersion(Content):
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     requires_ansible = models.CharField(null=True, max_length=255)
 
-    version = models.CharField(max_length=128, editable=False)
+    version = models.CharField(max_length=128, db_collation="pulp_ansible_semver")
     version_major = models.IntegerField()
     version_minor = models.IntegerField()
     version_patch = models.IntegerField()
