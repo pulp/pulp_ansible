@@ -114,7 +114,7 @@ class TestCollectionVersionHighest(TestCase):
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
-            _update_highest_version(cv, save=True)
+            _update_highest_version(cv)
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1")
@@ -133,7 +133,7 @@ class TestCollectionVersionHighest(TestCase):
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
-            _update_highest_version(cv, save=True)
+            _update_highest_version(cv)
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1")
@@ -158,7 +158,7 @@ class TestCollectionVersionHighest(TestCase):
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
-            _update_highest_version(cv, save=True)
+            _update_highest_version(cv)
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc2")
@@ -178,7 +178,7 @@ class TestCollectionVersionHighest(TestCase):
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
-            _update_highest_version(cv, save=True)
+            _update_highest_version(cv)
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc1")
@@ -211,7 +211,7 @@ class TestCollectionVersionHighest(TestCase):
         ]
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
-        _update_highest_version(collection_versions[1], save=True)
+        _update_highest_version(collection_versions[1])
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc1")
@@ -246,7 +246,7 @@ class TestCollectionVersionHighest(TestCase):
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions[::-1]:
-            _update_highest_version(cv, save=True)
+            _update_highest_version(cv)
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1-rc1")
@@ -286,7 +286,7 @@ class TestCollectionVersionHighest(TestCase):
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
-            _update_highest_version(cv, save=True)
+            _update_highest_version(cv)
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="1.0.1")
@@ -312,7 +312,7 @@ class TestCollectionVersionHighest(TestCase):
 
         collection_versions = build_cvs_from_specs(specs, build_artifacts=False)
         for cv in collection_versions:
-            _update_highest_version(cv, save=True)
+            _update_highest_version(cv)
 
         assert (
             CollectionVersion.objects.filter(namespace=namespace, name=name, version="2.0.0-rc1")
