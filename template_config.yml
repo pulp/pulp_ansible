@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-212-g18b9346
+# generated with plugin_template@2021.08.26-247-g1ee39ae
 
 additional_repos: []
 api_root: /pulp/
@@ -18,6 +18,8 @@ ci_update_branches:
 - '0.15'
 - '0.16'
 - '0.17'
+ci_update_docs: false
+ci_update_release_behavior: null
 cli_package: pulp-cli
 cli_repo: https://github.com/pulp/pulp-cli.git
 core_import_allowed: []
@@ -29,6 +31,7 @@ disabled_redis_runners:
 doc_requirements_from_pulpcore: false
 docker_fixtures: false
 docs_test: true
+extra_docs_requirements: []
 flake8: true
 flake8_ignore: []
 github_org: pulp
@@ -83,7 +86,6 @@ test_lowerbounds: true
 test_performance: false
 test_reroute: true
 test_s3: true
-test_stream: true
 update_github: true
 use_issue_template: true
 
