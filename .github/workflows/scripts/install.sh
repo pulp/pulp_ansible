@@ -63,26 +63,16 @@ services:
       - ../../../pulp-openapi-generator:/root/pulp-openapi-generator
     env:
       PULP_WORKERS: "4"
+      PULP_HTTPS: "true"
 VARSYAML
 
 cat >> vars/main.yaml << VARSYAML
 pulp_settings: {"allowed_export_paths": "/tmp", "allowed_import_paths": "/tmp", "ansible_api_hostname": "https://pulp:443", "ansible_collect_download_log": true, "ansible_content_hostname": "https://pulp:443/pulp/content", "ansible_signature_require_verification": false}
 pulp_scheme: https
 
-pulp_container_tag: https
+pulp_container_tag: "latest"
 
 VARSYAML
-if [ "$TEST" == 'stream' ]; then
-  sed -i -e '/^services:/a \
-  - name: ci-sftp\
-    image: atmoz/sftp\
-    volumes:\
-      - ./ssh/id_ed25519.pub:/home/foo/.ssh/keys/id_ed25519.pub\
-    command: "foo::::storage"' vars/main.yaml
-  sed -i -e '$a stream_test: true\
-pulp_scenario_settings: null\
-' vars/main.yaml
-fi
 
 if [ "$TEST" = "s3" ]; then
   export MINIO_ACCESS_KEY=AKIAIT2Z5TDYPX3ARJBA

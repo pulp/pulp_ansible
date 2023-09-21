@@ -9,10 +9,6 @@
 name: Create New Release Branch
 on:
   workflow_dispatch:
-    inputs:
-      name:
-        description: "Branch name (e.g. 3.14)"
-        required: true
 
 env:
   RELEASE_WORKFLOW: true
@@ -25,47 +21,59 @@ jobs:
       fail-fast: false
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+          path: pulp_ansible
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
       - name: Install python dependencies
         run: |
           echo ::group::PYDEPS
-          pip install bump2version
+          pip install bump2version jinja2 pyyaml
           echo ::endgroup::
 
       - name: Setting secrets
+        working-directory: pulp_ansible
         run: python3 .github/workflows/scripts/secrets.py "$SECRETS_CONTEXT"
         env:
           SECRETS_CONTEXT: ${{ toJson(secrets) }}
 
-      - name: Verify that branch name matches current version string on main branch
+      - name: Determine new branch name
+        working-directory: pulp_ansible
         run: |
-          X_Y_VERSION=$(grep version setup.py | sed -rn 's/version="(.*)\.0((a[0-9]+)|(b[0-9]+))?\.dev",/\1/p' | awk '{$1=$1};1')
-          if [[ "$X_Y_VERSION" != "${{ github.event.inputs.name }}" ]]
+          # Just to be sure...
+          git checkout main
+          NEW_BRANCH="$(bump2version --dry-run --list release | sed -Ene 's/^new_version=([[:digit:]]+\.[[:digit:]]+)\..*$/\1/p')"
+          if [ -z "$NEW_BRANCH" ]
           then
-            echo "Branch name doesn't match the current version string $X_Y_VERSION."
+            echo Could not determine the new branch name.
             exit 1
           fi
+          echo "NEW_BRANCH=${NEW_BRANCH}" >> "$GITHUB_ENV"
 
-      - name: Create ${{ github.event.inputs.name }} release branch
+      - name: Create release branch
+        working-directory: pulp_ansible
         run: |
-          git checkout -b ${{ github.event.inputs.name }}
-          git push origin ${{ github.event.inputs.name }}
+          git branch "${NEW_BRANCH}"
 
       - name: Bump version on main branch
+        working-directory: pulp_ansible
         run: |
-          git checkout main
           bump2version --no-commit minor
 
-      - name: Make a PR with version bump
+      - name: Remove entries from CHANGES directory
+        working-directory: pulp_ansible
+        run: |
+          find CHANGES -type f -regex ".*\.\(bugfix\|doc\|feature\|misc\|deprecation\|removal\)" -exec git rm {} +
+
+      - name: Make a PR with version bump and without CHANGES/*
         uses: peter-evans/create-pull-request@v4
         with:
+          path: pulp_ansible
           token: ${{ secrets.RELEASE_TOKEN }}
           committer: pulpbot <pulp-infra@redhat.com>
           author: pulpbot <pulp-infra@redhat.com>
@@ -77,3 +85,8 @@ jobs:
             Bump minor version
             [noissue]
           delete-branch: true
+
+      - name: Push release branch
+        working-directory: pulp_ansible
+        run: |
+          git push origin "${NEW_BRANCH}"

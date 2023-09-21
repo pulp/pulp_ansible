@@ -18,10 +18,10 @@ jobs:
   ready-to-ship:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
       - name: Install requirements
@@ -45,10 +45,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
       # lint_requirements contains tools needed for flake8, etc.
@@ -90,21 +90,19 @@ jobs:
           - TEST: docs
           - TEST: azure
           - TEST: s3
-          - TEST: stream
           - TEST: lowerbounds
     outputs:
       deprecations-pulp: ${{ steps.deprecations.outputs.deprecations-pulp }}
-      deprecations-stream: ${{ steps.deprecations.outputs.deprecations-stream }}
       deprecations-azure: ${{ steps.deprecations.outputs.deprecations-azure }}
       deprecations-s3: ${{ steps.deprecations.outputs.deprecations-s3 }}
       deprecations-lowerbounds: ${{ steps.deprecations.outputs.deprecations-lowerbounds }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
 
-      - uses: actions/setup-python@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: "3.8"
 
@@ -195,13 +193,12 @@ jobs:
           docker exec pulp bash -c "pip3 list && pip3 install pipdeptree && pipdeptree"
   deprecations:
     runs-on: ubuntu-latest
-    if: always()
+    if: github.base_ref == 'main'
     needs: test
     steps:
       - name: Fail on deprecations
         run: |
           test -z "${{ needs.test.outputs.deprecations-pulp }}"
-          test -z "${{ needs.test.outputs.deprecations-stream }}"
           test -z "${{ needs.test.outputs.deprecations-azure }}"
           test -z "${{ needs.test.outputs.deprecations-s3 }}"
           test -z "${{ needs.test.outputs.deprecations-lowerbounds }}"
@@ -209,7 +206,6 @@ jobs:
         if: failure()
         run: |
           echo "${{ needs.test.outputs.deprecations-pulp }}" | base64 -d
-          echo "${{ needs.test.outputs.deprecations-stream }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-azure }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-s3 }}" | base64 -d
           echo "${{ needs.test.outputs.deprecations-lowerbounds }}" | base64 -d
