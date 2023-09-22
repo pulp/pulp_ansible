@@ -38,6 +38,20 @@ Bugfixes
 ----
 
 
+0.18.1 (2023-09-21)
+===================
+
+Features
+--------
+
+- Added settings ``ANSIBLE_AUTHENTICATION_CLASSES`` and ``ANSIBLE_PERMISSION_CLASSES`` to allow for
+  customizing Galaxy authentication and authorization separate from Pulp APIs.
+  `#1555 <https://github.com/pulp/pulp_ansible/issues/1555>`__
+
+
+----
+
+
 0.18.0 (2023-05-25)
 ===================
 
