@@ -13,6 +13,41 @@ Changelog
 
 .. towncrier release notes start
 
+0.20.0 (2023-09-26)
+===================
+
+Features
+--------
+
+- Added settings ``ANSIBLE_AUTHENTICATION_CLASSES`` and ``ANSIBLE_PERMISSION_CLASSES`` to allow for
+  customizing Galaxy authentication and authorization separate from Pulp APIs.
+  `#1555 <https://github.com/pulp/pulp_ansible/issues/1555>`__
+- Adjusted default access policies for new labels api.
+  `#1568 <https://github.com/pulp/pulp_ansible/issues/1568>`__
+
+
+Bugfixes
+--------
+
+- Fixed ordering by version in the ``/ansible/search/collection-versions/`` endpoint.
+  `#1516 <https://github.com/pulp/pulp_ansible/issues/1516>`__
+- Stopped collection sync from failing if a namespace's avatar url was unreachable.
+  `#1543 <https://github.com/pulp/pulp_ansible/issues/1543>`__
+- Fixed a sporadic sync error when re-syncing a repository with new collection versions.
+  `#1547 <https://github.com/pulp/pulp_ansible/issues/1547>`__
+- Prevented a race condition that lead to contraint violations when calculating the highest version of a collection.
+  `#1571 <https://github.com/pulp/pulp_ansible/issues/1571>`__
+
+
+Misc
+----
+
+- `#1506 <https://github.com/pulp/pulp_ansible/issues/1506>`__
+
+
+----
+
+
 0.19.0 (2023-07-20)
 ===================
 
