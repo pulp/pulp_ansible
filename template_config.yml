@@ -18,6 +18,7 @@ ci_update_branches:
 - '0.16'
 - '0.17'
 - '0.18'
+- '0.20'
 ci_update_docs: true
 ci_update_release_behavior: replace-previous-version
 cli_package: pulp-cli
