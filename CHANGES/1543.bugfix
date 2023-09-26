@@ -1,1 +1,0 @@
-Stopped collection sync from failing if a namespace's avatar url was unreachable.
