@@ -81,7 +81,9 @@ def test_export_then_import(
     assert export.output_file_info is not None
     for an_export_filename in export.output_file_info.keys():
         assert "//" not in an_export_filename
-    export_filename = next(f for f in export.output_file_info.keys() if f.endswith("tar.gz"))
+    export_filename = next(
+        f for f in export.output_file_info.keys() if f.endswith("tar.gz") or f.endswith("tar")
+    )
 
     # Prepare import
     repo_c = ansible_repo_factory()
