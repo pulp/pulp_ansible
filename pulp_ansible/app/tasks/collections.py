@@ -726,7 +726,7 @@ class CollectionSyncFirstStage(Stage):
             else:
                 namespace["links"] = dict()
 
-            for key in ("pulp_href", "groups", "id", "related_fields"):
+            for key in ("pulp_href", "groups", "id", "related_fields", "users"):
                 namespace.pop(key, None)
 
             url = namespace.pop("avatar_url", None)
