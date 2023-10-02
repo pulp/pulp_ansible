@@ -27,13 +27,13 @@ ANSIBLE_PUBLISHER_PATH = urljoin(BASE_PUBLISHER_PATH, "ansible/ansible/")
 
 ANSIBLE_GALAXY_URL = urljoin(GALAXY_ANSIBLE_BASE_URL, "api/v1/roles/")
 
-NAMESPACE_ANSIBLE = "?namespace__name=ansible"
+NAMESPACE_ANSIBLE = "?owner__username=ansible"
 
-NAMESPACE_ELASTIC = "?namespace__name=elastic"
+NAMESPACE_ELASTIC = "?owner__username=elastic"
 
-NAMESPACE_PULP = "?namespace__name=pulp"
+NAMESPACE_PULP = "?owner__username=pulp"
 
-NAMESPACE_TESTING = "?namespace__name=testing"
+NAMESPACE_TESTING = "?owner__username=testing"
 
 ANSIBLE_FIXTURE_URL = urljoin(ANSIBLE_GALAXY_URL, NAMESPACE_ANSIBLE)
 
