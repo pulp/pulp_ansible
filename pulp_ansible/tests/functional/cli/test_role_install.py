@@ -1,5 +1,6 @@
 """Tests that Roles hosted by Pulp can be installed by ansible-galaxy."""
 
+import pytest
 from os import path
 import subprocess
 
@@ -10,6 +11,7 @@ from pulp_ansible.tests.functional.constants import (
 )
 
 
+@pytest.mark.parallel
 def test_install_role(
     ansible_distribution_factory,
     ansible_role_remote_factory,

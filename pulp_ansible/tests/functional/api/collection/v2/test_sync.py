@@ -10,7 +10,6 @@ from pulp_ansible.tests.functional.utils import (
     SyncHelpersMixin,
     TestCaseUsingBindings,
 )
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 from pulp_smash.pulp3.bindings import monitor_task, delete_orphans
 
 

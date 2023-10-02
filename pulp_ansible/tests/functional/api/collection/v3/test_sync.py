@@ -19,7 +19,6 @@ from pulp_ansible.tests.functional.utils import (
     tasks,
 )
 from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMixin):

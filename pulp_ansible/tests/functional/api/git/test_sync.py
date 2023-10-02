@@ -23,7 +23,7 @@ def sync_and_count(
         c = ansible_collection_version_api_client.list(repository_version=repo.latest_version_href)
         return c.count
 
-    yield _sync_and_count
+    return _sync_and_count
 
 
 @pytest.mark.parallel

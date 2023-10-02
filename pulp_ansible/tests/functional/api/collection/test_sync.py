@@ -12,10 +12,7 @@ from pulp_ansible.tests.functional.utils import (
 from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
 from orionutils.generator import build_collection
 from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
-from pulp_ansible.tests.functional.utils import (  # noqa
-    monitor_task,
-    set_up_module as setUpModule,
-)
+from pulp_ansible.tests.functional.utils import monitor_task
 
 
 class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):

@@ -1,28 +1,16 @@
 """Utilities for tests for the ansible plugin."""
-from dynaconf import Dynaconf
-from functools import partial
-import unittest
 from urllib.parse import urlparse, parse_qs
 
-from pulp_smash import api, config, selectors
+from pulp_smash import config
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
 from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_remote,
     gen_repo,
-    gen_publisher,
-    get_content,
-    require_pulp_3,
-    require_pulp_plugins,
-    sync,
 )
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_ROLE_NAME,
-    ANSIBLE_ROLE_CONTENT_PATH,
     ANSIBLE_FIXTURE_URL,
-    ANSIBLE_REMOTE_PATH,
-    ANSIBLE_REPO_PATH,
 )
 
 from pulpcore.client.pulpcore import (
@@ -63,12 +51,6 @@ def is_galaxy_ng_installed():
     return False
 
 
-def set_up_module():
-    """Skip tests Pulp 3 isn't under test or if pulp_ansible isn't installed."""
-    require_pulp_3(unittest.SkipTest)
-    require_pulp_plugins({"ansible"}, unittest.SkipTest)
-
-
 def gen_ansible_client():
     """Return an OBJECT for ansible client."""
     return AnsibleApiClient(configuration)
@@ -87,65 +69,6 @@ def gen_ansible_remote(url=ANSIBLE_FIXTURE_URL, include_pulp_auth=False, **kwarg
         kwargs["rate_limit"] = 5
 
     return gen_remote(url, **kwargs)
-
-
-def gen_ansible_publisher(**kwargs):
-    """Return a semi-random dict for use in creating a Remote.
-
-    :param url: The URL of an external content source.
-    """
-    return gen_publisher(**kwargs)
-
-
-def get_ansible_content_paths(repo):
-    """Return the relative path of content units present in an ansible repository.
-
-    :param repo: A dict of information about the repository.
-    :returns: A list with the paths of units present in a given repository.
-    """
-    # FIXME
-    return [content_unit["relative_path"] for content_unit in get_content(repo)[ANSIBLE_ROLE_NAME]]
-
-
-def gen_ansible_content_attrs(artifact):
-    """Generate a dict with content unit attributes.
-
-    :param: artifact: A dict of info about the artifact.
-    :returns: A semi-random dict for use in creating a content unit.
-    """
-    # FIXME: add content specific metadata here
-    return {"artifact": artifact["pulp_href"]}
-
-
-def populate_pulp(cfg, url=ANSIBLE_FIXTURE_URL):
-    """Add ansible contents to Pulp.
-
-    :param pulp_smash.config.PulpSmashConfig: Information about a Pulp application.
-    :param url: The ansible repository URL. Defaults to
-        :data:`pulp_smash.constants.ANSIBLE_FIXTURE_URL`
-    :returns: A list of dicts, where each dict describes one file content in Pulp.
-    """
-    client = api.Client(cfg, api.json_handler)
-    remote = {}
-    repo = {}
-    try:
-        remote.update(client.post(ANSIBLE_REMOTE_PATH, gen_ansible_remote(url)))
-        repo.update(client.post(ANSIBLE_REPO_PATH, gen_repo()))
-        sync(cfg, remote, repo)
-    finally:
-        if remote:
-            client.delete(remote["pulp_href"])
-        if repo:
-            client.delete(repo["pulp_href"])
-    return client.get(ANSIBLE_ROLE_CONTENT_PATH)["results"]
-
-
-skip_if = partial(selectors.skip_if, exc=unittest.SkipTest)
-"""The ``@skip_if`` decorator, customized for unittest.
-
-:func:`pulp_smash.selectors.skip_if` is test runner agnostic. This function is
-identical, except that ``exc`` has been set to ``unittest.SkipTest``.
-"""
 
 
 core_client = CoreApiClient(configuration)
@@ -263,30 +186,21 @@ class SyncHelpersMixin:
         return repo, self._create_distribution_from_repo(repo, cleanup=cleanup)
 
 
-settings = Dynaconf(
-    settings_files=[
-        "pulp_ansible/tests/assets/func_test_settings.py",
-        "/pulp_ansible/pulp_ansible/tests/assets/func_test_settings.py",
-        "/etc/pulp/settings.py",
-    ]
-)
-
-
 def iterate_all(list_func, **kwargs):
     """
     Iterate through all of the items on every page in a paginated list view.
     """
-    next = kwargs
-    while next is not None:
-        r = list_func(**next)
+    kwargs
+    while kwargs is not None:
+        response = list_func(**kwargs)
 
-        for x in r.results:
+        for x in response.results:
             yield x
 
-        if r.next:
-            qs = parse_qs(urlparse(r.next).query)
-            for p in ("offset", "limit"):
-                if p in qs:
-                    next[p] = qs[p][0]
+        if response.next:
+            qs = parse_qs(urlparse(response.next).query)
+            for param in ("offset", "limit"):
+                if param in qs:
+                    kwargs[param] = qs[param][0]
         else:
-            next = None
+            kwargs = None

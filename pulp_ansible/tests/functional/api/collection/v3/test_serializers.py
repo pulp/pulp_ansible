@@ -11,7 +11,6 @@ from pulp_smash.pulp3.bindings import monitor_task
 
 from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
 from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):

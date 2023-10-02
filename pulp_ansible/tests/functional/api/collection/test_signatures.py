@@ -9,7 +9,6 @@ from pulp_smash.pulp3.utils import get_content_summary
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     gen_distribution,
-    get_content,
 )
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
@@ -172,6 +171,7 @@ def test_sync_signatures(
     ansible_remote_collection_api_client,
     gen_object_with_cleanup,
     ansible_repo_api_client,
+    ansible_repo_version_api_client,
     monitor_task,
 ):
     """Test that signatures are also synced."""
@@ -188,9 +188,9 @@ def test_sync_signatures(
     monitor_task(sync_response.task)
     repo = ansible_repo_api_client.read(new_repo.pulp_href)
 
-    content_response = get_content(repo.to_dict())
-    assert len(content_response["ansible.collection_version"]) == 2
-    assert len(content_response["ansible.collection_signature"]) == 1
+    content_response = ansible_repo_version_api_client.read(repo.latest_version_href)
+    assert content_response.content_summary.present["ansible.collection_version"]["count"] == 2
+    assert content_response.content_summary.present["ansible.collection_signature"]["count"] == 1
 
 
 def test_sync_signatures_only(
@@ -198,6 +198,7 @@ def test_sync_signatures_only(
     ansible_collection_remote_factory,
     distro_serving_one_signed_one_unsigned_collection,
     ansible_repo_api_client,
+    ansible_repo_version_api_client,
     monitor_task,
 ):
     """Test that only collections with a signatures are synced when specified."""
@@ -215,6 +216,6 @@ def test_sync_signatures_only(
     monitor_task(sync_response.task)
     repo = ansible_repo_api_client.read(new_repo.pulp_href)
 
-    content_response = get_content(repo.to_dict())
-    assert len(content_response["ansible.collection_version"]) == 1
-    assert len(content_response["ansible.collection_signature"]) == 1
+    content_response = ansible_repo_version_api_client.read(repo.latest_version_href)
+    assert content_response.content_summary.present["ansible.collection_version"]["count"] == 1
+    assert content_response.content_summary.present["ansible.collection_signature"]["count"] == 1
