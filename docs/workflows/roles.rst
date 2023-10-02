@@ -125,7 +125,7 @@ Remote create output::
       "pulp_href": "/pulp/api/v3/remotes/ansible/role/38f37de9-842c-4690-a73c-9e813853b28b/",
       "pulp_created": "2021-01-26T22:55:17.126745Z",
       "name": "bar",
-      "url": "https://galaxy.ansible.com/api/v1/roles/?namespace__name=elastic",
+      "url": "https://galaxy.ansible.com/api/v1/roles/?owner__username=elastic",
       "ca_cert": null,
       "client_cert": null,
       "client_key": null,
