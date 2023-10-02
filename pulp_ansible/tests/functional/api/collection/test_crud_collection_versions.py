@@ -1,19 +1,15 @@
 """Tests related to sync ansible plugin collection content type."""
-from tempfile import NamedTemporaryFile
-from pulp_smash.pulp3.bindings import PulpTestCase, delete_orphans, monitor_task
-from pulp_smash.utils import http_get
+import pytest
 
-from pulpcore.client.pulp_ansible import ContentCollectionVersionsApi
-
+from orionutils.generator import randstr
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
     GALAXY_ANSIBLE_BASE_URL,
 )
-from pulp_ansible.tests.functional.utils import gen_ansible_client, skip_if
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
+@pytest.mark.parallel
 def test_tags_filter(
     ansible_collection_version_api_client,
     ansible_collection_remote_factory,
@@ -57,110 +53,50 @@ def test_tags_filter(
     assert len(collections) == 0, collections
 
 
-class ContentUnitTestCase(PulpTestCase):
-    """CRUD content unit.
+# Looks like orionutils are not meant to be used in parallel
+# @pytest.mark.parallel
+def test_content_unit_lifecycle(
+    ansible_collection_version_api_client, build_and_upload_collection, monitor_task
+):
+    """Create content unit."""
+    attrs = {"namespace": randstr(), "name": "squeezer", "version": "0.0.9"}
+    collection_artifact, content_unit_href = build_and_upload_collection(config=attrs)
 
-    This test targets the following issues:
+    # Read a content unit by its href.
+    content_unit = ansible_collection_version_api_client.read(content_unit_href)
+    for key, val in attrs.items():
+        assert content_unit.to_dict()[key] == val
 
-    * `Pulp #2872 <https://pulp.plan.io/issues/2872>`_
-    * `Pulp #3445 <https://pulp.plan.io/issues/3445>`_
-    * `Pulp Smash #870 <https://github.com/pulp/pulp-smash/issues/870>`_
-    """
+    # Read a content unit by its pkg_id.
+    page = ansible_collection_version_api_client.list(
+        namespace=content_unit.namespace, name=content_unit.name
+    )
+    assert page.count == 1
+    assert page.results[0] == content_unit
 
-    @classmethod
-    def setUpClass(cls):
-        """Create class-wide variable."""
-        delete_orphans()
-        cls.content_unit = {}
-        cls.cv_content_api = ContentCollectionVersionsApi(gen_ansible_client())
+    # Attempt to update a content unit using HTTP PATCH.
+    # This HTTP method is not supported and a HTTP exception is expected.
+    with pytest.raises(AttributeError) as exc_info:
+        ansible_collection_version_api_client.partial_update(content_unit_href, name="testing")
+    msg = "object has no attribute 'partial_update'"
+    assert msg in exc_info.value.args[0]
 
-    @classmethod
-    def tearDownClass(cls):
-        """Clean class-wide variable."""
-        delete_orphans()
+    # Attempt to update a content unit using HTTP PUT.
+    # This HTTP method is not supported and a HTTP exception is expected.
+    with pytest.raises(AttributeError) as exc_info:
+        ansible_collection_version_api_client.update(content_unit_href, {"name": "testing"})
+    msg = "object has no attribute 'update'"
+    assert msg in exc_info.value.args[0]
 
-    def upload_collection(self, namespace="pulp", name="squeezer", version="0.0.9"):
-        """Upload collection."""
-        url = f"https://galaxy.ansible.com/download/{namespace}-{name}-{version}.tar.gz"
-        collection_content = http_get(url)
-        with NamedTemporaryFile() as temp_file:
-            temp_file.write(collection_content)
-            return self.cv_content_api.create(
-                file=temp_file.name,
-                expected_namespace=namespace,
-                expected_name=name,
-                expected_version=version,
-            )
+    # Attempt to delete a content unit using HTTP DELETE.
+    # This HTTP method is not supported and a HTTP exception is expected.
+    with pytest.raises(AttributeError) as exc_info:
+        ansible_collection_version_api_client.delete(content_unit_href)
+    msg = "object has no attribute 'delete'"
+    assert msg in exc_info.value.args[0]
 
-    def test_01_create_content_unit(self):
-        """Create content unit."""
-        attrs = dict(namespace="pulp", name="squeezer", version="0.0.9")
-        response = self.upload_collection(**attrs)
-        created_resources = monitor_task(response.task).created_resources
-        content_unit = self.cv_content_api.read(created_resources[0])
-        self.content_unit.update(content_unit.to_dict())
-        for key, val in attrs.items():
-            with self.subTest(key=key):
-                self.assertEqual(self.content_unit[key], val)
-
-    @skip_if(bool, "content_unit", False)
-    def test_02_read_content_unit(self):
-        """Read a content unit by its href."""
-        content_unit = self.cv_content_api.read(self.content_unit["pulp_href"]).to_dict()
-        for key, val in self.content_unit.items():
-            with self.subTest(key=key):
-                self.assertEqual(content_unit[key], val)
-
-    @skip_if(bool, "content_unit", False)
-    def test_02_read_content_units(self):
-        """Read a content unit by its pkg_id."""
-        page = self.cv_content_api.list(
-            namespace=self.content_unit["namespace"], name=self.content_unit["name"]
-        )
-        self.assertEqual(len(page.results), 1)
-        for key, val in self.content_unit.items():
-            with self.subTest(key=key):
-                self.assertEqual(page.results[0].to_dict()[key], val)
-
-    @skip_if(bool, "content_unit", False)
-    def test_03_partially_update(self):
-        """Attempt to update a content unit using HTTP PATCH.
-
-        This HTTP method is not supported and a HTTP exception is expected.
-        """
-        attrs = {"name": "testing"}
-        with self.assertRaises(AttributeError) as exc:
-            self.cv_content_api.partial_update(self.content_unit["pulp_href"], attrs)
-        msg = "object has no attribute 'partial_update'"
-        self.assertIn(msg, exc.exception.args[0])
-
-    @skip_if(bool, "content_unit", False)
-    def test_03_fully_update(self):
-        """Attempt to update a content unit using HTTP PUT.
-
-        This HTTP method is not supported and a HTTP exception is expected.
-        """
-        attrs = {"name": "testing"}
-        with self.assertRaises(AttributeError) as exc:
-            self.cv_content_api.update(self.content_unit["pulp_href"], attrs)
-        msg = "object has no attribute 'update'"
-        self.assertIn(msg, exc.exception.args[0])
-
-    @skip_if(bool, "content_unit", False)
-    def test_04_delete(self):
-        """Attempt to delete a content unit using HTTP DELETE.
-
-        This HTTP method is not supported and a HTTP exception is expected.
-        """
-        with self.assertRaises(AttributeError) as exc:
-            self.cv_content_api.delete(self.content_unit["pulp_href"])
-        msg = "object has no attribute 'delete'"
-        self.assertIn(msg, exc.exception.args[0])
-
-    @skip_if(bool, "content_unit", False)
-    def test_05_duplicate_no_error(self):
-        """Attempt to create duplicate collection."""
-        attrs = dict(namespace="pulp", name="squeezer", version="0.0.9")
-        response = self.upload_collection(**attrs)
-        created_resources = monitor_task(response.task).created_resources
-        self.assertEqual(created_resources[0], self.content_unit["pulp_href"])
+    # Attempt to create duplicate collection.
+    create_task = monitor_task(
+        ansible_collection_version_api_client.create(file=collection_artifact.filename).task
+    )
+    assert content_unit_href in create_task.created_resources

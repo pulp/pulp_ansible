@@ -285,8 +285,10 @@ def ansible_git_remote_factory(
 
 
 @pytest.fixture
-def build_and_upload_collection(ansible_collection_version_api_client, monitor_task):
+def build_and_upload_collection(request, ansible_collection_version_api_client, monitor_task):
     """A factory to locally create, build, and upload a collection."""
+    if request.node.get_closest_marker("parallel") is not None:
+        raise pytest.UsageError("This test fixture is not suitable to be marked parallel.")
 
     def _build_and_upload_collection(ansible_repo=None, **kwargs):
         collection = build_collection("skeleton", **kwargs)

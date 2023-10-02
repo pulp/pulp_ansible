@@ -11,7 +11,6 @@ from pulpcore.client.pulp_ansible import (
 )
 
 from pulp_ansible.tests.functional.utils import gen_ansible_client
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 
 # TODO: Check if this url will stay around

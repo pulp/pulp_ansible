@@ -12,7 +12,6 @@ from pulp_ansible.tests.functional.utils import (
     is_galaxy_ng_installed,
 )
 from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
-from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
 
 from pulpcore.client.pulpcore import ContentguardsContentRedirectApi, ApiClient as CoreApiClient
 

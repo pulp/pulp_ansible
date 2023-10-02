@@ -99,7 +99,10 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
         gitrepo = Repo.clone_from(url, uuid4(), depth=1, multi_options=["--recurse-submodules"])
     commit_sha = gitrepo.head.commit.hexsha
     metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
-    if not metadata_only:
+    if metadata_only:
+        metadata["artifact"] = None
+        metadata["artifact_url"] = None
+    else:
         artifact = Artifact.init_and_validate(artifact_path)
         try:
             await sync_to_async(artifact.save)()
@@ -107,9 +110,6 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
             artifact = Artifact.objects.get(sha256=artifact.sha256)
         metadata["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
         metadata["artifact"] = artifact
-    else:
-        metadata["artifact"] = None
-        metadata["artifact_url"] = None
     metadata["remote_artifact_url"] = "{}/commit/{}".format(url.rstrip("/"), commit_sha)
 
     artifact = metadata["artifact"]
