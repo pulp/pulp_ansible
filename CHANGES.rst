@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.17.5 (2023-10-03)
+===================
+
+Bugfixes
+--------
+
+- Ignore the "users" field in namespace data during sync.
+  `#1598 <https://github.com/pulp/pulp_ansible/issues/1598>`__
+
+
+----
+
+
 0.17.4 (2023-08-10)
 ===================
 
