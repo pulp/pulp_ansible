@@ -585,17 +585,23 @@ class CollectionSyncFirstStage(Stage):
         )
         cv_unique = attrgetter("namespace", "name", "version")(collection_version)
         fullname, version = f"{cv_unique[0]}.{cv_unique[1]}", cv_unique[2]
-        if fullname in self.exclude_info and Version(version) in self.exclude_info[fullname]:
-            return
         if cv_unique in self.already_synced:
             return
+
+        # Mark the collection version as being processed
         self.already_synced.add(cv_unique)
+        await self.parsing_metadata_progress_bar.aincrement()
+
+        if fullname in self.exclude_info and Version(version) in self.exclude_info[fullname]:
+            log.debug(_("{}-{} is in excludes list, skipping").format(fullname, version))
+            return
 
         info = metadata["metadata"]
         signatures = metadata.get("signatures", [])
         marks = metadata.get("marks", [])
 
         if self.signed_only and not signatures:
+            log.debug(_("{}-{} does not have any signatures, skipping").format(fullname, version))
             return
 
         if self.add_dependents:
@@ -635,7 +641,6 @@ class CollectionSyncFirstStage(Stage):
             d_artifacts=[d_artifact],
             extra_data=extra_data,
         )
-        await self.parsing_metadata_progress_bar.aincrement()
         await self.put(d_content)
 
         if signatures or marks:
