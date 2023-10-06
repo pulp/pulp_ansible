@@ -118,13 +118,14 @@ class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(len(content_version_two.results), 4)
 
 
+# TODO: Check each collection exists on new galaxy
 class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Collection sync tests for collections with unique properties."""
 
     def test_sync_collection_with_long_tag(self):
         """Sync a collection that is known to have "longer" tag information."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - ibm.ibm_zos_core",
             sync_dependencies=False,
         )
@@ -139,7 +140,7 @@ class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_sync_collection_with_dot_slash_in_manifest(self):
         """Sync a collection that has a ./Manifest.json instead of Manifest.json."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - rshad.collection_demo",
             sync_dependencies=False,
         )
@@ -154,7 +155,7 @@ class UniqueCollectionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_sync_collection_with_stranger_version_numbers_to_check_comparisons(self):
         """Sync a collection that has strange version numbers and ensure it syncs correctly."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - brightcomputing.bcm",
             sync_dependencies=False,
         )
