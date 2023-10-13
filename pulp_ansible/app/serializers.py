@@ -739,21 +739,12 @@ class CollectionVersionSignatureSerializer(NoArtifactContentUploadSerializer):
         allow_null=True,
     )
 
-    def __init__(self, *args, **kwargs):
-        """Ensure `file` field is required."""
-        super().__init__(*args, **kwargs)
-        self.fields["file"].required = True
-
-    def validate(self, data):
+    def deferred_validate(self, data):
         """
         Verify the signature is valid before creating it.
         """
-        data = super().validate(data)
-
-        if "request" not in self.context:
-            # Validate is called twice, first on the viewset, and second on the create task
-            # data should be set up properly on the second time, when request isn't in context
-            data = verify_signature_upload(data)
+        data = super().deferred_validate(data)
+        data = verify_signature_upload(data)
 
         return data
 
