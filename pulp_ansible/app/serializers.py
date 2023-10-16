@@ -385,9 +385,14 @@ class TagSerializer(serializers.ModelSerializer):
     A serializer for the Tag model.
     """
 
+    count = serializers.SerializerMethodField()
+
+    def get_count(self, obj):
+        return obj.ansible_collectionversion.count()
+
     class Meta:
         model = Tag
-        fields = ["name"]
+        fields = ["name", "count"]
 
 
 class TagNestedSerializer(ModelSerializer):
