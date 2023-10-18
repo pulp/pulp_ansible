@@ -3,6 +3,7 @@ from gettext import gettext as _
 from django.contrib.postgres.search import SearchQuery
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
+from django.db.models import Count
 from django_filters import filters
 from django.http import HttpResponseRedirect, HttpResponseNotFound
 from drf_spectacular.utils import extend_schema
@@ -1195,6 +1196,10 @@ class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
     endpoint_name = "pulp_ansible/tags"
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.annotate(count=Count("ansible_collectionversion"))
 
 
 class CopyViewSet(viewsets.ViewSet):

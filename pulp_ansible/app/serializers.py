@@ -388,7 +388,7 @@ class TagSerializer(serializers.ModelSerializer):
     count = serializers.SerializerMethodField()
 
     def get_count(self, obj):
-        return obj.ansible_collectionversion.count()
+        return obj.count
 
     class Meta:
         model = Tag
