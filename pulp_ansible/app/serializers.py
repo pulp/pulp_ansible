@@ -385,10 +385,7 @@ class TagSerializer(serializers.ModelSerializer):
     A serializer for the Tag model.
     """
 
-    count = serializers.SerializerMethodField()
-
-    def get_count(self, obj):
-        return obj.count
+    count = serializers.IntegerField()
 
     class Meta:
         model = Tag
