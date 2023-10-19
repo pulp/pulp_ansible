@@ -385,7 +385,7 @@ class TagSerializer(serializers.ModelSerializer):
     A serializer for the Tag model.
     """
 
-    count = serializers.IntegerField()
+    count = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Tag
