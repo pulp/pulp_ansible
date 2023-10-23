@@ -465,6 +465,7 @@ class SigstoreVerifyingService(BaseModel):
     # TODO: dedupe public URL
 
     PUBLIC_REKOR_URL = "https://rekor.sigstore.dev"
+    STAGING_REKOR_URL = "https://rekor.sigstage.dev"
     PUBLIC_TUF_URL = "https://sigstore-tuf-root.storage.googleapis.com/"
 
     name = models.CharField(db_index=True, unique=True, max_length=64)
@@ -490,6 +491,8 @@ class SigstoreVerifyingService(BaseModel):
         """Get a Rekor instance."""
         if self.rekor_url == self.PUBLIC_REKOR_URL:
             return RekorClient.production(self.trust_updater)
+        if self.rekor_url == self.STAGING_REKOR_URL:
+            return RekorClient.staging(self.trust_updater)
 
         rekor_key = RekorKeyring(Keyring(self.rekor_public_keys))
         ctfe_key = CTKeyring(Keyring())
@@ -502,37 +505,26 @@ class SigstoreVerifyingService(BaseModel):
     @property
     def certificates_chain(self):
         """Get the Fulcio certificate chain."""
-        with tempfile.NamedTemporaryFile(dir=".", delete=False, mode="w") as certificates_file:
-            certificates_file.write(self.certificate_chain)
-            certificates_file.flush()
-        with open(certificates_file.name, "rb") as bcertificates_file:
-            return load_pem_x509_certificates(bcertificates_file.read())
+        return load_pem_x509_certificates(bytes(self.certificate_chain, "utf-8"))
 
     @property
     def verifier(self):
         """Get a Verifier instance."""
+        if self.rekor_url == self.PUBLIC_REKOR_URL:
+            return Verifier.production()
+        if self.rekor_url == self.STAGING_REKOR_URL:
+            return Verifier.staging()
+
         return Verifier(
             rekor=self.rekor,
             fulcio_certificate_chain=self.certificates_chain,
         )
 
-    def sigstore_verify(self, manifest, signature, certificate, sigstore_bundle=None):
+    def sigstore_verify(self, manifest, sigstore_bundle):
         """Verify a Sigstore signature validity."""
-        if self.verify_offline and not sigstore_bundle:
-            raise ValueError("Offline verification requires a Sigstore bundle.")
-
-        if self.verify_offline and sigstore_bundle:
-            verification_materials = VerificationMaterials.from_bundle(
-                input_=manifest, bundle=sigstore_bundle, offline=True
-            )
-        else:
-            verification_materials = VerificationMaterials(
-                input_=manifest,
-                cert_pem=certificate,
-                signature=signature,
-                rekor_entry=None,
-                offline=False,
-            )
+        verification_materials = VerificationMaterials.from_bundle(
+            input_=manifest, bundle=sigstore_bundle, offline=self.verify_offline
+        )
 
         policy = Identity(
             identity=self.expected_identity,
@@ -813,8 +805,6 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
         private (models.BooleanField): Indicator if this repository is private.
 
     Relations:
-        sistore_signing_service (models.ForeignKey):
-            Sigstore service used to sign collections.
         sigstore_verifying_service (models.ForeignKey):
             Sigstore service used to verify collection signatures.
     """
@@ -834,21 +824,11 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     last_synced_metadata_time = models.DateTimeField(null=True)
     gpgkey = models.TextField(null=True)
     private = models.BooleanField(default=False)
-
-    sigstore_signing_service = models.ForeignKey(
-        SigstoreSigningService,
-        on_delete=models.SET_NULL,
-        related_name="ansible_repositories",
-        null=True,
-    )
     sigstore_verifying_service = models.ManyToManyField(
         SigstoreVerifyingService,
         related_name="ansible_repositories",
+        blank=True,
     )
-
-    @property
-    def last_sync_task(self):
-        return _get_last_sync_task(self.pk)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
