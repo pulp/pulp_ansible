@@ -14,13 +14,14 @@ from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # 
 from pulp_smash.pulp3.bindings import monitor_task, delete_orphans
 
 
+# TODO: Rewrite or delete?
 class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     """Galaxy V2 Collection sync tests."""
 
     def test_sync_simple_collections_file(self):
         """Sync with simple requirements file, expected to download one CollectionVersion."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
             sync_dependencies=False,
         )
@@ -32,10 +33,11 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
         self.assertEqual(len(content.results), 1)
 
+    @pytest.mark.skip("TODO: Move to V3 tests")
     def test_sync_with_slash(self):
         """Sync with a slash used in remote.url, expected to download one CollectionVersion."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com/",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
             sync_dependencies=False,
         )
@@ -50,7 +52,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_sync_with_specific_version(self):
         """Sync with simple requirements file, expected to download one CollectionVersion."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - name: arista.avd\n    version: 2.0.0",
             sync_dependencies=False,
         )
@@ -67,7 +69,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_sync_all_versions(self):
         """Sync with simple requirements file, expected to download CollectionVersion."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - name: arista.avd",
             sync_dependencies=False,
         )
@@ -84,7 +86,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_sync_with_attached_remote(self):
         """Sync with a CollectionRemote attached to the repository."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
             sync_dependencies=False,
         )
@@ -99,7 +101,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_successive_syncs_repo_version(self):
         """Test whether successive syncs do not produce more repository versions."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - testing.k8s_demo_collection",
             sync_dependencies=False,
         )
@@ -115,7 +117,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         """Sync with requirements.yml that requires parsing multiple "versions" pages."""
         requirements_file_string = "\n" "---\n" "collections:\n" "- name: amazon.aws\n"
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file=requirements_file_string,
             sync_dependencies=False,
         )
@@ -130,7 +132,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_sync_with_invalid_requirements(self):
         """Sync with invalid requirement."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="INAVLID",
             sync_dependencies=False,
         )
@@ -139,7 +141,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
     def test_sync_collection_missing_requires_ansible(self):
         """Sync a collection with the expected `requires_ansible` data missing."""
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - name: inexio.thola\n    version: 1.0.0",
             sync_dependencies=False,
         )
@@ -177,7 +179,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             '  version: "==1.0.1"\n'
         )
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file=requirements_file_string,
             sync_dependencies=False,
         )
@@ -201,7 +203,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             '  version: "1.0.0"\n'
         )
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file=requirements_file_string,
             sync_dependencies=False,
         )
@@ -223,7 +225,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             '  version: ">=1.0.1"\n'
         )
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file=requirements_file_string,
             sync_dependencies=False,
         )
@@ -245,7 +247,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
             '  version: ">1.0.0,<1.0.2"\n'
         )
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file=requirements_file_string,
             sync_dependencies=False,
         )
@@ -267,7 +269,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         #     repositories-ansible/ansible-rebuild-metadata
 
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - name: community.docker\n    version: 3.0.0",
             sync_dependencies=False,
         )
@@ -312,7 +314,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         delete_orphans()
 
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - name: community.docker\n    version: 3.0.0",
             sync_dependencies=False,
         )
@@ -354,7 +356,7 @@ class RequirementsFileVersionsTestCase(TestCaseUsingBindings, SyncHelpersMixin):
         delete_orphans()
 
         body = gen_ansible_remote(
-            url="https://galaxy.ansible.com",
+            url="https://old-galaxy.ansible.com/api/",
             requirements_file="collections:\n  - name: community.molecule\n    version: 0.1.0",
             sync_dependencies=False,
         )
