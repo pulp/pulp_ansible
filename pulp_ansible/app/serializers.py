@@ -1,9 +1,16 @@
 from gettext import gettext as _
 
 import json
+import os
+import tempfile
+import tarfile
+
+from pathlib import Path
+from sigstore_protobuf_specs.dev.sigstore.bundle.v1 import Bundle
 
 from django.db import transaction
 from django.conf import settings
+from django.core.files.storage import default_storage as storage
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
@@ -160,12 +167,12 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
         ),
     )
     tuf_url = serializers.CharField(
-        initial="https://sigstore-tuf-root.storage.googleapis.com/",
+        initial="https://tuf-repo-cdn.sigstore.dev",
         default="https://tuf-repo-cdn.sigstore.dev",
         help_text=_(
             "The URL of the TUF metadata repository instance to use. "
             "Defaults to the public TUF instance URL "
-            "(https://sigstore-tuf-root.storage.googleapis.com/) if not specified. "
+            "(https://tuf-repo-cdn.sigstore.dev) if not specified. "
         ),
     )
     rekor_root_pubkey = serializers.CharField(
@@ -226,6 +233,11 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
         required=True,
         help_text=_("The URL of the Rekor instance to use for verifying signature logs"),
     )
+    tuf_url = serializers.CharField(
+        initial="https://tuf-repo-cdn.sigstore.dev",
+        required=True,
+        help_text=_("The URL of the TUF instance to use for downloading public keys and certificates"),
+    )
     rekor_root_pubkey = serializers.CharField(
         help_text=_("A PEM-encoded root public key for Rekor itself"),
         allow_null=True,
@@ -260,6 +272,7 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
         fields = (
             "name",
             "rekor_url",
+            "tuf_url",
             "rekor_root_pubkey",
             "certificate_chain",
             "expected_oidc_issuer",
@@ -283,16 +296,12 @@ class AnsibleRepositorySerializer(RepositorySerializer):
     )
 
     last_sync_task = serializers.SerializerMethodField()
-    sigstore_signing_service = DetailRelatedField(
-        help_text=_("A Sigstore service to use to sign the collections"),
-        queryset=SigstoreSigningService.objects.all(),
-        many=True,
-    )
+
     sigstore_verifying_service = serializers.PrimaryKeyRelatedField(
         help_text=_("A Sigstore service used to verify the collection signatures"),
         queryset=SigstoreVerifyingService.objects.all(),
         many=True,
-        # view_name="sigstore-verifying-services-detail",
+        allow_null=True,
     )
 
     class Meta:
@@ -620,7 +629,9 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
     )
 
     def validate(self, data):
-        """Check and set the namespace, name & version."""
+        """
+        Check and set the namespace, name & version.
+        """
         fields = ("namespace", "name", "version")
         if not all((f"expected_{x}" in data for x in fields)):
             if not ("file" in data or "filename" in self.context):
@@ -800,11 +811,51 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
 
     creating = True
 
+    def create(self, validated_data):
+        artifact = validated_data.get("artifact")
+        repository = validated_data.get("repository")
+        sigstore_verifying_services = repository.sigstore_verifying_service.all()
+
+        cv_instance = super().create(validated_data)
+
+        artifact_name = artifact.file.name
+        artifact_file = storage.open(artifact_name)
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            with tarfile.open(fileobj=artifact_file, mode="r") as tar:
+                tar.extractall(path=tempdir)
+
+                for root, dirs, files in os.walk(tempdir):
+                    if ".ansible-sign" in dirs:
+                        manifest_path = Path(tempdir) / ".ansible-sign" / "sha256sum.txt"
+                        signature_path = Path(tempdir) / ".ansible-sign" / "sha256sum.txt.sigstore"
+                        if os.path.exists(manifest_path) and os.path.exists(signature_path):
+                            sigstore_bundle = Bundle().from_json(signature_path.read_bytes())
+
+                            with manifest_path.open("rb", buffering=0) as io:
+
+                                for sigstore_verifying_service in sigstore_verifying_services:
+                                    verification_result = sigstore_verifying_service.sigstore_verify(manifest=io, sigstore_bundle=sigstore_bundle)
+
+                                    if verification_result:
+                                        cv_signature = CollectionVersionSigstoreSignature(
+                                            sigstore_bundle=bundle_data,
+                                            signed_collection=cv_instance,
+                                            sigstore_signing_service=None,
+                                        )
+                                        cv_signature.save()
+
+                        else:
+                            break
+
+        return cv_instance
+
     def validate(self, data):
         """Run super() validate if creating, else return data."""
         # This validation is for creating CollectionVersions
         if not self.creating or self.instance:
             return data
+
         return super().validate(data)
 
     def is_valid(self, raise_exception=False):
