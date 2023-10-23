@@ -81,7 +81,7 @@ def finish_collection_upload(collection_version, tags, origin_repository):
         tag, created = Tag.objects.get_or_create(name=name)
         collection_version.tags.add(tag)
 
-    _update_highest_version(collection_version)
     if origin_repository is not None:
         collection_version.repository = origin_repository
     collection_version.save()
+    _update_highest_version(collection_version)

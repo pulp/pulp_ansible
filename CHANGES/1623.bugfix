@@ -1,0 +1,1 @@
+Fixed highest version calculation failing when versions of a collection were created out of order.

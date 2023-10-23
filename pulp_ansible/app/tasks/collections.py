@@ -429,14 +429,23 @@ def _update_highest_version(collection_version):
 
     qs = collection_version.collection.versions.annotate(prerelease=Q(version_prerelease__ne=""))
     highest_subq = qs.order_by("prerelease", "-version")[0:1].values("pk")
-    # Order them in such a way, that only the latest updated record will recieve true.
-    # This should prevent hitting the uniquenes constraint.
-    update_qs = qs.annotate(new_is_highest=Q(pk=highest_subq)).order_by("-prerelease", "version")
-    try:
-        update_qs.update(is_highest=F("new_is_highest"))
-    except IntegrityError:
-        # Try once more
-        update_qs.update(is_highest=F("new_is_highest"))
+    update_qs = qs.annotate(new_is_highest=Q(pk=highest_subq))
+    # To avoid ordering issues, set everything to False first, then update with proper value
+    for i in range(2):
+        try:
+            with transaction.atomic():
+                update_qs.update(is_highest=False)
+                update_qs.update(is_highest=F("new_is_highest"))
+        except IntegrityError:
+            log.debug(f"Retrying update_highest_version {collection_version.relative_path}")
+            pass
+        else:
+            return
+    log.warning(
+        _("Failed to update is_highest for {}, potentially out of date").format(
+            collection_version.relative_path
+        )
+    )
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
