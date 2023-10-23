@@ -197,7 +197,7 @@ class CollectionSigstoreSigningFirstStage(Stage):
                     input_digest = io.BytesIO(manifest_data.encode("utf-8"))
 
                     signing_result = await sync_to_async(signer.sign)(input_=input_digest)
-                    bundle_data = signing_result._to_bundle().to_json()
+                    bundle_data = signing_result.to_bundle().to_json()
 
                     cv_signature = CollectionVersionSigstoreSignature(
                         sigstore_bundle=bundle_data,
