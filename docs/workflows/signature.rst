@@ -140,6 +140,7 @@ is the command line client used to sign and verify artifacts. The same functiona
 Setting up Sigstore in Pulp
 ---------------------------
 
+============================
 Configuring Sigstore signing
 ============================
 
@@ -187,7 +188,7 @@ Pulp admins can also remove Sigstore signing services configured:
 .. code-block:: bash
     pulpcore-manager remove-sigstore-signing-service my-signing-service
 
-
+===========================================
 Configuring Sigstore signature verification
 ===========================================
 
@@ -237,9 +238,8 @@ Signing Collections with Sigstore
 Pulp users can use one of the Sigstore signing services to sign collections and upload the resulting signature materials to a repository.
 Sigstore signature materials consist of:
 
-- A base64 signature of the collection
-- An ephemeral X509 signing certificate
-- A Sigstore bundle used for offline verification
+- A manifest ``.ansible-sign/sha256sum/txt`` containing the checksums of all files present in the collection
+- A `Sigstore bundle <https://docs.sigstore.dev/signing/quickstart/#signing-a-blob>`__ ``.ansible-sign/sha256sum/txt.sigstore`` used for verification
 
 With the ``pulp`` CLI:
 
@@ -258,37 +258,12 @@ Signatures can also be manually created and uploaded to ``pulp_ansible``.
 
 .. code-block:: bash
 
-    pulp ansible content -t sigstore-signature upload --signature sha256sum.txt.sig --certificate sha256sum.txt.crt --bundle sha256sum.txt.sigstore --collection $COLLECTION_HREF
+    pulp ansible content -t sigstore-signature upload --bundle sha256sum.txt.sigstore --collection $COLLECTION_HREF
 
 Signatures are verified upon upload by a Sigstore verifying service set up for the repository.
 
-Verifying Sigstore Signatures with ``ansible-galaxy``
------------------------------------------------------
 
-Installing collections from ``pulp_ansible`` with Sigstore signatures via `ansible-galaxy` requires passing
-sigstore verification parameters via a JSON file to the ``ansible-galaxy`` command line:
-
-.. code-block:: bash
-
-    ansible-galaxy collection install $COLLECTION -s "$BASE_ADDR"pulp_ansible/galaxy/foo/api/ --sigstore-verify-parameters sigstore-verify.json
-
-Example of Sigstore verification parameters file:
-
-.. code-block:: json
-
-    {
-        "rekor-url": "https://rekor.sigstore.dev",
-        "rekor-root-pubkey": "-----BEGIN PUBLIC KEY----- MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMMgqllG63h1hb313Gu16zCu1ctcZ j9Wi6b+xM2p2Ofv3A4I4E5/pgGjlGRAd8G8aQrq3HwCT//3TERROMVc84w== -----END PUBLIC KEY-----",
-        "tuf-url": "https://sigstore-tuf-root.storage.googleapis.com/",
-        "certificate-chain": "-----BEGIN CERTIFICATE----- MIICFzCCAb2gAwIBAgIUTlC6Sec7aMzNSEPjM4GGRGD4SRQwCgYIKoZIzj0EAwIw ... -----END CERTIFICATE-----"
-        "expected-identity": "user@example.com",
-        "expected-oidc-issuer": "https://oauth2.sigstore.dev/auth",
-        "verify-offline": false
-    }
-
-
-You can also verify already installed collections with the verify command:
-
-.. code-block:: bash
-
-    ansible-galaxy collection verify $COLLECTION -s "$BASE_ADDR"pulp_ansible/galaxy/foo/api/ --sigstore-verify-parameters sigstore-verify.json
+When a new collection version is uploaded to a repository, if a Sigstore bundle and the signed checksums manifest are present under an ``.ansible-sign/`` directory,
+the signature will be extracted and verified against all the Sigstore verifying services configured on the given repository.
+If at least one verifying service was able to validate the signature, it will be validated and uploaded as a collection version Sigstore signature
+associated with the collection version.
