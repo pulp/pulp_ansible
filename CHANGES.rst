@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.20.2 (2023-10-23)
+===================
+
+Bugfixes
+--------
+
+- Fixed highest version calculation failing when versions of a collection were created out of order.
+  `#1623 <https://github.com/pulp/pulp_ansible/issues/1623>`__
+
+
+----
+
+
 0.20.1 (2023-10-03)
 ===================
 
