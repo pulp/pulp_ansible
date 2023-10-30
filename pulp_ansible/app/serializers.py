@@ -385,9 +385,11 @@ class TagSerializer(serializers.ModelSerializer):
     A serializer for the Tag model.
     """
 
+    count = serializers.IntegerField(read_only=True)
+
     class Meta:
         model = Tag
-        fields = ["name"]
+        fields = ["name", "count"]
 
 
 class TagNestedSerializer(ModelSerializer):
