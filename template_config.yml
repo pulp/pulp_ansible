@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-248-g4bfc3e1
+# generated with plugin_template@2021.08.26-250-gf4315cf
 
 additional_repos: []
 api_root: /pulp/
@@ -18,7 +18,7 @@ ci_update_branches:
 - '0.16'
 - '0.17'
 - '0.18'
-- '0.20'
+- '0.21'
 ci_update_docs: true
 ci_update_release_behavior: replace-previous-version
 cli_package: pulp-cli
