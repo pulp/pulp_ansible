@@ -209,7 +209,7 @@ jobs:
       - uses: actions/checkout@v3
         with:
           path: pulp_ansible
-          ref: '0.20'
+          ref: '0.21'
           fetch-depth: 0
 
       - name: Run update
@@ -224,10 +224,10 @@ jobs:
           path: pulp_ansible
           committer: pulpbot <pulp-infra@redhat.com>
           author: pulpbot <pulp-infra@redhat.com>
-          title: 'Update CI files for branch 0.20'
+          title: 'Update CI files for branch 0.21'
           body: '[noissue]'
-          branch: 'update-ci/0.20'
-          base: '0.20'
+          branch: 'update-ci/0.21'
+          base: '0.21'
           commit-message: |
             Update CI files
 
