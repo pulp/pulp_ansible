@@ -144,6 +144,7 @@ def main():
         "release_version",
         type=str,
         help="The version string for the release.",
+        nargs="?",
     )
 
     args = parser.parse_args()
