@@ -144,7 +144,6 @@ def main():
         "release_version",
         type=str,
         help="The version string for the release.",
-        nargs="?",
     )
 
     args = parser.parse_args()
@@ -161,7 +160,7 @@ def main():
     repo = Repo(plugin_path)
 
     release_commit = None
-    if release_version_arg and release_version != release_version_arg:
+    if release_version != release_version_arg:
         # Look for a commit with the requested release version
         for commit in repo.iter_commits():
             if f"Release {release_version_arg}\n" in commit.message:
