@@ -1018,11 +1018,9 @@ class CollectionVersionSigstoreSignatureSerializer(NoArtifactContentUploadSerial
             )
         data = super().validate(data)
 
-        if "request" not in self.context:
-            # Validate is called twice, first on the viewset, and second on the create task
-            # data should be set up properly on the second time, when request isn't in context
-            data = verify_sigstore_signature_upload(data)
-
+    def deferred_validate(self, data):
+        data = super().deferred_validate(data)
+        data = verify_sigstore_signature_upload(data)
         return data
 
     class Meta:
