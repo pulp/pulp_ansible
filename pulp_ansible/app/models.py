@@ -563,7 +563,7 @@ class CollectionVersionSigstoreSignature(Content):
     TYPE = "collection_sigstore_signatures"
 
     sigstore_bundle = models.JSONField(null=True)
-    sigstore_bundle_sha256_hash = models.CharField(max_length=64, unique=True, db_index=True, null=True)
+    sigstore_bundle_sha256_hash = models.CharField(max_length=64, db_index=True, null=True)
     signed_collection = models.ForeignKey(
         CollectionVersion, on_delete=models.CASCADE, related_name="sigstore_signatures"
     )
