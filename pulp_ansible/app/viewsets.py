@@ -302,7 +302,7 @@ class SigstoreSignatureFilter(ContentFilter):
 
 
 class SigstoreSigningServiceViewSet(
-    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin, RolesMixin
+    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 ):
     """
     Viewset for looking at Sigstore signing services.
@@ -315,7 +315,7 @@ class SigstoreSigningServiceViewSet(
 
 
 class SigstoreVerifyingServiceViewSet(
-    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin, RolesMixin
+    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
 ):
     """
     Viewset for looking at Sigstore verifying services.
