@@ -1007,16 +1007,7 @@ class CollectionVersionSigstoreSignatureSerializer(NoArtifactContentUploadSerial
         """Ensure `file` field is required."""
         super().__init__(*args, **kwargs)
         self.fields["file"].required = True
-
-    def validate(self, data):
-        """
-        Verify the signature is valid before creating it.
-        """
-        if not "repository" in data:
-            raise serializers.ValidationError(
-                "'repository' field not set"
-            )
-        data = super().validate(data)
+        self.fields["repository"].required = True
 
     def deferred_validate(self, data):
         data = super().deferred_validate(data)
