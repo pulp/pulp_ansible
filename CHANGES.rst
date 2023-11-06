@@ -20,7 +20,6 @@ Features
 --------
 
 - Added pulpcore 3.40 compatibility.
-  `#40 <https://github.com/pulp/pulp_ansible/issues/40>`__
 - Display the ``count`` attribute in the tags of collections.
   `#1612 <https://github.com/pulp/pulp_ansible/issues/1612>`__
 
