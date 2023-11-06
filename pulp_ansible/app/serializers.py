@@ -828,8 +828,8 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
     creating = True
 
     def create(self, validated_data):
-        artifact = validated_data.get("artifact")
-        repository = validated_data.get("repository")
+        artifact = validated_data["artifact"]
+        repository = validated_data["repository"]
         sigstore_verifying_services = repository.sigstore_verifying_service.all()
 
         cv_instance = super().create(validated_data)
@@ -837,7 +837,7 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         artifact_name = artifact.file.name
         artifact_file = storage.open(artifact_name)
 
-        with tempfile.TemporaryDirectory() as tempdir:
+        with tempfile.TemporaryDirectory(dir=".") as tempdir:
             with tarfile.open(fileobj=artifact_file, mode="r") as tar:
                 tar.extractall(path=tempdir)
 
