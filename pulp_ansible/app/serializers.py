@@ -235,22 +235,26 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
     name = serializers.CharField(
         help_text=_("A unique name used to recognize a Sigstore verifying service"),
         required=True,
+        read_only=True,
     )
     rekor_url = serializers.CharField(
         initial="https://rekor.sigstore.dev",
         required=True,
         help_text=_("The URL of the Rekor instance to use for verifying signature logs"),
+        read_only=True,
     )
     tuf_url = serializers.CharField(
         initial="https://tuf-repo-cdn.sigstore.dev",
         required=True,
         help_text=_("The URL of the TUF instance to use for downloading public keys and certificates"),
+        read_only=True,
     )
     rekor_root_pubkey = serializers.CharField(
         help_text=_("A PEM-encoded root public key for Rekor itself"),
         allow_null=True,
         allow_blank=True,
         required=False,
+        read_only=True,
     )
     certificate_chain = serializers.CharField(
         help_text=_(
@@ -260,19 +264,23 @@ class SigstoreVerifyingServiceSerializer(ModelSerializer):
         allow_null=True,
         allow_blank=True,
         required=False,
+        read_only=True,
     )
     expected_oidc_issuer = serializers.CharField(
         help_text=_("The expected OIDC issuer in the signing certificate."),
         required=True,
+        read_only=True,
     )
     expected_identity = serializers.CharField(
         help_text=_("The expected identity in the signing certificate."),
         required=True,
+        read_only=True,
     )
     verify_offline = serializers.BooleanField(
         help_text=_("Verify the signature offline."),
         required=False,
         default=False,
+        read_only=True,
     )
 
     class Meta:
