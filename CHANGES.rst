@@ -13,6 +13,29 @@ Changelog
 
 .. towncrier release notes start
 
+0.21.0 (2023-11-03)
+===================
+
+Features
+--------
+
+- Added pulpcore 3.40 compatibility.
+- Display the ``count`` attribute in the tags of collections.
+  `#1612 <https://github.com/pulp/pulp_ansible/issues/1612>`__
+
+
+Bugfixes
+--------
+
+- Ignore the "users" field in namespace data during sync.
+  `#1598 <https://github.com/pulp/pulp_ansible/issues/1598>`__
+- Fixed highest version calculation failing when versions of a collection were created out of order.
+  `#1623 <https://github.com/pulp/pulp_ansible/issues/1623>`__
+
+
+----
+
+
 0.20.2 (2023-10-23)
 ===================
 
