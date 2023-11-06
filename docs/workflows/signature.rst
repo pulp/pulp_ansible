@@ -134,7 +134,7 @@ is Sigstore's Transparency Log, an immutable and tamper-resistant ledger used to
 - `Fulcio <https://docs.sigstore.dev/fulcio/overview/>`__
 is a free Certificate Authority used to generate ephemeral signing certificates for artifacts.
 
-- `Cosign https://docs.sigstore.dev/cosign/overview/`__
+- `Cosign <https://docs.sigstore.dev/cosign/overview/>`__
 is the command line client used to sign and verify artifacts. The same functionalities are also handled by Sigstore client libraries, such as `sigstore-python <https://github.com/sigstore/sigstore-python>`__.
 
 Setting up Sigstore in Pulp
