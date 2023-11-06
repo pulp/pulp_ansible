@@ -147,6 +147,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
     name = serializers.CharField(
         help_text=_("A unique name used to recognize a Sigstore signing service"),
         required=True,
+        read_only=True,
     )
     rekor_url = serializers.CharField(
         initial="https://rekor.sigstore.dev",
@@ -156,6 +157,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "Defaults to the Rekor public good instance URL "
             "(https://rekor.sigstore.dev) if not specified"
         ),
+        read_only=True,
     )
     fulcio_url = serializers.CharField(
         initial="https://fulcio.sigstore.dev",
@@ -165,6 +167,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "Defaults to the Fulcio public good instance URL "
             "(https://fulcio.sigstore.dev) if not specified"
         ),
+        read_only=True,
     )
     tuf_url = serializers.CharField(
         initial="https://tuf-repo-cdn.sigstore.dev",
@@ -174,12 +177,14 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "Defaults to the public TUF instance URL "
             "(https://tuf-repo-cdn.sigstore.dev) if not specified. "
         ),
+        read_only=True,
     )
     rekor_root_pubkey = serializers.CharField(
         help_text=_("A PEM-encoded root public key for Rekor itself"),
         allow_null=True,
         allow_blank=True,
         required=False,
+        read_only=True,
     )
     oidc_issuer = serializers.CharField(
         initial="https://oauth2.sigstore.dev",
@@ -190,6 +195,7 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "Defaults to the public OAuth2 server URL (https://oauth2.sigstore.dev/auth) "
             "if not specified."
         ),
+        read_only=True,
     )
     oidc_client_secret = serializers.CharField(
         required=True,
@@ -197,12 +203,14 @@ class SigstoreSigningServiceSerializer(ModelSerializer):
             "Path to the OIDC client ID and client secret file "
             "on the server to authentify to Sigstore."
         ),
+        read_only=True,
     )
     ctfe_pubkey = serializers.CharField(
         help_text=_("A PEM-encoded public key for the CT log"),
         allow_null=True,
         allow_blank=True,
         required=False,
+        read_only=True,
     )
 
     class Meta:
