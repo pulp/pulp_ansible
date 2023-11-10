@@ -5,5 +5,5 @@ pytest-custom_exit_code
 pytest-xdist
 numpy
 requests
-proxy.py~=2.4.1
+proxy.py~=2.4.3
 trustme~=1.1.0
