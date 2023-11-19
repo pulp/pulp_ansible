@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-248-g4bfc3e1
+# generated with plugin_template@2021.08.26-265-gbdd41dd
 
 additional_repos: []
 api_root: /pulp/
@@ -42,15 +42,8 @@ lint_requirements: true
 noissue_marker: '[noissue]'
 parallel_test_workers: 8
 plugin_app_label: ansible
-plugin_camel: PulpAnsible
-plugin_camel_short: Ansible
-plugin_caps: PULP_ANSIBLE
-plugin_caps_short: ANSIBLE
-plugin_dash: pulp-ansible
-plugin_dash_short: ansible
 plugin_default_branch: main
 plugin_name: pulp_ansible
-plugin_snake: pulp_ansible
 post_job_template: null
 pre_job_template: null
 publish_docs_to_pulpprojectdotorg: true
@@ -80,7 +73,6 @@ pypi_username: pulp
 python_version: '3.8'
 release_email: pulp-infra@redhat.com
 release_user: pulpbot
-run_pulpcore_tests_for_plugins: false
 single_commit_check: true
 stalebot: true
 stalebot_days_until_close: 30
@@ -95,6 +87,5 @@ test_lowerbounds: true
 test_performance: false
 test_reroute: true
 test_s3: true
-update_github: true
 use_issue_template: true
 
