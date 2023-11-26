@@ -1,6 +1,4 @@
-#!/usr/bin/env sh
-
-set -euv
+# This file is sourced
 
 echo "machine pulp
 login admin
@@ -9,11 +7,11 @@ password password
 
 chmod og-rw ~/.netrc
 
-if [[ "$TEST" == "upgrade" ]]; then
+if [ "$TEST" = "upgrade" ]; then
     exit
 fi
 
-cmd_user_stdin_prefix bash -c "cat > /var/lib/pulp/sign-metadata.sh" < "$GITHUB_WORKSPACE"/pulp_ansible/tests/assets/sign-metadata.sh
+cmd_user_stdin_prefix bash -c "cat > /var/lib/pulp/sign-metadata.sh" < pulp_ansible/tests/assets/sign-metadata.sh
 
 cmd_user_prefix bash -c "curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-PRIVATE-KEY-pulp-qe | gpg --import"
 cmd_user_prefix bash -c "curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-KEY-pulp-qe | cat > /tmp/GPG-KEY-pulp-qe"
@@ -26,4 +24,4 @@ echo "$KEY_FINGERPRINT:$TRUST_LEVEL:" | cmd_user_stdin_prefix gpg --import-owner
 curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-PRIVATE-KEY-pulp-qe | gpg --import
 curl -L https://github.com/pulp/pulp-fixtures/raw/master/common/GPG-KEY-pulp-qe | cat > /tmp/GPG-KEY-pulp-qe
 echo "$KEY_FINGERPRINT:$TRUST_LEVEL:" | gpg --import-ownertrust
-export TEST_PULP_SIGNING_SCRIPT="$GITHUB_WORKSPACE"/pulp_ansible/tests/assets/sign-metadata.sh
+export TEST_PULP_SIGNING_SCRIPT=pulp_ansible/tests/assets/sign-metadata.sh
