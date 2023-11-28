@@ -32,6 +32,10 @@ jobs:
       - name: Install requirements
         run: pip3 install -r lint_requirements.txt
 
+      - name: Lint workflow files
+        run: |
+          yamllint -s -d '{extends: relaxed, rules: {line-length: disable}}' .github/workflows
+
       # run black separately from flake8 to get a diff
       - name: Run black
         run: |
