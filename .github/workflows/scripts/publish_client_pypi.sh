@@ -12,8 +12,6 @@ set -euv
 # make sure this script runs at the repo root
 cd "$(dirname "$(realpath -e "$0")")/../../.."
 
-pip install twine
-
 VERSION="$(ls dist | sed -rn 's/pulp_ansible-client-(.*)\.tar.gz/\1/p')"
 
 if [[ -z "$VERSION" ]]; then
