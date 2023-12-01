@@ -61,6 +61,7 @@ from pulp_ansible.app.tasks.utils import (
     parse_collection_filename,
 )
 from pulp_ansible.app.tasks.signature import verify_signature_upload
+from pulp_ansible.app.sigstore.exceptions import VerificationFailureException
 from pulp_ansible.app.sigstore.tasks.sigstore_signature import verify_sigstore_signature_upload
 from pulp_ansible.app.tasks.upload import process_collection_artifact, finish_collection_upload
 
@@ -833,6 +834,7 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
                     if ".ansible-sign" in dirs:
                         manifest_path = Path(tempdir) / ".ansible-sign" / "sha256sum.txt"
                         signature_path = Path(tempdir) / ".ansible-sign" / "sha256sum.txt.sigstore"
+
                         if os.path.exists(manifest_path) and os.path.exists(signature_path):
                             sigstore_bundle = Bundle().from_json(signature_path.read_bytes())
 
@@ -848,6 +850,11 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
                                             sigstore_signing_service=None,
                                         )
                                         cv_signature.save()
+
+                        elif settings.ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION:
+                            raise VerificationFailureException(
+                                "Failed to verify Sigstore signature against all verifying services configured on this repository with ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION enabled."
+                            )
 
                         else:
                             break
@@ -997,8 +1004,8 @@ class CollectionVersionSigstoreSignatureSerializer(NoArtifactContentUploadSerial
         self.fields["file"].required = True
         self.fields["repository"].required = True
 
-    def deferred_validate(self, data):
-        data = super().deferred_validate(data)
+    def validate(self, data):
+        data = super().validate(data)
         data = verify_sigstore_signature_upload(data)
         return data
 
