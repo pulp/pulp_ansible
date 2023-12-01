@@ -26,7 +26,7 @@ SIGSTORE_CONFIGURATION_FILE_SCHEMA = Schema(
 
 DEFAULTS = {
     "rekor-url": "https://rekor.sigstore.dev",
-    "tuf-url": "https://sigstore-tuf-root.storage.googleapis.com/",
+    "tuf-url": "https://tuf-repo-cdn.sigstore.dev/",
     "expected-oidc-issuer": None,
     "expected-identity": None,
     "rekor-root-pubkey": None,
