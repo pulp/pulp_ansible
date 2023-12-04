@@ -13,8 +13,6 @@ from pulp_smash import api, config
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_smash.utils import http_get
 
-from requests.exceptions import HTTPError
-
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_COLLECTION_FILE_NAME,
     ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL,
@@ -356,16 +354,10 @@ def test_collection_download(collection_artifact, pulp_client, collection_detail
 
 
 def test_collection_upload_repeat(pulp_client, collection_artifact, pulp_dist, collection_upload):
-    """Upload a duplicate collection.
-
-    Should fail, because of the conflict of collection name and version.
     """
-    with pytest.raises(HTTPError) as ctx:
-        upload_collection(pulp_client, collection_artifact.filename, pulp_dist["base_path"])
-
-    assert ctx.value.response.json()["errors"][0] == {
-        "status": "400",
-        "code": "invalid",
-        "title": "Invalid input.",
-        "detail": "Artifact already exists",
-    }
+    Upload a duplicate collection.
+    """
+    response = upload_collection(pulp_client, collection_artifact.filename, pulp_dist["base_path"])
+    assert response["error"] is None
+    assert response["state"] == "completed"
+    assert re.match(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", response["id"])
