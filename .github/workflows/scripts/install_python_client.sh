@@ -26,8 +26,8 @@ rm -rf pulp_ansible-client
 pushd pulp_ansible-client
 python setup.py sdist bdist_wheel --python-tag py3
 
-twine check "dist/pulp_ansible_client-$VERSION-py3-none-any.whl" || exit 1
-twine check "dist/pulp_ansible-client-$VERSION.tar.gz" || exit 1
+twine check "dist/pulp_ansible_client-$VERSION-py3-none-any.whl"
+twine check "dist/pulp_ansible-client-$VERSION.tar.gz"
 
 cmd_prefix pip3 install "/root/pulp-openapi-generator/pulp_ansible-client/dist/pulp_ansible_client-${VERSION}-py3-none-any.whl"
 tar cvf ../../pulp_ansible/ansible-python-client.tar ./dist
@@ -37,6 +37,22 @@ find ./docs/* -exec sed -i 's/README//g' {} \;
 cp README.md docs/index.md
 sed -i 's/docs\///g' docs/index.md
 find ./docs/* -exec sed -i 's/\.md//g' {} \;
-tar cvf ../../pulp_ansible/ansible-python-client-docs.tar ./docs
+
+cat >> mkdocs.yml << DOCSYAML
+---
+site_name: PulpAnsible Client
+site_description: Ansible bindings
+site_author: Pulp Team
+site_url: https://docs.pulpproject.org/pulp_ansible_client/
+repo_name: pulp/pulp_ansible
+repo_url: https://github.com/pulp/pulp_ansible
+theme: readthedocs
+DOCSYAML
+
+# Building the bindings docs
+mkdocs build
+
+# Pack the built site.
+tar cvf ../../pulp_ansible/ansible-python-client-docs.tar ./site
 popd
 popd
