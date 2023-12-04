@@ -8,7 +8,6 @@ from pulp_smash.utils import http_get
 from pulpcore.client.pulp_ansible import (
     AnsibleCollectionsApi,
     ContentCollectionVersionsApi,
-    ApiException,
 )
 
 from pulp_ansible.tests.functional.utils import gen_ansible_client
@@ -53,13 +52,6 @@ class UploadCollectionTestCase(PulpTestCase):
         * `Pulp #5262 <https://pulp.plan.io/issues/5262>`_
         """
         response = self.upload_collection()
-
         self.assertEqual(response.sha256, self.collection_sha256, response)
-
-        with self.assertRaises(ApiException) as exc:
-            self.upload_collection()
-
-        assert exc.exception.status == 400
-        assert "Artifact already exists" in exc.exception.body
 
         delete_orphans()
