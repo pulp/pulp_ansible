@@ -335,15 +335,6 @@ class CollectionOneShotSerializer(serializers.Serializer):
         default=None,
     )
 
-    def validate(self, data):
-        """Ensure duplicate artifact isn't uploaded."""
-        data = super().validate(data)
-        sha256 = data["file"].hashers["sha256"].hexdigest()
-        artifact = Artifact.objects.filter(sha256=sha256).first()
-        if artifact:
-            raise ValidationError(_("Artifact already exists"))
-        return data
-
 
 class AnsibleDistributionSerializer(DistributionSerializer):
     """
@@ -491,13 +482,6 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
             data["expected_name"] = collection.name
             data["expected_version"] = collection.version
 
-        if CollectionVersion.objects.filter(**{f: data[f"expected_{f}"] for f in fields}).exists():
-            raise ValidationError(
-                _("Collection {}.{}-{} already exists").format(
-                    data["expected_namespace"], data["expected_name"], data["expected_version"]
-                )
-            )
-
         # Super will call deferred_validate on second call in task context
         return super().validate(data)
 
@@ -518,8 +502,30 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         # repository field clashes
         collection_info["origin_repository"] = collection_info.pop("repository", None)
         data.update(collection_info)
+        # `retrieve` needs artifact, but it won't be in validated_data because of `get_artifacts`
+        self.context["artifact"] = artifact
 
         return data
+
+    def retrieve(self, validated_data):
+        """Reuse existing CollectionVersion if provided artifact matches."""
+        namespace = validated_data["namespace"]
+        name = validated_data["name"]
+        version = validated_data["version"]
+        artifact = self.context["artifact"]
+        # TODO switch this check to use digest when ColVersion uniqueness constraint is changed
+        col = CollectionVersion.objects.filter(
+            namespace=namespace, name=name, version=version
+        ).first()
+        if col:
+            if col._artifacts.get() != artifact:
+                raise ValidationError(
+                    _("Collection {}.{}-{} already exists with a different artifact").format(
+                        namespace, name, version
+                    )
+                )
+
+        return col
 
     def create(self, validated_data):
         """Final step in creating the CollectionVersion."""
