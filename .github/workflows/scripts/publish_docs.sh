@@ -39,19 +39,6 @@ fi
 mkdir -p ../ansible-bindings
 tar -xvf ansible-python-client-docs.tar --directory ../ansible-bindings
 pushd ../ansible-bindings
-cat >> mkdocs.yml << DOCSYAML
----
-site_name: PulpAnsible Client
-site_description: Ansible bindings
-site_author: Pulp Team
-site_url: https://docs.pulpproject.org/pulp_ansible_client/
-repo_name: pulp/pulp_ansible
-repo_url: https://github.com/pulp/pulp_ansible
-theme: readthedocs
-DOCSYAML
-
-# Building the bindings docs
-mkdocs build
 
 # publish to docs.pulpproject.org/pulp_ansible_client
 rsync -avzh site/ doc_builder_pulp_ansible@docs.pulpproject.org:/var/www/docs.pulpproject.org/pulp_ansible_client/
