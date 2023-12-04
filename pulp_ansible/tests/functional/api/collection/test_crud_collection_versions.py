@@ -4,7 +4,6 @@ from pulp_smash.pulp3.bindings import PulpTestCase, delete_orphans, monitor_task
 from pulp_smash.utils import http_get
 
 from pulpcore.client.pulp_ansible import ContentCollectionVersionsApi
-from pulpcore.client.pulp_ansible.exceptions import ApiException
 
 
 from pulp_ansible.tests.functional.constants import (
@@ -159,9 +158,9 @@ class ContentUnitTestCase(PulpTestCase):
         self.assertIn(msg, exc.exception.args[0])
 
     @skip_if(bool, "content_unit", False)
-    def test_05_duplicate_raise_error(self):
+    def test_05_duplicate_no_error(self):
         """Attempt to create duplicate collection."""
         attrs = dict(namespace="pulp", name="squeezer", version="0.0.9")
-        with self.assertRaises(ApiException) as ctx:
-            self.upload_collection(**attrs)
-        self.assertIn("Collection pulp.squeezer-0.0.9 already exists", ctx.exception.body)
+        response = self.upload_collection(**attrs)
+        created_resources = monitor_task(response.task).created_resources
+        self.assertEqual(created_resources[0], self.content_unit["pulp_href"])
