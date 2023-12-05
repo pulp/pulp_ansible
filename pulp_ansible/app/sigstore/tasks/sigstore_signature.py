@@ -113,8 +113,6 @@ def verify_sigstore_signature_upload(data):
             sigstore_bundle=bundle,
         )
 
-        print("VERIFICATION RESULT: ", verification_result)
-
         if verification_result:
             log.info(f"Validated Sigstore signature for collection {collection}")
             return data
@@ -167,8 +165,8 @@ class CollectionSigstoreSigningFirstStage(Stage):
         self.repos_current_sigstore_signatures = current_sigstore_signatures
         self.semaphore = asyncio.Semaphore(settings.ANSIBLE_SIGNING_TASK_LIMITER)
 
-    async def sigstore_sign_collection_versions(self, collection_versions):
-        """Signs the collection versions with Sigstore."""
+    async def sigstore_sign_collection_version(self, collection_version):
+        """Signs a collection version with Sigstore."""
         # Get an OIDC token to authenticate to Fulcio
         client_secret = self.sigstore_signing_service.oidc_client_secret
 
@@ -179,22 +177,20 @@ class CollectionSigstoreSigningFirstStage(Stage):
         with self.signing_ctx.signer(identity) as signer:
             # Limits the number of subprocesses spawned/running at one time
             async with self.semaphore:
-                async for collection_version in collection_versions:
-                    # We create the checksums manifest to sign
-                    manifest_data = await sync_to_async(_generate_checksum_manifest)(collection_version)
-                    input_digest = io.BytesIO(manifest_data.encode("utf-8"))
+                manifest_data = await sync_to_async(_generate_checksum_manifest)(collection_version)
+                input_digest = io.BytesIO(manifest_data.encode("utf-8"))
 
-                    signing_result = await sync_to_async(signer.sign)(input_=input_digest)
-                    bundle_data = signing_result.to_bundle().to_json()
+                signing_result = await sync_to_async(signer.sign)(input_=input_digest)
+                bundle_data = signing_result.to_bundle().to_json()
 
-                    cv_signature = CollectionVersionSigstoreSignature(
-                        sigstore_bundle=bundle_data,
-                        signed_collection=collection_version,
-                        sigstore_signing_service=self.sigstore_signing_service,
-                    )
-                    dc = DeclarativeContent(content=cv_signature)
-                    await self.progress_report.aincrement()
-                    await self.put(dc)
+                cv_signature = CollectionVersionSigstoreSignature(
+                    sigstore_bundle=bundle_data,
+                    signed_collection=collection_version,
+                    sigstore_signing_service=self.sigstore_signing_service,
+                )
+                dc = DeclarativeContent(content=cv_signature)
+                await self.progress_report.aincrement()
+                await self.put(dc)
 
     async def run(self):
         """Sign collections with Sigstore if they have not been signed."""
@@ -209,11 +205,9 @@ class CollectionSigstoreSigningFirstStage(Stage):
         msg = _("Signing new CollectionVersions with Sigstore.")
         async with ProgressReport(message=msg, code="sign.new.signature", total=ntotal) as p:
             self.progress_report = p
-            await asyncio.create_task(
-                self.sigstore_sign_collection_versions(
-                    sync_to_async_iterable(new_content.iterator())
-                )
-            )
+            async for collection_version in sync_to_async_iterable(new_content.iterator()):
+                tasks.append(asyncio.create_task(self.sigstore_sign_collection_version(collection_version)))
+                await asyncio.gather(*tasks)
 
         present_content = current_signatures.filter(signed_collection__in=self.content).exclude(
             pk__in=self.repos_current_sigstore_signatures
