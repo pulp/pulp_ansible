@@ -82,4 +82,4 @@ class NonInteractiveIssuer(BaseIssuer):
         if token_error is not None:
             raise IdentityError(f"Error response from token endpoint: {resp_error}")
 
-        return IdentityToken(token_json["access_token"])
+        return IdentityToken(token_json["id_token"])
