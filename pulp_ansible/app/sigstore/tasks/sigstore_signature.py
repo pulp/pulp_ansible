@@ -163,6 +163,7 @@ class CollectionSigstoreSigningFirstStage(Stage):
         super().__init__()
         self.content = content
         self.sigstore_signing_service = sigstore_signing_service
+        self.signing_ctx = self.sigstore_signing_service.signing_context
         self.repos_current_sigstore_signatures = current_sigstore_signatures
         self.semaphore = asyncio.Semaphore(settings.ANSIBLE_SIGNING_TASK_LIMITER)
 
@@ -175,9 +176,7 @@ class CollectionSigstoreSigningFirstStage(Stage):
             "sigstore", client_secret,
         )
 
-        signing_ctx = self.sigstore_signing_service.signing_context
-
-        with signing_ctx.signer(identity) as signer:
+        with self.signing_ctx.signer(identity) as signer:
             # Limits the number of subprocesses spawned/running at one time
             async with self.semaphore:
                 async for collection_version in collection_versions:
