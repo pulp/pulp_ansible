@@ -4,6 +4,7 @@ Tasks related to Sigstore content signature and verification.
 
 import asyncio
 import io
+import json
 import logging
 import os
 import re
@@ -92,48 +93,36 @@ def verify_sigstore_signature_upload(data):
     collection = data["signed_collection"]
     repository = data.get("repository")
     if repository:
-        sigstore_verifying_service = repository.sigstore_verifying_service
+        sigstore_verifying_services = repository.sigstore_verifying_service.all()
+        if not sigstore_verifying_services and settings.ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION:
+            log.warn("Signature verification is required but no Sigstore verifying service configured for the repository.")
+            return data
     else:
         raise ValueError("This content type must be associated with a repository.")
-    signature = data["data"]
-    certificate = data["sigstore_x509_certificate"]
-
-    def format(pubkey):
-        delimiter = "-----"
-        s = pubkey.split(delimiter)
-        res = delimiter + s[1] + delimiter + re.sub(" +", "\n", s[2]) + delimiter + s[3] + delimiter
-        return res
-
-    certificate = format(certificate)
     sigstore_bundle = data.get("sigstore_bundle")
-    checksums = _generate_checksum_manifest(collection)
+    checksums = io.BytesIO(_generate_checksum_manifest(collection).encode("utf-8"))
 
-    bundle = Bundle().from_json(sigstore_bundle) if sigstore_bundle != "null" else None
+    bundle_bytes = json.dumps(sigstore_bundle).encode("utf-8")
 
-    try:
+    bundle = Bundle().from_json(bundle_bytes) if sigstore_bundle else None
+    data["sigstore_signing_service"] = None
+
+    for sigstore_verifying_service in sigstore_verifying_services:
         verification_result = sigstore_verifying_service.sigstore_verify(
             manifest=checksums,
-            signature=signature,
-            certificate=certificate,
             sigstore_bundle=bundle,
         )
-    except AttributeError as e:
-        log.error(
-            f"Error verifying sigstore signature for {collection}: "
-            f"Repository {repository} is not configured with a SigstoreVerifyingService."
-        )
-        raise e
 
-    if isinstance(verification_result, VerificationFailure):
+        print("VERIFICATION RESULT: ", verification_result)
+
+        if verification_result:
+            log.info(f"Validated Sigstore signature for collection {collection}")
+            return data
+
+    if settings.ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION:
         raise VerificationFailureException(
-            "Failed to verify Sigstore signature for collection "
-            f"{collection}: {verification_result.reason}\n"
-            f"Exception: {verification_result.exception}"
+            "Failed to verify Sigstore signature against all verifying services configured on this repository with ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION enabled."
         )
-
-    log.info(f"Validated Sigstore signature for collection {collection}")
-
-    data["sigstore_signing_service"] = sigstore_signing_service
 
     return data
 

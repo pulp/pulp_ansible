@@ -835,8 +835,10 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
                         manifest_path = Path(tempdir) / ".ansible-sign" / "sha256sum.txt"
                         signature_path = Path(tempdir) / ".ansible-sign" / "sha256sum.txt.sigstore"
 
+                        signature_content = signature_path.read_bytes()
+
                         if os.path.exists(manifest_path) and os.path.exists(signature_path):
-                            sigstore_bundle = Bundle().from_json(signature_path.read_bytes())
+                            sigstore_bundle = Bundle().from_json(signature_content)
 
                             with manifest_path.open("rb", buffering=0) as io:
 
@@ -845,11 +847,13 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
 
                                     if verification_result:
                                         cv_signature = CollectionVersionSigstoreSignature(
-                                            sigstore_bundle=bundle_data,
+                                            sigstore_bundle=sigstore_bundle.to_json(),
                                             signed_collection=cv_instance,
                                             sigstore_signing_service=None,
                                         )
                                         cv_signature.save()
+                                    
+                                    io.seek(0)
 
                         elif settings.ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION:
                             raise VerificationFailureException(

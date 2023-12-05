@@ -354,7 +354,7 @@ class SigstoreSigningService(BaseModel):
     )
     PUBLIC_REKOR_URL = "https://rekor.sigstore.dev"
     PUBLIC_FULCIO_URL = "https://fulcio.sigstore.dev"
-    PUBLIC_TUF_URL = "https://sigstore-tuf-root.storage.googleapis.com/"
+    PUBLIC_TUF_URL = "https://tuf-repo-cdn.sigstore.dev"
     PUBLIC_ISSUER_URL = "https://oauth2.sigstore.dev/auth"
 
     name = models.CharField(db_index=True, unique=True, max_length=64)
@@ -409,6 +409,8 @@ class SigstoreSigningService(BaseModel):
     @property
     def trust_updater(self):
         """Get a custom TrustUpdater instance depending on the TUF metadata repository provided."""
+        if self.tuf_url.endswith("/"):
+            self.tuf_url = self.tuf_url[-1]
         return TrustUpdater(self.tuf_url)
 
     @property
@@ -446,7 +448,7 @@ class SigstoreVerifyingService(BaseModel):
         tuf_url (models.TextField):
             The URL of the TUF metadata repository instance to use.
             Defaults to the public TUF instance URL
-            (https://sigstore-tuf-root.storage.googleapis.com/).
+            (https://tuf-repo-cdn.sigstore.dev/).
         certificate_chain (models.TextField):
             A list of PEM-encoded CA certificates needed to build
             the Fulcio signing certificate chain.
@@ -466,7 +468,7 @@ class SigstoreVerifyingService(BaseModel):
 
     PUBLIC_REKOR_URL = "https://rekor.sigstore.dev"
     STAGING_REKOR_URL = "https://rekor.sigstage.dev"
-    PUBLIC_TUF_URL = "https://sigstore-tuf-root.storage.googleapis.com/"
+    PUBLIC_TUF_URL = "https://tuf-repo-cdn.sigstore.dev"
 
     name = models.CharField(db_index=True, unique=True, max_length=64)
     rekor_url = models.TextField(default=PUBLIC_REKOR_URL)
@@ -478,26 +480,38 @@ class SigstoreVerifyingService(BaseModel):
     verify_offline = models.BooleanField(null=True, default=False)
 
     @property
+    def get_rekor_url(self):
+        if self.rekor_url.endswith("/"):
+            self.rekor_url = self.rekor_url[:-1]
+        return self.rekor_url
+
+    @property
+    def get_tuf_url(self):
+        if self.tuf_url.endswith("/"):
+            self.tuf_url = self.tuf_url[:-1]
+        return self.tuf_url
+
+    @property
     def rekor_public_keys(self):
         """Get the Rekor instance public key."""
         if self.rekor_root_pubkey:
             return [bytes(self.rekor_root_pubkey, "utf-8")]
-        if self.tuf_url:
+        if self.get_tuf_url:
             return self.trust_updater.get_rekor_keys()
         raise ValueError("No TUF URL or Rekor public key configured")
 
     @property
     def rekor(self):
         """Get a Rekor instance."""
-        if self.rekor_url == self.PUBLIC_REKOR_URL:
+        if self.get_rekor_url == self.PUBLIC_REKOR_URL:
             return RekorClient.production(self.trust_updater)
-        if self.rekor_url == self.STAGING_REKOR_URL:
+        if self.get_rekor_url == self.STAGING_REKOR_URL:
             return RekorClient.staging(self.trust_updater)
 
         rekor_key = RekorKeyring(Keyring(self.rekor_public_keys))
         ctfe_key = CTKeyring(Keyring())
         return RekorClient(
-            self.rekor_url,
+            self.get_rekor_url,
             rekor_key,
             ctfe_key,
         )
@@ -505,14 +519,20 @@ class SigstoreVerifyingService(BaseModel):
     @property
     def certificates_chain(self):
         """Get the Fulcio certificate chain."""
-        return load_pem_x509_certificates(bytes(self.certificate_chain, "utf-8"))
+        if self.certificate_chain:
+            return load_pem_x509_certificates(bytes(self.certificate_chain, "utf-8"))
+
+    @property
+    def trust_updater(self):
+        """Get a custom TrustUpdater instance depending on the TUF metadata repository provided."""
+        return TrustUpdater(self.get_tuf_url)
 
     @property
     def verifier(self):
         """Get a Verifier instance."""
-        if self.rekor_url == self.PUBLIC_REKOR_URL:
+        if self.get_rekor_url == self.PUBLIC_REKOR_URL:
             return Verifier.production()
-        if self.rekor_url == self.STAGING_REKOR_URL:
+        if self.get_rekor_url == self.STAGING_REKOR_URL:
             return Verifier.staging()
 
         return Verifier(
