@@ -2,10 +2,6 @@ from django.conf import settings
 from django.urls import include, path, re_path
 
 from pulp_ansible.app.galaxy.views import (
-    GalaxyCollectionVersionDetail,
-    GalaxyCollectionVersionList,
-    GalaxyCollectionDetailView,
-    GalaxyCollectionView,
     GalaxyVersionView,
     RoleList,
     RoleVersionList,
@@ -23,21 +19,6 @@ GALAXY_API_ROOT = getattr(settings, "GALAXY_API_ROOT", "pulp_ansible/galaxy/<pat
 v1_urls = [
     path("roles/", RoleList.as_view()),
     path("roles/<str:role_pk>/versions/", RoleVersionList.as_view()),
-]
-
-v2_urls = [
-    path("collections/", GalaxyCollectionView.as_view()),
-    path("collections/<str:namespace>/<str:name>/", GalaxyCollectionDetailView.as_view()),
-    path("collections/<str:namespace>/<str:name>/versions/", GalaxyCollectionVersionList.as_view()),
-    path(
-        "collections/<str:namespace>/<str:name>/versions/<str:version>/",
-        GalaxyCollectionVersionDetail.as_view(),
-        name="v2-collection-versions-detail",
-    ),
-    path(
-        "collection-imports/<uuid:pk>/",
-        views_v3.CollectionImportViewSet.as_view({"get": "retrieve"}),
-    ),
 ]
 
 # Legacy urls that need to be redirected to plugin/ansible/collections/<base_path>/
@@ -266,7 +247,6 @@ urlpatterns = [
         GalaxyVersionView.as_view(v3_only=True),
     ),
     path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
-    path(GALAXY_API_ROOT + "v2/", include(v2_urls)),
     path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
     path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
     re_path(r"^pulp/api/v3/ansible/copy/$", CopyViewSet.as_view({"post": "create"})),
