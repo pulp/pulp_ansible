@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.20.3 (2023-12-12)
+===================
+
+Bugfixes
+--------
+
+- Duplicate Collection uploads no longer return 400s.
+  `#1691 <https://github.com/pulp/pulp_ansible/issues/1691>`__
+
+
+----
+
+
 0.20.2 (2023-10-23)
 ===================
 
