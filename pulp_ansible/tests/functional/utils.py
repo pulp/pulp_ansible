@@ -19,7 +19,6 @@ from pulp_ansible.tests.functional.constants import (
 from pulpcore.client.pulpcore import (
     ApiClient as CoreApiClient,
     TasksApi,
-    StatusApi,
 )
 from pulpcore.client.pulp_ansible import (
     ApiClient as AnsibleApiClient,

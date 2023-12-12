@@ -1,18 +1,9 @@
 from urllib.parse import urljoin
 
-from pulp_smash.pulp3.constants import (
-    BASE_DISTRIBUTION_PATH,
-    BASE_REPO_PATH,
-)
-
 
 GALAXY_ANSIBLE_BASE_URL = "https://galaxy.ansible.com"
 
 ANSIBLE_ROLE_NAME = "ansible.role"
-
-ANSIBLE_DISTRIBUTION_PATH = urljoin(BASE_DISTRIBUTION_PATH, "ansible/ansible/")
-
-ANSIBLE_REPO_PATH = urljoin(BASE_REPO_PATH, "ansible/ansible/")
 
 ANSIBLE_GALAXY_URL = urljoin(GALAXY_ANSIBLE_BASE_URL, "api/v1/roles/")
 

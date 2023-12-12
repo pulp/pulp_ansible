@@ -77,7 +77,7 @@ class CollectionsV3TestCase(TestCaseUsingBindings):
         sync_response = self.repo_api.sync(repo.pulp_href, repository_sync_data)
         monitor_task(sync_response.task)
         task = tasks.read(sync_response.task)
-        self.assertEqual(task.state, "completed")
+        assert task.state == "completed"
 
         # enumerate new data after 2nd sync ...
         collections = self.collections_api.list(distribution.base_path)
@@ -87,11 +87,11 @@ class CollectionsV3TestCase(TestCaseUsingBindings):
             "squeezer", "pulp", distribution.base_path
         ).meta.count
 
-        self.assertEqual(original_highest_version, "0.0.7")
-        self.assertEqual(highest_version, "0.0.17")
-        self.assertEqual(original_total_versions, 1)
-        self.assertEqual(total_versions, 2)
-        self.assertGreater(updated_at, original_updated_at)
+        assert original_highest_version == "0.0.7"
+        assert highest_version == "0.0.17"
+        assert original_total_versions == 1
+        assert total_versions == 2
+        assert updated_at > original_updated_at
 
     def test_v3_collection_version_from_synced_data(self):
         """Test Collection Versions V3 endpoint fields."""
@@ -111,6 +111,6 @@ class CollectionsV3TestCase(TestCaseUsingBindings):
             "nxos", "cisco", distribution.base_path, "1.4.0"
         )
 
-        self.assertEqual(version.requires_ansible, ">=2.9.10,<2.11")
-        self.assertTrue("'name': 'README.md'" in str(version.files))
-        self.assertEqual(version.manifest["collection_info"]["name"], "nxos")
+        assert version.requires_ansible == ">=2.9.10,<2.11"
+        assert "'name': 'README.md'" in str(version.files)
+        assert version.manifest["collection_info"]["name"] == "nxos"
