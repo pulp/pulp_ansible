@@ -1,14 +1,12 @@
 """Tests related to sync ansible plugin collection content type."""
 
-from pulpcore.client.pulp_ansible import (
-    AnsibleRepositorySyncURL,
-)
-from pulp_smash.pulp3.bindings import PulpTaskError
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+
+from pulpcore.tests.functional.utils import PulpTaskError
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     monitor_task,
-    tasks,
 )
 from pulp_ansible.tests.functional.utils import TestCaseUsingBindings
 
@@ -54,9 +52,9 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
         first_content = self.cv_api.list(
             repository_version=f"{self.first_repo.pulp_href}versions/1/"
         )
-        self.assertGreaterEqual(len(first_content.results), 1)
+        assert len(first_content.results) >= 1
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(second_content.results), 1)
+        assert len(second_content.results) >= 1
 
     def test_sync_collections_from_pulp_using_mirror_second_time(self):
         """Test sync collections from pulp server using a mirror option the second time."""
@@ -78,9 +76,9 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
         second_repo = self._create_repo_and_sync_with_remote(second_remote)
 
         first_content = self.cv_api.list(repository_version=f"{first_repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(first_content.results), 1)
+        assert len(first_content.results) >= 1
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(second_content.results), 1)
+        assert len(second_content.results) >= 1
 
     def test_sync_collection_named_api(self):
         """Test sync collections from pulp server."""
@@ -97,8 +95,8 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
 
         collection = self.collections_v3api.read("api", "rswaf", distribution.base_path)
 
-        self.assertEqual("api", collection.name)
-        self.assertEqual("rswaf", collection.namespace)
+        assert "api" == collection.name
+        assert "rswaf" == collection.namespace
 
     def test_noop_resync_collections_from_pulp(self):
         """Test whether sync yields no-op when repo hasn't changed since last sync."""
@@ -114,20 +112,19 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
         second_repo = self._create_repo_with_attached_remote_and_sync(second_remote)
 
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(second_content.results), 1)
+        assert len(second_content.results) >= 1
 
         # Resync
         repository_sync_data = AnsibleRepositorySyncURL(
             remote=second_remote.pulp_href, optimize=True
         )
         sync_response = self.repo_api.sync(second_repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
+        task = monitor_task(sync_response.task)
         second_repo = self.repo_api.read(second_repo.pulp_href)
-        task = tasks.read(sync_response.task)
 
         msg = "no-op: {url} did not change since last sync".format(url=second_remote.url)
         messages = [r.message for r in task.progress_reports]
-        self.assertIn(msg, str(messages))
+        assert msg in str(messages)
 
     def test_noop_resync_with_mirror_from_pulp(self):
         """Test whether no-op sync with mirror=True doesn't remove repository content."""
@@ -143,21 +140,20 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
         second_repo = self._create_repo_with_attached_remote_and_sync(second_remote)
 
         second_content = self.cv_api.list(repository_version=f"{second_repo.pulp_href}versions/1/")
-        self.assertGreaterEqual(len(second_content.results), 1)
+        assert len(second_content.results) >= 1
 
         # Resync
         repository_sync_data = AnsibleRepositorySyncURL(
             remote=second_remote.pulp_href, optimize=True, mirror=True
         )
         sync_response = self.repo_api.sync(second_repo.pulp_href, repository_sync_data)
-        monitor_task(sync_response.task)
+        task = monitor_task(sync_response.task)
         second_repo = self.repo_api.read(second_repo.pulp_href)
-        self.assertEqual(int(second_repo.latest_version_href[-2]), 1)
-        task = tasks.read(sync_response.task)
+        assert int(second_repo.latest_version_href[-2]) == 1
 
         msg = "no-op: {url} did not change since last sync".format(url=second_remote.url)
         messages = [r.message for r in task.progress_reports]
-        self.assertIn(msg, str(messages))
+        assert msg in str(messages)
 
     def test_update_requirements_file(self):
         """Test requirements_file update."""
@@ -171,7 +167,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
         self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
 
         repo = self._create_repo_with_attached_remote_and_sync(remote)
-        self.assertIsNotNone(repo.last_synced_metadata_time)
+        assert repo.last_synced_metadata_time is not None
 
         response = self.remote_collection_api.partial_update(
             remote.pulp_href, {"requirements_file": "collections:\n  - ansible.posix"}
@@ -179,7 +175,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
         monitor_task(response.task)
 
         repo = self.repo_api.read(repo.pulp_href)
-        self.assertIsNone(repo.last_synced_metadata_time)
+        assert repo.last_synced_metadata_time is None
 
     def test_sync_with_missing_collection(self):
         """Test that syncing with a non-present collection gives a useful error."""
@@ -197,4 +193,4 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
 
         task_result = cm.exception.task.to_dict()
         msg = "absent.not_present does not exist"
-        self.assertIn(msg, task_result["error"]["description"], task_result["error"]["description"])
+        assert msg in task_result["error"]["description"], task_result["error"]["description"]
