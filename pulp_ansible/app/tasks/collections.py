@@ -1220,5 +1220,6 @@ class AnsibleContentSaver(ContentSaver):
                         continue
                     setattr(collection_version, attr_name, attr_value)
 
+                collection_version.is_highest = False
                 collection_version.save()
                 _update_highest_version(collection_version)
