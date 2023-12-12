@@ -16,8 +16,8 @@ ci_update_branches:
 - '0.13'
 - '0.15'
 - '0.16'
-- '0.17'
 - '0.18'
+- '0.20'
 - '0.21'
 ci_update_docs: true
 ci_update_release_behavior: replace-previous-version
