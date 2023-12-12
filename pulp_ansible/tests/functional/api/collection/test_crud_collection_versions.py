@@ -53,8 +53,7 @@ def test_tags_filter(
     assert len(collections) == 0, collections
 
 
-# Looks like orionutils are not meant to be used in parallel
-# @pytest.mark.parallel
+@pytest.mark.parallel
 def test_content_unit_lifecycle(
     ansible_collection_version_api_client, build_and_upload_collection, monitor_task
 ):
