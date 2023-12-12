@@ -36,7 +36,9 @@ def test_crud_distribution(
         )
     assert "Invalid hyperlink - No URL match." in exc_info.value.body
 
-    ansible_distro_api_client.partial_update(distribution.pulp_href, {"repository": None})
+    monitor_task(
+        ansible_distro_api_client.partial_update(distribution.pulp_href, {"repository": None}).task
+    )
     monitor_task(
         ansible_distro_api_client.partial_update(
             distribution.pulp_href, {"repository_version": repository.latest_version_href}

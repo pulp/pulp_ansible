@@ -2,6 +2,7 @@ import uuid
 import pytest
 import numpy as np
 from PIL import Image
+import shutil
 import time
 
 from orionutils.generator import build_collection, randstr
@@ -229,7 +230,7 @@ def ansible_distribution_factory(ansible_distro_api_client, gen_object_with_clea
         kwargs.setdefault("name", str(uuid.uuid4()))
         kwargs.setdefault("base_path", str(uuid.uuid4()))
         if repository:
-            kwargs.setdefault("repository", repository.pulp_href)
+            kwargs["repository"] = repository.pulp_href
         return gen_object_with_cleanup(ansible_distro_api_client, kwargs)
 
     return _ansible_distribution_factory
@@ -284,14 +285,25 @@ def ansible_git_remote_factory(
     return _ansible_git_remote_factory
 
 
+@pytest.fixture(scope="session")
+def ansible_collection_factory(tmp_path_factory):
+    def _collection_factory(**kwargs):
+        tmpdir = tmp_path_factory.mktemp("collection")
+        collection = build_collection("skeleton", **kwargs)
+        collection.filename = shutil.copy(collection.filename, tmpdir)
+        return collection
+
+    return _collection_factory
+
+
 @pytest.fixture
-def build_and_upload_collection(request, ansible_collection_version_api_client, monitor_task):
+def build_and_upload_collection(
+    ansible_collection_version_api_client, monitor_task, ansible_collection_factory
+):
     """A factory to locally create, build, and upload a collection."""
-    if request.node.get_closest_marker("parallel") is not None:
-        raise pytest.UsageError("This test fixture is not suitable to be marked parallel.")
 
     def _build_and_upload_collection(ansible_repo=None, **kwargs):
-        collection = build_collection("skeleton", **kwargs)
+        collection = ansible_collection_factory(**kwargs)
         body = {"file": collection.filename}
         if ansible_repo:
             body["repository"] = ansible_repo.pulp_href
