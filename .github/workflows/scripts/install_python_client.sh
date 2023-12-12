@@ -9,45 +9,50 @@
 
 set -mveuo pipefail
 
-export PULP_URL="${PULP_URL:-https://pulp}"
-
 # make sure this script runs at the repo root
 cd "$(dirname "$(realpath -e "$0")")"/../../..
 
-pip install twine wheel
+source .github/workflows/scripts/utils.sh
 
-export REPORTED_VERSION=$(http $PULP_URL/pulp/api/v3/status/ | jq --arg plugin ansible --arg legacy_plugin pulp_ansible -r '.versions[] | select(.component == $plugin or .component == $legacy_plugin) | .version')
-export DESCRIPTION="$(git describe --all --exact-match `git rev-parse HEAD`)"
-if [[ $DESCRIPTION == 'tags/'$REPORTED_VERSION ]]; then
-  export VERSION=${REPORTED_VERSION}
-else
-  export EPOCH="$(date +%s)"
-  export VERSION=${REPORTED_VERSION}${EPOCH}
-fi
+export PULP_URL="${PULP_URL:-https://pulp}"
 
-export response=$(curl --write-out %{http_code} --silent --output /dev/null https://pypi.org/project/pulp-ansible-client/$VERSION/)
+REPORTED_STATUS="$(pulp status)"
+REPORTED_VERSION="$(echo "$REPORTED_STATUS" | jq --arg plugin "ansible" -r '.versions[] | select(.component == $plugin) | .version')"
+VERSION="$(echo "$REPORTED_VERSION" | python -c 'from packaging.version import Version; print(Version(input()))')"
 
-if [ "$response" == "200" ];
-then
-  echo "pulp_ansible client $VERSION has already been released. Installing from PyPI."
-  docker exec pulp pip3 install pulp-ansible-client==$VERSION
-  mkdir -p dist
-  tar cvf python-client.tar ./dist
-  exit
-fi
-
-cd ../pulp-openapi-generator
+pushd ../pulp-openapi-generator
 rm -rf pulp_ansible-client
-./generate.sh pulp_ansible python $VERSION
-cd pulp_ansible-client
+./generate.sh pulp_ansible python "$VERSION"
+pushd pulp_ansible-client
 python setup.py sdist bdist_wheel --python-tag py3
-find . -name "*.whl" -exec docker exec pulp pip3 install /root/pulp-openapi-generator/pulp_ansible-client/{} \;
-tar cvf ../../pulp_ansible/python-client.tar ./dist
+
+twine check "dist/pulp_ansible_client-$VERSION-py3-none-any.whl"
+twine check "dist/pulp_ansible-client-$VERSION.tar.gz"
+
+cmd_prefix pip3 install "/root/pulp-openapi-generator/pulp_ansible-client/dist/pulp_ansible_client-${VERSION}-py3-none-any.whl"
+tar cvf ../../pulp_ansible/ansible-python-client.tar ./dist
 
 find ./docs/* -exec sed -i 's/Back to README/Back to HOME/g' {} \;
 find ./docs/* -exec sed -i 's/README//g' {} \;
 cp README.md docs/index.md
 sed -i 's/docs\///g' docs/index.md
 find ./docs/* -exec sed -i 's/\.md//g' {} \;
-tar cvf ../../pulp_ansible/python-client-docs.tar ./docs
-exit $?
+
+cat >> mkdocs.yml << DOCSYAML
+---
+site_name: PulpAnsible Client
+site_description: Ansible bindings
+site_author: Pulp Team
+site_url: https://docs.pulpproject.org/pulp_ansible_client/
+repo_name: pulp/pulp_ansible
+repo_url: https://github.com/pulp/pulp_ansible
+theme: readthedocs
+DOCSYAML
+
+# Building the bindings docs
+mkdocs build
+
+# Pack the built site.
+tar cvf ../../pulp_ansible/ansible-python-client-docs.tar ./site
+popd
+popd
