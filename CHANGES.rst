@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.21.1 (2023-12-12)
+===================
+
+Bugfixes
+--------
+
+- Duplicate Collection uploads no longer return 400s.
+  `#1691 <https://github.com/pulp/pulp_ansible/issues/1691>`__
+
+
+----
+
+
 0.21.0 (2023-11-03)
 ===================
 
@@ -31,6 +44,19 @@ Bugfixes
   `#1598 <https://github.com/pulp/pulp_ansible/issues/1598>`__
 - Fixed highest version calculation failing when versions of a collection were created out of order.
   `#1623 <https://github.com/pulp/pulp_ansible/issues/1623>`__
+
+
+----
+
+
+0.20.3 (2023-12-12)
+===================
+
+Bugfixes
+--------
+
+- Duplicate Collection uploads no longer return 400s.
+  `#1691 <https://github.com/pulp/pulp_ansible/issues/1691>`__
 
 
 ----
