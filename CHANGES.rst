@@ -13,6 +13,21 @@ Changelog
 
 .. towncrier release notes start
 
+0.16.2 (2023-12-14)
+===================
+
+Bugfixes
+--------
+
+- Fix exclude list when syncing from galaxy_ng.
+  `#1381 <https://github.com/pulp/pulp_ansible/issues/1381>`__
+- Fix traceback when publishing a collection to the v2 API endpoint
+  `#1441 <https://github.com/pulp/pulp_ansible/issues/1441>`__
+
+
+----
+
+
 0.16.1 (2023-02-23)
 ===================
 
