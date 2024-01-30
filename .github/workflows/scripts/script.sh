@@ -51,32 +51,68 @@ password password
 # Some commands like ansible-galaxy specifically require 600
 cmd_prefix bash -c "chmod 600 ~pulp/.netrc"
 
-# Infer the client name from the package name by replacing "-" with "_".
-# Use the component to infer the package name on older versions of pulpcore.
-
-if [ "$(echo "$REPORTED_STATUS" | jq -r '.domain_enabled')" = "true" ]
+# Generate and install binding
+pushd ../pulp-openapi-generator
+if pulp debug has-plugin --name "core" --specifier ">=3.44.0.dev"
 then
-  # Workaround: Domains are not supported by the published bindings.
-  # Generate new bindings for all packages.
-  pushd ../pulp-openapi-generator
-  for item in $(echo "$REPORTED_STATUS" | jq -r '.versions[]|(.package // ("pulp_" + .component)|sub("pulp_core"; "pulpcore"))|sub("-"; "_")')
-  do
-    ./generate.sh "${item}" python
-    cmd_prefix pip3 install "/root/pulp-openapi-generator/${item}-client"
-    sudo rm -rf "./${item}-client"
-  done
-  popd
+  # Use app_label to generate api.json and package to produce the proper package name.
+
+  if [ "$(jq -r '.domain_enabled' <<<"$REPORTED_STATUS")" = "true" ]
+  then
+    # Workaround: Domains are not supported by the published bindings.
+    # Generate new bindings for all packages.
+    for item in $(jq -r '.versions[] | tojson' <<<"$REPORTED_STATUS")
+    do
+      echo $item
+      COMPONENT="$(jq -r '.component' <<<"$item")"
+      VERSION="$(jq -r '.version' <<<"$item")"
+      MODULE="$(jq -r '.module' <<<"$item")"
+      PACKAGE="${MODULE%%.*}"
+      curl --fail-with-body -k -o api.json "${PULP_URL}${PULP_API_ROOT}api/v3/docs/api.json?bindings&component=$COMPONENT"
+      USE_LOCAL_API_JSON=1 ./generate.sh "${PACKAGE}" python "${VERSION}"
+      cmd_prefix pip3 install "/root/pulp-openapi-generator/${PACKAGE}-client"
+      sudo rm -rf "./${PACKAGE}-client"
+    done
+  else
+    # Sadly: Different pulpcore-versions aren't either...
+    for item in $(jq -r '.versions[]| select(.component!="ansible")| tojson' <<<"$REPORTED_STATUS")
+    do
+      echo $item
+      COMPONENT="$(jq -r '.component' <<<"$item")"
+      VERSION="$(jq -r '.version' <<<"$item")"
+      MODULE="$(jq -r '.module' <<<"$item")"
+      PACKAGE="${MODULE%%.*}"
+      curl --fail-with-body -k -o api.json "${PULP_URL}${PULP_API_ROOT}api/v3/docs/api.json?bindings&component=$COMPONENT"
+      USE_LOCAL_API_JSON=1 ./generate.sh "${PACKAGE}" python "${VERSION}"
+      cmd_prefix pip3 install "/root/pulp-openapi-generator/${PACKAGE}-client"
+      sudo rm -rf "./${PACKAGE}-client"
+    done
+  fi
 else
-  # Sadly: Different pulpcore-versions aren't either...
-  pushd ../pulp-openapi-generator
-  for item in $(echo "$REPORTED_STATUS" | jq -r '.versions[]|select(.component!="ansible")|(.package // ("pulp_" + .component)|sub("pulp_core"; "pulpcore"))|sub("-"; "_")')
-  do
-    ./generate.sh "${item}" python
-    cmd_prefix pip3 install "/root/pulp-openapi-generator/${item}-client"
-    sudo rm -rf "./${item}-client"
-  done
-  popd
+  # Infer the client name from the package name by replacing "-" with "_".
+  # Use the component to infer the package name on older versions of pulpcore.
+
+  if [ "$(echo "$REPORTED_STATUS" | jq -r '.domain_enabled')" = "true" ]
+  then
+    # Workaround: Domains are not supported by the published bindings.
+    # Generate new bindings for all packages.
+    for item in $(echo "$REPORTED_STATUS" | jq -r '.versions[]|(.package // ("pulp_" + .component)|sub("pulp_core"; "pulpcore"))|sub("-"; "_")')
+    do
+      ./generate.sh "${item}" python
+      cmd_prefix pip3 install "/root/pulp-openapi-generator/${item}-client"
+      sudo rm -rf "./${item}-client"
+    done
+  else
+    # Sadly: Different pulpcore-versions aren't either...
+    for item in $(echo "$REPORTED_STATUS" | jq -r '.versions[]|select(.component!="ansible")|(.package // ("pulp_" + .component)|sub("pulp_core"; "pulpcore"))|sub("-"; "_")')
+    do
+      ./generate.sh "${item}" python
+      cmd_prefix pip3 install "/root/pulp-openapi-generator/${item}-client"
+      sudo rm -rf "./${item}-client"
+    done
+  fi
 fi
+popd
 
 # At this point, this is a safeguard only, so let's not make too much fuzz about the old status format.
 echo "$REPORTED_STATUS" | jq -r '.versions[]|select(.package)|(.package|sub("_"; "-")) + "-client==" + .version' > bindings_requirements.txt
@@ -93,14 +129,14 @@ echo "Checking for uncommitted migrations..."
 cmd_user_prefix bash -c "django-admin makemigrations ansible --check --dry-run"
 
 # Run unit tests.
-cmd_user_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes -p no:pulpcore --pyargs pulp_ansible.tests.unit"
+cmd_user_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes --suppress-no-test-exit-code -p no:pulpcore --pyargs pulp_ansible.tests.unit"
 
 # Run functional tests
 if [[ "$TEST" == "performance" ]]; then
   if [[ -z ${PERFORMANCE_TEST+x} ]]; then
-    cmd_user_prefix bash -c "pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance"
+    cmd_user_prefix bash -c "pytest -vv -r sx --color=yes --suppress-no-test-exit-code --capture=no --durations=0 --pyargs pulp_ansible.tests.performance"
   else
-    cmd_user_prefix bash -c "pytest -vv -r sx --color=yes --pyargs --capture=no --durations=0 pulp_ansible.tests.performance.test_${PERFORMANCE_TEST}"
+    cmd_user_prefix bash -c "pytest -vv -r sx --color=yes --suppress-no-test-exit-code --capture=no --durations=0 --pyargs pulp_ansible.tests.performance.test_${PERFORMANCE_TEST}"
   fi
   exit
 fi
@@ -108,15 +144,14 @@ fi
 if [ -f "$FUNC_TEST_SCRIPT" ]; then
   source "$FUNC_TEST_SCRIPT"
 else
-    if [[ "$GITHUB_WORKFLOW" == "Ansible Nightly CI/CD" ]]
-    then
-        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8 --nightly"
-        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m 'not parallel' --nightly"
-
-    else
-        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8"
-        cmd_user_prefix bash -c "pytest -v -r sx --color=yes --pyargs pulp_ansible.tests.functional -m 'not parallel'"
-    fi
+  if [[ "$GITHUB_WORKFLOW" =~ "Nightly" ]]
+  then
+    cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8 --nightly"
+    cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m 'not parallel' --nightly"
+  else
+    cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8"
+    cmd_user_prefix bash -c "pytest -v -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m 'not parallel'"
+  fi 
 fi
 pushd ../pulp-cli
 pip install -r test_requirements.txt
