@@ -14,8 +14,10 @@ cd "$(dirname "$(realpath -e "$0")")"/../../..
 
 source .github/workflows/scripts/utils.sh
 
-export PULP_URL="${PULP_URL:-https://pulp}"
-
+PULP_URL="${PULP_URL:-https://pulp}"
+export PULP_URL
+PULP_API_ROOT="${PULP_API_ROOT:-/pulp/}"
+export PULP_API_ROOT
 
 REPORTED_STATUS="$(pulp status)"
 REPORTED_VERSION="$(echo "$REPORTED_STATUS" | jq --arg plugin "ansible" -r '.versions[] | select(.component == $plugin) | .version')"
@@ -23,7 +25,15 @@ VERSION="$(echo "$REPORTED_VERSION" | python -c 'from packaging.version import V
 
 pushd ../pulp-openapi-generator
 rm -rf pulp_ansible-client
-./generate.sh pulp_ansible ruby "$VERSION"
+
+if pulp debug has-plugin --name "core" --specifier ">=3.44.0.dev"
+then
+  curl --fail-with-body -k -o api.json "${PULP_URL}${PULP_API_ROOT}api/v3/docs/api.json?bindings&component=ansible"
+  USE_LOCAL_API_JSON=1 ./generate.sh pulp_ansible ruby "$VERSION"
+else
+  ./generate.sh pulp_ansible ruby "$VERSION"
+fi
+
 pushd pulp_ansible-client
 gem build pulp_ansible_client
 gem install --both "./pulp_ansible_client-$VERSION.gem"
