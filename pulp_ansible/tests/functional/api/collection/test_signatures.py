@@ -1,4 +1,5 @@
 """Tests functionality around Collection-Version Signatures."""
+
 import tarfile
 
 import pytest

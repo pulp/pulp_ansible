@@ -1,4 +1,5 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
+
 import datetime
 
 import pytest
@@ -136,9 +137,11 @@ def test_sync_collection_with_specialities(
 ):
     """Sync a collection that is known to be special."""
     remote = ansible_collection_remote_factory(
-        url="https://old-galaxy.ansible.com/api/"
-        if old_galaxy
-        else "https://galaxy.ansible.com/api/",
+        url=(
+            "https://old-galaxy.ansible.com/api/"
+            if old_galaxy
+            else "https://galaxy.ansible.com/api/"
+        ),
         requirements_file=f"collections:\n  - {collection}",
         sync_dependencies=sync_dependencies,
     )

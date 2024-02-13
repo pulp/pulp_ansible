@@ -857,7 +857,6 @@ class TestCrossRepoSearchFilters:
             {"name": "bellz"},
         )
 
-    # @pytest.mark.skip(reason="pulp_ansible includes pre-releases in is_highest")
     def test_collection_version_search_by_highest(
         self, galaxy_v3_default_search_api_client, search_specs
     ):
