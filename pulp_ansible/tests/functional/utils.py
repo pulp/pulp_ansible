@@ -1,4 +1,5 @@
 """Utilities for tests for the ansible plugin."""
+
 from urllib.parse import urlparse, parse_qs
 
 from pulp_smash import config
