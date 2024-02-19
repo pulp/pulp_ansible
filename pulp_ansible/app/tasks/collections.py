@@ -24,6 +24,7 @@ from galaxy_importer.collection import import_collection as process_collection
 from galaxy_importer.collection import sync_collection
 from galaxy_importer.exceptions import ImporterError
 from git import GitCommandError, Repo
+from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -1062,7 +1063,7 @@ class DeclarativeFailsafeArtifact(DeclarativeArtifact):
         artifact_copy = self.artifact
         try:
             return await super().download()
-        except ClientError as e:
+        except (ClientError, DigestValidationError) as e:
             # Reset DA so that future stages can properly handle it
             self.artifact = artifact_copy
             self.deferred_download = True
