@@ -362,7 +362,8 @@ class AnsibleNamespaceMetadata(Content):
             # If we are creating from sync, assert that calculated hash == synced hash
             if self.metadata_sha256 != hasher.hexdigest():
                 raise IntegrityError("Calculated digest does not equal passed in digest")
-        self.metadata_sha256 = hasher.hexdigest()
+        else:
+            self.metadata_sha256 = hasher.hexdigest()
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
