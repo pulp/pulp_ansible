@@ -33,6 +33,8 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleApiV3PluginAnsibleContentNamespacesApi,
     PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi,
     PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi,
+    PulpAnsibleNamespacesApi,
+    PulpAnsibleDefaultApiV3PluginAnsibleSearchNamespaceMetadataApi,
 )
 
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
@@ -126,6 +128,18 @@ def ansible_remote_role_api_client(ansible_bindings_client):
 def ansible_remote_git_api_client(ansible_bindings_client):
     """Provides the Ansible Git Remotes API client object."""
     return RemotesGitApi(ansible_bindings_client)
+
+
+@pytest.fixture(scope="session")
+def global_ansible_namespaces_api_client(ansible_bindings_client):
+    """Provides the Ansible Content Namespaces API client object."""
+    return PulpAnsibleNamespacesApi(ansible_bindings_client)
+
+
+@pytest.fixture(scope="session")
+def ansible_namespace_search_api_client(ansible_bindings_client):
+    """Provides the Ansible Content Namespaces API client object."""
+    return PulpAnsibleDefaultApiV3PluginAnsibleSearchNamespaceMetadataApi(ansible_bindings_client)
 
 
 @pytest.fixture(scope="session")

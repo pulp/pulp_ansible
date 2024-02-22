@@ -122,6 +122,10 @@ class AnsibleNamespace(BaseModel):
 
     name = models.CharField(max_length=64, unique=True, editable=True)
 
+    @property
+    def latest_metadata(self):
+        return self.metadatas.order_by("-pulp_created").first()
+
 
 class CollectionVersion(Content):
     """

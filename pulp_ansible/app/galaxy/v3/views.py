@@ -2,13 +2,13 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 
-from django.db import DatabaseError, IntegrityError
-from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
+from django.db import DatabaseError
+from django.db.models import F, Q, OuterRef, Exists, Subquery, Prefetch
 from django.db.models.functions import Greatest
 from django.http import StreamingHttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
-from django_filters import filters
+from django_filters import filters, OrderingFilter
 from django.views.generic.base import RedirectView
 from django.conf import settings
 from django.core.cache import cache
@@ -33,12 +33,12 @@ from pulpcore.plugin.models import (
     RepositoryContent,
     Distribution,
 )
+from pulpcore.plugin.util import get_url
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.viewsets import (
     BaseFilterSet,
     OperationPostponedResponse,
     SingleArtifactContentUploadViewSet,
-    NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
 
@@ -51,6 +51,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
     ClientConfigurationSerializer,
+    NamespaceSearchSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -75,6 +76,7 @@ from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin, GalaxyAu
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.viewsets import (
     CollectionVersionFilter,
+    AnsibleNamespaceFilter,
 )
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
@@ -742,8 +744,9 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
 
 
 @extend_schema_view(
-    create=extend_schema(responses={202: AsyncOperationResponseSerializer}),
-    partial_update=extend_schema(responses={202: AsyncOperationResponseSerializer}),
+    create=extend_schema(responses={202: AnsibleNamespaceMetadataSerializer}),
+    partial_update=extend_schema(responses={202: AnsibleNamespaceMetadataSerializer}),
+    update=extend_schema(responses={202: AnsibleNamespaceMetadataSerializer}),
     delete=extend_schema(responses={202: AsyncOperationResponseSerializer}),
 )
 class AnsibleNamespaceViewSet(
@@ -751,11 +754,7 @@ class AnsibleNamespaceViewSet(
 ):
     serializer_class = AnsibleNamespaceMetadataSerializer
     lookup_field = "name"
-    filterset_fields = {
-        "name": NAME_FILTER_OPTIONS,
-        "company": NAME_FILTER_OPTIONS,
-        "metadata_sha256": ["exact", "in"],
-    }
+    filterset_class = AnsibleNamespaceFilter
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
@@ -799,50 +798,34 @@ class AnsibleNamespaceViewSet(
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
 
-        context = context or {}
-        context["repository"] = repo.pk
-        # If avatar was uploaded, init into artifact
-        if avatar := serializer.validated_data.pop("avatar", None):
-            artifact = Artifact.init_and_validate(avatar)
-            try:
-                artifact.save()
-            except IntegrityError:
-                # if artifact already exists, let's use it
-                try:
-                    artifact = Artifact.objects.get(sha256=artifact.sha256)
-                    artifact.touch()
-                except (Artifact.DoesNotExist, DatabaseError):
-                    # the artifact has since been removed from when we first attempted to save it
-                    artifact.save()
-            context["artifact"] = artifact.pk
+        created_namespace = serializer.save()
 
-        # Dispatch general_create task
-        app_label = AnsibleNamespaceMetadata._meta.app_label
+        # launch a background task to add the metadata to the current repo
         task = dispatch(
-            general_create,
-            args=(app_label, serializer.__class__.__name__),
+            add_and_remove,
+            args=(repo.pk, [created_namespace.pk], []),
             exclusive_resources=[repo],
-            kwargs={
-                "data": serializer.validated_data,
-                "context": context,
-            },
         )
-        return OperationPostponedResponse(task, request)
+
+        # return the namespace metadata immediately, along with the move task, for compatibility
+        # with the original v3/namespaces/ api.
+        resp_data = serializer.data
+        resp_data["task"] = get_url(task)
+        return Response(resp_data, status=status.HTTP_201_CREATED)
 
     def update(self, request, *args, **kwargs):
         """Dispatch task to update Namespace in repository."""
-        partial = kwargs.pop("partial", False)
         namespace = self.get_object()
-        serializer = self.get_serializer(namespace, data=request.data, partial=partial)
-        serializer.is_valid(raise_exception=True)
+        serializer = self.get_serializer(namespace)
 
-        for name, field in serializer.fields.items():
-            if not field.read_only and not field.write_only:
-                serializer.validated_data.setdefault(name, serializer.data[name])
         context = {}
         if "avatar" not in request.data and namespace.avatar_sha256:
             context["artifact"] = Artifact.objects.get(sha256=namespace.avatar_sha256).pk
-        return self._create(request, data=serializer.validated_data, context=context)
+
+        # merge the data from the serialized db object with the request data to support PATCH
+        # updates.
+        merged = {**serializer.data, **request.data.dict()}
+        return self._create(request, data=merged, context=context)
 
     def delete(self, request, *args, **kwargs):
         """Try to remove the Namespace if no Collections under Namespace are present."""
@@ -1354,3 +1337,60 @@ class ClientConfigurationView(GalaxyAuthMixin, views.APIView, AnsibleDistributio
         )
 
         return Response(data.data)
+
+
+class NamespaceSearchFilter(BaseFilterSet):
+    """
+    FilterSet for Ansible Namespaces.
+    """
+
+    order_by = OrderingFilter(
+        fields={
+            "content__ansible_ansiblenamespacemetadata__pulp_created": "pulp_created",
+            "content__ansible_ansiblenamespacemetadata__name": "name",
+        },
+    )
+
+    name = filters.CharFilter(field_name="content__ansible_ansiblenamespacemetadata__name")
+    name__icontains = filters.CharFilter(
+        field_name="content__ansible_ansiblenamespacemetadata__name", lookup_expr="icontains"
+    )
+
+    repository_name = filters.CharFilter(field_name="repository__name")
+    repository_name__icontains = filters.CharFilter(
+        field_name="repository__name", lookup_expr="icontains"
+    )
+
+    class Meta:
+        model = RepositoryContent
+        fields = ("name", "name__icontains", "repository_name", "repository_name__icontains")
+
+
+class NamespaceMetadataSearchViewset(viewsets.GenericViewSet, mixins.ListModelMixin):
+    serializer_class = NamespaceSearchSerializer
+    filterset_class = NamespaceSearchFilter
+
+    # Get all distributed namespace metadata
+    def get_queryset(self):
+        repo_has_latest_distro_qs = Distribution.objects.filter(
+            repository=OuterRef("repository"), repository_version=None
+        )
+
+        in_old_repo_version_qs = Distribution.objects.exclude(repository_version=None).filter(
+            repository_version__repository=OuterRef("repository"),
+            repository_version__number__gte=OuterRef("version_added__number"),
+            repository_version__number__lt=OuterRef("version_removed__number"),
+        )
+
+        return (
+            RepositoryContent.objects.select_related("content__ansible_ansiblenamespacemetadata")
+            .exclude(content__ansible_ansiblenamespacemetadata=None)
+            .annotate(
+                repo_has_latest_distro=Exists(repo_has_latest_distro_qs),
+                in_old_repo_version=Exists(in_old_repo_version_qs),
+            )
+            .filter(
+                Q(in_old_repo_version=True)
+                | Q(Q(version_removed=None) & Q(repo_has_latest_distro=True))
+            )
+        )
