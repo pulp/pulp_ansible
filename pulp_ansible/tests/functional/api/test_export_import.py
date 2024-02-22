@@ -19,11 +19,14 @@ def test_export_then_import(
     ansible_role_remote_factory,
     ansible_repo_api_client,
     ansible_repo_version_api_client,
+    ansible_distribution_factory,
+    galaxy_v3_plugin_namespaces_api_client,
     exporters_pulp_api_client,
     exporters_pulp_exports_api_client,
     importers_pulp_api_client,
     importers_pulp_imports_api_client,
     ascii_armored_detached_signing_service,
+    random_image_factory,
     monitor_task,
     monitor_task_group,
 ):
@@ -58,6 +61,21 @@ def test_export_then_import(
     }
     monitor_task(ansible_repo_api_client.mark(repo_a.pulp_href, mark_body).task)
     repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/3/")
+
+    distro = ansible_distribution_factory(repository=repo_a)
+    namespace_body = {
+        "name": "example",
+        "avatar": random_image_factory(),
+        "links": [
+            {"name": "homepage", "url": "https://example.com"},
+            {"name": "github", "url": "https://gh.com"},
+        ],
+    }
+    task = galaxy_v3_plugin_namespaces_api_client.create(
+        path=distro.base_path, distro_base_path=distro.base_path, **namespace_body
+    )
+    monitor_task(task.task)
+    repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/4/")
 
     # Prepare export
     exporter = gen_object_with_cleanup(
@@ -117,6 +135,10 @@ def test_export_then_import(
     assert (
         repo_ver_c.content_summary.added["ansible.collection_mark"]["count"]
         == repo_ver_a.content_summary.present["ansible.collection_mark"]["count"]
+    )
+    assert (
+        repo_ver_c.content_summary.added["ansible.namespace"]["count"]
+        == repo_ver_a.content_summary.present["ansible.namespace"]["count"]
     )
     assert (
         repo_ver_d.content_summary.added["ansible.role"]["count"]
