@@ -1,8 +1,12 @@
+import json
+
 from import_export import fields
-from import_export.widgets import ManyToManyWidget
+from import_export.widgets import ManyToManyWidget, Widget
 from pulpcore.plugin.importexport import BaseContentResource, QueryModelResource
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
+    AnsibleNamespace,
+    AnsibleNamespaceMetadata,
     Role,
     Collection,
     Tag,
@@ -24,6 +28,68 @@ class RoleContentResource(BaseContentResource):
 
     class Meta:
         model = Role
+        import_id_fields = model.natural_key_fields()
+
+
+class AnsibleNamespaceResource(QueryModelResource):
+    """
+    Resource for import/export of ansible_namespace entities
+    """
+
+    def set_up_queryset(self):
+        """
+        :return: Collections specific to a specified repo-version.
+        """
+        namespace_metadatas = AnsibleNamespaceMetadata.objects.filter(
+            pk__in=self.repo_version.content
+        )
+        return AnsibleNamespace.objects.filter(
+            pk__in=namespace_metadatas.values_list("namespace", flat=True)
+        )
+
+    class Meta:
+        model = AnsibleNamespace
+        import_id_fields = ("name",)
+
+
+class DictWidget(Widget):
+    """Simple widget that uses JSON to store and load dictionary fields."""
+
+    def clean(self, value, row=None, **kwargs):
+        """Returns Python object from export representation."""
+        return json.loads(value)
+
+    def render(self, value, obj=None):
+        """Converts Python object to export representation."""
+        return json.dumps(value)
+
+
+class AnsibleNamespaceMetadataResource(BaseContentResource):
+    """
+    Resource for import/export of ansible_namespace-metadata-content entities.
+    """
+
+    links = fields.Field(attribute="links", column_name="links", widget=DictWidget())
+
+    def before_import_row(self, row, **kwargs):
+        """
+        Finds and sets namespace using the name of the namespace metadata.
+        """
+        super().before_import_row(row, **kwargs)
+
+        namespace = AnsibleNamespace.objects.get(name=row["name"])
+        row["namespace"] = str(namespace.pk)
+        if row["avatar_sha256"] == "":
+            row["avatar_sha256"] = None
+
+    def set_up_queryset(self):
+        """
+        :return: AnsibleNamespaceMetadata content specific to a specified repo-version.
+        """
+        return AnsibleNamespaceMetadata.objects.filter(pk__in=self.repo_version.content)
+
+    class Meta:
+        model = AnsibleNamespaceMetadata
         import_id_fields = model.natural_key_fields()
 
 
@@ -128,6 +194,8 @@ class TagResource(QueryModelResource):
 
 
 IMPORT_ORDER = [
+    AnsibleNamespaceResource,
+    AnsibleNamespaceMetadataResource,
     CollectionResource,
     CollectionDeprecationResource,
     TagResource,

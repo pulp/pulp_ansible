@@ -8,7 +8,6 @@ the case.
 import pytest
 
 from pulp_smash.utils import uuid4
-from pulp_smash.pulp3.bindings import monitor_task, monitor_task_group
 
 from pulp_ansible.tests.functional.utils import gen_ansible_remote
 
@@ -24,11 +23,16 @@ def test_export_then_import(
     ansible_remote_role_api_client,
     ansible_repo_api_client,
     ansible_repo_version_api_client,
+    ansible_distribution_factory,
+    galaxy_v3_plugin_namespaces_api_client,
     exporters_pulp_api_client,
     exporters_pulp_exports_api_client,
     importers_pulp_api_client,
     importers_pulp_imports_api_client,
     ascii_armored_detached_signing_service,
+    random_image_factory,
+    monitor_task,
+    monitor_task_group,
 ):
     """Issue and evaluate a PulpExport (tests both Create and Read)."""
     # Prepare content
@@ -54,6 +58,28 @@ def test_export_then_import(
     monitor_task(ansible_repo_api_client.sign(repo_a.pulp_href, signing_body).task)
     repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/2/")
     repo_ver_b = ansible_repo_version_api_client.read(f"{repo_b.pulp_href}versions/1/")
+
+    mark_body = {
+        "content_units": ["*"],
+        "value": "exportable-mark",
+    }
+    monitor_task(ansible_repo_api_client.mark(repo_a.pulp_href, mark_body).task)
+    repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/3/")
+
+    distro = ansible_distribution_factory(repository=repo_a)
+    namespace_body = {
+        "name": "example",
+        "avatar": random_image_factory(),
+        "links": [
+            {"name": "homepage", "url": "https://example.com"},
+            {"name": "github", "url": "https://gh.com"},
+        ],
+    }
+    task = galaxy_v3_plugin_namespaces_api_client.create(
+        path=distro.base_path, distro_base_path=distro.base_path, **namespace_body
+    )
+    monitor_task(task.task)
+    repo_ver_a = ansible_repo_version_api_client.read(f"{repo_a.pulp_href}versions/4/")
 
     # Prepare export
     exporter = gen_object_with_cleanup(
@@ -107,6 +133,14 @@ def test_export_then_import(
     assert (
         repo_ver_c.content_summary.added["ansible.collection_signature"]["count"]
         == repo_ver_a.content_summary.present["ansible.collection_signature"]["count"]
+    )
+    assert (
+        repo_ver_c.content_summary.added["ansible.collection_mark"]["count"]
+        == repo_ver_a.content_summary.present["ansible.collection_mark"]["count"]
+    )
+    assert (
+        repo_ver_c.content_summary.added["ansible.namespace"]["count"]
+        == repo_ver_a.content_summary.present["ansible.namespace"]["count"]
     )
     assert (
         repo_ver_d.content_summary.added["ansible.role"]["count"]
