@@ -7,3 +7,4 @@ numpy
 requests
 proxy.py~=2.4.3
 trustme~=1.1.0
+pulp-smash @ git+https://github.com/pulp/pulp-smash.git
