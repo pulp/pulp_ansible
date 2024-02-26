@@ -1149,13 +1149,12 @@ class AnsibleContentSaver(ContentSaver):
                 d_content.content.namespace = namespace
                 if d_content.d_artifacts:
                     da = d_content.d_artifacts[0]
-                    # Check to see if avatar failed to download, update metadata if so
+                    # Check to see if avatar failed to download, update metadata if so,
+                    # so that the avatar should be attemtped to be downloaded again.
                     if da.deferred_download:
                         d_content.d_artifacts = None
                         d_content.content.avatar_sha256 = None
-                    # Check to see if upstream didn't have avatar_sha256 set
-                    elif d_content.content.avatar_sha256 is None:
-                        d_content.content.avatar_sha256 = da.artifact.sha256
+                        d_content.content.metadata_sha256 = None
 
     def _post_save(self, batch):
         """
