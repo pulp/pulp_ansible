@@ -332,16 +332,9 @@ class AnsibleNamespaceMetadata(Content):
 
     @property
     def avatar_artifact(self):
-        if self.avatar_sha256:
-            avatar = self._artifacts.filter(sha256=self.avatar_sha256).first()
-            if avatar is None:
-                log.debug(
-                    f"Artifact({self.avatar_sha256}) is missing for namespace avatar "
-                    f"{self.name}:{self.metadata_sha256}"
-                )
-            return avatar
-
-        return None
+        return self._artifacts.filter(
+            content_memberships__relative_path=f"{self.name}-avatar"
+        ).first()
 
     @hook(BEFORE_SAVE)
     def calculate_metadata_sha256(self):
