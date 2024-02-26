@@ -869,15 +869,17 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
             return None
 
     def validate(self, data):
-        """Check that avatar_sha256 is set if avatar was present in upload."""
         if self.instance:
             if (name := data.get("name", None)) and name != self.instance.name:
                 raise serializers.ValidationError(_("Name can not be changed in an update"))
 
+        # Check that avatar_sha256 is set if avatar was present in upload.
         if "artifact" in self.context:
-            if "avatar_sh256" not in data:
-                avatar_artifact = Artifact.objects.get(pk=self.context["artifact"])
+            avatar_artifact = Artifact.objects.get(pk=self.context["artifact"])
+            if data.get("avatar_sha256") is None:
                 data["avatar_sha256"] = avatar_artifact.sha256
+            elif data["avatar_sha256"] != avatar_artifact.sha256:
+                raise serializers.ValidationError(_("Avatar does not match expected digest."))
 
         return super().validate(data)
 
