@@ -90,15 +90,15 @@ def test_ansible_repository_rbac(ansible_repo_api_client, gen_users, try_action)
 def test_ansible_repository_version_repair(
     ansible_repo_api_client,
     ansible_repo_version_api_client,
+    ansible_repo_factory,
     gen_users,
-    gen_object_with_cleanup,
     try_action,
 ):
     """Test the repository version repair action"""
     user_creator, user_reader, user_helpless = gen_users("ansiblerepository")
 
     with user_creator:
-        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        repo = ansible_repo_factory()
         ver_href = repo.latest_version_href
     body = {"verify_checksums": True}
     try_action(user_creator, ansible_repo_version_api_client, "repair", 202, ver_href, body)
@@ -109,8 +109,9 @@ def test_ansible_repository_version_repair(
 def test_repository_apis(
     ansible_repo_api_client,
     ansible_remote_collection_api_client,
+    ansible_collection_remote_factory,
+    ansible_repo_factory,
     gen_users,
-    gen_object_with_cleanup,
     try_action,
 ):
     """Test repository specific actions, modify, sync and rebuild_metadata."""
@@ -118,14 +119,11 @@ def test_repository_apis(
 
     # Sync tests
     with user_creator:
-        user_creator_remote = gen_object_with_cleanup(
-            ansible_remote_collection_api_client,
-            gen_ansible_remote(
-                url="https://galaxy.ansible.com",
-                requirements_file="collections:\n  - name: community.docker\n    version: 3.0.0",
-            ),
+        user_creator_remote = ansible_collection_remote_factory(
+            url="https://galaxy.ansible.com",
+            requirements_file="collections:\n  - name: community.docker\n    version: 3.0.0",
         )
-        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        repo = ansible_repo_factory()
 
     body = {"mirror": False, "optimize": True, "remote": user_creator_remote.pulp_href}
     try_action(user_reader, ansible_repo_api_client, "sync", 403, repo.pulp_href, body)
@@ -166,13 +164,14 @@ def test_repository_apis(
 
 
 def test_repository_role_management(
-    gen_users, ansible_repo_api_client, gen_object_with_cleanup, try_action
+    gen_users, ansible_repo_api_client, ansible_repo_factory, try_action
 ):
     """Check repository role management apis."""
     user_creator, user_reader, user_helpless = gen_users("ansiblerepository")
 
     with user_creator:
-        href = gen_object_with_cleanup(ansible_repo_api_client, gen_repo()).pulp_href
+        repo = ansible_repo_factory()
+        href = repo.pulp_href
 
     # Permission check testing
     aperm_response = try_action(user_reader, ansible_repo_api_client, "my_permissions", 200, href)
@@ -213,8 +212,8 @@ def test_repository_role_management(
 def test_ansible_distribution_rbac(
     ansible_distro_api_client,
     ansible_repo_api_client,
+    ansible_repo_factory,
     ansible_distribution_factory,
-    gen_object_with_cleanup,
     gen_users,
     try_action,
 ):
@@ -224,7 +223,7 @@ def test_ansible_distribution_rbac(
 
     # Create testing
     with user_creator:
-        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        repo = ansible_repo_factory()
         distribution = ansible_distribution_factory(repo)
     try_action(user_reader, ansible_distro_api_client, "create", 403, gen_distribution())
     try_action(user_helpless, ansible_distro_api_client, "create", 403, gen_distribution())
@@ -263,8 +262,8 @@ def test_ansible_distribution_rbac(
 def test_ansible_distribution_role_management(
     ansible_distro_api_client,
     ansible_repo_api_client,
+    ansible_repo_factory,
     ansible_distribution_factory,
-    gen_object_with_cleanup,
     gen_users,
     try_action,
 ):
@@ -274,7 +273,7 @@ def test_ansible_distribution_role_management(
 
     # Check role management apis
     with user_creator:
-        repo = gen_object_with_cleanup(ansible_repo_api_client, gen_repo())
+        repo = ansible_repo_factory()
         distribution = ansible_distribution_factory(repo)
 
     href = distribution.pulp_href

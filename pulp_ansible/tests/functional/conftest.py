@@ -242,10 +242,10 @@ def ansible_role_remote_factory(
 ):
     """A factory to generate an Ansible Collection Remote with auto-cleanup."""
 
-    def _ansible_role_remote_factory(**kwargs):
+    def _ansible_role_remote_factory(include_pulp_auth=False, **kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
         kwargs.setdefault("url", ANSIBLE_FIXTURE_URL)
-        if kwargs.pop("include_pulp_auth", False):
+        if include_pulp_auth:
             kwargs["username"] = bindings_cfg.username
             kwargs["password"] = bindings_cfg.password
         return gen_object_with_cleanup(ansible_remote_role_api_client, kwargs)
@@ -259,11 +259,12 @@ def ansible_collection_remote_factory(
 ):
     """A factory to generate an Ansible Collection Remote with auto-cleanup."""
 
-    def _ansible_collection_remote_factory(**kwargs):
+    def _ansible_collection_remote_factory(include_pulp_auth=False, **kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
-        if kwargs.pop("include_pulp_auth", False):
+        if include_pulp_auth:
             kwargs["username"] = bindings_cfg.username
             kwargs["password"] = bindings_cfg.password
+
         return gen_object_with_cleanup(ansible_remote_collection_api_client, kwargs)
 
     return _ansible_collection_remote_factory
@@ -275,9 +276,9 @@ def ansible_git_remote_factory(
 ):
     """A factory to generate an Ansible Git Remote with auto-cleanup."""
 
-    def _ansible_git_remote_factory(**kwargs):
+    def _ansible_git_remote_factory(include_pulp_auth=False, **kwargs):
         kwargs.setdefault("name", str(uuid.uuid4()))
-        if kwargs.pop("include_pulp_auth", False):
+        if include_pulp_auth:
             kwargs["username"] = bindings_cfg.username
             kwargs["password"] = bindings_cfg.password
         return gen_object_with_cleanup(ansible_remote_git_api_client, kwargs)
@@ -356,6 +357,12 @@ def random_image_factory(tmp_path):
 
 
 # Utility fixtures
+
+
+@pytest.fixture()
+def skip_on_galaxy(pulp_versions):
+    if "galaxy" in pulp_versions:
+        pytest.skip("This test is not desigend to run on galaxy installations.")
 
 
 @pytest.fixture(scope="session")

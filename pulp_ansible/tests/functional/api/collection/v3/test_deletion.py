@@ -3,6 +3,8 @@ import pytest
 from pulpcore.client.pulp_ansible.exceptions import ApiException
 from orionutils.generator import randstr
 
+from pulp_ansible.tests.functional.utils import content_counts
+
 
 def test_collection_deletion(
     ansible_distribution_factory,
@@ -253,7 +255,7 @@ def test_delete_deprecated_content(
     repository = ansible_repo_api_client.read(repository.pulp_href)
     latest_version = ansible_repo_version_api_client.read(repository.latest_version_href)
 
-    assert len(latest_version.content_summary.present) == 0
+    assert content_counts(latest_version) == {}
 
 
 def test_delete_signed_content(
@@ -300,7 +302,7 @@ def test_delete_signed_content(
     repository = ansible_repo_api_client.read(repository.pulp_href)
     latest_version = ansible_repo_version_api_client.read(repository.latest_version_href)
 
-    assert len(latest_version.content_summary.present) == 0
+    assert content_counts(latest_version) == {}
 
 
 def test_version_deletion_with_range_of_versions(
