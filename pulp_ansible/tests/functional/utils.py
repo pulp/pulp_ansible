@@ -52,6 +52,11 @@ def is_galaxy_ng_installed():
     return False
 
 
+def content_counts(repository_version, summary_type="present"):
+    content_summary = getattr(repository_version.content_summary, summary_type)
+    return {key: value["count"] for key, value in content_summary.items()}
+
+
 def gen_ansible_client():
     """Return an OBJECT for ansible client."""
     return AnsibleApiClient(configuration)

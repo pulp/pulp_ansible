@@ -5,19 +5,16 @@ import tarfile
 import pytest
 
 from pulpcore.tests.functional.utils import PulpTaskError
-from pulp_smash.pulp3.utils import get_content_summary
 
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
-    gen_distribution,
-)
+from pulp_ansible.tests.functional.utils import content_counts
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 
 def test_upload_then_sign_then_try_to_upload_duplicate_signature(
     build_and_upload_collection,
     ansible_repo_api_client,
-    ansible_repo,
+    ansible_repo_version_api_client,
+    ansible_repo_factory,
     ascii_armored_detached_signing_service,
     tmp_path,
     sign_with_ascii_armored_detached_signing_service,
@@ -25,29 +22,35 @@ def test_upload_then_sign_then_try_to_upload_duplicate_signature(
     monitor_task,
 ):
     """Test server signing of collections, and that a duplicate signature can't be uploaded."""
+    repository = ansible_repo_factory()
     collection, collection_url = build_and_upload_collection()
 
     # Add it to a repo version
     body = {"add_content_units": [collection_url]}
-    monitor_task(ansible_repo_api_client.modify(ansible_repo.pulp_href, body).task)
-    ansible_repo = ansible_repo_api_client.read(ansible_repo.pulp_href)
+    monitor_task(ansible_repo_api_client.modify(repository.pulp_href, body).task)
+    repository = ansible_repo_api_client.read(repository.pulp_href)
 
     # Assert the content was added correctly
-    assert ansible_repo.latest_version_href.endswith("/1/")
-    assert get_content_summary(ansible_repo.to_dict()) == {"ansible.collection_version": 1}
+    assert repository.latest_version_href.endswith("/1/")
+
+    repository_version = ansible_repo_version_api_client.read(repository.latest_version_href)
+    assert content_counts(repository_version) == {"ansible.collection_version": 1}
 
     # Ask Pulp to sign the collection
     body = {
         "content_units": [collection_url],
         "signing_service": ascii_armored_detached_signing_service.pulp_href,
     }
-    monitor_task(ansible_repo_api_client.sign(ansible_repo.pulp_href, body).task)
-    ansible_repo = ansible_repo_api_client.read(ansible_repo.pulp_href)
+    monitor_task(ansible_repo_api_client.sign(repository.pulp_href, body).task)
+    repository = ansible_repo_api_client.read(repository.pulp_href)
 
     # Assert a new repo version with signatures was created
-    assert ansible_repo.latest_version_href.endswith("/2/")
-    content_summary_dict = {"ansible.collection_signature": 1, "ansible.collection_version": 1}
-    assert get_content_summary(ansible_repo.to_dict()) == content_summary_dict
+    assert repository.latest_version_href.endswith("/2/")
+    repository_version = ansible_repo_version_api_client.read(repository.latest_version_href)
+    assert content_counts(repository_version) == {
+        "ansible.collection_signature": 1,
+        "ansible.collection_version": 1,
+    }
 
     # Extract MANIFEST.json
     with tarfile.open(collection.filename, mode="r") as tar:
@@ -141,57 +144,57 @@ def test_collection_signatures_no_deletion(ansible_collection_signatures_client)
 def distro_serving_one_signed_one_unsigned_collection(
     build_and_upload_collection,
     ascii_armored_detached_signing_service,
-    ansible_repo,
+    ansible_repo_factory,
+    ansible_distribution_factory,
     ansible_repo_api_client,
     ansible_distro_api_client,
     monitor_task,
 ):
     """Create a distro serving two collections, one signed, one unsigned."""
+    repository = ansible_repo_factory()
     collections = []
     for i in range(2):
         _, collection_url = build_and_upload_collection()
         collections.append(collection_url)
 
     body = {"add_content_units": collections}
-    monitor_task(ansible_repo_api_client.modify(ansible_repo.pulp_href, body).task)
+    monitor_task(ansible_repo_api_client.modify(repository.pulp_href, body).task)
 
     body = {
         "content_units": collections[:1],
         "signing_service": ascii_armored_detached_signing_service.pulp_href,
     }
-    monitor_task(ansible_repo_api_client.sign(ansible_repo.pulp_href, body).task)
+    monitor_task(ansible_repo_api_client.sign(repository.pulp_href, body).task)
 
-    body = gen_distribution(repository=ansible_repo.pulp_href)
-    distro_href = monitor_task(ansible_distro_api_client.create(body).task).created_resources[0]
-    return ansible_distro_api_client.read(distro_href)
+    return ansible_distribution_factory(repository=repository)
 
 
 def test_sync_signatures(
     ansible_repo_factory,
+    ansible_collection_remote_factory,
     distro_serving_one_signed_one_unsigned_collection,
-    ansible_remote_collection_api_client,
-    gen_object_with_cleanup,
     ansible_repo_api_client,
     ansible_repo_version_api_client,
     monitor_task,
 ):
     """Test that signatures are also synced."""
     distro = distro_serving_one_signed_one_unsigned_collection
-    new_repo = ansible_repo_factory()
+    repository = ansible_repo_factory()
 
     # Create Remote
-    body = gen_ansible_remote(distro.client_url, include_pulp_auth=True)
-    remote = gen_object_with_cleanup(ansible_remote_collection_api_client, body)
+    remote = ansible_collection_remote_factory(url=distro.client_url, include_pulp_auth=True)
 
     # Sync
     repository_sync_data = AnsibleRepositorySyncURL(remote=remote.pulp_href)
-    sync_response = ansible_repo_api_client.sync(new_repo.pulp_href, repository_sync_data)
+    sync_response = ansible_repo_api_client.sync(repository.pulp_href, repository_sync_data)
     monitor_task(sync_response.task)
-    repo = ansible_repo_api_client.read(new_repo.pulp_href)
+    repository = ansible_repo_api_client.read(repository.pulp_href)
 
-    content_response = ansible_repo_version_api_client.read(repo.latest_version_href)
-    assert content_response.content_summary.present["ansible.collection_version"]["count"] == 2
-    assert content_response.content_summary.present["ansible.collection_signature"]["count"] == 1
+    repository_version = ansible_repo_version_api_client.read(repository.latest_version_href)
+    assert content_counts(repository_version) == {
+        "ansible.collection_version": 2,
+        "ansible.collection_signature": 1,
+    }
 
 
 def test_sync_signatures_only(
@@ -204,7 +207,7 @@ def test_sync_signatures_only(
 ):
     """Test that only collections with a signatures are synced when specified."""
     distro = distro_serving_one_signed_one_unsigned_collection
-    new_repo = ansible_repo_factory()
+    repository = ansible_repo_factory()
 
     # Create Remote
     remote = ansible_collection_remote_factory(
@@ -213,10 +216,12 @@ def test_sync_signatures_only(
 
     # Sync
     repository_sync_data = AnsibleRepositorySyncURL(remote=remote.pulp_href)
-    sync_response = ansible_repo_api_client.sync(new_repo.pulp_href, repository_sync_data)
+    sync_response = ansible_repo_api_client.sync(repository.pulp_href, repository_sync_data)
     monitor_task(sync_response.task)
-    repo = ansible_repo_api_client.read(new_repo.pulp_href)
+    repository = ansible_repo_api_client.read(repository.pulp_href)
 
-    content_response = ansible_repo_version_api_client.read(repo.latest_version_href)
-    assert content_response.content_summary.present["ansible.collection_version"]["count"] == 1
-    assert content_response.content_summary.present["ansible.collection_signature"]["count"] == 1
+    repository_version = ansible_repo_version_api_client.read(repository.latest_version_href)
+    assert content_counts(repository_version) == {
+        "ansible.collection_version": 1,
+        "ansible.collection_signature": 1,
+    }

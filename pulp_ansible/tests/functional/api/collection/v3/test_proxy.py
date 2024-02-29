@@ -1,5 +1,5 @@
 import pytest
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
+from pulpcore.tests.functional.utils import PulpTaskError
 
 from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
@@ -7,7 +7,11 @@ from pulpcore.client.pulp_ansible import (
 
 
 def _sync_and_assert(
-    remote, ansible_repo, ansible_repo_api_client, ansible_collection_version_api_client
+    remote,
+    ansible_repo,
+    ansible_repo_api_client,
+    ansible_collection_version_api_client,
+    monitor_task,
 ):
     body = AnsibleRepositorySyncURL(remote=remote.pulp_href)
     monitor_task(ansible_repo_api_client.sync(ansible_repo.pulp_href, body).task)
@@ -25,6 +29,7 @@ def test_sync_through_http_proxy(
     ansible_repo_api_client,
     ansible_collection_version_api_client,
     http_proxy,
+    monitor_task,
 ):
     """
     Test syncing through a http proxy.
@@ -37,7 +42,11 @@ def test_sync_through_http_proxy(
     )
 
     _sync_and_assert(
-        ansible_remote, ansible_repo, ansible_repo_api_client, ansible_collection_version_api_client
+        ansible_remote,
+        ansible_repo,
+        ansible_repo_api_client,
+        ansible_collection_version_api_client,
+        monitor_task,
     )
 
 
@@ -48,6 +57,7 @@ def test_sync_through_http_proxy_with_auth(
     ansible_repo_api_client,
     ansible_collection_version_api_client,
     http_proxy_with_auth,
+    monitor_task,
 ):
     """
     Test syncing through a http proxy that requires auth.
@@ -62,7 +72,11 @@ def test_sync_through_http_proxy_with_auth(
     )
 
     _sync_and_assert(
-        ansible_remote, ansible_repo, ansible_repo_api_client, ansible_collection_version_api_client
+        ansible_remote,
+        ansible_repo,
+        ansible_repo_api_client,
+        ansible_collection_version_api_client,
+        monitor_task,
     )
 
 
@@ -73,6 +87,7 @@ def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
     ansible_repo_api_client,
     ansible_collection_version_api_client,
     http_proxy_with_auth,
+    monitor_task,
 ):
     """
     Test syncing through a http proxy that requires auth, but auth is not configured.
@@ -90,6 +105,7 @@ def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
             ansible_repo,
             ansible_repo_api_client,
             ansible_collection_version_api_client,
+            monitor_task,
         )
     except PulpTaskError as exc:
         assert "407, message='Proxy Authentication Required'" in exc.task.error["description"]
