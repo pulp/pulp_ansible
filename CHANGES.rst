@@ -13,6 +13,23 @@ Changelog
 
 .. towncrier release notes start
 
+0.21.3 (2024-02-28)
+===================
+
+Bugfixes
+--------
+
+- Fixed AnsibleNamespaceMetadata not being exported.
+  `#1764 <https://github.com/pulp/pulp_ansible/issues/1764>`__
+- Fixed a bug failing sync on namespace metadata when avatar_sha256 is missing.
+  `#1772 <https://github.com/pulp/pulp_ansible/issues/1772>`__
+- Changed avatar download to allow graceful failure on mismatching image checksum.
+  
+
+
+----
+
+
 0.21.2 (2024-02-26)
 ===================
 
@@ -53,6 +70,23 @@ Bugfixes
   `#1598 <https://github.com/pulp/pulp_ansible/issues/1598>`__
 - Fixed highest version calculation failing when versions of a collection were created out of order.
   `#1623 <https://github.com/pulp/pulp_ansible/issues/1623>`__
+
+
+----
+
+
+0.20.4 (2024-02-28)
+===================
+
+Bugfixes
+--------
+
+- Fixed AnsibleNamespaceMetadata not being exported.
+  `#1764 <https://github.com/pulp/pulp_ansible/issues/1764>`__
+- Fixed a bug failing sync on namespace metadata when avatar_sha256 is missing.
+  `#1772 <https://github.com/pulp/pulp_ansible/issues/1772>`__
+- Changed avatar download to allow graceful failure on mismatching image checksum.
+  
 
 
 ----
