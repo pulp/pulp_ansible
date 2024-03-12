@@ -130,7 +130,6 @@ cmd_user_prefix bash -c "django-admin makemigrations ansible --check --dry-run"
 
 # Run unit tests.
 cmd_user_prefix bash -c "PULP_DATABASES__default__USER=postgres pytest -v -r sx --color=yes --suppress-no-test-exit-code -p no:pulpcore --pyargs pulp_ansible.tests.unit"
-
 # Run functional tests
 if [[ "$TEST" == "performance" ]]; then
   if [[ -z ${PERFORMANCE_TEST+x} ]]; then
@@ -155,7 +154,7 @@ else
 fi
 pushd ../pulp-cli
 pip install -r test_requirements.txt
-pytest -v -m pulp_ansible
+pytest -v -m "pulp_ansible"
 popd
 
 if [ -f "$POST_SCRIPT" ]; then
