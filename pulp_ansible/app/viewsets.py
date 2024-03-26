@@ -43,6 +43,7 @@ from .models import (
     AnsibleDistribution,
     AnsibleNamespaceMetadata,
     CollectionVersionMark,
+    CollectionVersionSigstoreSignature,
     GitRemote,
     RoleRemote,
     AnsibleRepository,
@@ -51,6 +52,8 @@ from .models import (
     CollectionVersionSignature,
     CollectionRemote,
     Role,
+    SigstoreSigningService,
+    SigstoreVerifyingService,
     Tag,
 )
 from .serializers import (
@@ -67,10 +70,13 @@ from .serializers import (
     CollectionSerializer,
     CollectionVersionSerializer,
     CollectionVersionSignatureSerializer,
+    CollectionVersionSigstoreSignatureSerializer,
     CollectionRemoteSerializer,
     CollectionOneShotSerializer,
     CopySerializer,
     RoleSerializer,
+    SigstoreSigningServiceSerializer,
+    SigstoreVerifyingServiceSerializer,
     TagSerializer,
     CollectionVersionCopyMoveSerializer,
 )
@@ -81,6 +87,8 @@ from .tasks.roles import synchronize as role_sync
 from .tasks.git import synchronize as git_sync
 from .tasks.mark import mark, unmark
 from .tasks.signature import sign
+
+from .sigstore.tasks.sigstore_signature import sigstore_sign
 
 
 class RoleFilter(ContentFilter):
@@ -272,6 +280,54 @@ class SignatureFilter(ContentFilter):
         }
 
 
+class SigstoreSignatureFilter(ContentFilter):
+    """
+    A filter for Sigstore signatures.
+    """
+
+    signed_collection = HyperlinkRelatedFilter(
+        field_name="signed_collection", help_text=_("Filter signatures for collection version")
+    )
+    sigstore_signing_service = HyperlinkRelatedFilter(
+        field_name="sigstore_signing_service",
+        help_text=_("Filter Sigstore signatures produced by Sigstore Signing Service"),
+    )
+
+    class Meta:
+        model = CollectionVersionSigstoreSignature
+        fields = {
+            "signed_collection": ["exact"],
+            "sigstore_bundle_sha256_hash": ["exact", "in"],
+            "sigstore_signing_service": ["exact"],
+        }
+
+
+class SigstoreSigningServiceViewSet(
+    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
+):
+    """
+    Viewset for looking at Sigstore signing services.
+    """
+
+    endpoint_name = "sigstore-signing-services"
+    queryset = SigstoreSigningService.objects.all()
+    serializer_class = SigstoreSigningServiceSerializer
+    filterset_fields = ["name"]
+
+
+class SigstoreVerifyingServiceViewSet(
+    NamedModelViewSet, mixins.RetrieveModelMixin, mixins.ListModelMixin
+):
+    """
+    Viewset for looking at Sigstore verifying services.
+    """
+
+    endpoint_name = "sigstore-verifying-services"
+    queryset = SigstoreVerifyingService.objects.all()
+    serializer_class = SigstoreVerifyingServiceSerializer
+    filterset_fields = ["name"]
+
+
 class CollectionVersionSignatureViewSet(NoArtifactContentUploadViewSet):
     """
     ViewSet for looking at signature objects for CollectionVersion content.
@@ -281,6 +337,37 @@ class CollectionVersionSignatureViewSet(NoArtifactContentUploadViewSet):
     filterset_class = SignatureFilter
     queryset = CollectionVersionSignature.objects.all()
     serializer_class = CollectionVersionSignatureSerializer
+
+    DEFAULT_ACCESS_POLICY = {
+        "statements": [
+            {
+                "action": ["list", "retrieve"],
+                "principal": "authenticated",
+                "effect": "allow",
+            },
+            {
+                "action": "create",
+                "principal": "authenticated",
+                "effect": "allow",
+                "condition": [
+                    "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
+                    "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
+                ],
+            },
+        ],
+        "queryset_scoping": {"function": "scope_queryset"},
+    }
+
+
+class CollectionVersionSigstoreSignatureViewSet(NoArtifactContentUploadViewSet):
+    """
+    ViewSet for looking at Sigstore signature objects for CollectionVersion content.
+    """
+
+    enpoint_name = "collection_sigstore_signatures"
+    filterset_class = SigstoreSignatureFilter
+    queryset = CollectionVersionSigstoreSignature.objects.all()
+    serializer_class = CollectionVersionSigstoreSignatureSerializer
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
@@ -776,7 +863,14 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        signing_service = serializer.validated_data["signing_service"]
+        if "signing_service" in serializer.validated_data:
+            signing_service = serializer.validated_data["signing_service"]
+            sign_method = sign
+            signing_service_href = "signing_service_href"
+        elif "sigstore_signing_service" in serializer.validated_data:
+            signing_service = serializer.validated_data["sigstore_signing_service"]
+            sign_method = sigstore_sign
+            signing_service_href = "sigstore_signing_service_href"
         content = serializer.validated_data["content_units"]
 
         if "*" in content:
@@ -789,12 +883,12 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
             raise_for_unknown_content_units(existing_content_units, content_units)
 
         result = dispatch(
-            sign,
+            sign_method,
             exclusive_resources=[repository],
             kwargs={
                 "repository_href": repository.pk,
                 "content_hrefs": content_units_pks,
-                "signing_service_href": signing_service.pk,
+                signing_service_href: signing_service.pk,
             },
         )
         return OperationPostponedResponse(result, request)

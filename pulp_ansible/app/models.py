@@ -1,5 +1,7 @@
 import hashlib
 import json
+import tempfile
+from cryptography.x509 import load_pem_x509_certificates
 from logging import getLogger
 
 from semantic_version import Version
@@ -32,6 +34,26 @@ from pulpcore.plugin.models import (
     EncryptedTextField,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
+
+from pulp_ansible.app.sigstore.issuers.oidc_client_credentials_issuer import NonInteractiveIssuer
+from pulp_ansible.app.sigstore.utils import validate_and_format_pem_public_key
+
+from sigstore._internal.ctfe import CTKeyring
+from sigstore._internal.fulcio.client import FulcioClient
+from sigstore._internal.keyring import Keyring
+from sigstore._internal.rekor.client import (
+    RekorClient,
+    RekorKeyring,
+)
+from sigstore._internal.tuf import TrustUpdater
+from sigstore.sign import (
+    SigningContext,
+)
+from sigstore.verify.verifier import (
+    Verifier,
+    VerificationMaterials,
+)
+from sigstore.verify.policy import Identity
 
 from .downloaders import AnsibleDownloaderFactory
 
@@ -264,7 +286,7 @@ class CollectionVersionSignature(Content):
     A content type representing a signature that is attached to a content unit.
 
     Fields:
-        data (models.BinaryField): A signature, base64 encoded. # Not sure if it is base64 encoded
+        data (models.TextField): A signature, base64 encoded. # Not sure if it is base64 encoded
         digest (models.CharField): A signature sha256 digest.
         pubkey_fingerprint (models.CharField): A fingerprint of the public key used.
 
@@ -289,6 +311,298 @@ class CollectionVersionSignature(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("pubkey_fingerprint", "signed_collection")
+
+
+class SigstoreSigningService(BaseModel):
+    """
+    A service to generate Sigstore signatures for a given CollectionVersion.
+    Distinct from SigningService objects used to sign artifacts using GPG
+    (does not call an external script provided by the user, but still needs to be registered).
+    Fields:
+        name (models.CharField):
+            Name of the Sigstore signing service.
+        rekor_url (models.TextField):
+            The URL of the Rekor instance to use for logging signatures.
+            Defaults to the Rekor public good instance URL (https://rekor.sigstore.dev).
+        rekor_root_pubkey (models.TextField):
+            A PEM-encoded root public key for Rekor itself.
+        fulcio_url (models.TextField):
+            The URL of the Fulcio instance to use for getting signing certificates.
+            Defaults to the Fulcio public good instance URL (https://fulcio.sigstore.dev).
+        tuf_url (models.TextField):
+            The URL of the TUF metadata repository instance to use.
+            Defaults to the public TUF instance URL
+            (https://sigstore-tuf-root.storage.googleapis.com/).
+        oidc_issuer (models.TextField):
+            The OpenID Connect issuer to use for signing.
+            Defaults to the public OAuth2 server URL (https://oauth2.sigstore.dev/auth).
+        oidc_client_secret (models.EncryptedTextField):
+            The encrypted OIDC client secret to authentify to Sigstore.
+        ctfe_pubkey (models.TextField):
+            A PEM-encoded public key for the CT log.
+        cert_identity (models.TextField):
+            A unique identity string corresponding to the OIDC identity
+            present as the SAN in the X509 certificate.
+    """
+
+    TYPE = "sigstore_signing_service"
+
+    PUBLIC_OIDC_ISSUERS = (
+        "https://accounts.google.com",
+        "https://oauth2.sigstore.dev/auth",
+        "http://dex-idp:8888/auth",
+    )
+    PUBLIC_REKOR_URL = "https://rekor.sigstore.dev"
+    PUBLIC_FULCIO_URL = "https://fulcio.sigstore.dev"
+    PUBLIC_TUF_URL = "https://tuf-repo-cdn.sigstore.dev"
+    PUBLIC_ISSUER_URL = "https://oauth2.sigstore.dev/auth"
+
+    name = models.CharField(db_index=True, unique=True, max_length=64)
+    rekor_url = models.TextField(default=PUBLIC_REKOR_URL)
+    rekor_root_pubkey = models.TextField(null=True)
+    fulcio_url = models.TextField(default=PUBLIC_FULCIO_URL)
+    tuf_url = models.TextField(default=PUBLIC_TUF_URL, null=True)
+    oidc_issuer = models.TextField(default=PUBLIC_ISSUER_URL)
+    oidc_client_secret = EncryptedTextField(null=True)
+    ctfe_pubkey = models.TextField(null=True)
+
+    @property
+    def fulcio(self):
+        """Get a Fulcio instance."""
+        return FulcioClient(url=self.fulcio_url)
+
+    @property
+    def ctfe_public_keys(self):
+        """Get the CTFE public keys."""
+        if self.ctfe_pubkey:
+            return bytes(self.ctfe_pubkey, "utf-8")
+        return self.trust_updater.get_ctfe_keys()
+
+    @property
+    def rekor_public_keys(self):
+        """Get the Rekor instance public key."""
+        if self.rekor_root_pubkey:
+            return [bytes(self.rekor_root_pubkey, "utf-8")]
+        if self.tuf_url:
+            return self.trust_updater.get_rekor_keys()
+        raise ValueError("No TUF URL or Rekor public key configured")
+
+    @property
+    def rekor(self):
+        """Get a Rekor instance."""
+        if self.rekor_url == self.PUBLIC_REKOR_URL:
+            return RekorClient.production(self.trust_updater)
+
+        rekor_key = RekorKeyring(Keyring(self.rekor_public_keys))
+        ctfe_key = CTKeyring(Keyring([self.ctfe_public_keys]))
+        return RekorClient(
+            self.rekor_url,
+            rekor_key,
+            ctfe_key,
+        )
+
+    @property
+    def issuer(self):
+        """Get an OIDC issuer instance."""
+        return NonInteractiveIssuer(self.oidc_issuer)
+
+    @property
+    def trust_updater(self):
+        """Get a custom TrustUpdater instance depending on the TUF metadata repository provided."""
+        if self.tuf_url.endswith("/"):
+            self.tuf_url = self.tuf_url[-1]
+        return TrustUpdater(self.tuf_url)
+
+    @property
+    def signing_context(self):
+        """Get a SigningContext instance."""
+        return SigningContext(
+            fulcio=self.fulcio,
+            rekor=self.rekor,
+        )
+
+    @hook(BEFORE_SAVE)
+    def format_pem_pubkeys(self):
+        """Override the base `save` method to properly format PEM-encoded files."""
+        if self.rekor_root_pubkey:
+            self.rekor_root_pubkey = validate_and_format_pem_public_key(self.rekor_root_pubkey)
+        if self.ctfe_pubkey:
+            self.ctfe_pubkey = validate_and_format_pem_public_key(self.ctfe_pubkey)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class SigstoreVerifyingService(BaseModel):
+    """
+    A service to verify a CollectionVersion Sigstore signature.
+    Fields:
+        name (models.CharField):
+            Name of the Sigstore verifying service.
+        rekor_url (models.TextField):
+            The URL of the Rekor instance to use for checking signature logs.
+            Defaults to the Rekor public good instance URL (https://rekor.sigstore.dev).
+        rekor_root_pubkey (models.TextField):
+            A PEM-encoded root public key for Rekor itself.
+            Defaults to None.
+        tuf_url (models.TextField):
+            The URL of the TUF metadata repository instance to use.
+            Defaults to the public TUF instance URL
+            (https://tuf-repo-cdn.sigstore.dev/).
+        certificate_chain (models.TextField):
+            A list of PEM-encoded CA certificates needed to build
+            the Fulcio signing certificate chain.
+            Defaults to None.
+        expected_oidc_issuer (models.TextField):
+            The expected OIDC issuer in the signing certificate.
+        expected_identity (models.TextField):
+            The expected identity in the signing certificate.
+        verify_offline (models.BooleanField):
+            Verify the signature offline.
+            Needs the presence of a Sigstore bundle in the verification materials.
+    """
+
+    TYPE = "sigstore_verifying_service"
+
+    # TODO: dedupe public URL
+
+    PUBLIC_REKOR_URL = "https://rekor.sigstore.dev"
+    STAGING_REKOR_URL = "https://rekor.sigstage.dev"
+    PUBLIC_TUF_URL = "https://tuf-repo-cdn.sigstore.dev"
+
+    name = models.CharField(db_index=True, unique=True, max_length=64)
+    rekor_url = models.TextField(default=PUBLIC_REKOR_URL)
+    rekor_root_pubkey = models.TextField(null=True)
+    tuf_url = models.TextField(default=PUBLIC_TUF_URL)
+    certificate_chain = models.TextField(null=True)
+    expected_oidc_issuer = models.TextField()
+    expected_identity = models.TextField()
+    verify_offline = models.BooleanField(null=True, default=False)
+
+    @property
+    def get_rekor_url(self):
+        if self.rekor_url.endswith("/"):
+            self.rekor_url = self.rekor_url[:-1]
+        return self.rekor_url
+
+    @property
+    def get_tuf_url(self):
+        if self.tuf_url.endswith("/"):
+            self.tuf_url = self.tuf_url[:-1]
+        return self.tuf_url
+
+    @property
+    def rekor_public_keys(self):
+        """Get the Rekor instance public key."""
+        if self.rekor_root_pubkey:
+            return [bytes(self.rekor_root_pubkey, "utf-8")]
+        if self.get_tuf_url:
+            return self.trust_updater.get_rekor_keys()
+        raise ValueError("No TUF URL or Rekor public key configured")
+
+    @property
+    def rekor(self):
+        """Get a Rekor instance."""
+        if self.get_rekor_url == self.PUBLIC_REKOR_URL:
+            return RekorClient.production(self.trust_updater)
+        if self.get_rekor_url == self.STAGING_REKOR_URL:
+            return RekorClient.staging(self.trust_updater)
+
+        rekor_key = RekorKeyring(Keyring(self.rekor_public_keys))
+        ctfe_key = CTKeyring(Keyring())
+        return RekorClient(
+            self.get_rekor_url,
+            rekor_key,
+            ctfe_key,
+        )
+
+    @property
+    def certificates_chain(self):
+        """Get the Fulcio certificate chain."""
+        if self.certificate_chain:
+            return load_pem_x509_certificates(bytes(self.certificate_chain, "utf-8"))
+
+    @property
+    def trust_updater(self):
+        """Get a custom TrustUpdater instance depending on the TUF metadata repository provided."""
+        return TrustUpdater(self.get_tuf_url)
+
+    @property
+    def verifier(self):
+        """Get a Verifier instance."""
+        if self.get_rekor_url == self.PUBLIC_REKOR_URL:
+            return Verifier.production()
+        if self.get_rekor_url == self.STAGING_REKOR_URL:
+            return Verifier.staging()
+
+        return Verifier(
+            rekor=self.rekor,
+            fulcio_certificate_chain=self.certificates_chain,
+        )
+
+    def sigstore_verify(self, manifest, sigstore_bundle):
+        """Verify a Sigstore signature validity."""
+        verification_materials = VerificationMaterials.from_bundle(
+            input_=manifest, bundle=sigstore_bundle, offline=self.verify_offline
+        )
+
+        policy = Identity(
+            identity=self.expected_identity,
+            issuer=self.expected_oidc_issuer,
+        )
+        return self.verifier.verify(materials=verification_materials, policy=policy)
+
+    @hook(BEFORE_SAVE)
+    def format_pem_pubkeys(self):
+        """Override the base `save` method to properly format PEM-encoded files."""
+        if self.rekor_root_pubkey:
+            self.rekor_root_pubkey = validate_and_format_pem_public_key(self.rekor_root_pubkey)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+
+
+class CollectionVersionSigstoreSignature(Content):
+    """
+    A content type representing a Sigstore signature attached to a content unit.
+    Fields:
+        sigstore_bundle (models.JSONField):
+            An optional Sigstore bundle used for offline verification.
+        sigstore_bundle_sha256_hash (CharField):
+            A sha256 hash value for the Sigstore bundle.
+            Fixes error related to index row size exceeding btree version 4
+            maximum 2704 for indexes when creating unique_together constraint.
+            See https://code.djangoproject.com/ticket/14904#no1
+    Relations:
+        signed_collection (models.ForeignKey):
+            A collection version this signature is relevant to.
+        sigstore_signing_service (models.ForeignKey):
+            The Sigstore Siging Service used for signing the collection version.
+    """
+
+    TYPE = "collection_sigstore_signatures"
+
+    sigstore_bundle = models.JSONField(null=True)
+    sigstore_bundle_sha256_hash = models.CharField(max_length=64, db_index=True, null=True)
+    signed_collection = models.ForeignKey(
+        CollectionVersion, on_delete=models.CASCADE, related_name="sigstore_signatures"
+    )
+    sigstore_signing_service = models.ForeignKey(
+        SigstoreSigningService,
+        on_delete=models.SET_NULL,
+        related_name="sigstore_signatures",
+        null=True,
+    )
+
+    def save(self, *args, **kwargs):
+        if self.sigstore_bundle:
+            hash_value = hashlib.sha256(json.dumps(self.sigstore_bundle, sort_keys=True).encode('utf-8')).hexdigest()
+            self.sigstore_bundle_hash = hash_value
+        super().save(*args, **kwargs)
+
+    class Meta:
+        default_related_name = "%(app_label)s_%(model_name)s"
+        unique_together = ("sigstore_bundle_sha256_hash", "signed_collection")
 
 
 class AnsibleNamespaceMetadata(Content):
@@ -501,7 +815,12 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     Fields:
 
         last_synced_metadata_time (models.DateTimeField): Last synced metadata time.
-        private (models.BooleanField): Indicator if this repository is private
+        gpgkey (models.TextField): GPG key for verifying signatures.
+        private (models.BooleanField): Indicator if this repository is private.
+
+    Relations:
+        sigstore_verifying_service (models.ForeignKey):
+            Sigstore service used to verify collection signatures.
     """
 
     TYPE = "ansible"
@@ -510,6 +829,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
         CollectionVersion,
         AnsibleCollectionDeprecated,
         CollectionVersionSignature,
+        CollectionVersionSigstoreSignature,
         AnsibleNamespaceMetadata,
         CollectionVersionMark,
     ]
@@ -518,6 +838,11 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     last_synced_metadata_time = models.DateTimeField(null=True)
     gpgkey = models.TextField(null=True)
     private = models.BooleanField(default=False)
+    sigstore_verifying_service = models.ManyToManyField(
+        SigstoreVerifyingService,
+        related_name="ansible_repositories",
+        blank=True,
+    )
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
@@ -526,6 +851,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
             ("rebuild_metadata_ansiblerepository", "Can rebuild metadata on the repository"),
             ("repair_ansiblerepository", "Can repair the repository"),
             ("sign_ansiblerepository", "Can sign content on the repository"),
+            ("sigstore_sign_ansiblerepository", "Can sign content on the repository with Sigstore"),
             ("sync_ansiblerepository", "Can start a sync task on the repository"),
             ("manage_roles_ansiblerepository", "Can manage roles on repositories"),
             ("modify_ansible_repo_content", "Can modify repository content"),
@@ -545,7 +871,13 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
             signatures = new_version.get_content(
                 content_qs=CollectionVersionSignature.objects.filter(signed_collection=version)
             )
+            sigstore_signatures = new_version.get_content(
+                content_qs=CollectionVersionSigstoreSignature.objects.filter(
+                    signed_collection=version
+                )
+            )
             new_version.remove_content(signatures)
+            new_version.remove_content(sigstore_signatures)
 
             marks = new_version.get_content(
                 content_qs=CollectionVersionMark.objects.filter(marked_collection=version)
