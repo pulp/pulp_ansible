@@ -1,8 +1,8 @@
 async_lru>=1.0,<2.1
 galaxy_importer>=0.4.5,<0.5
 GitPython>=3.1.24,<3.2
-jsonschema>=4.9,<4.21
-Pillow>=7.0,<10.3
+jsonschema>=4.9,<4.22
+Pillow>=7.0,<10.4
 pulpcore>=3.40.0,<3.55
 PyYAML>=5.4.1,<7.0
 semantic_version>=2.9,<2.11
