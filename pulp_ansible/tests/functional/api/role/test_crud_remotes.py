@@ -1,4 +1,5 @@
 """Tests that CRUD remotes."""
+
 from random import choice
 
 from requests.exceptions import HTTPError

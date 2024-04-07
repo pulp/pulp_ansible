@@ -1,4 +1,5 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
+
 import pytest
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
