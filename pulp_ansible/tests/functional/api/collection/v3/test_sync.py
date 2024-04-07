@@ -1,4 +1,5 @@
 """Tests related to sync ansible plugin collection content type."""
+
 import os
 import unittest
 

@@ -1,4 +1,5 @@
 """Tests related to Galaxy V3 serializers."""
+
 from pulpcore.client.pulp_ansible import (
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
