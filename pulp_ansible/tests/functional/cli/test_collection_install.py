@@ -1,4 +1,5 @@
 """Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
+
 import json
 from os import path
 import subprocess

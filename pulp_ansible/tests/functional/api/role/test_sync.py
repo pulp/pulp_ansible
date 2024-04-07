@@ -1,4 +1,5 @@
 """Tests that sync ansible plugin repositories."""
+
 from pulp_smash import api, config, exceptions
 from pulp_smash.pulp3.bindings import PulpTestCase
 from pulp_smash.pulp3.utils import gen_repo, get_added_content_summary, get_content_summary, sync
