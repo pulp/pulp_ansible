@@ -1,4 +1,5 @@
 """Tests related to Galaxy V3 deprecation."""
+
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     SyncHelpersMixin,

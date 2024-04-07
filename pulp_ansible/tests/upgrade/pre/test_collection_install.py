@@ -1,4 +1,5 @@
 """Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
+
 from os import path
 import subprocess
 import tempfile
