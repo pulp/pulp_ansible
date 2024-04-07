@@ -1,4 +1,5 @@
 """Utilities for tests for the ansible plugin."""
+
 from dynaconf import Dynaconf
 from functools import partial
 import unittest

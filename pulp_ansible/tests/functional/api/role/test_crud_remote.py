@@ -1,4 +1,5 @@
 """Tests that CRUD remotes."""
+
 import pytest
 import uuid
 

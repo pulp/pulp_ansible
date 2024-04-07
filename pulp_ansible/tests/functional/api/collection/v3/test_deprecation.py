@@ -1,4 +1,5 @@
 """Tests related to Galaxy V3 deprecation."""
+
 import pytest
 
 
