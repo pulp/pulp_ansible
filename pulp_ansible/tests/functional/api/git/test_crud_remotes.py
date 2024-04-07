@@ -1,4 +1,5 @@
 """Tests that CRUD remotes."""
+
 import pytest
 from pulp_smash.pulp3.bindings import monitor_task
 

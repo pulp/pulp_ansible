@@ -1,4 +1,5 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
+
 import datetime
 import os
 
