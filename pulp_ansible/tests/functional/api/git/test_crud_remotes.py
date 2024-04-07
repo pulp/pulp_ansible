@@ -1,4 +1,5 @@
 """Tests that CRUD remotes."""
+
 import pytest
 from pulpcore.client.pulp_ansible import ApiException
 
