@@ -1,4 +1,5 @@
 """Tests related to upload of collections."""
+
 import hashlib
 import logging
 import os

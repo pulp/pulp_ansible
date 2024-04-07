@@ -1,4 +1,5 @@
 """Tests collection sync using the Galaxy V2 API."""
+
 import pytest
 from pulpcore.client.pulp_ansible import ApiException
 

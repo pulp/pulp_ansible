@@ -1,4 +1,5 @@
 """Tests related to CollectionRemote objects."""
+
 from pulpcore.client.pulp_ansible.exceptions import ApiException
 from pulp_smash.pulp3.bindings import monitor_task
 

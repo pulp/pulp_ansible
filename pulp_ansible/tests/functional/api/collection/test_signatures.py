@@ -1,4 +1,5 @@
 """Tests functionality around Collection-Version Signatures."""
+
 import tarfile
 from tempfile import TemporaryDirectory
 from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTaskError
