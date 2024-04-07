@@ -1,4 +1,5 @@
 """Tests that publish ansible plugin repositories."""
+
 import unittest
 from random import choice
 from urllib.parse import urljoin

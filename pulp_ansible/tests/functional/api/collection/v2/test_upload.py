@@ -1,4 +1,5 @@
 """Tests related to upload of collections."""
+
 import hashlib
 from tempfile import NamedTemporaryFile
 
