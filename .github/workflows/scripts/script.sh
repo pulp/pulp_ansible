@@ -31,6 +31,8 @@ if [[ "$TEST" = "docs" ]]; then
   if [[ "$GITHUB_WORKFLOW" == "Ansible CI" ]]; then
     towncrier build --yes --version 4.0.0.ci
   fi
+  # Unified Docs Build
+  pulp-docs build
   # Legacy Docs Build
   cd docs
   make PULP_URL="$PULP_URL" diagrams html
@@ -40,6 +42,12 @@ if [[ "$TEST" = "docs" ]]; then
   if [ -f "$POST_DOCS_TEST" ]; then
     source "$POST_DOCS_TEST"
   fi
+  exit
+fi
+
+if [[ "$TEST" = "new_docs" ]]; then
+  pip install --user git+https://github.com/pulp/pulp-docs
+  pulp-docs build
   exit
 fi
 
