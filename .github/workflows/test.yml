@@ -23,6 +23,7 @@ jobs:
         env:
           - TEST: pulp
           - TEST: docs
+          - TEST: new_docs
           - TEST: azure
           - TEST: s3
           - TEST: lowerbounds
