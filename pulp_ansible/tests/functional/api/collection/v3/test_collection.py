@@ -9,14 +9,12 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 import pytest
+import requests
 
 from pulp_smash import api, config
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
-from pulp_smash.utils import http_get
 
 from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_COLLECTION_FILE_NAME,
-    ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL,
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_REPO_PATH,
 )
@@ -65,7 +63,7 @@ def collection_artifact():
 
 
 @pytest.fixture(scope="session")
-def collection_artifact2():
+def collection_artifact2(collection_factory):
     """
     Generate a second randomized collection for testing.
 
@@ -165,14 +163,6 @@ def pulp_dist(pulp_client, pulp_repo):
     yield dist
     if created:
         pulp_client.delete(dist["pulp_href"])
-
-
-@pytest.fixture(scope="session")
-def known_collection():
-    """Fetch and prepare a known collection from Galaxy to use in an upload test."""
-    collection_content = http_get(ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL)
-    collection = {"file": (ANSIBLE_COLLECTION_FILE_NAME, collection_content)}
-    return collection
 
 
 def test_collection_upload(collection_upload):
@@ -333,8 +323,15 @@ def test_collection_version(collection_artifact, pulp_client, collection_detail)
     #     #             'tags': ['collectiontest']},
 
 
-@pytest.mark.skip("Blocked by open ticket: https://github.com/pulp/pulp_ansible/issues/698")
-def test_collection_download(collection_artifact, pulp_client, collection_detail):
+@pytest.mark.debugme
+def test_collection_download(
+    ansible_distribution_factory,
+    ansible_repo_factory,
+    ansible_collection_factory,
+    galaxy_v3_collection_versions_api_client,
+    pulp_client,
+    collection_detail,
+):
     """Test collection download URL.
 
     Should require authentication and redirect to a download location.
@@ -346,19 +343,18 @@ def test_collection_download(collection_artifact, pulp_client, collection_detail
     # Artifact Download Endoint
     url = version["download_url"]
 
-    tarball = open(collection_artifact.filename, "rb").read()
+    tarball = open(ansible_collection_factory().filename, "rb").read()
 
-    c = pulp_client.using_handler(api.echo_handler)
-    f = c.get(url)
-    assert f.status_code == 200, (url, f.request.headers)
-    assert f.content == tarball
+    response = requests.get(url, auth=("admin", "password"))
+    assert response.status_code == 200, (url, response.request.headers)
+    assert response.content == tarball
 
 
-def test_collection_upload_repeat(pulp_client, collection_artifact, pulp_dist, collection_upload):
+def test_collection_upload_repeat(pulp_client, collection_factory, pulp_dist, collection_upload):
     """
     Upload a duplicate collection.
     """
-    response = upload_collection(pulp_client, collection_artifact.filename, pulp_dist["base_path"])
+    response = upload_collection(pulp_client, collection_factory().filename, pulp_dist["base_path"])
     assert response["error"] is None
     assert response["state"] == "completed"
     assert re.match(r"[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}", response["id"])
