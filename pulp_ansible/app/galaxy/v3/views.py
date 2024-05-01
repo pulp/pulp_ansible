@@ -1,6 +1,7 @@
 from datetime import datetime
 from gettext import gettext as _
 import semantic_version
+import base64
 
 from django.db import DatabaseError, IntegrityError
 from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
@@ -95,6 +96,15 @@ _PERMISSIVE_ACCESS_POLICY = {
     ],
     "creation_hooks": [],
 }
+
+
+def encode_cache_key(key):
+    """
+    Base64 encode the cache key to avoid any unpleasantness with unsupported
+    characters.
+    """
+    b64 = base64.b64encode(key.encode())
+    return b64.decode()
 
 
 class AnsibleDistributionMixin:
@@ -925,14 +935,17 @@ class CollectionVersionViewSet(
                 cache_request = False
                 break
 
-        cache_key = "".join(
-            [
-                str(self._repository_version.pk),
-                kwargs["namespace"],
-                kwargs["name"],
-                str(request.query_params.get("offset", "0")),
-                str(request.query_params.get("limit", "0")),
-            ]
+        cache_key = encode_cache_key(
+            "-".join(
+                [
+                    settings.ANSIBLE_API_HOSTNAME,
+                    str(self._repository_version.pk),
+                    kwargs["namespace"],
+                    kwargs["name"],
+                    str(request.query_params.get("offset", "0")),
+                    str(request.query_params.get("limit", "0")),
+                ]
+            )
         )
 
         if cache_key in cache and cache_request:
@@ -976,9 +989,9 @@ class CollectionVersionViewSet(
         repo_version = self._repository_version
         # the contents of a repo version can be cached without worry because repo
         # versions are immutable
-        cache_key = (
-            f"version-details-{repo_version.pk}"
-            f"{kwargs['namespace']}{kwargs['name']}{kwargs['version']}"
+        cache_key = encode_cache_key(
+            f"{settings.ANSIBLE_API_HOSTNAME}-version-details-{repo_version.pk}"
+            f"-{kwargs['namespace']}-{kwargs['name']}-{kwargs['version']}"
         )
 
         if data := cache.get(cache_key):
@@ -1122,9 +1135,9 @@ class CollectionVersionDocsViewSet(
         repo_version = self._repository_version
         # the contents of a repo version can be cached without worry because repo
         # versions are immutable
-        cache_key = (
-            f"version-docs-{repo_version.pk}"
-            f"{kwargs['namespace']}{kwargs['name']}{kwargs['version']}"
+        cache_key = encode_cache_key(
+            f"version-docs-{repo_version.pk}-"
+            f"{kwargs['namespace']}-{kwargs['name']}-{kwargs['version']}"
         )
 
         if data := cache.get(cache_key):
