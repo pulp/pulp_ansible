@@ -138,6 +138,19 @@ class CollectionVersionSignatureResource(BaseContentResource):
         """
         return CollectionVersionSignature.objects.filter(pk__in=self.repo_version.content)
 
+    def before_import_row(self, row, **kwargs):
+        """
+        Finds and sets collection version using upstream_id.
+
+        Args:
+            row (tablib.Dataset row): incoming import-row representing a single content.
+            kwargs: args passed along from the import() call.
+        """
+        super().before_import_row(row, **kwargs)
+
+        cv = CollectionVersion.objects.get(upstream_id=row["signed_collection"])
+        row["signed_collection"] = str(cv.pk)
+
     class Meta:
         model = CollectionVersionSignature
         import_id_fields = ("pubkey_fingerprint", "signed_collection")
@@ -154,6 +167,19 @@ class CollectionVersionMarkResource(BaseContentResource):
         :return: CollectionVersionMark content specific to a specified repo-version.
         """
         return CollectionVersionMark.objects.filter(pk__in=self.repo_version.content)
+
+    def before_import_row(self, row, **kwargs):
+        """
+        Finds and sets collection version using upstream_id.
+
+        Args:
+            row (tablib.Dataset row): incoming import-row representing a single content.
+            kwargs: args passed along from the import() call.
+        """
+        super().before_import_row(row, **kwargs)
+
+        cv = CollectionVersion.objects.get(upstream_id=row["marked_collection"])
+        row["marked_collection"] = str(cv.pk)
 
     class Meta:
         model = CollectionVersionMark
