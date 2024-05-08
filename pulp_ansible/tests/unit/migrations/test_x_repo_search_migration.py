@@ -3,12 +3,14 @@ def test_cross_repo_search_migration(migrate):
     AnsibleRepository = apps.get_model("ansible", "AnsibleRepository")
     AnsibleDistribution = apps.get_model("ansible", "AnsibleDistribution")
 
-    # make a repository
+    # Make a Repository
     repository = AnsibleRepository.objects.create(pulp_type="ansible", name="foobar")
     repository.versions.create(number=0)
 
-    # make a distro
-    distro = AnsibleDistribution.objects.create(
+    # Make a Distribution
+    AnsibleDistribution.objects.create(
         pulp_type="ansible", name="foobar", base_path="foobar", repository=repository
     )
+
+    # Migrate the data
     migrate([("ansible", "0051_cvindex_build")])

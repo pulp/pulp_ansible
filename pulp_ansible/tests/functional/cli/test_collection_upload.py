@@ -36,7 +36,7 @@ def test_upload_collection(
     )
 
     collection_meta = ansible_dir / "pulp" / collection_name / "meta"
-    collection_meta.mkdir()
+    collection_meta.mkdir(exist_ok=True)
     runtime_yml = collection_meta / "runtime.yml"
     runtime_yml.write_text('requires_ansible: ">=2.9"\n')
 
