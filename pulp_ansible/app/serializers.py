@@ -34,6 +34,7 @@ from .models import (
     CollectionVersionMark,
     GitRemote,
     RoleRemote,
+    AnsibleCollectionDeprecated,
     AnsibleNamespace,
     AnsibleNamespaceMetadata,
     AnsibleRepository,
@@ -409,6 +410,19 @@ class CollectionSerializer(ModelSerializer):
     class Meta:
         model = Collection
         fields = ("name", "namespace")
+
+
+class CollectionDeprecatedSerializer(NoArtifactContentSerializer):
+    """
+    A serializer for Ansible Collection Deprecations.
+    """
+
+    name = serializers.CharField(help_text=_("The name of the Collection."))
+    namespace = serializers.CharField(help_text=_("The namespace of the Collection."))
+
+    class Meta:
+        model = AnsibleCollectionDeprecated
+        fields = NoArtifactContentSerializer.Meta.fields + ("name", "namespace")
 
 
 class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
