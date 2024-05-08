@@ -17,6 +17,7 @@ setup(
     author="Pulp Ansible Plugin Project Developers",
     author_email="pulp-dev@redhat.com",
     url="https://github.com/pulp/pulp_ansible",
+    python_requires=">=3.9",
     install_requires=requirements,
     include_package_data=True,
     packages=find_packages(exclude=["tests"]),
@@ -27,7 +28,6 @@ setup(
         "Framework :: Django",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
     ),
     entry_points={
