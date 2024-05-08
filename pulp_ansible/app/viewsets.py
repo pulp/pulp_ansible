@@ -26,6 +26,7 @@ from pulpcore.plugin.viewsets import (
     HyperlinkRelatedFilter,
     NamedModelViewSet,
     NAME_FILTER_OPTIONS,
+    NoArtifactContentViewSet,
     NoArtifactContentUploadViewSet,
     OperationPostponedResponse,
     ReadOnlyContentViewSet,
@@ -65,6 +66,7 @@ from .serializers import (
     AnsibleRepositoryRebuildSerializer,
     AnsibleRepositorySignatureSerializer,
     CollectionSerializer,
+    CollectionDeprecatedSerializer,
     CollectionVersionSerializer,
     CollectionVersionSignatureSerializer,
     CollectionRemoteSerializer,
@@ -333,14 +335,14 @@ class CollectionVersionMarkViewSet(ContentViewSet):
     serializer_class = CollectionVersionMarkSerializer
 
 
-class CollectionDeprecatedViewSet(ContentViewSet):
+class CollectionDeprecatedViewSet(NoArtifactContentViewSet):
     """
     ViewSet for AnsibleCollectionDeprecated.
     """
 
     endpoint_name = "collection_deprecations"
     queryset = AnsibleCollectionDeprecated.objects.all()
-    serializer_class = CollectionSerializer
+    serializer_class = CollectionDeprecatedSerializer
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
