@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.21.4 (2024-05-07)
+===================
+
+Bugfixes
+--------
+
+- Add ansible hostname to API v3 cache key
+  `#1833 <https://github.com/pulp/pulp_ansible/issues/1833>`__
+
+
+----
+
+
 0.21.3 (2024-02-28)
 ===================
 
