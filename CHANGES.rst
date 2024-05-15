@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.16.3 (2024-05-15)
+===================
+
+Bugfixes
+--------
+
+- Fixed import failing to associate signatures and marks with their collection version.
+  `#1836 <https://github.com/pulp/pulp_ansible/issues/1836>`__
+
+
+----
+
+
 0.16.2 (2023-12-14)
 ===================
 
