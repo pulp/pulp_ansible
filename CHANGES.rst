@@ -13,6 +13,15 @@ Changelog
 
 .. towncrier release notes start
 
+0.21.5 (2024-05-15)
+===================
+
+No significant changes.
+
+
+----
+
+
 0.21.4 (2024-05-07)
 ===================
 
@@ -83,6 +92,19 @@ Bugfixes
   `#1598 <https://github.com/pulp/pulp_ansible/issues/1598>`__
 - Fixed highest version calculation failing when versions of a collection were created out of order.
   `#1623 <https://github.com/pulp/pulp_ansible/issues/1623>`__
+
+
+----
+
+
+0.20.6 (2024-05-15)
+===================
+
+Bugfixes
+--------
+
+- Fixed import failing to associate signatures and marks with their collection version.
+  `#1836 <https://github.com/pulp/pulp_ansible/issues/1836>`__
 
 
 ----
@@ -409,6 +431,19 @@ Misc
 ----
 
 
+0.16.3 (2024-05-15)
+===================
+
+Bugfixes
+--------
+
+- Fixed import failing to associate signatures and marks with their collection version.
+  `#1836 <https://github.com/pulp/pulp_ansible/issues/1836>`__
+
+
+----
+
+
 0.16.2 (2023-12-14)
 ===================
 
@@ -486,6 +521,19 @@ Misc
 ----
 
 - `#1273 <https://github.com/pulp/pulp_ansible/issues/1273>`__
+
+
+----
+
+
+0.15.5 (2024-05-15)
+===================
+
+Bugfixes
+--------
+
+- Fixed import failing to associate signatures and marks with their collection version.
+  `#1836 <https://github.com/pulp/pulp_ansible/issues/1836>`__
 
 
 ----
