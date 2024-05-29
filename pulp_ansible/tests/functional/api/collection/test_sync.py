@@ -17,7 +17,7 @@ from pulp_ansible.tests.functional.utils import monitor_task
 
 @pytest.mark.parallel
 def test_sync_supports_mirror_option_true(
-    ansible_collection_remote_factory, ansible_sync_factory, ansible_collection_version_api_client
+    ansible_bindings, ansible_collection_remote_factory, ansible_sync_factory
 ):
     """Sync multiple remotes into the same repo with mirror as `True`."""
     remote_a = ansible_collection_remote_factory(
@@ -39,11 +39,11 @@ def test_sync_supports_mirror_option_true(
 
     # Assert more CollectionVersion are present in the first sync than the second
     if repository.retain_repo_versions and repository.retain_repo_versions > 1:
-        content_version_one = ansible_collection_version_api_client.list(
+        content_version_one = ansible_bindings.ContentCollectionVersionsApi.list(
             repository_version=f"{repository.pulp_href}versions/1/"
         )
         assert content_version_one.count >= 3
-    content_version_two = ansible_collection_version_api_client.list(
+    content_version_two = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{repository.pulp_href}versions/2/"
     )
     assert content_version_two.count == 1
@@ -51,7 +51,7 @@ def test_sync_supports_mirror_option_true(
 
 @pytest.mark.parallel
 def test_sync_supports_mirror_option_false(
-    ansible_collection_remote_factory, ansible_sync_factory, ansible_collection_version_api_client
+    ansible_bindings, ansible_collection_remote_factory, ansible_sync_factory
 ):
     """Sync multiple remotes into the same repo with mirror as `False`."""
     remote_a = ansible_collection_remote_factory(
@@ -73,18 +73,18 @@ def test_sync_supports_mirror_option_false(
 
     # Assert more CollectionVersion are present in the second sync than the first
     if repository.retain_repo_versions and repository.retain_repo_versions > 1:
-        content_version_one = ansible_collection_version_api_client.list(
+        content_version_one = ansible_bindings.ContentCollectionVersionsApi.list(
             repository_version=f"{repository.pulp_href}versions/1/"
         )
         assert content_version_one.count >= 3
-    content_version_two = ansible_collection_version_api_client.list(
+    content_version_two = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{repository.pulp_href}versions/2/"
     )
     assert content_version_two.count == 4
 
 
 def test_sync_mirror_defaults_to_false(
-    ansible_collection_remote_factory, ansible_sync_factory, ansible_collection_version_api_client
+    ansible_bindings, ansible_collection_remote_factory, ansible_sync_factory
 ):
     """Sync multiple remotes into the same repo to ensure mirror defaults to `False`."""
     remote_a = ansible_collection_remote_factory(
@@ -106,11 +106,11 @@ def test_sync_mirror_defaults_to_false(
 
     # Assert more CollectionVersion are present in the second sync than the first
     if repository.retain_repo_versions and repository.retain_repo_versions > 1:
-        content_version_one = ansible_collection_version_api_client.list(
+        content_version_one = ansible_bindings.ContentCollectionVersionsApi.list(
             repository_version=f"{repository.pulp_href}versions/1/"
         )
         assert content_version_one.count >= 3
-    content_version_two = ansible_collection_version_api_client.list(
+    content_version_two = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{repository.pulp_href}versions/2/"
     )
     assert content_version_two.count == 4
@@ -127,13 +127,13 @@ def test_sync_mirror_defaults_to_false(
     ],
 )
 def test_sync_collection_with_specialities(
+    ansible_bindings,
     collection,
     old_galaxy,
     sync_dependencies,
     min_count,
     ansible_collection_remote_factory,
     ansible_sync_factory,
-    ansible_collection_version_api_client,
 ):
     """Sync a collection that is known to be special."""
     remote = ansible_collection_remote_factory(
@@ -148,7 +148,7 @@ def test_sync_collection_with_specialities(
 
     repository = ansible_sync_factory(remote=remote.pulp_href)
 
-    content = ansible_collection_version_api_client.list(
+    content = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{repository.pulp_href}versions/1/"
     )
     assert content.count >= min_count
@@ -262,8 +262,7 @@ class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
 @pytest.mark.skip("Skipped until fixture metadata has a published date")
 @pytest.mark.parallel
 def test_optimized_sync(
-    ansible_repo_api_client,
-    ansible_remote_collection_api_client,
+    ansible_bindings,
     ansible_repo_factory,
     ansible_collection_remote_factory,
 ):
@@ -281,25 +280,26 @@ def test_optimized_sync(
         signed_only=False,
     )
     repository = ansible_repo_factory(remote=remote1.pulp_href)
-    monitor_task(ansible_repo_api_client.sync(repository.pulp_href, {}).task)
-    repository = ansible_repo_api_client.read(repository.pulp_href)
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.sync(repository.pulp_href, {}).task)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
     assert repository.last_synced_metadata_time is not None
-    monitor_task(ansible_repo_api_client.sync(repository.pulp_href, {"optimize": True}).task)
+    monitor_task(
+        ansible_bindings.RepositoriesAnsibleApi.sync(repository.pulp_href, {"optimize": True}).task
+    )
     # TODO CHECK IF SYNC WAS OPTIMIZED
     monitor_task(
-        ansible_repo_api_client.sync(
+        ansible_bindings.RepositoriesAnsibleApi.sync(
             repository.pulp_href, {"remote": remote2.pulp_href, "optimize": True}
         ).task
     )
-    repository = ansible_repo_api_client.read(repository.pulp_href)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
     assert repository.last_synced_metadata_time is None
     # TODO CHECK IF SYNC WAS NOT OPTIMIZED
 
 
 @pytest.mark.parallel
 def test_semver_sync(
-    ansible_repo_api_client,
-    ansible_collection_version_api_client,
+    ansible_bindings,
     ansible_repo_factory,
     ansible_collection_remote_factory,
 ):
@@ -310,9 +310,9 @@ def test_semver_sync(
         signed_only=False,
     )
     repository = ansible_repo_factory(remote=remote.pulp_href)
-    monitor_task(ansible_repo_api_client.sync(repository.pulp_href, {}).task)
-    repository = ansible_repo_api_client.read(repository.pulp_href)
-    content = ansible_collection_version_api_client.list(
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.sync(repository.pulp_href, {}).task)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
+    content = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=repository.latest_version_href
     )
     versions = {item.version for item in content.results}
@@ -324,8 +324,7 @@ def test_semver_sync(
 
 @pytest.mark.parallel
 def test_last_synced_metadata_time(
-    ansible_repo_api_client,
-    ansible_remote_collection_api_client,
+    ansible_bindings,
     ansible_repo_factory,
     ansible_collection_remote_factory,
 ):
@@ -337,18 +336,18 @@ def test_last_synced_metadata_time(
     )
     repository = ansible_repo_factory(remote=remote1.pulp_href)
     monitor_task(
-        ansible_repo_api_client.partial_update(
+        ansible_bindings.RepositoriesAnsibleApi.partial_update(
             repository.pulp_href, {"last_synced_metadata_time": "2000-01-01 00:00"}
         ).task
     )
-    repository = ansible_repo_api_client.read(repository.pulp_href)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
     assert repository.last_synced_metadata_time == datetime.datetime(
         2000, 1, 1, 0, 0, tzinfo=datetime.timezone.utc
     )
     monitor_task(
-        ansible_remote_collection_api_client.partial_update(
+        ansible_bindings.RemotesCollectionApi.partial_update(
             remote1.pulp_href, {"signed_only": True}
         ).task
     )
-    repository = ansible_repo_api_client.read(repository.pulp_href)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
     assert repository.last_synced_metadata_time is None

@@ -5,22 +5,22 @@ from pulpcore.client.pulp_ansible import ApiException
 
 
 @pytest.mark.parallel
-def test_crud_git_remote(ansible_remote_git_api_client, ansible_git_remote_factory, monitor_task):
+def test_crud_git_remote(ansible_bindings, ansible_git_remote_factory, monitor_task):
     """Create, Read, Partial Update, and Delete an Ansible Git remote."""
     # Create Git remote
     body = {"url": "https://github.com/geerlingguy/ansible-role-adminer.git"}
     remote = ansible_git_remote_factory(**body)
 
     # Read Git remote
-    remote = ansible_remote_git_api_client.read(remote.pulp_href)
+    remote = ansible_bindings.RemotesGitApi.read(remote.pulp_href)
     for k, v in body.items():
         assert body[k] == getattr(remote, k)
 
     # Update Git remote
     update_body = {"url": "https://github.com/geerlingguy/ansible-role-ansible.git"}
-    remote_update = ansible_remote_git_api_client.partial_update(remote.pulp_href, update_body)
+    remote_update = ansible_bindings.RemotesGitApi.partial_update(remote.pulp_href, update_body)
     monitor_task(remote_update.task)
-    remote = ansible_remote_git_api_client.read(remote.pulp_href)
+    remote = ansible_bindings.RemotesGitApi.read(remote.pulp_href)
     assert remote.url == update_body["url"]
     assert remote.metadata_only is False
 
@@ -28,10 +28,10 @@ def test_crud_git_remote(ansible_remote_git_api_client, ansible_git_remote_facto
     assert not hasattr(remote, "policy")
 
     # Delete Git remote
-    remote_delete = ansible_remote_git_api_client.delete(remote.pulp_href)
+    remote_delete = ansible_bindings.RemotesGitApi.delete(remote.pulp_href)
     monitor_task(remote_delete.task)
     with pytest.raises(ApiException):
-        ansible_remote_git_api_client.read(remote.pulp_href)
+        ansible_bindings.RemotesGitApi.read(remote.pulp_href)
 
 
 @pytest.mark.parallel

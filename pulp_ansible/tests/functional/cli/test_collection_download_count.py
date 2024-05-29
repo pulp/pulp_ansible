@@ -14,7 +14,7 @@ from pulp_ansible.tests.functional.constants import (
 @pytest.fixture
 def install_scenario_distribution(
     delete_orphans_pre,
-    ansible_repo_api_client,
+    ansible_bindings,
     ansible_repo_factory,
     ansible_collection_remote_factory,
     ansible_distribution_factory,
@@ -29,7 +29,9 @@ def install_scenario_distribution(
 
     # Sync
     repository_sync_data = AnsibleRepositorySyncURL()
-    sync_response = ansible_repo_api_client.sync(repo.pulp_href, repository_sync_data)
+    sync_response = ansible_bindings.RepositoriesAnsibleApi.sync(
+        repo.pulp_href, repository_sync_data
+    )
     monitor_task(sync_response.task)
 
     # Distribute
@@ -47,8 +49,8 @@ def get_current_download_count(api_client, path, namespace, name):
 
 
 def test_collection_download_count(
+    ansible_bindings,
     ansible_dir_factory,
-    galaxy_v3_collections_api_client,
     install_scenario_distribution,
     pulp_settings,
 ):
@@ -59,7 +61,7 @@ def test_collection_download_count(
     collection_namespace = ANSIBLE_DEMO_COLLECTION.split(".")[0]
     collection_name = ANSIBLE_DEMO_COLLECTION.split(".")[1]
     download_count = get_current_download_count(
-        api_client=galaxy_v3_collections_api_client,
+        api_client=ansible_bindings.PulpAnsibleApiV3CollectionsApi,
         path=install_scenario_distribution.base_path,
         namespace=collection_namespace,
         name=collection_name,
@@ -84,7 +86,7 @@ def test_collection_download_count(
     assert directory.exists(), "Could not find directory {}".format(directory)
 
     assert (download_count + 1) == get_current_download_count(
-        api_client=galaxy_v3_collections_api_client,
+        api_client=ansible_bindings.PulpAnsibleApiV3CollectionsApi,
         path=install_scenario_distribution.base_path,
         namespace=collection_namespace,
         name=collection_name,
@@ -105,7 +107,7 @@ def test_collection_download_count(
     subprocess.run(cmd, cwd=temp_dir)
 
     assert (download_count + 2) == get_current_download_count(
-        api_client=galaxy_v3_collections_api_client,
+        api_client=ansible_bindings.PulpAnsibleApiV3CollectionsApi,
         path=install_scenario_distribution.base_path,
         namespace=collection_namespace,
         name=collection_name,

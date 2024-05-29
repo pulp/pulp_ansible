@@ -4,15 +4,11 @@ from pulp_ansible.tests.functional.utils import iterate_all
 
 @pytest.fixture
 def repo_with_kitted_out_collection(
+    pulpcore_bindings,
+    ansible_bindings,
     build_and_upload_collection,
     ascii_armored_detached_signing_service,
     ansible_repo,
-    ansible_repo_api_client,
-    galaxy_v3_plugin_namespaces_api_client,
-    galaxy_v3_content_collection_index_api,
-    content_api_client,
-    ansible_collection_signatures_client,
-    ansible_collection_mark_client,
     ansible_distribution_factory,
     monitor_task,
 ):
@@ -31,21 +27,21 @@ def repo_with_kitted_out_collection(
 
     # add collection to repo
     body = {"add_content_units": [collection_url, collection_url2, non_copied_collection]}
-    monitor_task(ansible_repo_api_client.modify(ansible_repo.pulp_href, body).task)
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.modify(ansible_repo.pulp_href, body).task)
 
     # sign the collection
     body = {
         "content_units": [collection_url, collection_url2, non_copied_collection],
         "signing_service": ascii_armored_detached_signing_service.pulp_href,
     }
-    monitor_task(ansible_repo_api_client.sign(ansible_repo.pulp_href, body).task)
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.sign(ansible_repo.pulp_href, body).task)
 
     # Mark the collection
     body = {
         "content_units": [collection_url, collection_url2, non_copied_collection],
         "value": "testable",
     }
-    monitor_task(ansible_repo_api_client.mark(ansible_repo.pulp_href, body).task)
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.mark(ansible_repo.pulp_href, body).task)
 
     # Not gonna bother adding these to the first collection
     # Create a distro for the repo
@@ -53,13 +49,13 @@ def repo_with_kitted_out_collection(
 
     # Add a namespace for the collection
     kwargs = {"path": distro.base_path, "distro_base_path": distro.base_path}
-    task = galaxy_v3_plugin_namespaces_api_client.create(
+    task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
         name=collection.namespace, description="hello", company="Testing Co.", **kwargs
     )
     monitor_task(task.task)
 
     # Deprecate the collection
-    task = galaxy_v3_content_collection_index_api.update(
+    task = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi.update(
         name=collection.name,
         namespace=collection.namespace,
         distro_base_path=distro.base_path,
@@ -67,7 +63,7 @@ def repo_with_kitted_out_collection(
     )
     monitor_task(task.task)
 
-    repo = ansible_repo_api_client.read(ansible_repo.pulp_href)
+    repo = ansible_bindings.RepositoriesAnsibleApi.read(ansible_repo.pulp_href)
 
     expected_content = {
         "collection_versions",
@@ -86,7 +82,8 @@ def repo_with_kitted_out_collection(
         {
             x.pulp_href
             for x in iterate_all(
-                ansible_collection_signatures_client.list, signed_collection=non_copied_collection
+                ansible_bindings.ContentCollectionSignaturesApi.list,
+                signed_collection=non_copied_collection,
             )
         }
     )
@@ -95,7 +92,8 @@ def repo_with_kitted_out_collection(
         {
             x.pulp_href
             for x in iterate_all(
-                ansible_collection_mark_client.list, marked_collection=non_copied_collection
+                ansible_bindings.ContentCollectionMarksApi.list,
+                marked_collection=non_copied_collection,
             )
         }
     )
@@ -103,7 +101,7 @@ def repo_with_kitted_out_collection(
     assert len(excluded_content) >= 3
 
     for content in iterate_all(
-        content_api_client.list, repository_version=repo.latest_version_href
+        pulpcore_bindings.ContentApi.list, repository_version=repo.latest_version_href
     ):
         created_content.add(content.pulp_href.strip("/").split("/")[-2])
         all_content.add(content.pulp_href)
@@ -117,25 +115,25 @@ def repo_with_kitted_out_collection(
 
 @pytest.fixture
 def repo_with_one_out_collection(
-    build_and_upload_collection, ansible_repo, ansible_repo_api_client, monitor_task
+    ansible_bindings, build_and_upload_collection, ansible_repo, monitor_task
 ):
     """Create a distro serving two collections, one signed, one unsigned."""
     collection, collection_url = build_and_upload_collection()
 
     # add collection to repo
     body = {"add_content_units": [collection_url]}
-    monitor_task(ansible_repo_api_client.modify(ansible_repo.pulp_href, body).task)
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.modify(ansible_repo.pulp_href, body).task)
 
-    repo = ansible_repo_api_client.read(ansible_repo.pulp_href)
+    repo = ansible_bindings.RepositoriesAnsibleApi.read(ansible_repo.pulp_href)
 
     return repo, collection_url
 
 
 def test_copy_with_all_content(
+    pulpcore_bindings,
+    ansible_bindings,
     repo_with_kitted_out_collection,
     ansible_repo_factory,
-    ansible_repo_api_client,
-    content_api_client,
     monitor_task,
 ):
     """
@@ -149,7 +147,7 @@ def test_copy_with_all_content(
 
     dest = (dest1, dest2, dest3)
 
-    task = ansible_repo_api_client.copy_collection_version(
+    task = ansible_bindings.RepositoriesAnsibleApi.copy_collection_version(
         src_repo.pulp_href,
         {
             "collection_versions": collections,
@@ -160,24 +158,27 @@ def test_copy_with_all_content(
     monitor_task(task.task)
 
     for repo in dest:
-        href = ansible_repo_api_client.read(repo.pulp_href).latest_version_href
+        href = ansible_bindings.RepositoriesAnsibleApi.read(repo.pulp_href).latest_version_href
         dest_content = {
-            x.pulp_href for x in iterate_all(content_api_client.list, repository_version=href)
+            x.pulp_href
+            for x in iterate_all(pulpcore_bindings.ContentApi.list, repository_version=href)
         }
 
         assert dest_content == all_content
 
-    href = ansible_repo_api_client.read(src_repo.pulp_href).latest_version_href
-    remaining = {c.pulp_href for c in iterate_all(content_api_client.list, repository_version=href)}
+    href = ansible_bindings.RepositoriesAnsibleApi.read(src_repo.pulp_href).latest_version_href
+    remaining = {
+        c.pulp_href for c in iterate_all(pulpcore_bindings.ContentApi.list, repository_version=href)
+    }
 
     assert remaining == excluded.union(all_content)
 
 
 def test_move_with_all_content(
+    pulpcore_bindings,
+    ansible_bindings,
     repo_with_kitted_out_collection,
     ansible_repo_factory,
-    ansible_repo_api_client,
-    content_api_client,
     monitor_task,
 ):
     """
@@ -191,7 +192,7 @@ def test_move_with_all_content(
 
     dest = (dest1, dest2, dest3)
 
-    task = ansible_repo_api_client.move_collection_version(
+    task = ansible_bindings.RepositoriesAnsibleApi.move_collection_version(
         src_repo.pulp_href,
         {
             "collection_versions": collections,
@@ -202,27 +203,28 @@ def test_move_with_all_content(
     monitor_task(task.task)
 
     for repo in dest:
-        href = ansible_repo_api_client.read(repo.pulp_href).latest_version_href
+        href = ansible_bindings.RepositoriesAnsibleApi.read(repo.pulp_href).latest_version_href
         dest_content = {
-            x.pulp_href for x in iterate_all(content_api_client.list, repository_version=href)
+            x.pulp_href
+            for x in iterate_all(pulpcore_bindings.ContentApi.list, repository_version=href)
         }
 
         assert dest_content == all_content
 
-    href = ansible_repo_api_client.read(src_repo.pulp_href).latest_version_href
-    remaining = {c.pulp_href for c in iterate_all(content_api_client.list, repository_version=href)}
+    href = ansible_bindings.RepositoriesAnsibleApi.read(src_repo.pulp_href).latest_version_href
+    remaining = {
+        c.pulp_href for c in iterate_all(pulpcore_bindings.ContentApi.list, repository_version=href)
+    }
 
     assert remaining == excluded
 
 
 def test_copy_and_sign(
+    pulpcore_bindings,
+    ansible_bindings,
     ascii_armored_detached_signing_service,
     ansible_repo_factory,
-    ansible_repo_api_client,
-    content_api_client,
     repo_with_one_out_collection,
-    ansible_collection_signatures_client,
-    ansible_collection_version_api_client,
     monitor_task,
 ):
     """Verify that you can copy and sign a collection."""
@@ -234,7 +236,7 @@ def test_copy_and_sign(
 
     dest = (dest1, dest2, dest3)
 
-    task = ansible_repo_api_client.copy_collection_version(
+    task = ansible_bindings.RepositoriesAnsibleApi.copy_collection_version(
         src_repo.pulp_href,
         {
             "collection_versions": [collection_url],
@@ -246,26 +248,24 @@ def test_copy_and_sign(
     monitor_task(task.task)
 
     for repo in dest:
-        href = ansible_repo_api_client.read(repo.pulp_href).latest_version_href
-        assert content_api_client.list(repository_version=href).count == 2
+        href = ansible_bindings.RepositoriesAnsibleApi.read(repo.pulp_href).latest_version_href
+        assert pulpcore_bindings.ContentApi.list(repository_version=href).count == 2
 
-        collections = ansible_collection_version_api_client.list(repository_version=href)
+        collections = ansible_bindings.ContentCollectionVersionsApi.list(repository_version=href)
         assert collections.count == 1
 
-        signatures = ansible_collection_signatures_client.list(repository_version=href)
+        signatures = ansible_bindings.ContentCollectionSignaturesApi.list(repository_version=href)
         assert signatures.count == 1
 
         assert signatures.results[0].signed_collection == collections.results[0].pulp_href
 
 
 def test_move_and_sign(
+    pulpcore_bindings,
+    ansible_bindings,
     ascii_armored_detached_signing_service,
     ansible_repo_factory,
-    ansible_repo_api_client,
-    content_api_client,
     repo_with_one_out_collection,
-    ansible_collection_signatures_client,
-    ansible_collection_version_api_client,
     monitor_task,
 ):
     """Verify that you can move and sign a collection."""
@@ -277,7 +277,7 @@ def test_move_and_sign(
 
     dest = (dest1, dest2, dest3)
 
-    task = ansible_repo_api_client.move_collection_version(
+    task = ansible_bindings.RepositoriesAnsibleApi.move_collection_version(
         src_repo.pulp_href,
         {
             "collection_versions": [collection_url],
@@ -289,16 +289,16 @@ def test_move_and_sign(
     monitor_task(task.task)
 
     for repo in dest:
-        href = ansible_repo_api_client.read(repo.pulp_href).latest_version_href
-        assert content_api_client.list(repository_version=href).count == 2
+        href = ansible_bindings.RepositoriesAnsibleApi.read(repo.pulp_href).latest_version_href
+        assert pulpcore_bindings.ContentApi.list(repository_version=href).count == 2
 
-        collections = ansible_collection_version_api_client.list(repository_version=href)
+        collections = ansible_bindings.ContentCollectionVersionsApi.list(repository_version=href)
         assert collections.count == 1
 
-        signatures = ansible_collection_signatures_client.list(repository_version=href)
+        signatures = ansible_bindings.ContentCollectionSignaturesApi.list(repository_version=href)
         assert signatures.count == 1
 
         assert signatures.results[0].signed_collection == collections.results[0].pulp_href
 
-    href = ansible_repo_api_client.read(src_repo.pulp_href).latest_version_href
-    assert content_api_client.list(repository_version=href).count == 0
+    href = ansible_bindings.RepositoriesAnsibleApi.read(src_repo.pulp_href).latest_version_href
+    assert pulpcore_bindings.ContentApi.list(repository_version=href).count == 0

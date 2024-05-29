@@ -12,7 +12,7 @@ from pulp_ansible.tests.functional.constants import (
 
 @pytest.mark.parallel
 def test_tags_filter(
-    ansible_collection_version_api_client,
+    ansible_bindings,
     ansible_collection_remote_factory,
     ansible_sync_factory,
 ):
@@ -38,37 +38,35 @@ def test_tags_filter(
 
     # filter collection versions by tags
     params = {"tags": "nada"}
-    collections = ansible_collection_version_api_client.list(**params).results
+    collections = ansible_bindings.ContentCollectionVersionsApi.list(**params).results
     assert len(collections) == 0, collections
 
     params = {"tags": "k8s"}
-    collections = ansible_collection_version_api_client.list(**params).results
+    collections = ansible_bindings.ContentCollectionVersionsApi.list(**params).results
     assert len(collections) == 1, collections
 
     params = {"tags": "k8s,kubernetes"}
-    collections = ansible_collection_version_api_client.list(**params).results
+    collections = ansible_bindings.ContentCollectionVersionsApi.list(**params).results
     assert len(collections) == 1, collections
 
     params = {"tags": "nada,k8s"}
-    collections = ansible_collection_version_api_client.list(**params).results
+    collections = ansible_bindings.ContentCollectionVersionsApi.list(**params).results
     assert len(collections) == 0, collections
 
 
 @pytest.mark.parallel
-def test_content_unit_lifecycle(
-    ansible_collection_version_api_client, build_and_upload_collection, monitor_task
-):
+def test_content_unit_lifecycle(ansible_bindings, build_and_upload_collection, monitor_task):
     """Create content unit."""
     attrs = {"namespace": randstr(), "name": "squeezer", "version": "0.0.9"}
     collection_artifact, content_unit_href = build_and_upload_collection(config=attrs)
 
     # Read a content unit by its href.
-    content_unit = ansible_collection_version_api_client.read(content_unit_href)
+    content_unit = ansible_bindings.ContentCollectionVersionsApi.read(content_unit_href)
     for key, val in attrs.items():
         assert content_unit.to_dict()[key] == val
 
     # Read a content unit by its pkg_id.
-    page = ansible_collection_version_api_client.list(
+    page = ansible_bindings.ContentCollectionVersionsApi.list(
         namespace=content_unit.namespace, name=content_unit.name
     )
     assert page.count == 1
@@ -77,26 +75,28 @@ def test_content_unit_lifecycle(
     # Attempt to update a content unit using HTTP PATCH.
     # This HTTP method is not supported and a HTTP exception is expected.
     with pytest.raises(AttributeError) as exc_info:
-        ansible_collection_version_api_client.partial_update(content_unit_href, name="testing")
+        ansible_bindings.ContentCollectionVersionsApi.partial_update(
+            content_unit_href, name="testing"
+        )
     msg = "object has no attribute 'partial_update'"
     assert msg in exc_info.value.args[0]
 
     # Attempt to update a content unit using HTTP PUT.
     # This HTTP method is not supported and a HTTP exception is expected.
     with pytest.raises(AttributeError) as exc_info:
-        ansible_collection_version_api_client.update(content_unit_href, {"name": "testing"})
+        ansible_bindings.ContentCollectionVersionsApi.update(content_unit_href, {"name": "testing"})
     msg = "object has no attribute 'update'"
     assert msg in exc_info.value.args[0]
 
     # Attempt to delete a content unit using HTTP DELETE.
     # This HTTP method is not supported and a HTTP exception is expected.
     with pytest.raises(AttributeError) as exc_info:
-        ansible_collection_version_api_client.delete(content_unit_href)
+        ansible_bindings.ContentCollectionVersionsApi.delete(content_unit_href)
     msg = "object has no attribute 'delete'"
     assert msg in exc_info.value.args[0]
 
     # Attempt to create duplicate collection.
     create_task = monitor_task(
-        ansible_collection_version_api_client.create(file=collection_artifact.filename).task
+        ansible_bindings.ContentCollectionVersionsApi.create(file=collection_artifact.filename).task
     )
     assert content_unit_href in create_task.created_resources

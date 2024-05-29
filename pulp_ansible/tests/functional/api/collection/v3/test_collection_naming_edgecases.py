@@ -99,11 +99,10 @@ def busted_collection_build(basedir=None, namespace=None, name=None, version=Non
 
 @pytest.mark.parallel
 def test_collection_named_collections(
+    ansible_bindings,
     tmp_path,
     ansible_repo,
     ansible_distribution_factory,
-    ansible_collection_version_api_client,
-    galaxy_v3_content_collection_index_api,
     monitor_task,
 ):
     """A CV with a name of 'collections' could break url parsing."""
@@ -125,17 +124,19 @@ def test_collection_named_collections(
 
     body = {"file": artifact_fn}
     body["repository"] = ansible_repo.pulp_href
-    response = ansible_collection_version_api_client.create(**body)
+    response = ansible_bindings.ContentCollectionVersionsApi.create(**body)
     monitor_task(response.task)
 
     # validate the collection shows up ...
-    resp = galaxy_v3_content_collection_index_api.list(pulp_dist.base_path)
+    resp = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi.list(
+        pulp_dist.base_path
+    )
     assert resp.meta.count == 1
     assert resp.data[0].namespace == spec["namespace"]
     assert resp.data[0].name == spec["name"]
 
     # validate we can get the direct path to the collection ...
-    resp = galaxy_v3_content_collection_index_api.read(
+    resp = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi.read(
         pulp_dist.base_path, namespace=spec["namespace"], name=spec["name"]
     )
     assert resp.namespace == spec["namespace"]
@@ -144,10 +145,10 @@ def test_collection_named_collections(
 
 @pytest.mark.parallel
 def test_collection_named_with_slashes(
+    ansible_bindings,
     tmp_path,
     ansible_repo,
     ansible_distribution_factory,
-    ansible_collection_version_api_client,
 ):
     """A CV with a slash in the name could break url parsing."""
     # https://issues.redhat.com/browse/AAH-2158
@@ -171,4 +172,4 @@ def test_collection_named_with_slashes(
     body["repository"] = ansible_repo.pulp_href
 
     with pytest.raises(ApiException):
-        ansible_collection_version_api_client.create(**body)
+        ansible_bindings.ContentCollectionVersionsApi.create(**body)

@@ -38,7 +38,7 @@ def seeded_distribution(
 
 
 @pytest.fixture(scope="class")
-def verify_list(ansible_bindings_client, seeded_distribution):
+def verify_list(ansible_bindings, seeded_distribution):
     def _verify_list(new_api, old_api, query_params, args=[]):
         def is_list_identical(r1, r2):
             d1 = r1.to_dict()
@@ -48,8 +48,8 @@ def verify_list(ansible_bindings_client, seeded_distribution):
             assert d1["meta"] == d2["meta"]
             assert d1["data"] == d2["data"]
 
-        c1 = new_api(ansible_bindings_client)
-        c2 = old_api(ansible_bindings_client)
+        c1 = new_api(ansible_bindings.client)
+        c2 = old_api(ansible_bindings.client)
 
         args_new = [seeded_distribution.base_path, *args]
 
@@ -78,10 +78,10 @@ def verify_list(ansible_bindings_client, seeded_distribution):
 
 
 @pytest.fixture(scope="class")
-def verify_all_collections(ansible_bindings_client, seeded_distribution):
+def verify_all_collections(ansible_bindings, seeded_distribution):
     def _verify_all_collections(new_api, old_api):
-        c1 = new_api(ansible_bindings_client)
-        c2 = old_api(ansible_bindings_client)
+        c1 = new_api(ansible_bindings.client)
+        c2 = old_api(ansible_bindings.client)
         r1 = c1.list(seeded_distribution.base_path, seeded_distribution.base_path)
         r2 = c2.list(seeded_distribution.base_path)
 
@@ -91,10 +91,10 @@ def verify_all_collections(ansible_bindings_client, seeded_distribution):
 
 
 @pytest.fixture(scope="class")
-def verify_read(ansible_bindings_client, seeded_distribution):
+def verify_read(ansible_bindings, seeded_distribution):
     def _verify_read(new_api, old_api, version=None):
-        c1 = new_api(ansible_bindings_client)
-        c2 = old_api(ansible_bindings_client)
+        c1 = new_api(ansible_bindings.client)
+        c2 = old_api(ansible_bindings.client)
 
         args = ["k8s_demo_collection", "testing", seeded_distribution.base_path]
         if version:

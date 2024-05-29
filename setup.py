@@ -32,6 +32,6 @@ setup(
     ),
     entry_points={
         "pulpcore.plugin": ["pulp_ansible = pulp_ansible:default_app_config"],
-        "pytest11": ["pulp_ansible = pulp_ansible.tests.functional"],
+        "pytest11": ["pulp_ansible = pulp_ansible.pytest_plugin"],
     },
 )

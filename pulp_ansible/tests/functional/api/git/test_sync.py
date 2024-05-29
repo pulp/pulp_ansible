@@ -6,10 +6,10 @@ import subprocess
 
 @pytest.fixture
 def sync_and_count(
+    ansible_bindings,
     ansible_repo_factory,
     ansible_git_remote_factory,
     ansible_sync_factory,
-    ansible_collection_version_api_client,
 ):
     """A helper fixture to perform a sync and return the count in the repo now."""
 
@@ -21,7 +21,9 @@ def sync_and_count(
         sync_kwargs.update({"remote": remote.pulp_href})
         repo = ansible_sync_factory(repo, **sync_kwargs)
         assert repo.latest_version_href != previous_latest
-        c = ansible_collection_version_api_client.list(repository_version=repo.latest_version_href)
+        c = ansible_bindings.ContentCollectionVersionsApi.list(
+            repository_version=repo.latest_version_href
+        )
         return c.count
 
     return _sync_and_count
@@ -85,10 +87,10 @@ def test_sync_collection_from_git(
 
 @pytest.mark.parallel
 def test_sync_metadata_only_collection_from_git(
+    ansible_bindings,
     ansible_repo,
     sync_and_count,
     ansible_distribution_factory,
-    galaxy_v3_collection_versions_api_client,
 ):
     """Sync collections from Git repositories with metadata_only=True."""
     body = {
@@ -102,7 +104,9 @@ def test_sync_metadata_only_collection_from_git(
     # Create a distribution.
     distribution = ansible_distribution_factory(ansible_repo)
 
-    galaxy_v3_collection_versions_api_client.read("aws", "amazon", distribution.base_path, "2.1.0")
+    ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.read(
+        "aws", "amazon", distribution.base_path, "2.1.0"
+    )
 
     # These assertions are failing way too often.
     # assert version.git_url == "https://github.com/ansible-collections/amazon.aws/"
@@ -112,10 +116,10 @@ def test_sync_metadata_only_collection_from_git(
 
 @pytest.mark.parallel
 def test_sync_collection_from_git_commit_sha(
+    ansible_bindings,
     ansible_repo,
     sync_and_count,
     ansible_distribution_factory,
-    galaxy_v3_collection_versions_api_client,
 ):
     """Sync collections from Git repositories with git_ref that is a commit sha."""
     body = {
@@ -130,7 +134,9 @@ def test_sync_collection_from_git_commit_sha(
     # Create a distribution.
     distribution = ansible_distribution_factory(ansible_repo)
 
-    galaxy_v3_collection_versions_api_client.read("aws", "amazon", distribution.base_path, "1.5.1")
+    ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.read(
+        "aws", "amazon", distribution.base_path, "1.5.1"
+    )
 
     # These assertions are failing way too often.
     # assert version.git_url == "https://github.com/ansible-collections/amazon.aws/"
@@ -140,10 +146,10 @@ def test_sync_collection_from_git_commit_sha(
 
 @pytest.mark.parallel
 def test_sync_metadata_only_collection_from_pulp(
+    ansible_bindings,
     ansible_sync_factory,
     ansible_repo_factory,
     ansible_distribution_factory,
-    ansible_collection_version_api_client,
     ansible_git_remote_factory,
     ansible_collection_remote_factory,
 ):
@@ -169,7 +175,7 @@ def test_sync_metadata_only_collection_from_pulp(
     first_repo = ansible_repo_factory()
     first_repo = ansible_sync_factory(first_repo, remote=amazon_remote.pulp_href)
 
-    content = ansible_collection_version_api_client.list(
+    content = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=first_repo.latest_version_href
     )
     assert content.count == 1
@@ -188,11 +194,11 @@ def test_sync_metadata_only_collection_from_pulp(
     second_repo = ansible_repo_factory(remote=second_remote.pulp_href)
     second_repo = ansible_sync_factory(second_repo)
 
-    first_content = ansible_collection_version_api_client.list(
+    first_content = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{first_repo.pulp_href}versions/1/"
     )
     assert first_content.count >= 1
-    second_content = ansible_collection_version_api_client.list(
+    second_content = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{second_repo.pulp_href}versions/1/"
     )
     assert second_content.count >= 1

@@ -30,7 +30,7 @@ def _get_download_url(client, distribution, namespace, name):
 def test_download(
     skip_on_galaxy,
     bindings_cfg,
-    ansible_bindings_client,
+    ansible_bindings,
     ansible_repo_factory,
     ansible_distribution_factory,
     build_and_upload_collection,
@@ -43,7 +43,7 @@ def test_download(
 
     # Fetch content
     download_url = _get_download_url(
-        ansible_bindings_client, distribution, collection.namespace, collection.name
+        ansible_bindings.client, distribution, collection.namespace, collection.name
     )
     pulp_auth = (bindings_cfg.username, bindings_cfg.password)
     response = requests.get(download_url, auth=pulp_auth, allow_redirects=False)
@@ -60,9 +60,9 @@ def test_download(
 
 
 def test_download_with_content_guard(
+    pulpcore_bindings,
+    ansible_bindings,
     bindings_cfg,
-    ansible_bindings_client,
-    redirect_contentguard_api_client,
     gen_object_with_cleanup,
     ansible_repo_factory,
     ansible_distribution_factory,
@@ -71,7 +71,7 @@ def test_download_with_content_guard(
     """Test that downloads with content guards work correctly."""
     # Setup content guarded distribution
     guard = gen_object_with_cleanup(
-        redirect_contentguard_api_client, {"name": "test-content-guard"}
+        pulpcore_bindings.ContentguardsContentRedirectApi, {"name": "test-content-guard"}
     )
     repository = ansible_repo_factory()
     collection, collection_href = build_and_upload_collection(repository)
@@ -81,7 +81,7 @@ def test_download_with_content_guard(
 
     # Fetch content
     download_url = _get_download_url(
-        ansible_bindings_client, distribution, collection.namespace, collection.name
+        ansible_bindings.client, distribution, collection.namespace, collection.name
     )
     pulp_auth = (bindings_cfg.username, bindings_cfg.password)
     response = requests.get(download_url, auth=pulp_auth, allow_redirects=False)

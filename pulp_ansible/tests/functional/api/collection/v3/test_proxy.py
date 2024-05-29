@@ -7,16 +7,15 @@ from pulpcore.client.pulp_ansible import (
 
 
 def _sync_and_assert(
+    ansible_bindings,
     remote,
     ansible_repo,
-    ansible_repo_api_client,
-    ansible_collection_version_api_client,
     monitor_task,
 ):
     body = AnsibleRepositorySyncURL(remote=remote.pulp_href)
-    monitor_task(ansible_repo_api_client.sync(ansible_repo.pulp_href, body).task)
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.sync(ansible_repo.pulp_href, body).task)
 
-    content_response = ansible_collection_version_api_client.list(
+    content_response = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{ansible_repo.versions_href}1/"
     )
     assert content_response.count == 1
@@ -24,10 +23,9 @@ def _sync_and_assert(
 
 @pytest.mark.parallel
 def test_sync_through_http_proxy(
+    ansible_bindings,
     ansible_repo,
     ansible_collection_remote_factory,
-    ansible_repo_api_client,
-    ansible_collection_version_api_client,
     http_proxy,
     monitor_task,
 ):
@@ -42,20 +40,18 @@ def test_sync_through_http_proxy(
     )
 
     _sync_and_assert(
+        ansible_bindings,
         ansible_remote,
         ansible_repo,
-        ansible_repo_api_client,
-        ansible_collection_version_api_client,
         monitor_task,
     )
 
 
 @pytest.mark.parallel
 def test_sync_through_http_proxy_with_auth(
+    ansible_bindings,
     ansible_repo,
     ansible_collection_remote_factory,
-    ansible_repo_api_client,
-    ansible_collection_version_api_client,
     http_proxy_with_auth,
     monitor_task,
 ):
@@ -72,20 +68,18 @@ def test_sync_through_http_proxy_with_auth(
     )
 
     _sync_and_assert(
+        ansible_bindings,
         ansible_remote,
         ansible_repo,
-        ansible_repo_api_client,
-        ansible_collection_version_api_client,
         monitor_task,
     )
 
 
 @pytest.mark.parallel
 def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
+    ansible_bindings,
     ansible_repo,
     ansible_collection_remote_factory,
-    ansible_repo_api_client,
-    ansible_collection_version_api_client,
     http_proxy_with_auth,
     monitor_task,
 ):
@@ -101,10 +95,9 @@ def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
 
     try:
         _sync_and_assert(
+            ansible_bindings,
             ansible_remote,
             ansible_repo,
-            ansible_repo_api_client,
-            ansible_collection_version_api_client,
             monitor_task,
         )
     except PulpTaskError as exc:

@@ -7,15 +7,14 @@ from pulp_ansible.tests.functional.utils import content_counts
 
 
 def test_collection_deletion(
+    ansible_bindings,
     ansible_distribution_factory,
-    ansible_repo_factory,
-    galaxy_v3_collections_api_client,
-    galaxy_v3_collection_versions_api_client,
+    ansible_repository_factory,
     build_and_upload_collection,
     monitor_task,
 ):
     """Test deleting an entire collection."""
-    repository = ansible_repo_factory()
+    repository = ansible_repository_factory()
     distribution = ansible_distribution_factory(repository=repository)
 
     collection_name = randstr()
@@ -26,11 +25,11 @@ def test_collection_deletion(
             config={"name": collection_name, "namespace": collection_namespace, "version": version},
         )
 
-    collections = galaxy_v3_collections_api_client.list(distribution.base_path)
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(distribution.base_path)
     assert collections.meta.count == 1
 
     task = monitor_task(
-        galaxy_v3_collections_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -38,10 +37,10 @@ def test_collection_deletion(
     )
     assert len(task.created_resources) == 1
 
-    collections = galaxy_v3_collections_api_client.list(distribution.base_path)
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(distribution.base_path)
     assert collections.meta.count == 0
 
-    versions = galaxy_v3_collection_versions_api_client.list(
+    versions = ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.list(
         path=distribution.base_path,
         name=collection_name,
         namespace=collection_namespace,
@@ -50,7 +49,7 @@ def test_collection_deletion(
     assert versions.meta.count == 0
 
     with pytest.raises(ApiException) as exc_info:
-        galaxy_v3_collections_api_client.read(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.read(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -60,15 +59,14 @@ def test_collection_deletion(
 
 
 def test_collection_version_deletion(
+    ansible_bindings,
     ansible_distribution_factory,
-    ansible_repo_factory,
-    galaxy_v3_collections_api_client,
-    galaxy_v3_collection_versions_api_client,
+    ansible_repository_factory,
     build_and_upload_collection,
     monitor_task,
 ):
     """Test deleting a specific collection version."""
-    repository = ansible_repo_factory()
+    repository = ansible_repository_factory()
     distribution = ansible_distribution_factory(repository=repository)
 
     collection_name = randstr()
@@ -79,10 +77,10 @@ def test_collection_version_deletion(
             config={"name": collection_name, "namespace": collection_namespace, "version": version},
         )
 
-    collections = galaxy_v3_collections_api_client.list(distribution.base_path)
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(distribution.base_path)
     assert collections.meta.count == 1
 
-    versions = galaxy_v3_collection_versions_api_client.list(
+    versions = ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.list(
         path=distribution.base_path,
         name=collection_name,
         namespace=collection_namespace,
@@ -90,7 +88,7 @@ def test_collection_version_deletion(
     assert versions.meta.count == 2
 
     monitor_task(
-        galaxy_v3_collection_versions_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -99,7 +97,7 @@ def test_collection_version_deletion(
     )
 
     with pytest.raises(ApiException) as exc_info:
-        galaxy_v3_collection_versions_api_client.read(
+        ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.read(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -108,11 +106,11 @@ def test_collection_version_deletion(
     assert exc_info.value.status == 404
 
     # Verify that the collection still exists
-    collections = galaxy_v3_collections_api_client.list(distribution.base_path)
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(distribution.base_path)
     assert collections.meta.count == 1
 
     # Verify that the other versions still exist
-    versions = galaxy_v3_collection_versions_api_client.list(
+    versions = ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.list(
         path=distribution.base_path,
         name=collection_name,
         namespace=collection_namespace,
@@ -122,7 +120,7 @@ def test_collection_version_deletion(
     # Delete the other versions
 
     monitor_task(
-        galaxy_v3_collection_versions_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -131,7 +129,7 @@ def test_collection_version_deletion(
     )
 
     # Verify all the versions have been deleted
-    versions = galaxy_v3_collection_versions_api_client.list(
+    versions = ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.list(
         path=distribution.base_path,
         name=collection_name,
         namespace=collection_namespace,
@@ -141,7 +139,7 @@ def test_collection_version_deletion(
     # With all the versions deleted, verify that the collection has also
     # been deleted
     with pytest.raises(ApiException) as exc_info:
-        galaxy_v3_collections_api_client.read(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.read(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -150,15 +148,14 @@ def test_collection_version_deletion(
 
 
 def test_invalid_deletion(
+    ansible_bindings,
     ansible_distribution_factory,
-    ansible_repo_factory,
-    galaxy_v3_collections_api_client,
-    galaxy_v3_collection_versions_api_client,
+    ansible_repository_factory,
     build_and_upload_collection,
     monitor_task,
 ):
     """Test deleting collections that are dependencies for other collections."""
-    repository = ansible_repo_factory()
+    repository = ansible_repository_factory()
     distribution = ansible_distribution_factory(repository=repository)
 
     collection_name = randstr()
@@ -178,7 +175,7 @@ def test_invalid_deletion(
 
     # Verify entire collection can't be deleted
     with pytest.raises(ApiException) as exc_info:
-        galaxy_v3_collections_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -189,7 +186,7 @@ def test_invalid_deletion(
 
     # Verify specific version that's used can't be deleted
     with pytest.raises(ApiException) as exc_info:
-        galaxy_v3_collection_versions_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -202,7 +199,7 @@ def test_invalid_deletion(
 
     # Verify non dependent version can be deleted.
     monitor_task(
-        galaxy_v3_collection_versions_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -212,17 +209,14 @@ def test_invalid_deletion(
 
 
 def test_delete_deprecated_content(
+    ansible_bindings,
     ansible_distribution_factory,
-    ansible_repo_factory,
-    ansible_repo_api_client,
-    ansible_repo_version_api_client,
-    galaxy_v3_collections_api_client,
-    galaxy_v3_collection_versions_api_client,
+    ansible_repository_factory,
     build_and_upload_collection,
     monitor_task,
 ):
     """Test that deprecated content is removed correctly."""
-    repository = ansible_repo_factory()
+    repository = ansible_repository_factory()
     distribution = ansible_distribution_factory(repository=repository)
 
     collection_name = randstr()
@@ -235,7 +229,7 @@ def test_delete_deprecated_content(
 
     # Deprecate the collection
     monitor_task(
-        galaxy_v3_collections_api_client.update(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.update(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -244,7 +238,7 @@ def test_delete_deprecated_content(
     )
 
     monitor_task(
-        galaxy_v3_collections_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -252,25 +246,24 @@ def test_delete_deprecated_content(
     )
 
     # Verify that all the content is gone
-    repository = ansible_repo_api_client.read(repository.pulp_href)
-    latest_version = ansible_repo_version_api_client.read(repository.latest_version_href)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
+    latest_version = ansible_bindings.RepositoriesAnsibleVersionsApi.read(
+        repository.latest_version_href
+    )
 
     assert content_counts(latest_version) == {}
 
 
 def test_delete_signed_content(
+    ansible_bindings,
     ansible_distribution_factory,
-    ansible_repo_factory,
-    ansible_repo_api_client,
-    ansible_repo_version_api_client,
-    galaxy_v3_collections_api_client,
-    galaxy_v3_collection_versions_api_client,
+    ansible_repository_factory,
     build_and_upload_collection,
     ascii_armored_detached_signing_service,
     monitor_task,
 ):
     """Test that signature content is removed correctly."""
-    repository = ansible_repo_factory()
+    repository = ansible_repository_factory()
     distribution = ansible_distribution_factory(repository=repository)
 
     collection_name = randstr()
@@ -288,10 +281,10 @@ def test_delete_signed_content(
         ],
         "signing_service": ascii_armored_detached_signing_service.pulp_href,
     }
-    monitor_task(ansible_repo_api_client.sign(repository.pulp_href, body).task)
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.sign(repository.pulp_href, body).task)
 
     monitor_task(
-        galaxy_v3_collections_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -299,22 +292,23 @@ def test_delete_signed_content(
     )
 
     # Verify that all the content is gone
-    repository = ansible_repo_api_client.read(repository.pulp_href)
-    latest_version = ansible_repo_version_api_client.read(repository.latest_version_href)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
+    latest_version = ansible_bindings.RepositoriesAnsibleVersionsApi.read(
+        repository.latest_version_href
+    )
 
     assert content_counts(latest_version) == {}
 
 
 def test_version_deletion_with_range_of_versions(
+    ansible_bindings,
     ansible_distribution_factory,
-    ansible_repo_factory,
-    galaxy_v3_collections_api_client,
-    galaxy_v3_collection_versions_api_client,
+    ansible_repository_factory,
     build_and_upload_collection,
     monitor_task,
 ):
     """Verify collections can be deleted when another version satisfies requirements."""
-    repository = ansible_repo_factory()
+    repository = ansible_repository_factory()
     distribution = ansible_distribution_factory(repository=repository)
 
     collection_name = randstr()
@@ -334,7 +328,7 @@ def test_version_deletion_with_range_of_versions(
     # Verify the collection version can be deleted as long as there is one version
     # left that satisfies the requirements.
     monitor_task(
-        galaxy_v3_collection_versions_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,
@@ -345,7 +339,7 @@ def test_version_deletion_with_range_of_versions(
     # Verify that the last version of the collection can't be deleted
 
     with pytest.raises(ApiException) as exc_info:
-        galaxy_v3_collection_versions_api_client.delete(
+        ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.delete(
             path=distribution.base_path,
             name=collection_name,
             namespace=collection_namespace,

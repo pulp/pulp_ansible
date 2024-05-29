@@ -255,7 +255,7 @@ def test_collection_version_list(
 
 
 def test_collection_version_filter_by_q(
-    pulp_client, pulp_dist, ansible_collection_version_api_client, monitor_task, delete_orphans_pre
+    ansible_bindings, pulp_client, pulp_dist, monitor_task, delete_orphans_pre
 ):
     """Verify successive imports do not aggregate tags into search vectors."""
 
@@ -266,7 +266,7 @@ def test_collection_version_filter_by_q(
             "expected_name": new_artifact.name,
             "expected_version": new_artifact.version,
         }
-        resp = ansible_collection_version_api_client.create(**body)
+        resp = ansible_bindings.ContentCollectionVersionsApi.create(**body)
         monitor_task(resp.task)
 
     # make&publish 2 collections with each having unique tags
@@ -285,7 +285,7 @@ def test_collection_version_filter_by_q(
         publish(this_artifact)
 
     for spec in specs:
-        resp = ansible_collection_version_api_client.list(q=spec[0])
+        resp = ansible_bindings.ContentCollectionVersionsApi.list(q=spec[0])
 
         # should only get the 1 cv as a result ...
         assert resp.count == 1

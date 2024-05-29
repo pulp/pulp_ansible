@@ -6,7 +6,7 @@ from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_CONTENT_SUMM
 
 @pytest.mark.parallel
 def test_role_sync(
-    ansible_repo_version_api_client,
+    ansible_bindings,
     ansible_repo_factory,
     ansible_role_remote_factory,
     ansible_sync_factory,
@@ -17,7 +17,7 @@ def test_role_sync(
 
     repository = ansible_sync_factory(repository, remote=remote.pulp_href)
     assert repository.latest_version_href == repository.pulp_href + "versions/1/"
-    version = ansible_repo_version_api_client.read(repository.latest_version_href)
+    version = ansible_bindings.RepositoriesAnsibleVersionsApi.read(repository.latest_version_href)
     assert {
         k: v["count"] for k, v in version.content_summary.present.items()
     } == ANSIBLE_FIXTURE_CONTENT_SUMMARY
