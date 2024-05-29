@@ -1157,7 +1157,7 @@ class AnsibleContentSaver(ContentSaver):
                     # Check to see if avatar failed to download, update metadata if so,
                     # so that the avatar should be attemtped to be downloaded again.
                     if da.deferred_download:
-                        d_content.d_artifacts = None
+                        d_content.d_artifacts = []
                         d_content.content.avatar_sha256 = None
                         d_content.content.metadata_sha256 = None
 
