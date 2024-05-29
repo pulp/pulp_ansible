@@ -42,9 +42,8 @@ def random_image_factory(tmp_path):
 
 
 def test_crud_namespaces(
+    ansible_bindings,
     ansible_repo_and_distro_factory,
-    ansible_namespaces_api_client,
-    galaxy_v3_plugin_namespaces_api_client,
     monitor_task,
 ):
     """Test Basic Creating, Reading, Updating and 'Deleting' operations on Namespaces."""
@@ -58,7 +57,7 @@ def test_crud_namespaces(
 
     # Test Basic Creation
     name = random_string()
-    task = galaxy_v3_plugin_namespaces_api_client.create(
+    task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
         name=name, description="hello", company="Testing Co.", links=links, **kwargs
     )
     result = monitor_task(task.task)
@@ -73,7 +72,7 @@ def test_crud_namespaces(
     link_comparison = {x["name"]: x["url"] for x in links}
 
     # Test Reading Namespace from Pulp API
-    namespace = ansible_namespaces_api_client.read(namespace_href)
+    namespace = ansible_bindings.ContentNamespacesApi.read(namespace_href)
     assert namespace.name == name
     assert namespace.company == "Testing Co."
     assert namespace.description == "hello"
@@ -82,7 +81,9 @@ def test_crud_namespaces(
     assert _link_to_dict(namespace.links) == link_comparison
 
     # Test Reading Namespace from Galaxy API
-    v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
+    v3_namespace = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.read(
+        name=name, **kwargs
+    )
     assert v3_namespace.pulp_href == namespace.pulp_href
     assert v3_namespace.name == name
     assert v3_namespace.company == "Testing Co."
@@ -91,11 +92,11 @@ def test_crud_namespaces(
     assert v3_namespace.avatar_url is None
     assert _link_to_dict(v3_namespace.links) == link_comparison
 
-    v3_list = galaxy_v3_plugin_namespaces_api_client.list(**kwargs)
+    v3_list = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.list(**kwargs)
     assert v3_list.count == 1
 
     # Test Update Namespace (Creates a new Namespace w/ updated metadata)
-    task = galaxy_v3_plugin_namespaces_api_client.partial_update(
+    task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.partial_update(
         name=name, description="hey!", **kwargs
     )
     result = monitor_task(task.task)
@@ -105,7 +106,9 @@ def test_crud_namespaces(
     updated_namespace_href = result.created_resources[1]
     assert updated_namespace_href != namespace_href
 
-    updated_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
+    updated_namespace = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.read(
+        name=name, **kwargs
+    )
     assert updated_namespace.pulp_href == updated_namespace_href
     assert updated_namespace.name == name
     assert updated_namespace.company == "Testing Co."
@@ -113,7 +116,7 @@ def test_crud_namespaces(
     assert updated_namespace.metadata_sha256 != v3_namespace.metadata_sha256
 
     # Test Updating Namespace back to original description brings back original object
-    task = galaxy_v3_plugin_namespaces_api_client.partial_update(
+    task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.partial_update(
         name=name, description="hello", links=links, **kwargs
     )
     result = monitor_task(task.task)
@@ -124,23 +127,26 @@ def test_crud_namespaces(
     assert updated2_namespace_href == namespace_href
 
     # Test 'Deleting' a Namespace (Namespace are removed from Galaxy API, but are still in Pulp)
-    task = galaxy_v3_plugin_namespaces_api_client.delete(name=name, **kwargs)
+    task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.delete(
+        name=name, **kwargs
+    )
     result = monitor_task(task.task)
     assert len(result.created_resources) == 1
     repo_version = result.created_resources[0]
     assert repo_version[-2] == "4"
 
-    namespaces = ansible_namespaces_api_client.list(name=name)
+    namespaces = ansible_bindings.ContentNamespacesApi.list(name=name)
     assert namespaces.count == 2
 
-    v3_namespaces = galaxy_v3_plugin_namespaces_api_client.list(**kwargs)
+    v3_namespaces = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.list(
+        **kwargs
+    )
     assert v3_namespaces.count == 0
 
 
 def test_namespace_avatar(
+    ansible_bindings,
     ansible_repo_and_distro_factory,
-    ansible_namespaces_api_client,
-    galaxy_v3_plugin_namespaces_api_client,
     random_image_factory,
     monitor_task,
 ):
@@ -153,17 +159,21 @@ def test_namespace_avatar(
     with open(avatar_path, "rb") as av:
         avatar_sha256 = hashlib.sha256(av.read()).hexdigest()
 
-    task = galaxy_v3_plugin_namespaces_api_client.create(name=name, avatar=avatar_path, **kwargs)
+    task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
+        name=name, avatar=avatar_path, **kwargs
+    )
     result = monitor_task(task.task)
 
     assert len(result.created_resources) == 2
     namespace_href = result.created_resources[1]
 
-    namespace = ansible_namespaces_api_client.read(namespace_href)
+    namespace = ansible_bindings.ContentNamespacesApi.read(namespace_href)
     assert namespace.avatar_sha256 == avatar_sha256
     assert namespace.avatar_url.endswith(f"{namespace_href}avatar/")
 
-    v3_namespace = galaxy_v3_plugin_namespaces_api_client.read(name=name, **kwargs)
+    v3_namespace = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.read(
+        name=name, **kwargs
+    )
     assert v3_namespace.pulp_href == namespace_href
     assert v3_namespace.avatar_sha256 == avatar_sha256
     assert v3_namespace.avatar_url.endswith(f"{namespace_href}avatar/")
@@ -175,8 +185,8 @@ def test_namespace_avatar(
 
 
 def test_namespace_syncing(
+    ansible_bindings,
     ansible_repo_and_distro_factory,
-    galaxy_v3_plugin_namespaces_api_client,
     build_and_upload_collection,
     random_image_factory,
     monitor_task,
@@ -195,7 +205,7 @@ def test_namespace_syncing(
         namespace = random_string()
         collection, _ = build_and_upload_collection(repo1, config={"namespace": namespace})
         avatar_path = random_image_factory()
-        task = galaxy_v3_plugin_namespaces_api_client.create(
+        task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
             name=namespace, avatar=avatar_path, **kwargs1
         )
         result = monitor_task(task.task)
@@ -216,7 +226,9 @@ def test_namespace_syncing(
 
     ansible_sync_factory(ansible_repo=repo2, remote=remote.pulp_href)
     # 2 Namespaces should have also been synced
-    synced_namespaces = galaxy_v3_plugin_namespaces_api_client.list(**kwargs2)
+    synced_namespaces = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.list(
+        **kwargs2
+    )
     assert synced_namespaces.count == 2
     for namespace in synced_namespaces.results:
         assert namespace.name in namespaces

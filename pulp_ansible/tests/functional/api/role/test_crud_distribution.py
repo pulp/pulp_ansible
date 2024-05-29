@@ -11,7 +11,7 @@ FakeRepository = namedtuple("FakeRepository", "pulp_href")
 
 @pytest.mark.parallel
 def test_crud_distribution(
-    ansible_distro_api_client,
+    ansible_bindings,
     ansible_role_remote_factory,
     ansible_sync_factory,
     ansible_distribution_factory,
@@ -31,20 +31,22 @@ def test_crud_distribution(
     assert "Invalid hyperlink - Object does not exist." in exc_info.value.body
 
     with pytest.raises(ApiException) as exc_info:
-        ansible_distro_api_client.partial_update(
+        ansible_bindings.DistributionsAnsibleApi.partial_update(
             distribution.pulp_href, {"repository": "this-is-invalid"}
         )
     assert "Invalid hyperlink - No URL match." in exc_info.value.body
 
     monitor_task(
-        ansible_distro_api_client.partial_update(distribution.pulp_href, {"repository": None}).task
+        ansible_bindings.DistributionsAnsibleApi.partial_update(
+            distribution.pulp_href, {"repository": None}
+        ).task
     )
     monitor_task(
-        ansible_distro_api_client.partial_update(
+        ansible_bindings.DistributionsAnsibleApi.partial_update(
             distribution.pulp_href, {"repository_version": repository.latest_version_href}
         ).task
     )
-    distribution = ansible_distro_api_client.read(distribution.pulp_href)
+    distribution = ansible_bindings.DistributionsAnsibleApi.read(distribution.pulp_href)
     assert distribution.repository is None
     assert distribution.repository_version == repository.latest_version_href
 
@@ -55,8 +57,10 @@ def test_crud_distribution(
             "base_path": distribution.base_path,
             "repository": repository.pulp_href,
         }
-        monitor_task(ansible_distro_api_client.update(distribution.pulp_href, body).task)
-        distribution = ansible_distro_api_client.read(distribution.pulp_href)
+        monitor_task(
+            ansible_bindings.DistributionsAnsibleApi.update(distribution.pulp_href, body).task
+        )
+        distribution = ansible_bindings.DistributionsAnsibleApi.read(distribution.pulp_href)
         assert distribution.repository == repository.pulp_href
         assert distribution.repository_version is None
 
@@ -67,15 +71,15 @@ def test_crud_distribution(
         "repository_version": repository.latest_version_href,
     }
     with pytest.raises(ApiException) as exc_info:
-        ansible_distro_api_client.update(distribution.pulp_href, body)
+        ansible_bindings.DistributionsAnsibleApi.update(distribution.pulp_href, body)
     assert (
         "Only one of the attributes 'repository' and 'repository_version' "
         "may be used simultaneously."
     ) in exc_info.value.body
 
-    monitor_task(ansible_distro_api_client.delete(distribution.pulp_href).task)
+    monitor_task(ansible_bindings.DistributionsAnsibleApi.delete(distribution.pulp_href).task)
     with pytest.raises(ApiException) as exc_info:
-        ansible_distro_api_client.delete(distribution.pulp_href)
+        ansible_bindings.DistributionsAnsibleApi.delete(distribution.pulp_href)
     assert (
         "Not found." in exc_info.value.body
         or "No AnsibleDistribution matches the given query." in exc_info.value.body

@@ -66,7 +66,7 @@ def test_install_collection(install_scenario_distribution, ansible_dir_factory, 
 
 @pytest.mark.parallel
 def test_install_signed_collection(
-    ansible_repo_api_client,
+    ansible_bindings,
     install_scenario_distribution,
     signing_gpg_homedir_path,
     ascii_armored_detached_signing_service,
@@ -82,7 +82,9 @@ def test_install_signed_collection(
         signing_service = ascii_armored_detached_signing_service
         # Switch this over to signature upload in the future
         signing_body = {"signing_service": signing_service.pulp_href, "content_units": ["*"]}
-        monitor_task(ansible_repo_api_client.sign(repository_href, signing_body).task)
+        monitor_task(
+            ansible_bindings.RepositoriesAnsibleApi.sign(repository_href, signing_body).task
+        )
 
         ansible_dir = ansible_dir_factory(install_scenario_distribution.client_url)
 

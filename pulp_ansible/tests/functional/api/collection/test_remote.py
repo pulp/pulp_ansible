@@ -15,9 +15,7 @@ def test_token_only_is_allowed(ansible_collection_remote_factory):
 
 
 @pytest.mark.parallel
-def test_update_auth_url(
-    ansible_remote_collection_api_client, ansible_collection_remote_factory, monitor_task
-):
+def test_update_auth_url(ansible_bindings, ansible_collection_remote_factory, monitor_task):
     """Assert that a `CollectionRemote` with `token` and no `auth_url` can be created."""
     remote = ansible_collection_remote_factory(
         url="https://example.com/",
@@ -26,12 +24,12 @@ def test_update_auth_url(
     )
     assert not hasattr(remote, "token")
     monitor_task(
-        ansible_remote_collection_api_client.partial_update(
+        ansible_bindings.RemotesCollectionApi.partial_update(
             remote.pulp_href, {"auth_url": None}
         ).task
     )
     monitor_task(
-        ansible_remote_collection_api_client.partial_update(
+        ansible_bindings.RemotesCollectionApi.partial_update(
             remote.pulp_href, {"auth_url": "https://example.com"}
         ).task
     )

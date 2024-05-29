@@ -8,9 +8,7 @@ import subprocess
 
 @pytest.mark.parallel
 def test_upload_collection(
-    ansible_repo_api_client,
-    galaxy_v3_collections_api_client,
-    galaxy_v3_collection_versions_api_client,
+    ansible_bindings,
     ansible_repo_factory,
     ansible_distribution_factory,
     ansible_dir_factory,
@@ -54,7 +52,7 @@ def test_upload_collection(
     )
 
     assert repository.latest_version_href.endswith("/0/")
-    collections = galaxy_v3_collections_api_client.list(distribution.base_path)
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(distribution.base_path)
     assert collections.meta.count == 0
 
     subprocess.run(
@@ -70,11 +68,11 @@ def test_upload_collection(
     )
     wait_tasks(repository.pulp_href)
 
-    repository = ansible_repo_api_client.read(repository.pulp_href)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
     assert repository.latest_version_href.endswith("/1/")
-    collections = galaxy_v3_collections_api_client.list(distribution.base_path)
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(distribution.base_path)
     assert collections.meta.count == 1  # We uploaded 1 collection
-    version = galaxy_v3_collection_versions_api_client.read(
+    version = ansible_bindings.PulpAnsibleApiV3CollectionsVersionsApi.read(
         collection_name, "pulp", distribution.base_path, "1.0.0"
     )
     assert version.requires_ansible == ">=2.9"

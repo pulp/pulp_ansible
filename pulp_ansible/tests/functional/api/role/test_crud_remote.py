@@ -7,9 +7,7 @@ from pulpcore.client.pulp_ansible import ApiException
 
 
 @pytest.mark.parallel
-def test_crud_role_remote(
-    ansible_remote_role_api_client, ansible_role_remote_factory, monitor_task
-):
+def test_crud_role_remote(ansible_bindings, ansible_role_remote_factory, monitor_task):
     # Create a remote.
     remote = ansible_role_remote_factory(
         password=str(uuid.uuid4()),
@@ -26,9 +24,9 @@ def test_crud_role_remote(
         "password": str(uuid.uuid4()),
         "policy": "immediate",
     }
-    monitor_task(ansible_remote_role_api_client.partial_update(remote.pulp_href, new_values).task)
+    monitor_task(ansible_bindings.RemotesRoleApi.partial_update(remote.pulp_href, new_values).task)
     # Test read remote
-    remote_read = ansible_remote_role_api_client.read(remote.pulp_href)
+    remote_read = ansible_bindings.RemotesRoleApi.read(remote.pulp_href)
     assert remote_read.name == remote.name
     assert remote_read.url == new_values["url"]
     assert remote_read.policy == new_values["policy"]
@@ -40,14 +38,14 @@ def test_crud_role_remote(
         "password": str(uuid.uuid4()),
         "policy": "immediate",
     }
-    monitor_task(ansible_remote_role_api_client.update(remote.pulp_href, new_values).task)
+    monitor_task(ansible_bindings.RemotesRoleApi.update(remote.pulp_href, new_values).task)
     # Test read remotes
-    remotes = ansible_remote_role_api_client.list(name=new_values["name"]).results
+    remotes = ansible_bindings.RemotesRoleApi.list(name=new_values["name"]).results
     assert remotes[0].name == new_values["name"]
     assert remotes[0].url == new_values["url"]
     assert remotes[0].policy == new_values["policy"]
     # Test delete remote
-    monitor_task(ansible_remote_role_api_client.delete(remote.pulp_href).task)
+    monitor_task(ansible_bindings.RemotesRoleApi.delete(remote.pulp_href).task)
 
 
 @pytest.mark.parallel
