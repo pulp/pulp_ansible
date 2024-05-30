@@ -13,6 +13,19 @@ Changelog
 
 .. towncrier release notes start
 
+0.21.6 (2024-05-29)
+===================
+
+Bugfixes
+--------
+
+- Fixed sync failing on undownloadable namespace avatars.
+  `#1868 <https://github.com/pulp/pulp_ansible/issues/1868>`__
+
+
+----
+
+
 0.21.5 (2024-05-15)
 ===================
 
@@ -92,6 +105,19 @@ Bugfixes
   `#1598 <https://github.com/pulp/pulp_ansible/issues/1598>`__
 - Fixed highest version calculation failing when versions of a collection were created out of order.
   `#1623 <https://github.com/pulp/pulp_ansible/issues/1623>`__
+
+
+----
+
+
+0.20.7 (2024-05-29)
+===================
+
+Bugfixes
+--------
+
+- Fixed sync failing on undownloadable namespace avatars.
+  `#1868 <https://github.com/pulp/pulp_ansible/issues/1868>`__
 
 
 ----
