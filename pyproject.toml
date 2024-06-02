@@ -7,11 +7,13 @@ build-backend = 'setuptools.build_meta'
 
 [tool.towncrier]
 package = "pulp_ansible"
-filename = "CHANGES.rst"
+filename = "CHANGES.md"
 directory = "CHANGES/"
-title_format = "{version} ({project_date})"
-template = "CHANGES/.TEMPLATE.rst"
-issue_format = "`#{issue} <https://github.com/pulp/pulp_ansible/issues/{issue}>`__"
+title_format = "## {version} ({project_date}) {{: #{version} }}"
+template = "CHANGES/.TEMPLATE.md"
+issue_format = "[#{issue}](https://github.com/pulp/pulp_ansible/issues/{issue})"
+start_string = "[//]: # (towncrier release notes start)\n"
+underlines = ["", "", ""]
 
 [tool.black]
 line-length = 100
