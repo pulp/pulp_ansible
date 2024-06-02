@@ -1,4 +1,4 @@
-include CHANGES.rst
+include CHANGES.md
 include COMMITMENT
 include COPYRIGHT
 include coverage.md
