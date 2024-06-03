@@ -865,9 +865,9 @@ No significant changes.
 
 ---
 
-0.8.0 (2021-06-01)
-Features
----
+## 0.8.0 (2021-06-01)
+
+### Features
 
 -   Pulp Ansible can now sync collection dependencies by setting the `sync_dependencies` option for `CollectionRemote` objects.
     (By default set to true)
