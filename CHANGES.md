@@ -377,14 +377,9 @@ No significant changes.
 
 -   Turned collection deprecation status into a content.
 
-    ::: warning
-    ::: title
-    Warning
-    :::
-
-    Current deprecation history will be lost, only accounting for
-    the latest repository version.
-    :::
+    !!! warning
+        Current deprecation history will be lost, only accounting for
+        the latest repository version.
 
     [#8205](https://pulp.plan.io/issues/8205)
 
@@ -451,9 +446,9 @@ No significant changes.
 
 ---
 
-0.8.0 (2021-06-01)
-Features
----
+## 0.8.0 (2021-06-01) {: #0.8.0 }
+
+### Features
 
 -   Pulp Ansible can now sync collection dependencies by setting the `sync_dependencies` option for `CollectionRemote` objects.
     (By default set to true)
