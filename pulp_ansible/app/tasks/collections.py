@@ -197,6 +197,10 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
     repository.save(update_fields=["last_synced_metadata_time"])
 
+    # This goes against all rules!
+    # Content must be added and removed via the dedicated functions, which is impossible after the
+    # repository version was finalized.
+    # TODO Fix this!
     to_undeprecate = Q()
     undeprecated = deprecation_before_sync.difference(first_stage.deprecation_after_sync)
     if undeprecated:
@@ -205,8 +209,10 @@ def sync(remote_pk, repository_pk, mirror, optimize):
             to_undeprecate |= Q(namespace=namespace, name=name)
         deprecated = AnsibleCollectionDeprecated.objects.filter(to_undeprecate)
         RepositoryContent.objects.filter(
-            repository=repository, content__in=deprecated
-        ).all().update(version_removed=repo_version)
+            repository=repository,
+            content__in=deprecated,
+            version_removed__isnull=True,
+        ).update(version_removed=repo_version)
 
 
 def import_collection(
@@ -1186,6 +1192,7 @@ class AnsibleContentSaver(ContentSaver):
 
             for d_artifact in d_content.d_artifacts:
                 artifact = d_artifact.artifact
+                assert not artifact._state.adding
                 with artifact.file.open() as artifact_file, tarfile.open(
                     fileobj=artifact_file, mode="r"
                 ) as tar:
