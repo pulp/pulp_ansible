@@ -1,1 +1,0 @@
-Fixed syncing progress report, `Parsing CollectionVersion Metadata`, total count when using `signed_only=True`.
