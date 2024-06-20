@@ -1,7 +1,7 @@
 # This config represents the latest values used when running the plugin-template. Any settings that
 # were not present before running plugin-template have been added with their default values.
 
-# generated with plugin_template@2021.08.26-330-g0b7d0c1
+# generated with plugin_template@2021.08.26-341-g5cb6e90
 
 api_root: /pulp/
 black: true
@@ -30,7 +30,7 @@ flake8_ignore: []
 github_org: pulp
 issue_tracker: github
 kanban: true
-latest_release_branch: null
+latest_release_branch: '0.22'
 lint_requirements: true
 noissue_marker: '[noissue]'
 parallel_test_workers: 8
