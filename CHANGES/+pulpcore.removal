@@ -1,1 +1,0 @@
-Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.

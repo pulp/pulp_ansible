@@ -1,1 +1,0 @@
-Changed avatar download to allow graceful failure on mismatching image checksum.
