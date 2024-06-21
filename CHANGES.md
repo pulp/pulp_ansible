@@ -8,6 +8,45 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.22.0 (2024-06-20) {: #0.22.0 }
+
+
+#### Bugfixes {: #0.22.0-bugfix }
+
+- Fixed syncing progress report, `Parsing CollectionVersion Metadata`, total count when using `signed_only=True`.
+  [#1608](https://github.com/pulp/pulp_ansible/issues/1608)
+- Duplicate Collection uploads no longer return 400s.
+  [#1691](https://github.com/pulp/pulp_ansible/issues/1691)
+- Fixed AnsibleNamespaceMetadata not being exported.
+  [#1764](https://github.com/pulp/pulp_ansible/issues/1764)
+- Fixed a bug failing sync on namespace metadata when avatar_sha256 is missing.
+  [#1772](https://github.com/pulp/pulp_ansible/issues/1772)
+- Add ansible hostname to API v3 cache key
+  [#1833](https://github.com/pulp/pulp_ansible/issues/1833)
+- Fixed import failing to associate signatures and marks with their collection version.
+  [#1836](https://github.com/pulp/pulp_ansible/issues/1836)
+- Fixed sync failing on undownloadable namespace avatars.
+  [#1868](https://github.com/pulp/pulp_ansible/issues/1868)
+- Changed avatar download to allow graceful failure on mismatching image checksum.
+- Fixed the api for direct creation of collection_deprecated content.
+
+#### Improved Documentation {: #0.22.0-doc }
+
+- Convert docs to new style.
+  [#1754](https://github.com/pulp/pulp_ansible/issues/1754)
+
+#### Deprecations and Removals {: #0.22.0-removal }
+
+- Removed the galaxy v2 apis. The v3 apis should be used instead.
+  [#691](https://github.com/pulp/pulp_ansible/issues/691)
+- Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+#### Misc {: #0.22.0-misc }
+
+- 
+
+---
+
 ## 0.21.6 (2024-05-29) {: #0.21.6 }
 
 ### Bugfixes
