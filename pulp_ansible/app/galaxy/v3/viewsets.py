@@ -70,6 +70,8 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
     serializer_class = CollectionVersionSearchListSerializer
     pagination_class = LimitOffsetPagination
     filterset_class = CollectionVersionSearchFilter
+    # This is a dummy, to make the model available to drf-spectacular
+    queryset = CrossRepositoryCollectionVersionIndex.objects.none()
 
     def urlpattern(*args, **kwargs):
         """Helper for galaxy_ng access control."""
