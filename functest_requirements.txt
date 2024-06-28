@@ -4,5 +4,3 @@ orionutils
 pytest<8
 dynaconf
 numpy
-pulpcore-client
-pulp-ansible-client
