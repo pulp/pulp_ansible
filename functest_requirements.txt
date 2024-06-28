@@ -5,5 +5,3 @@ pytest<8
 dynaconf
 numpy
 requests
-pulpcore-client
-pulp-ansible-client
