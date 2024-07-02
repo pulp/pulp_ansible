@@ -100,41 +100,27 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
         gitrepo = Repo.clone_from(url, uuid4(), depth=1, multi_options=["--recurse-submodules"])
     commit_sha = gitrepo.head.commit.hexsha
     metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
+    artifact = Artifact.init_and_validate(artifact_path)
     if metadata_only:
         metadata["artifact"] = None
         metadata["artifact_url"] = None
     else:
-        artifact = Artifact.init_and_validate(artifact_path)
-        try:
-            await sync_to_async(artifact.save)()
-        except IntegrityError:
-            artifact = Artifact.objects.get(sha256=artifact.sha256)
+        if existing_artifact := await Artifact.objects.filter(sha256=artifact.sha256).afirst():
+            await existing_artifact.atouch()
+            artifact = existing_artifact
+        else:
+            try:
+                await sync_to_async(artifact.save)()
+            except IntegrityError:
+                artifact = await Artifact.objects.aget(sha256=artifact.sha256)
         metadata["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
         metadata["artifact"] = artifact
     metadata["remote_artifact_url"] = "{}/commit/{}".format(url.rstrip("/"), commit_sha)
+    metadata["sha256"] = artifact.sha256
 
-    artifact = metadata["artifact"]
-    try:
-        collection_version = await sync_to_async(create_collection_from_importer)(
-            metadata, metadata_only=metadata_only
-        )
-        await sync_to_async(ContentArtifact.objects.get_or_create)(
-            artifact=artifact,
-            content=collection_version,
-            relative_path=collection_version.relative_path,
-        )
-    except ValidationError as e:
-        if "unique" in str(e):
-            namespace = metadata["metadata"]["namespace"]
-            name = metadata["metadata"]["name"]
-            version = metadata["metadata"]["version"]
-        else:
-            raise e
-        collection_version = await sync_to_async(CollectionVersion.objects.get)(
-            namespace=namespace, name=name, version=version
-        )
-    if artifact is None:
-        artifact = Artifact()
+    collection_version = await sync_to_async(create_collection_from_importer)(
+        metadata, metadata_only=True
+    )
     d_artifact = DeclarativeArtifact(
         artifact=artifact,
         url=metadata["remote_artifact_url"],
@@ -144,10 +130,14 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
     )
 
     # TODO: docs blob support??
+    extra_data = {}
+    if metadata_only:
+        extra_data["d_artifact_files"] = {d_artifact: artifact_path}
 
     d_content = DeclarativeContent(
         content=collection_version,
         d_artifacts=[d_artifact],
+        extra_data=extra_data,
     )
     return d_content
 
@@ -269,6 +259,7 @@ def import_collection(
             artifact = Artifact.from_pulp_temporary_file(temp_file)
             temp_file = None
             importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
+            importer_result["sha256"] = artifact.sha256
             collection_version = create_collection_from_importer(importer_result)
             collection_version.manifest = manifest_data
             collection_version.files = files_data
@@ -303,50 +294,51 @@ def import_collection(
 def create_collection_from_importer(importer_result, metadata_only=False):
     """
     Process results from importer.
+
+    If ``metadata_only=True``, then this is being called in a sync pipeline, do not perform
+    any database operations, just return an unsaved CollectionVersion.
     """
     collection_info = importer_result["metadata"]
+    tags = collection_info.pop("tags")
 
-    with transaction.atomic():
-        collection, created = Collection.objects.get_or_create(
-            namespace=collection_info["namespace"], name=collection_info["name"]
-        )
+    # Remove fields not used by this model
+    collection_info.pop("license_file")
+    collection_info.pop("readme")
 
-        tags = collection_info.pop("tags")
+    # the importer returns many None values. We need to let the defaults in the model prevail
+    for key in ["description", "documentation", "homepage", "issues", "repository"]:
+        if collection_info[key] is None:
+            collection_info.pop(key)
 
-        # Remove fields not used by this model
-        collection_info.pop("license_file")
-        collection_info.pop("readme")
+    collection, created = Collection.objects.get_or_create(
+        namespace=collection_info["namespace"], name=collection_info["name"]
+    )
+    collection_version = CollectionVersion(
+        **collection_info,
+        collection=collection,
+        requires_ansible=importer_result.get("requires_ansible"),
+        contents=importer_result["contents"],
+        docs_blob=importer_result["docs_blob"],
+        sha256=importer_result["sha256"],
+    )
 
-        # the importer returns many None values. We need to let the defaults in the model prevail
-        for key in ["description", "documentation", "homepage", "issues", "repository"]:
-            if collection_info[key] is None:
-                collection_info.pop(key)
+    serializer_fields = CollectionVersionSerializer.Meta.fields
+    data = {k: v for k, v in collection_version.__dict__.items() if k in serializer_fields}
+    data["id"] = collection_version.pulp_id
 
-        collection_version = CollectionVersion(
-            collection=collection,
-            **collection_info,
-            requires_ansible=importer_result.get("requires_ansible"),
-            contents=importer_result["contents"],
-            docs_blob=importer_result["docs_blob"],
-        )
+    serializer = CollectionVersionSerializer(data=data)
 
-        serializer_fields = CollectionVersionSerializer.Meta.fields
-        data = {k: v for k, v in collection_version.__dict__.items() if k in serializer_fields}
-        data["id"] = collection_version.pulp_id
-        if not metadata_only:
-            data["artifact"] = importer_result["artifact_url"]
+    serializer.is_valid(raise_exception=True)
 
-        serializer = CollectionVersionSerializer(data=data)
+    if not metadata_only:
+        with transaction.atomic():
+            for name in tags:
+                tag, created = Tag.objects.get_or_create(name=name)
+                collection_version.tags.add(tag)
 
-        serializer.is_valid(raise_exception=True)
-        collection_version.save()
+            _update_highest_version(collection_version)
+            collection_version.save()  # Save the FK updates
 
-        for name in tags:
-            tag, created = Tag.objects.get_or_create(name=name)
-            collection_version.tags.add(tag)
-
-        collection_version.save()  # Save the FK updates
-        _update_highest_version(collection_version)
     return collection_version
 
 
@@ -625,6 +617,7 @@ class CollectionSyncFirstStage(Stage):
             setattr(collection_version, attr_name, attr_value)
 
         artifact = metadata["artifact"]
+        collection_version.sha256 = artifact["sha256"]
         d_artifact = DeclarativeArtifact(
             artifact=Artifact(sha256=artifact["sha256"], size=artifact["size"]),
             url=url,
@@ -1125,7 +1118,7 @@ class AnsibleContentSaver(ContentSaver):
     """
 
     def __init__(self, repository_version, *args, **kwargs):
-        """Initialize CollectionContentSaver."""
+        """Initialize AnsibleContentSaver."""
         super().__init__(*args, **kwargs)
         self.repository_version = repository_version
 
@@ -1142,9 +1135,8 @@ class AnsibleContentSaver(ContentSaver):
             if d_content is None:
                 continue
             if isinstance(d_content.content, CollectionVersion):
-                info = d_content.content.natural_key_dict()
                 collection, created = Collection.objects.get_or_create(
-                    namespace=info["namespace"], name=info["name"]
+                    namespace=d_content.content.namespace, name=d_content.content.name
                 )
 
                 d_content.content.collection = collection
@@ -1179,12 +1171,17 @@ class AnsibleContentSaver(ContentSaver):
             docs_blob = d_content.extra_data.get("docs_blob", {})
             if docs_blob:
                 collection_version.docs_blob = docs_blob
+            d_artifact_files = d_content.extra_data.get("d_artifact_files", {})
 
             for d_artifact in d_content.d_artifacts:
                 artifact = d_artifact.artifact
-                with artifact.file.open() as artifact_file, tarfile.open(
-                    fileobj=artifact_file, mode="r"
-                ) as tar:
+                # TODO change logic when implementing normal on-demand syncing
+                # Special Case for Git sync w/ metadata_only=True
+                if artifact_file_name := d_artifact_files.get(d_artifact):
+                    artifact_file = open(artifact_file_name, mode="rb")
+                else:
+                    artifact_file = artifact.file.open()
+                with tarfile.open(fileobj=artifact_file, mode="r") as tar:
                     runtime_metadata = get_file_obj_from_tarball(
                         tar, "meta/runtime.yml", artifact.file.name, raise_exc=False
                     )
@@ -1203,7 +1200,7 @@ class AnsibleContentSaver(ContentSaver):
                     collection_version.manifest = manifest_data
                     collection_version.files = files_data
                     info = manifest_data["collection_info"]
-
+                artifact_file.close()
                 # Create the tags
                 tags = info.pop("tags")
                 for name in tags:
