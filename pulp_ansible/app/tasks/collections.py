@@ -124,7 +124,7 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
             relative_path=collection_version.relative_path,
         )
     except ValidationError as e:
-        if e.args[0]["non_field_errors"][0].code == "unique":
+        if "unique" in str(e):
             namespace = metadata["metadata"]["namespace"]
             name = metadata["metadata"]["name"]
             version = metadata["metadata"]["version"]

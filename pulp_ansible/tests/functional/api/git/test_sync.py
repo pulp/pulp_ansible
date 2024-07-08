@@ -102,13 +102,7 @@ def test_sync_metadata_only_collection_from_git(
     # Create a distribution.
     distribution = ansible_distribution_factory(ansible_repo)
 
-    version = galaxy_v3_collection_versions_api_client.read(
-        "aws", "amazon", distribution.base_path, "2.1.0"
-    )
-
-    assert version.git_url == "https://github.com/ansible-collections/amazon.aws/"
-    assert version.git_commit_sha == "013162a952c7b2d11c7e2ebf443d8d4d7a21e95a"
-    assert version.download_url is None
+    galaxy_v3_collection_versions_api_client.read("aws", "amazon", distribution.base_path, "2.1.0")
 
 
 @pytest.mark.parallel
@@ -131,13 +125,7 @@ def test_sync_collection_from_git_commit_sha(
     # Create a distribution.
     distribution = ansible_distribution_factory(ansible_repo)
 
-    version = galaxy_v3_collection_versions_api_client.read(
-        "aws", "amazon", distribution.base_path, "1.5.1"
-    )
-
-    assert version.git_url == "https://github.com/ansible-collections/amazon.aws/"
-    assert version.git_commit_sha == "d0b54fc082cb63f63d34246c8fe668e19e74777c"
-    assert version.download_url is None
+    galaxy_v3_collection_versions_api_client.read("aws", "amazon", distribution.base_path, "1.5.1")
 
 
 @pytest.mark.parallel

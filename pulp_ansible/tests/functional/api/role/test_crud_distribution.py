@@ -74,4 +74,7 @@ def test_crud_distribution(
     monitor_task(ansible_distro_api_client.delete(distribution.pulp_href).task)
     with pytest.raises(ApiException) as exc_info:
         ansible_distro_api_client.delete(distribution.pulp_href)
-    assert "Not found." in exc_info.value.body
+    assert (
+        "Not found." in exc_info.value.body
+        or "No AnsibleDistribution matches the given query." in exc_info.value.body
+    )

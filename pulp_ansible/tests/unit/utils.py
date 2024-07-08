@@ -19,7 +19,7 @@ def make_cv_tarball(namespace, name, version):
     """Create a collection version from scratch."""
     tdir = tempfile.mkdtemp()
     subprocess.run(f"ansible-galaxy collection init {namespace}.{name}", shell=True, cwd=tdir)
-    os.makedirs(os.path.join(tdir, namespace, name, "meta"))
+    os.makedirs(os.path.join(tdir, namespace, name, "meta"), exist_ok=True)
     with open(os.path.join(tdir, namespace, name, "meta", "runtime.yml"), "w") as f:
         f.write('requires_ansible: ">=2.13"\n')
     with open(os.path.join(tdir, namespace, name, "README.md"), "w") as f:
