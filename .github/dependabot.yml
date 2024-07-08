@@ -1,9 +1,10 @@
 version: 2
 updates:
-- package-ecosystem: pip
+- package-ecosystem: "pip"
   directory: "/"
   schedule:
-    interval: daily
+    interval: "daily"
   open-pull-requests-limit: 10
   commit-message:
     prefix: "[noissue]"
+  versioning-strategy: "widen"
