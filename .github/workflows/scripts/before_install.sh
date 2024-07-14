@@ -57,7 +57,7 @@ fi
 
 for i in {1..3}
 do
-  ansible-galaxy collection install "amazon.aws:8.1.0" && s=0 && break || s=$? && sleep 3
+  ansible-galaxy collection install "amazon.aws:1.5.0" && s=0 && break || s=$? && sleep 3
 done
 if [[ $s -gt 0 ]]
 then
@@ -65,9 +65,11 @@ then
   exit $s
 fi
 
+if [[ "$TEST" = "pulp" ]]; then
+  python3 .ci/scripts/calc_constraints.py -u requirements.txt > upperbounds_constraints.txt
+fi
 if [[ "$TEST" = "lowerbounds" ]]; then
-  python3 .ci/scripts/calc_deps_lowerbounds.py > lowerbounds_constraints.txt
-  sed -i 's/\[.*\]//g' lowerbounds_constraints.txt
+  python3 .ci/scripts/calc_constraints.py requirements.txt > lowerbounds_constraints.txt
 fi
 
 if [ -f $POST_BEFORE_INSTALL ]; then
