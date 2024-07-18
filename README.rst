@@ -9,6 +9,7 @@ A Pulp plugin to support hosting ``Role`` and ``Collection`` Ansible content.
 For more information, please see the `documentation <https://docs.pulpproject.org/pulp_ansible/>`_.
 
 
+
 Collection Support
 ------------------
 
