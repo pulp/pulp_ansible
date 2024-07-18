@@ -1,0 +1,1 @@
+Cast the content object to a collectionversion before setting the rebuild metadata.
