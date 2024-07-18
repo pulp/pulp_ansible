@@ -384,10 +384,14 @@ def rebuild_repository_collection_versions_metadata(
             ptotal.increment()
 
 
-def _rebuild_collection_version_meta(collection_version):
+def _rebuild_collection_version_meta(content_object):
     """Rebuild metadata for a single collection version."""
+
+    # Cast to get the CV
+    collection_version = content_object.cast()
+
     # where is the artifact?
-    artifact = collection_version._artifacts.first()
+    artifact = content_object._artifacts.first()
 
     # call the importer to re-generate meta
     importer_result = process_collection(

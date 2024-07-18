@@ -101,6 +101,25 @@ class TestCollectionReImport(TestCase):
         expected_pks = sorted([str(x.pk) for x in expected_cvs])
         assert call_pks == expected_pks
 
+    def test_reimport_repository_rebuilds_contents(self):
+        """Make sure the contents field in the CVs are rebuilt."""
+
+        cobject = self.repo.latest_version().content.first()
+        assert cobject is not None, "the repo fixture no longer has content for some unknown reason"
+
+        # set some invalid contents for each CV in the repo ...
+        cv = cobject.cast()
+        cv.contents = ["a", "b", "c"]
+        cv.save()
+
+        # call the rebuild
+        _rebuild_collection_version_meta(cobject)
+
+        # after rebuild, the contents should have been changed back
+        cv2 = cobject.cast()
+        cv2.refresh_from_db()
+        assert cv2.contents != ["a", "b", "c"]
+
 
 class TestCollectionVersionHighest(TestCase):
     """Test Collection Re-Import."""
