@@ -18,9 +18,7 @@ cd "$(dirname "$(realpath -e "$0")")"/../../..
 pushd ../pulp-openapi-generator
 rm -rf "pulp_ansible-client"
 
-# We need to copy that over to be visible in the container.
-cp "../pulp_ansible/ansible-api.json" .
-./gen-client.sh "ansible-api.json" "ansible" python "pulp_ansible"
+./gen-client.sh "../pulp_ansible/ansible-api.json" "ansible" python "pulp_ansible"
 
 pushd pulp_ansible-client
 python setup.py sdist bdist_wheel --python-tag py3
