@@ -8,6 +8,17 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.22.1 (2024-07-22) {: #0.22.1 }
+
+
+#### Bugfixes {: #0.22.1-bugfix }
+
+- Cast the content object to a collectionversion before setting the rebuild metadata.
+  [#1921](https://github.com/pulp/pulp_ansible/issues/1921)
+- Fixed the openapi spec for the collection version search.
+
+---
+
 ## 0.22.0 (2024-06-20) {: #0.22.0 }
 
 
