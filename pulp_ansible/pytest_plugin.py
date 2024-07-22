@@ -105,6 +105,8 @@ def ansible_collection_remote_factory(bindings_cfg, ansible_bindings, gen_object
         if include_pulp_auth:
             kwargs["username"] = bindings_cfg.username
             kwargs["password"] = bindings_cfg.password
+        # Ratelimiting, because our tests hit galaxy pretty hard.
+        kwargs["rate_limit"] = 5
 
         return gen_object_with_cleanup(ansible_bindings.RemotesCollectionApi, kwargs)
 
