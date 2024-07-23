@@ -8,6 +8,17 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.22.1 (2024-07-22) {: #0.22.1 }
+
+
+#### Bugfixes {: #0.22.1-bugfix }
+
+- Cast the content object to a collectionversion before setting the rebuild metadata.
+  [#1921](https://github.com/pulp/pulp_ansible/issues/1921)
+- Fixed the openapi spec for the collection version search.
+
+---
+
 ## 0.22.0 (2024-06-20) {: #0.22.0 }
 
 
@@ -44,6 +55,17 @@
 #### Misc {: #0.22.0-misc }
 
 - 
+
+---
+
+## 0.21.7 (2024-07-22) {: #0.21.7 }
+
+
+#### Bugfixes {: #0.21.7-bugfix }
+
+- Cast the content object to a collectionversion before setting the rebuild metadata.
+  [#1921](https://github.com/pulp/pulp_ansible/issues/1921)
+- Fixed the openapi spec for the collection version search.
 
 ---
 
@@ -112,6 +134,17 @@ No significant changes.
     [#1598](https://github.com/pulp/pulp_ansible/issues/1598)
 -   Fixed highest version calculation failing when versions of a collection were created out of order.
     [#1623](https://github.com/pulp/pulp_ansible/issues/1623)
+
+---
+
+## 0.20.8 (2024-07-22) {: #0.20.8 }
+
+
+#### Bugfixes {: #0.20.8-bugfix }
+
+- Cast the content object to a collectionversion before setting the rebuild metadata.
+  [#1921](https://github.com/pulp/pulp_ansible/issues/1921)
+- Fixed the openapi spec for the collection version search.
 
 ---
 
