@@ -272,13 +272,19 @@ def import_collection(
             importer_result = process_collection(
                 artifact_file, filename=filename, file_url=url, logger=user_facing_logger
             )
-            artifact = Artifact.from_pulp_temporary_file(temp_file)
-            temp_file = None
-            importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
-            collection_version = create_collection_from_importer(importer_result)
-            collection_version.manifest = manifest_data
-            collection_version.files = files_data
+        artifact = Artifact.from_pulp_temporary_file(temp_file)
+        temp_file = None
+        importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
+        collection_version = create_collection_from_importer(importer_result)
+        collection_version.manifest = manifest_data
+        collection_version.files = files_data
+        with transaction.atomic:
             collection_version.save()
+            ContentArtifact.objects.create(
+                artifact=artifact,
+                content=collection_version,
+                relative_path=collection_version.relative_path,
+            )
 
     except ImporterError as exc:
         log.info(f"Collection processing was not successful: {exc}")
@@ -291,11 +297,6 @@ def import_collection(
             temp_file.delete()
         raise
 
-    ContentArtifact.objects.create(
-        artifact=artifact,
-        content=collection_version,
-        relative_path=collection_version.relative_path,
-    )
     CreatedResource.objects.create(content_object=collection_version)
 
     if repository_pk:
