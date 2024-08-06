@@ -5,6 +5,6 @@ pytest-custom_exit_code
 pytest-xdist
 numpy
 requests
-proxy.py~=2.4.4
+proxy.py~=2.4.5
 trustme~=1.1.0
 pulp-smash @ git+https://github.com/pulp/pulp-smash.git
