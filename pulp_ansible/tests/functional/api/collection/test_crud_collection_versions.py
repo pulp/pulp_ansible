@@ -1,5 +1,8 @@
 """Tests related to sync ansible plugin collection content type."""
 
+import hashlib
+from pathlib import Path
+
 import pytest
 
 from orionutils.generator import randstr
@@ -100,3 +103,32 @@ def test_content_unit_lifecycle(ansible_bindings, build_and_upload_collection, m
         ansible_bindings.ContentCollectionVersionsApi.create(file=collection_artifact.filename).task
     )
     assert content_unit_href in create_task.created_resources
+
+
+@pytest.mark.parallel
+def test_duplicate_collection_key(
+    ansible_bindings,
+    ansible_repo_factory,
+    build_and_upload_collection,
+    monitor_task,
+):
+    """Create two content units with the same name but different artifacts."""
+    repository1 = ansible_repo_factory()
+    repository2 = ansible_repo_factory()
+
+    attrs = {"namespace": randstr(), "name": "squeezer", "version": "0.0.9"}
+    collection_artifact1, content_unit_href1 = build_and_upload_collection(
+        repository1, config=attrs
+    )
+    collection_artifact2, content_unit_href2 = build_and_upload_collection(
+        repository2, config=attrs
+    )
+
+    sha256_1 = hashlib.sha256(Path(collection_artifact1.filename).read_bytes()).hexdigest()
+    sha256_2 = hashlib.sha256(Path(collection_artifact2.filename).read_bytes()).hexdigest()
+    assert sha256_1 != sha256_2
+
+    content_unit_1 = ansible_bindings.ContentCollectionVersionsApi.read(content_unit_href1)
+    assert content_unit_1.sha256 == sha256_1
+    content_unit_2 = ansible_bindings.ContentCollectionVersionsApi.read(content_unit_href2)
+    assert content_unit_2.sha256 == sha256_2
