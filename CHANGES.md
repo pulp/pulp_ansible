@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+# ## 0.21.8 (2024-08-14) {: #0.21.8 }
+
+#### Bugfixes {: #0.21.8-bugfix }
+
+- Fixed import failing to associate signatures and marks with their collection version.
+  [#1836](https://github.com/pulp/pulp_ansible/issues/1836)
+
+---
+
 ## 0.21.7 (2024-07-22) {: #0.21.7 }
 
 
