@@ -4,3 +4,5 @@ orionutils
 pytest<8
 dynaconf
 numpy
+pytest-xdist
+pytest-timeout
