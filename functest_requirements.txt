@@ -3,3 +3,5 @@ ansible-core!=2.13.9,!=2.14.5
 orionutils
 pytest<8
 dynaconf
+pytest-xdist
+pytest-timeout
