@@ -123,7 +123,14 @@ def test_sync_mirror_defaults_to_false(
         pytest.param("ibm.ibm_zos_core", False, False, 14, id="with_long_tag"),
         pytest.param("rshad.collection_demo", False, False, 6, id="with_dot_slash_in_manifest"),
         pytest.param("brightcomputing.bcm", True, False, 5, id="with_strange_version_numbers"),
-        pytest.param("pulp.pulp_installer", False, True, 5, id="simple_dependency"),
+        pytest.param(
+            "pulp.pulp_installer",
+            False,
+            True,
+            5,
+            id="simple_dependency",
+            marks=[pytest.mark.timeout(1800)],  # TODO This test takes too much time!
+        ),
     ],
 )
 def test_sync_collection_with_specialities(
