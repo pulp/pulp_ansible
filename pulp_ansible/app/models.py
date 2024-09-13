@@ -180,7 +180,7 @@ class CollectionVersion(Content):
     namespace = models.CharField(max_length=64, editable=False)
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     requires_ansible = models.CharField(null=True, max_length=255)
-    sha256 = models.CharField(max_length=64, null=True, blank=False)
+    sha256 = models.CharField(max_length=64, db_index=True, null=False, blank=False)
 
     version = models.CharField(max_length=128, db_collation="pulp_ansible_semver")
     version_major = models.IntegerField()
@@ -231,7 +231,7 @@ class CollectionVersion(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = (("namespace", "name", "version"), ("sha256",))
+        unique_together = ("sha256",)
         constraints = [
             UniqueConstraint(
                 fields=("collection", "is_highest"),
