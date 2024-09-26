@@ -424,6 +424,17 @@ No significant changes.
 
 ---
 
+## 0.16.4 (2024-09-25) {: #0.16.4 }
+
+#### Bugfixes {: #0.16.4-bugfix }
+
+- Pre-release collection versions should only be higher than stable releases when none exist.
+  [#1391](https://github.com/pulp/pulp_ansible/issues/1391)
+- Fixed a sporadic sync error when re-syncing a repository with new collection versions.
+  [#1547](https://github.com/pulp/pulp_ansible/issues/1547)
+
+---
+
 ## 0.16.3 (2024-05-15) {: #0.16.3 }
 
 ### Bugfixes
