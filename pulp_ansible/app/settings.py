@@ -20,6 +20,11 @@ LOGGING = {
     "dynaconf_merge": True,
 }
 
+DRF_ACCESS_POLICY = {
+    "dynaconf_merge_unique": True,
+    "reusable_conditions": ["pulp_ansible.app.global_access_conditions"],
+}
+
 ANSIBLE_API_HOSTNAME = "https://" + socket.getfqdn()
 ANSIBLE_CONTENT_HOSTNAME = settings.CONTENT_ORIGIN + "/pulp/content"
 ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION = True
@@ -30,8 +35,3 @@ ANSIBLE_COLLECT_DOWNLOAD_LOG = False
 ANSIBLE_COLLECT_DOWNLOAD_COUNT = False
 ANSIBLE_AUTHENTICATION_CLASSES = settings.REST_FRAMEWORK["DEFAULT_AUTHENTICATION_CLASSES"]
 ANSIBLE_PERMISSION_CLASSES = settings.REST_FRAMEWORK["DEFAULT_PERMISSION_CLASSES"]
-
-DRF_ACCESS_POLICY = {
-    "dynaconf_merge_unique": True,
-    "reusable_conditions": ["pulp_ansible.app.global_access_conditions"],
-}
