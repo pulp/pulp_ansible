@@ -124,7 +124,7 @@ def test_redirects_are_identical(
     verify_list(
         PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexVersionsApi,
         PulpAnsibleApiV3CollectionsVersionsApi,
-        {"is_highest": True},
+        {},
         args=["k8s_demo_collection", "testing", seeded_distribution.base_path],
     )
 

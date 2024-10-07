@@ -74,9 +74,6 @@ def process_collection_artifact(artifact, namespace, name, version):
 
 def finish_collection_upload(collection_version, tags, origin_repository):
     """After CollectionVersion has been created update its tags and latest_version."""
-    # Avoid circular import
-    from .collections import _update_highest_version
-
     for name in tags:
         tag, created = Tag.objects.get_or_create(name=name)
         collection_version.tags.add(tag)
@@ -85,4 +82,3 @@ def finish_collection_upload(collection_version, tags, origin_repository):
     if origin_repository is not None and collection_version.repository != origin_repository:
         collection_version.repository = origin_repository
         collection_version.save()
-    _update_highest_version(collection_version)

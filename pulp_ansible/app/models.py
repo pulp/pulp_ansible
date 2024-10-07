@@ -153,6 +153,7 @@ class CollectionVersion(Content):
         is_highest (models.BooleanField): Indicates that the version is the highest one
             in the collection. Import and sync workflows update this field, which then
             triggers the database to [re]build the search_vector.
+            This field is Deprecated and scheduled for removal as soon as 0.24.0.
 
     Relations:
 
@@ -185,6 +186,7 @@ class CollectionVersion(Content):
     version_patch = models.IntegerField()
     version_prerelease = models.CharField(max_length=128)
 
+    # This field is deprecated. We keep it for some releases for 0-Downtime upgrades.
     is_highest = models.BooleanField(editable=False, default=False)
 
     # Foreign Key Fields
