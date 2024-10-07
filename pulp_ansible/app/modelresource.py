@@ -115,6 +115,7 @@ class CollectionVersionContentResource(BaseContentResource):
 
         col = Collection.objects.get(name=row["name"], namespace=row["namespace"])
         row["collection"] = str(col.pk)
+        row.pop("is_highest", None)
 
     def set_up_queryset(self):
         """

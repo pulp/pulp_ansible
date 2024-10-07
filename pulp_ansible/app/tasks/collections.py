@@ -15,7 +15,7 @@ from asgiref.sync import sync_to_async
 from async_lru import alru_cache
 from django.conf import settings
 from django.db import transaction
-from django.db.models import F, Q
+from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
@@ -353,7 +353,6 @@ def create_collection_from_importer(importer_result, metadata_only=False):
             collection_version.tags.add(tag)
 
         collection_version.save()  # Save the FK updates
-        _update_highest_version(collection_version)
     return collection_version
 
 
@@ -430,34 +429,6 @@ def _get_backend_storage_url(artifact_file):
             "was not expected"
         )
     return url
-
-
-def _update_highest_version(collection_version):
-    """
-    Checks if this version is greater than the most highest one.
-
-    TODO: This function violates content immutability. It must be deprecated.
-    """
-
-    qs = collection_version.collection.versions.annotate(prerelease=Q(version_prerelease__ne=""))
-    highest_subq = qs.order_by("prerelease", "-version")[0:1].values("pk")
-    update_qs = qs.annotate(new_is_highest=Q(pk=highest_subq))
-    # To avoid ordering issues, set everything to False first, then update with proper value
-    for i in range(2):
-        try:
-            with transaction.atomic():
-                update_qs.update(is_highest=False)
-                update_qs.update(is_highest=F("new_is_highest"))
-        except IntegrityError:
-            log.debug(f"Retrying update_highest_version {collection_version.relative_path}")
-            pass
-        else:
-            return
-    log.warning(
-        _("Failed to update is_highest for {}, potentially out of date").format(
-            collection_version.relative_path
-        )
-    )
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):
@@ -1232,6 +1203,4 @@ class AnsibleContentSaver(ContentSaver):
                         continue
                     setattr(collection_version, attr_name, attr_value)
 
-                collection_version.is_highest = False
                 collection_version.save()
-                _update_highest_version(collection_version)
