@@ -1,0 +1,1 @@
+Find and set the current highest collection version in the database to False before importing the new highest version to prevent conflict.

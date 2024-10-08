@@ -116,6 +116,19 @@ class CollectionVersionContentResource(BaseContentResource):
         col = Collection.objects.get(name=row["name"], namespace=row["namespace"])
         row["collection"] = str(col.pk)
 
+    def get_instance(self, instance_loader, row):
+        """
+        This fixes https://github.com/pulp/pulp_ansible/issues/1986
+        Find and set the current highest version to False before importing the new highest version.
+        """
+        instance = super().get_instance(instance_loader, row)
+        if not instance and row["is_highest"] == "1":
+            CollectionVersion.objects.filter(
+                collection_id=row["collection"], is_highest=True
+            ).update(is_highest=False)
+
+        return instance
+
     def set_up_queryset(self):
         """
         :return: CollectionVersion content specific to a specified repo-version.
