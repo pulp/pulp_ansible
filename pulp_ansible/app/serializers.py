@@ -684,16 +684,12 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         See Validating Models:
             https://docs.pulpproject.org/pulpcore/plugins/plugin-writer/concepts/index.html
         """
-        write_fields = set(CollectionVersionUploadSerializer.Meta.fields) - {
-            "pulp_created",
-            "pulp_last_updated",
-        }
         if hasattr(self, "initial_data"):
             if any((x in self.initial_data for x in self.Meta.read_fields)):
                 # Pop shared fields: artifact & repository
                 artifact = self.initial_data.pop("artifact", None)
                 repository = self.initial_data.pop("repository", None)
-                if any((x in self.initial_data for x in write_fields)):
+                if any((x in self.initial_data for x in self.Meta.write_fields)):
                     if raise_exception:
                         raise ValidationError(
                             _("Read and write fields can not be used at the same time")
@@ -738,6 +734,10 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
             + ContentChecksumSerializer.Meta.fields
             + read_fields
         )
+        write_fields = set(CollectionVersionUploadSerializer.Meta.fields) - {
+            "pulp_created",
+            "pulp_last_updated",
+        }
         model = CollectionVersion
 
 
