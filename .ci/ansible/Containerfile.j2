@@ -12,7 +12,7 @@ ADD ./{{ item.name }} ./{{ item.name }}
 # This MUST be the ONLY call to pip install in inside the container.
 RUN pip3 install --upgrade pip setuptools wheel && \
   rm -rf /root/.cache/pip && \
-  pip3 install pipdeptree
+  pip3 install
 {%- if s3_test | default(false) -%}
 {{ " " }}git+https://github.com/gerrod3/botocore.git@fix-100-continue
 {%- endif -%}
