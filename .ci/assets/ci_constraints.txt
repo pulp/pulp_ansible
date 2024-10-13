@@ -9,4 +9,4 @@ tablib!=3.6.0
 
 
 # Newer version seem to have a conflict around packaging, that pip fails to resolve in time. Remove this when this starts to impose an issue.
-pipdeptree<=2.23.1
+pipdeptree<=3.23.1
