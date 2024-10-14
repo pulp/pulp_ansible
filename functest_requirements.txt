@@ -5,7 +5,7 @@ pytest-custom_exit_code
 pytest-xdist
 numpy
 requests
-proxy.py~=2.4.8
+proxy.py~=2.4.9
 trustme~=1.2.0
 pulp-smash @ git+https://github.com/pulp/pulp-smash.git
 pytest-timeout
