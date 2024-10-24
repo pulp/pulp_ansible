@@ -36,6 +36,7 @@ from .models import (
     Role,
     Tag,
 )
+from pulp_ansible.app import fields
 from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
 from pulp_ansible.app.tasks.utils import parse_collections_requirements_file
 from pulp_ansible.app.tasks.signature import verify_signature_upload
@@ -436,9 +437,9 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         child=serializers.CharField(max_length=64),
     )
 
-    contents = serializers.JSONField(help_text=_("A JSON field with data about the contents."))
+    contents = fields.JSONDictField(help_text=_("A JSON field with data about the contents."))
 
-    dependencies = serializers.JSONField(
+    dependencies = fields.JSONDictField(
         help_text=_(
             "A dict declaring Collections that this collection requires to be installed for it to "
             "be usable."
@@ -449,13 +450,13 @@ class CollectionVersionSerializer(SingleArtifactContentSerializer, ContentChecks
         help_text=_("A short summary description of the collection."), allow_blank=True
     )
 
-    docs_blob = serializers.JSONField(
+    docs_blob = fields.JSONDictField(
         help_text=_("A JSON field holding the various documentation blobs in the collection.")
     )
 
-    manifest = serializers.JSONField(help_text=_("A JSON field holding MANIFEST.json data."))
+    manifest = fields.JSONDictField(help_text=_("A JSON field holding MANIFEST.json data."))
 
-    files = serializers.JSONField(help_text=_("A JSON field holding FILES.json data."))
+    files = fields.JSONDictField(help_text=_("A JSON field holding FILES.json data."))
 
     documentation = serializers.CharField(
         help_text=_("The URL to any online docs."), allow_blank=True, max_length=2000
@@ -623,8 +624,8 @@ class CollectionImportDetailSerializer(CollectionImportListSerializer):
     A serializer for a CollectionImport detail view.
     """
 
-    error = serializers.JSONField(source="task.error", required=False)
-    messages = serializers.JSONField()
+    error = fields.JSONDictField(source="task.error", required=False)
+    messages = fields.JSONDictField()
 
     class Meta(CollectionImportListSerializer.Meta):
         fields = CollectionImportListSerializer.Meta.fields + ("error", "messages")
@@ -635,7 +636,7 @@ class CopySerializer(serializers.Serializer):
     A serializer for Content Copy API.
     """
 
-    config = serializers.JSONField(
+    config = fields.JSONDictField(
         help_text=_("A JSON document describing sources, destinations, and content to be copied"),
     )
 
