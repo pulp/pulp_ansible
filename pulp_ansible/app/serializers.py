@@ -35,6 +35,7 @@ from .models import (
     Role,
     Tag,
 )
+from pulp_ansible.app import fields
 from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
 from pulp_ansible.app.tasks.utils import (
     parse_collections_requirements_file,
@@ -527,11 +528,11 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         read_only=True,
     )
 
-    contents = serializers.JSONField(
+    contents = fields.JSONDictField(
         help_text=_("A JSON field with data about the contents."), read_only=True
     )
 
-    dependencies = serializers.JSONField(
+    dependencies = fields.JSONDictField(
         help_text=_(
             "A dict declaring Collections that this collection requires to be installed for it to "
             "be usable."
@@ -545,16 +546,16 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         read_only=True,
     )
 
-    docs_blob = serializers.JSONField(
+    docs_blob = fields.JSONDictField(
         help_text=_("A JSON field holding the various documentation blobs in the collection."),
         read_only=True,
     )
 
-    manifest = serializers.JSONField(
+    manifest = fields.JSONDictField(
         help_text=_("A JSON field holding MANIFEST.json data."), read_only=True
     )
 
-    files = serializers.JSONField(
+    files = fields.JSONDictField(
         help_text=_("A JSON field holding FILES.json data."), read_only=True
     )
 
@@ -782,8 +783,8 @@ class CollectionImportDetailSerializer(CollectionImportListSerializer):
     A serializer for a CollectionImport detail view.
     """
 
-    error = serializers.JSONField(source="task.error", required=False)
-    messages = serializers.JSONField()
+    error = fields.JSONDictField(source="task.error", required=False)
+    messages = fields.JSONDictField()
 
     class Meta(CollectionImportListSerializer.Meta):
         fields = CollectionImportListSerializer.Meta.fields + ("error", "messages")
@@ -794,7 +795,7 @@ class CopySerializer(serializers.Serializer):
     A serializer for Content Copy API.
     """
 
-    config = serializers.JSONField(
+    config = fields.JSONDictField(
         help_text=_("A JSON document describing sources, destinations, and content to be copied"),
     )
 
