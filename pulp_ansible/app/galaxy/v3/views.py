@@ -342,7 +342,9 @@ class CollectionViewSet(
         qs = (
             Collection.objects.annotate(
                 highest_version=Subquery(latest_cv_version_qs.values("version")[:1]),
-                latest_version_modified=Subquery(latest_cv_version_qs.values("pulp_last_updated")[:1]),
+                latest_version_modified=Subquery(
+                    latest_cv_version_qs.values("pulp_last_updated")[:1]
+                ),
             )
             .annotate(
                 deprecated=Exists(deprecated_qs),
