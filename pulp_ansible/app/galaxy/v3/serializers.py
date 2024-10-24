@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
 from rest_framework import serializers, relations
 
-from pulp_ansible.app import models
+from pulp_ansible.app import models, fields
 from pulpcore.plugin.models import ContentArtifact, RepositoryVersion
 
 
@@ -296,10 +296,10 @@ class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
     A serializer for a CollectionVersion.
     """
 
-    manifest = serializers.JSONField(
+    manifest = fields.JSONDictField(
         help_text="A JSON field holding MANIFEST.json data.", read_only=True
     )
-    files = serializers.JSONField(help_text="A JSON field holding FILES.json data.", read_only=True)
+    files = fields.JSONDictField(help_text="A JSON field holding FILES.json data.", read_only=True)
 
     class Meta:
         model = models.CollectionVersion
@@ -312,7 +312,7 @@ class CollectionVersionSerializer(UnpaginatedCollectionVersionSerializer):
 class CollectionVersionDocsSerializer(serializers.ModelSerializer):
     """A serializer to display the docs_blob of a CollectionVersion."""
 
-    docs_blob = serializers.JSONField()
+    docs_blob = fields.JSONDictField()
 
     class Meta:
         fields = ("docs_blob",)
