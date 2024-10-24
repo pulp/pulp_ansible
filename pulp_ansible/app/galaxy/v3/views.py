@@ -5,7 +5,6 @@ import base64
 
 from django.db import DatabaseError, IntegrityError
 from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
-from django.db.models.functions import Greatest
 from django.http import StreamingHttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
@@ -31,7 +30,6 @@ from pulpcore.plugin.models import (
     Artifact,
     Content,
     ContentArtifact,
-    RepositoryContent,
     Distribution,
 )
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
