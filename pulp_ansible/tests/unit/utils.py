@@ -1,7 +1,9 @@
 import contextlib
 import hashlib
 import os
+import random
 import shutil
+import string
 import subprocess
 import tempfile
 import yaml
@@ -14,31 +16,36 @@ from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.models import ContentArtifact
 
 
+def randstr():
+    return "".join(random.choices(string.ascii_lowercase, k=8))
+
+
 @contextlib.contextmanager
 def make_cv_tarball(namespace, name, version):
     """Create a collection version from scratch."""
-    tdir = tempfile.mkdtemp()
-    subprocess.run(f"ansible-galaxy collection init {namespace}.{name}", shell=True, cwd=tdir)
-    os.makedirs(os.path.join(tdir, namespace, name, "meta"), exist_ok=True)
-    with open(os.path.join(tdir, namespace, name, "meta", "runtime.yml"), "w") as f:
+    tmpdir = tempfile.mkdtemp()
+    subprocess.run(f"ansible-galaxy collection init {namespace}.{name}", shell=True, cwd=tmpdir)
+    os.makedirs(os.path.join(tmpdir, namespace, name, "meta"), exist_ok=True)
+    with open(os.path.join(tmpdir, namespace, name, "meta", "runtime.yml"), "w") as f:
         f.write('requires_ansible: ">=2.13"\n')
-    with open(os.path.join(tdir, namespace, name, "README.md"), "w") as f:
+    with open(os.path.join(tmpdir, namespace, name, "README.md"), "w") as f:
         f.write("# title\ncollection docs\n")
     if version is not None:
-        with open(os.path.join(tdir, namespace, name, "galaxy.yml"), "r") as f:
+        with open(os.path.join(tmpdir, namespace, name, "galaxy.yml"), "r") as f:
             gdata = yaml.safe_load(f.read())
         gdata["version"] = version
-        with open(os.path.join(tdir, namespace, name, "galaxy.yml"), "w") as f:
+        with open(os.path.join(tmpdir, namespace, name, "galaxy.yml"), "w") as f:
             f.write(yaml.safe_dump(gdata))
     build_pid = subprocess.run(
         "ansible-galaxy collection build .",
         shell=True,
-        cwd=os.path.join(tdir, namespace, name),
+        cwd=os.path.join(tmpdir, namespace, name),
         stdout=subprocess.PIPE,
+        check=True,
     )
     tarfn = build_pid.stdout.decode("utf-8").strip().split()[-1]
     yield tarfn
-    shutil.rmtree(tdir)
+    shutil.rmtree(tmpdir)
 
 
 def build_cvs_from_specs(specs, build_artifacts=True):

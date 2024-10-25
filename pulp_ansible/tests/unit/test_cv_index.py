@@ -1,13 +1,11 @@
 from django.test import TestCase
 
-from orionutils.generator import randstr
-
 from pulp_ansible.app.models import AnsibleDistribution
 from pulp_ansible.app.models import AnsibleRepository
 from pulp_ansible.app.models import CollectionVersion
 from pulp_ansible.app.models import CrossRepositoryCollectionVersionIndex as CVIndex
 
-from .utils import build_cvs_from_specs
+from .utils import build_cvs_from_specs, randstr
 
 
 class TestCollectionVersionIndex(TestCase):

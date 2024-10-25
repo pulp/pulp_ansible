@@ -1,18 +1,14 @@
 import requests
 
-from pulpcore.client.pulp_ansible import (
-    PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi,
-    PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexVersionsApi,
-)
-
-
 # Using requests for these tests because the client follows redirects and I need to inspect the URL
 # that gets redirected to
 
 
-def _get_download_url(client, distribution, namespace, name):
-    collection_api = PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi(client)
-    versions_api = PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexVersionsApi(client)
+def _get_download_url(ansible_bindings, distribution, namespace, name):
+    collection_api = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi
+    versions_api = (
+        ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexVersionsApi
+    )
 
     collection = collection_api.read(
         distribution.base_path,
@@ -43,7 +39,7 @@ def test_download(
 
     # Fetch content
     download_url = _get_download_url(
-        ansible_bindings.client, distribution, collection.namespace, collection.name
+        ansible_bindings, distribution, collection.namespace, collection.name
     )
     pulp_auth = (bindings_cfg.username, bindings_cfg.password)
     response = requests.get(download_url, auth=pulp_auth, allow_redirects=False)
@@ -81,7 +77,7 @@ def test_download_with_content_guard(
 
     # Fetch content
     download_url = _get_download_url(
-        ansible_bindings.client, distribution, collection.namespace, collection.name
+        ansible_bindings, distribution, collection.namespace, collection.name
     )
     pulp_auth = (bindings_cfg.username, bindings_cfg.password)
     response = requests.get(download_url, auth=pulp_auth, allow_redirects=False)

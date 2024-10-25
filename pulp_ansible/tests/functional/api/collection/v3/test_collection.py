@@ -2,9 +2,8 @@
 
 import hashlib
 import logging
-import os
+import pathlib
 import re
-import shutil
 from datetime import datetime
 from urllib.parse import urljoin
 
@@ -20,7 +19,6 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_REPO_PATH,
 )
-from orionutils.generator import build_collection
 
 
 logger = logging.getLogger(__name__)
@@ -54,25 +52,20 @@ def get_galaxy_url(base, path):
     return urljoin(GALAXY_API_ROOT, path)
 
 
-@pytest.fixture(scope="session")
-def collection_artifact():
+@pytest.fixture(scope="module")
+def collection_artifact(ansible_collection_factory):
     """Generate a randomized collection for testing."""
-    # build_collection will only store one collection, so copy to new location and delete later
-    artifact = build_collection("skeleton")
-    artifact.filename = shutil.copy(artifact.filename, "/tmp")
-    yield artifact
-    os.remove(artifact.filename)
+    return ansible_collection_factory()
 
 
-@pytest.fixture(scope="session")
-def collection_artifact2():
+@pytest.fixture(scope="module")
+def collection_artifact2(ansible_collection_factory):
     """
     Generate a second randomized collection for testing.
 
     This collection will have the same namespace and version, but different name.
     """
-    artifact2 = build_collection("skeleton")
-    return artifact2
+    return ansible_collection_factory()
 
 
 def get_metadata_published(pulp_client, pulp_dist):
@@ -91,7 +84,7 @@ def upload_collection(client, filename, base_path):
     return client.using_handler(upload_handler).post(UPLOAD_PATH, files=collection)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def collection_upload(pulp_client, collection_artifact, pulp_dist):
     """Publish a new collection and return the processed response data."""
     published_before_upload = get_metadata_published(pulp_client, pulp_dist)
@@ -101,7 +94,7 @@ def collection_upload(pulp_client, collection_artifact, pulp_dist):
     return response
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def collection_upload2(pulp_client, collection_artifact2, pulp_dist):
     """Publish the second new collection and return the processed response data."""
     published_before_upload = get_metadata_published(pulp_client, pulp_dist)
@@ -111,7 +104,7 @@ def collection_upload2(pulp_client, collection_artifact2, pulp_dist):
     return response
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def collection_detail(collection_upload, pulp_client, pulp_dist, collection_artifact):
     """Fetch and parse a collection details response from an uploaded collection."""
     url = get_galaxy_url(
@@ -122,7 +115,7 @@ def collection_detail(collection_upload, pulp_client, pulp_dist, collection_arti
     return response
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def pulp_client():
     """Create and configure a Pulp API client, including custom authentication headers."""
     cfg = config.get_config()
@@ -133,7 +126,7 @@ def pulp_client():
     return client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def pulp_repo(pulp_client):
     """Find or create a Repository to attach to the Ansible Distribution we create."""
     repos = pulp_client.get(ANSIBLE_REPO_PATH)
@@ -146,7 +139,7 @@ def pulp_repo(pulp_client):
         pulp_client.delete(repo["pulp_href"])
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def pulp_dist(pulp_client, pulp_repo):
     """Create an Ansible Distribution to simulate the automation hub environment for testing."""
     dists = pulp_client.get(ANSIBLE_DISTRIBUTION_PATH + "?base_path=automation-hub")
@@ -167,7 +160,7 @@ def pulp_dist(pulp_client, pulp_repo):
         pulp_client.delete(dist["pulp_href"])
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def known_collection():
     """Fetch and prepare a known collection from Galaxy to use in an upload test."""
     collection_content = http_get(ANSIBLE_COLLECTION_UPLOAD_FIXTURE_URL)
@@ -255,7 +248,12 @@ def test_collection_version_list(
 
 
 def test_collection_version_filter_by_q(
-    ansible_bindings, pulp_client, pulp_dist, monitor_task, delete_orphans_pre
+    ansible_bindings,
+    ansible_collection_factory,
+    pulp_client,
+    pulp_dist,
+    monitor_task,
+    delete_orphans_pre,
 ):
     """Verify successive imports do not aggregate tags into search vectors."""
 
@@ -281,7 +279,7 @@ def test_collection_version_filter_by_q(
             "version": "1.0.0",
             "tags": [spec[0]],
         }
-        this_artifact = build_collection("skeleton", config=cfg)
+        this_artifact = ansible_collection_factory(config=cfg)
         publish(this_artifact)
 
     for spec in specs:
@@ -311,7 +309,7 @@ def test_collection_version(collection_artifact, pulp_client, collection_detail)
     assert version["artifact"]["sha256"] == hashlib.sha256(tarball).hexdigest()
     assert version["artifact"]["size"] == len(tarball)
 
-    assert version["artifact"]["filename"] == collection_artifact.filename.strip("/tmp/")
+    assert version["artifact"]["filename"] == pathlib.Path(collection_artifact.filename).name
 
     assert "updated_at" in version
     assert "created_at" in version

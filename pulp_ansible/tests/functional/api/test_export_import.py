@@ -12,8 +12,11 @@ from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
 
+# As long as we cannot run this test in domains, it must not run as parallel.
+# Orphan cleanup is unsafe in any scenario here.
+
+
 @pytest.mark.parametrize("cleanup", [True, False])
-@pytest.mark.parallel
 def test_export_then_import(
     pulpcore_bindings,
     ansible_bindings,

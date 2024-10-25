@@ -4,15 +4,7 @@ import datetime
 
 import pytest
 
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
-    SyncHelpersMixin,
-    TestCaseUsingBindings,
-)
-from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
-from orionutils.generator import build_collection
-from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
-from pulp_ansible.tests.functional.utils import monitor_task
+from pulp_ansible.tests.functional.utils import randstr
 
 
 @pytest.mark.parallel
@@ -83,6 +75,7 @@ def test_sync_supports_mirror_option_false(
     assert content_version_two.count == 4
 
 
+@pytest.mark.parallel
 def test_sync_mirror_defaults_to_false(
     ansible_bindings, ansible_collection_remote_factory, ansible_sync_factory
 ):
@@ -161,109 +154,94 @@ def test_sync_collection_with_specialities(
     assert content.count >= min_count
 
 
-class FullDependenciesSync(TestCaseUsingBindings, SyncHelpersMixin):
-    """
-    Collection sync tests for syncing collections and their dependencies.
+class TestFullDependenciesSync:
+    @pytest.fixture(scope="class")
+    def distribution_with_dependencies(
+        self,
+        ansible_repo_factory,
+        ansible_distribution_factory,
+        build_and_upload_collection,
+    ):
+        """
+        Collections with dependencies in a repository.
+        """
 
-    Dependency Trees:
-    A               E
-    |             /   \
-    B            F     G
-    |            |     |
-    C         H(1-3)   D
-    |
-    D
+        # Dependency Graph:
+        #     E     A  I
+        #     |\    |  |\
+        #     F G   B  J K
+        #     |  \  |   \|
+        #  H(1-3) \ C    L
+        #          \|
+        #           D
 
-    H has 5 versions, no dependencies
-    """
+        namespace = randstr()
+        TEST_COLLECTION_CONFIGS = [
+            {"namespace": namespace, "name": "a", "dependencies": {f"{namespace}.b": "*"}},
+            {"namespace": namespace, "name": "b", "dependencies": {f"{namespace}.c": "*"}},
+            {"namespace": namespace, "name": "c", "dependencies": {f"{namespace}.d": "*"}},
+            {"namespace": namespace, "name": "d"},
+            {
+                "namespace": namespace,
+                "name": "e",
+                "dependencies": {f"{namespace}.f": "*", f"{namespace}.g": "*"},
+            },
+            {"namespace": namespace, "name": "f", "dependencies": {f"{namespace}.h": "<=3.0.0"}},
+            {"namespace": namespace, "name": "g", "dependencies": {f"{namespace}.d": "*"}},
+            {"namespace": namespace, "name": "h", "version": "1.0.0"},
+            {"namespace": namespace, "name": "h", "version": "2.0.0"},
+            {"namespace": namespace, "name": "h", "version": "3.0.0"},
+            {
+                "namespace": namespace,
+                "name": "i",
+                "dependencies": {f"{namespace}.j": "*", f"{namespace}.k": "*"},
+            },
+            {"namespace": namespace, "name": "j", "dependencies": {f"{namespace}.l": "*"}},
+            {"namespace": namespace, "name": "k", "dependencies": {f"{namespace}.l": "*"}},
+            {"namespace": namespace, "name": "l"},
+        ]
+        repository = ansible_repo_factory()
+        distribution = ansible_distribution_factory(
+            repository=repository, pulp_labels={"namespace": namespace}
+        )
+        for config in TEST_COLLECTION_CONFIGS:
+            build_and_upload_collection(repository, config={"namespace": namespace, **config})
+        return distribution
 
-    @classmethod
-    def setUpClass(cls):
-        """Set up class variables."""
-        super().setUpClass()
-        cls._build_and_publish_collections()
-
-    @classmethod
-    def tearDownClass(cls):
-        """Tear down class variables."""
-        cls.repo_api.delete(cls.repo.pulp_href)
-        cls.distributions_api.delete(cls.distro.pulp_href)
-
-    @classmethod
-    def _build_and_publish_collections(cls):
-        """Builds and publishes the collections to be used in this test."""
-        from django.conf import settings
-
-        cls.collections = []
-        cls.repo, cls.distro = cls._create_empty_repo_and_distribution(cls(), cleanup=False)
-
-        upload_api = PulpAnsibleArtifactsCollectionsV3Api(cls.client)
-        for cfg in TEST_COLLECTION_CONFIGS:
-            collection = build_collection("skeleton", config=cfg)
-            upload_response = upload_api.create(cls.distro.base_path, collection.filename)
-            api_root = settings.API_ROOT
-            monitor_task("{}api/v3/tasks/{}/".format(api_root, upload_response.task[-37:-1]))
-            cls.collections.append(collection)
-        cls.distro.client_url += "api/"
-
-    def test_simple_one_level_dependency(self):
-        """Sync test.c which requires test.d."""
-        body = gen_ansible_remote(
-            url=self.distro.client_url,
-            requirements_file="collections:\n  - test.c",
+    @pytest.mark.parametrize(
+        "collection_name,expected_count",
+        [
+            pytest.param("d", 1, id="no_dependency"),
+            pytest.param("c", 2, id="simple_one_level"),
+            pytest.param("a", 4, id="simple_multi_level"),
+            pytest.param("f", 4, id="complex_one_level"),
+            pytest.param("e", 7, id="complex_multi_level"),
+            pytest.param("i", 4, id="diamond_shaped"),
+        ],
+    )
+    # Running this test in parallel leads to weird failures with upload.
+    # @pytest.mark.parallel
+    def test_dependency_sync(
+        self,
+        collection_name,
+        expected_count,
+        ansible_bindings,
+        distribution_with_dependencies,
+        ansible_collection_remote_factory,
+        ansible_sync_factory,
+    ):
+        namespace = distribution_with_dependencies.pulp_labels["namespace"]
+        remote = ansible_collection_remote_factory(
+            url=distribution_with_dependencies.client_url,
+            requirements_file=f"collections:\n  - {namespace}.{collection_name}",
             include_pulp_auth=True,
         )
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
-        repo = self._create_repo_and_sync_with_remote(remote)
+        repository = ansible_sync_factory(remote=remote.pulp_href)
 
-        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        assert content.count == 2
-
-    def test_simple_multi_level_dependency(self):
-        """Sync test.a which should get the dependency chain: test.b -> test.c -> test.d."""
-        body = gen_ansible_remote(
-            url=self.distro.client_url,
-            requirements_file="collections:\n  - test.a",
-            include_pulp_auth=True,
+        content = ansible_bindings.ContentCollectionVersionsApi.list(
+            repository_version=f"{repository.pulp_href}versions/1/"
         )
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
-
-        repo = self._create_repo_and_sync_with_remote(remote)
-
-        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        assert content.count == 4
-
-    def test_complex_one_level_dependency(self):
-        """Sync test.f which should get 3 versions of test.h."""
-        body = gen_ansible_remote(
-            url=self.distro.client_url,
-            requirements_file="collections:\n  - test.f",
-            include_pulp_auth=True,
-        )
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
-
-        repo = self._create_repo_and_sync_with_remote(remote)
-
-        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        assert content.count == 4
-
-    def test_complex_multi_level_dependency(self):
-        """Sync test.e which should get test.f, test.d, test.g and 3 versions of test.h."""
-        body = gen_ansible_remote(
-            url=self.distro.client_url,
-            requirements_file="collections:\n  - test.e",
-            include_pulp_auth=True,
-        )
-        remote = self.remote_collection_api.create(body)
-        self.addCleanup(self.remote_collection_api.delete, remote.pulp_href)
-
-        repo = self._create_repo_and_sync_with_remote(remote)
-
-        content = self.cv_api.list(repository_version=f"{repo.pulp_href}versions/1/")
-        assert content.count == 7
+        assert content.count == expected_count
 
 
 @pytest.mark.skip("Skipped until fixture metadata has a published date")
@@ -272,6 +250,7 @@ def test_optimized_sync(
     ansible_bindings,
     ansible_repo_factory,
     ansible_collection_remote_factory,
+    monitor_task,
 ):
     # TODO this test is incomplete and may not work
     remote1 = ansible_collection_remote_factory(
@@ -309,6 +288,7 @@ def test_semver_sync(
     ansible_bindings,
     ansible_repo_factory,
     ansible_collection_remote_factory,
+    monitor_task,
 ):
     remote = ansible_collection_remote_factory(
         url="https://galaxy.ansible.com",
@@ -334,6 +314,7 @@ def test_last_synced_metadata_time(
     ansible_bindings,
     ansible_repo_factory,
     ansible_collection_remote_factory,
+    monitor_task,
 ):
     remote1 = ansible_collection_remote_factory(
         url="https://galaxy.ansible.com",

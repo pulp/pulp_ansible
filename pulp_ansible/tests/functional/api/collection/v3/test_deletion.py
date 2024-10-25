@@ -1,9 +1,8 @@
 import pytest
 
 from pulpcore.client.pulp_ansible.exceptions import ApiException
-from orionutils.generator import randstr
 
-from pulp_ansible.tests.functional.utils import content_counts
+from pulp_ansible.tests.functional.utils import content_counts, randstr
 
 
 def test_collection_deletion(
