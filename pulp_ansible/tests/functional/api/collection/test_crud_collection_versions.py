@@ -2,8 +2,7 @@
 
 import pytest
 
-from orionutils.generator import randstr
-
+from pulp_ansible.tests.functional.utils import randstr
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
     GALAXY_ANSIBLE_BASE_URL,

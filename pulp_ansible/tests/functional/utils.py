@@ -1,5 +1,7 @@
 """Utilities for tests for the ansible plugin."""
 
+import random
+import string
 from urllib.parse import urlparse, parse_qs
 
 from pulp_smash import config
@@ -36,6 +38,10 @@ from pulpcore.client.pulp_ansible import (
 
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
+
+
+def randstr():
+    return "".join(random.choices(string.ascii_lowercase, k=8))
 
 
 def is_galaxy_ng_installed():
@@ -175,21 +181,6 @@ class SyncHelpersMixin:
         if cleanup:
             self.addCleanup(self.distributions_api.delete, distribution.pulp_href)
         return distribution
-
-    def _create_empty_repo_and_distribution(self, cleanup=True):
-        """
-        Creates an empty `AnsibleRepository` and an `AnsibleDistribution` serving that repository.
-
-        Args:
-            cleanup: Whether the repository and distribution should be cleaned up
-
-        Returns:
-            Tuple of the created `AnsibleRepository`, `AnsibleDistribution`
-        """
-        repo = self.repo_api.create(gen_repo())
-        if cleanup:
-            self.addCleanup(self.repo_api.delete, repo.pulp_href)
-        return repo, self._create_distribution_from_repo(repo, cleanup=cleanup)
 
 
 def iterate_all(list_func, **kwargs):

@@ -1,13 +1,14 @@
 import uuid
 import pytest
 import numpy as np
-import shutil
+import subprocess
 import time
-
-from orionutils.generator import build_collection, randstr
+import yaml
+from types import SimpleNamespace
 
 from pulpcore.tests.functional.utils import BindingsNamespace
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
+from pulp_ansible.tests.functional.utils import randstr
 
 
 # Bindings API Fixtures
@@ -129,16 +130,41 @@ def ansible_git_remote_factory(bindings_cfg, ansible_bindings, gen_object_with_c
 
 @pytest.fixture(scope="session")
 def ansible_collection_factory(tmp_path_factory):
-    def _collection_factory(**kwargs):
+    def _collection_factory(config=None):
+        config = {} if config is None else config.copy()
         tmpdir = tmp_path_factory.mktemp("collection")
-        collection = build_collection("skeleton", **kwargs)
-        collection.filename = shutil.copy(collection.filename, tmpdir)
-        return collection
+        namespace = config.setdefault("namespace", randstr())
+        name = config.setdefault("name", randstr())
+        config.setdefault("version", "1.0.0")
+
+        src_path = tmpdir / namespace / name
+
+        # Template the collection
+        subprocess.run(f"ansible-galaxy collection init {namespace}.{name}", shell=True, cwd=tmpdir)
+
+        # Adjust the template
+        (src_path / "meta" / "runtime.yml").write_text('requires_ansible: ">=2.13"\n')
+        (src_path / "README.md").write_text("# title\ncollection docs\n")
+        galaxy_yaml = yaml.safe_load((src_path / "galaxy.yml").read_text())
+        galaxy_yaml.update(config)
+        (src_path / "galaxy.yml").write_text(yaml.safe_dump(galaxy_yaml))
+
+        # Build the collection artifact
+        build_proc = subprocess.run(
+            "ansible-galaxy collection build .",
+            shell=True,
+            cwd=src_path,
+            stdout=subprocess.PIPE,
+            check=True,
+        )
+        filename = build_proc.stdout.decode("utf-8").strip().split()[-1]
+
+        return SimpleNamespace(filename=filename, **config)
 
     return _collection_factory
 
 
-@pytest.fixture
+@pytest.fixture(scope="class")
 def build_and_upload_collection(ansible_bindings, monitor_task, ansible_collection_factory):
     """A factory to locally create, build, and upload a collection."""
 

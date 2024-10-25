@@ -1,15 +1,12 @@
 import hashlib
 import json
-import shutil
 import subprocess
 import os
 
 import pytest
 
-from orionutils.generator import build_collection
-from orionutils.generator import randstr
-
 from pulpcore.client.pulp_ansible.exceptions import ApiException
+from pulp_ansible.tests.functional.utils import randstr
 
 
 def busted_collection_build(basedir=None, namespace=None, name=None, version=None):
@@ -102,6 +99,7 @@ def test_collection_named_collections(
     ansible_bindings,
     tmp_path,
     ansible_repo,
+    ansible_collection_factory,
     ansible_distribution_factory,
     monitor_task,
 ):
@@ -115,14 +113,9 @@ def test_collection_named_collections(
         "name": "collections",
         "version": "1.0.0",
     }
-    artifact = build_collection(base="skeleton", config=spec)
+    artifact = ansible_collection_factory(config=spec).filename
 
-    # orionutils creates the tarball inside the site-packages path,
-    # so we'd like to get it out of there before doing anything further.
-    artifact_fn = os.path.join(tmp_path, os.path.basename(artifact.filename))
-    shutil.move(artifact.filename, artifact_fn)
-
-    body = {"file": artifact_fn}
+    body = {"file": artifact}
     body["repository"] = ansible_repo.pulp_href
     response = ansible_bindings.ContentCollectionVersionsApi.create(**body)
     monitor_task(response.task)

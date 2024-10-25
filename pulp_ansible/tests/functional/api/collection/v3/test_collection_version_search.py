@@ -1,7 +1,6 @@
 import copy
 import pickle
 import logging
-import shutil
 import os
 import random
 import uuid
@@ -9,14 +8,12 @@ from semantic_version import Version
 
 import pytest
 
-from orionutils.generator import build_collection
-from orionutils.generator import randstr
-
 from pulp_smash.pulp3.bindings import delete_orphans
 from pulp_ansible.tests.functional.utils import (
     gen_distribution,
     gen_remote,
     gen_repo,
+    randstr,
 )
 
 
@@ -491,6 +488,7 @@ def create_repos_and_dists(
 @pytest.fixture()
 def search_specs(
     ansible_bindings,
+    ansible_collection_factory,
     tmp_path,
     signing_gpg_homedir_path,
     ascii_armored_detached_signing_service,
@@ -548,19 +546,17 @@ def search_specs(
                 # upload to the repo ...
                 build_spec = copy.deepcopy(spec)
                 build_spec["repository"] = "https://github.com/foo/bar"
-                artifact = build_collection(base="skeleton", config=build_spec)
-                new_fn = os.path.join(artifact_cache, os.path.basename(artifact.filename))
-                shutil.move(artifact.filename, new_fn)
-                specs[ids]["artifact"] = new_fn
+                cv_fn = ansible_collection_factory(config=build_spec).filename
+                specs[ids]["artifact"] = cv_fn
                 body = {
-                    "file": new_fn,
+                    "file": cv_fn,
                     "repository": created_repos[spec["repository_name"]]["pulp_href"],
                 }
                 res = monitor_task(
                     ansible_bindings.ContentCollectionVersionsApi.create(**body).task
                 )
                 assert res.state == "completed"
-                uploaded_artifacts[ckey] = new_fn
+                uploaded_artifacts[ckey] = cv_fn
 
             else:
                 # copy to the repo ...
