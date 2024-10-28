@@ -115,6 +115,9 @@ class CollectionVersionContentResource(BaseContentResource):
 
         col = Collection.objects.get(name=row["name"], namespace=row["namespace"])
         row["collection"] = str(col.pk)
+        # This field easily produces constraints violations.
+        # But it's neither useful nor correct. It's removed in newer versions anyway.
+        row["is_highest"] = False
 
     def set_up_queryset(self):
         """
