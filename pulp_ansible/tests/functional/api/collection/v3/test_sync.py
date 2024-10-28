@@ -10,10 +10,12 @@ from pulp_ansible.tests.functional.utils import (
     monitor_task,
     tasks,
 )
-from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
+from pulp_ansible.tests.functional.utils import TestCaseUsingBindings
+
+REQUIREMENTS_FILE = "collections:\n  - testing.k8s_demo_collection"
 
 
-class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMixin):
+class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings):
     """
     Test whether one can sync collections from a Pulp server.
 
@@ -27,7 +29,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         self.requirements_file = "collections:\n  - testing.k8s_demo_collection"
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
-            requirements_file=self.requirements_file,
+            requirements_file=REQUIREMENTS_FILE,
             sync_dependencies=False,
         )
         self.remote = self.remote_collection_api.create(body)
@@ -40,7 +42,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         """Test sync collections from pulp server."""
         second_body = gen_ansible_remote(
             url=self.distribution.client_url,
-            requirements_file=self.requirements_file,
+            requirements_file=REQUIREMENTS_FILE,
             sync_dependencies=False,
             include_pulp_auth=True,
         )
@@ -60,7 +62,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         """Test sync collections from pulp server using a mirror option the second time."""
         body = gen_ansible_remote(
             url="https://galaxy.ansible.com",
-            requirements_file="collections:\n  - testing.k8s_demo_collection",
+            requirements_file=REQUIREMENTS_FILE,
             sync_dependencies=False,
         )
         remote = self.remote_collection_api.create(body)
@@ -102,7 +104,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         """Test whether sync yields no-op when repo hasn't changed since last sync."""
         second_body = gen_ansible_remote(
             url=self.distribution.client_url,
-            requirements_file=self.requirements_file,
+            requirements_file=REQUIREMENTS_FILE,
             sync_dependencies=False,
             include_pulp_auth=True,
         )
@@ -131,7 +133,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         """Test whether no-op sync with mirror=True doesn't remove repository content."""
         second_body = gen_ansible_remote(
             url=self.distribution.client_url,
-            requirements_file=self.requirements_file,
+            requirements_file=REQUIREMENTS_FILE,
             sync_dependencies=False,
             include_pulp_auth=True,
         )
@@ -161,7 +163,7 @@ class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMi
         """Test requirements_file update."""
         body = gen_ansible_remote(
             url=self.distribution.client_url,
-            requirements_file=self.requirements_file,
+            requirements_file=REQUIREMENTS_FILE,
             sync_dependencies=False,
             include_pulp_auth=True,
         )

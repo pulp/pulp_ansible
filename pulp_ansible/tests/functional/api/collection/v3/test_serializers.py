@@ -11,12 +11,12 @@ from pulpcore.client.pulp_ansible import (
 )
 from pulp_smash.pulp3.bindings import monitor_task
 
-from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
+from pulp_ansible.tests.functional.utils import TestCaseUsingBindings
 from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
 from pulp_ansible.tests.functional.utils import tasks
 
 
-class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
+class CollectionsV3TestCase(TestCaseUsingBindings):
     """Test Collections V3 endpoint."""
 
     @classmethod
