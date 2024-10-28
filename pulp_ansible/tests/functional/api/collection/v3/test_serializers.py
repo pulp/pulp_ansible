@@ -1,5 +1,7 @@
 """Tests related to Galaxy V3 serializers."""
 
+import yaml
+
 from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
@@ -62,6 +64,7 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         original_highest_version = collections.data[0].highest_version["version"]
         original_updated_at = collections.data[0].updated_at
 
+        versions = self.collections_versions_api.list(version="0.0.7")
         original_total_versions = self.collections_versions_v3api.list(
             "squeezer", "pulp", distribution.base_path
         ).meta.count
