@@ -5,7 +5,6 @@ import base64
 
 from django.db import DatabaseError, IntegrityError
 from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
-from django.db.models.functions import Greatest
 from django.http import StreamingHttpResponse, HttpResponseNotFound
 from django.shortcuts import get_object_or_404, redirect
 from django.utils.dateparse import parse_datetime
@@ -31,7 +30,6 @@ from pulpcore.plugin.models import (
     Artifact,
     Content,
     ContentArtifact,
-    RepositoryContent,
     Distribution,
 )
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
@@ -335,24 +333,6 @@ class CollectionViewSet(
             .only("version")
         )
 
-        latest_version_modified_qs = (
-            RepositoryContent.objects.filter(
-                repository_id=repo_version.repository_id,
-                version_added__number__lte=repo_version.number,
-            )
-            .select_related("content__ansible_collectionversion")
-            .select_related("version_added")
-            .select_related("version_removed")
-            .filter(content__ansible_collectionversion__collection_id=OuterRef("pk"))
-            .annotate(
-                last_updated=Greatest(
-                    "version_added__pulp_created", "version_removed__pulp_created"
-                )
-            )
-            .order_by("-last_updated")
-            .only("last_updated")
-        )
-
         download_count_qs = CollectionDownloadCount.objects.filter(
             name=OuterRef("name"), namespace=OuterRef("namespace")
         )
@@ -361,7 +341,7 @@ class CollectionViewSet(
             Collection.objects.annotate(
                 highest_version=Subquery(latest_cv_version_qs.values("version")[:1]),
                 latest_version_modified=Subquery(
-                    latest_version_modified_qs.values("last_updated")[:1]
+                    latest_cv_version_qs.values("pulp_last_updated")[:1]
                 ),
             )
             .annotate(
