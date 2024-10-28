@@ -44,20 +44,6 @@ def randstr():
     return "".join(random.choices(string.ascii_lowercase, k=8))
 
 
-def is_galaxy_ng_installed():
-    """Returns whether or not the galaxy_ng plugin is installed."""
-    configuration = cfg.get_bindings_config()
-    core_client = CoreApiClient(configuration)
-    status_client = StatusApi(core_client)
-
-    status = status_client.status_read()
-
-    for plugin in status.versions:
-        if plugin.component == "galaxy":
-            return True
-    return False
-
-
 def content_counts(repository_version, summary_type="present"):
     content_summary = getattr(repository_version.content_summary, summary_type)
     return {key: value["count"] for key, value in content_summary.items()}
@@ -108,10 +94,6 @@ class TestCaseUsingBindings(PulpTestCase):
     def tearDownClass(cls):
         """Clean class-wide variable."""
         delete_orphans()
-
-
-class SyncHelpersMixin:
-    """A common place for sync helper functions."""
 
     def _create_repo_and_sync_with_remote(self, remote, distribution=False, **repo_kwargs):
         """
