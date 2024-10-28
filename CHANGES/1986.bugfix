@@ -1,0 +1,1 @@
+Set `is_highest` to `False` before importing a collection version to prevent conflicts.
