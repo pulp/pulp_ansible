@@ -55,15 +55,27 @@ def test_sync_collection_from_git(ansible_repo, sync_and_count, ansible_distribu
     collection_name = "pulp.squeezer"
     with tempfile.TemporaryDirectory() as temp_dir:
         # The install command needs --pre so a pre-release collection versions install
-        cmd = "ansible-galaxy collection install --pre {} -c -s {} -p {}".format(
-            collection_name, distribution.client_url, temp_dir
-        )
 
         directory = "{}/ansible_collections/{}".format(temp_dir, collection_name.replace(".", "/"))
 
         assert not path.exists(directory), "Directory {} already exists".format(directory)
 
-        subprocess.run(cmd.split())
+        subprocess.run(
+            [
+                "ansible-galaxy",
+                "collection",
+                "install",
+                "--pre",
+                collection_name,
+                "-c",
+                "-s",
+                distribution.client_url.replace(":443", ""),
+                "-p",
+                temp_dir,
+            ],
+            cwd=temp_dir,
+            check=True,
+        )
 
         assert path.exists(directory), "Could not find directory {}".format(directory)
 
