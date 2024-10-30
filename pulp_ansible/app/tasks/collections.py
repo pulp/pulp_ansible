@@ -1107,7 +1107,6 @@ class AnsibleContentSaver(ContentSaver):
     """
 
     def __init__(self, repository_version, *args, **kwargs):
-        """Initialize CollectionContentSaver."""
         super().__init__(*args, **kwargs)
         self.repository_version = repository_version
 

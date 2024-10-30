@@ -25,9 +25,6 @@ class AnsibleFileDownloader(FileDownloader):
     """
 
     def __init__(self, *args, **kwargs):
-        """
-        Initialize the downloader.
-        """
         kwargs.pop("silence_errors_for_response_status_codes", None)
         super().__init__(*args, **kwargs)
 
@@ -44,9 +41,6 @@ class TokenAuthHttpDownloader(HttpDownloader):
     def __init__(
         self, url, auth_url, token, silence_errors_for_response_status_codes=None, **kwargs
     ):
-        """
-        Initialize the downloader.
-        """
         self.ansible_auth_url = auth_url
         self.token = token
         if silence_errors_for_response_status_codes is None:
@@ -174,19 +168,18 @@ class TokenAuthHttpDownloader(HttpDownloader):
 
 
 class AnsibleDownloaderFactory(DownloaderFactory):
-    """A factory for creating downloader objects that are configured from with remote settings."""
+    """
+    A factory for creating downloader objects that are configured from with remote settings
+
+    Args:
+        remote (:class:`~pulpcore.plugin.models.Remote`): The remote used to populate
+            downloader settings.
+        downloader_overrides (dict): Keyed on a scheme name, e.g. 'https' or 'ftp' and the value
+            is the downloader class to be used for that scheme, e.g.
+            {'https': MyCustomDownloader}. These override the default values.
+    """
 
     def __init__(self, remote, downloader_overrides=None):
-        """
-        Initialize AnsibleDownloaderFactory.
-
-        Args:
-            remote (:class:`~pulpcore.plugin.models.Remote`): The remote used to populate
-                downloader settings.
-            downloader_overrides (dict): Keyed on a scheme name, e.g. 'https' or 'ftp' and the value
-                is the downloader class to be used for that scheme, e.g.
-                {'https': MyCustomDownloader}. These override the default values.
-        """
         if not downloader_overrides:
             downloader_overrides = {
                 "http": TokenAuthHttpDownloader,
