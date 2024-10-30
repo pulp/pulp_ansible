@@ -109,7 +109,6 @@ class CollectionSigningFirstStage(Stage):
     """
 
     def __init__(self, content, signing_service, current_signatures):
-        """Initialize Signing first stage."""
         super().__init__()
         self.content = content
         self.signing_service = signing_service
