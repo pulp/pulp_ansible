@@ -8,6 +8,17 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.20.9 (2024-10-31) {: #0.20.9 }
+
+#### Bugfixes {: #0.20.9-bugfix }
+
+- Set `is_highest` to `False` before importing a collection version to prevent conflicts.
+  [#1986](https://github.com/pulp/pulp_ansible/issues/1986)
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+
+---
+
 ## 0.20.8 (2024-07-22) {: #0.20.8 }
 
 
