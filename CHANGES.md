@@ -41,7 +41,7 @@
 
 ## 0.21.6 (2024-05-29) {: #0.21.6 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed sync failing on undownloadable namespace avatars.
     [#1868](https://github.com/pulp/pulp_ansible/issues/1868)
@@ -56,7 +56,7 @@ No significant changes.
 
 ## 0.21.4 (2024-05-07) {: #0.21.4 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Add ansible hostname to API v3 cache key
     [#1833](https://github.com/pulp/pulp_ansible/issues/1833)
@@ -65,7 +65,7 @@ No significant changes.
 
 ## 0.21.3 (2024-02-28) {: #0.21.3 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed AnsibleNamespaceMetadata not being exported.
     [#1764](https://github.com/pulp/pulp_ansible/issues/1764)
@@ -83,7 +83,7 @@ No significant changes.
 
 ## 0.21.1 (2023-12-12) {: #0.21.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Duplicate Collection uploads no longer return 400s.
     [#1691](https://github.com/pulp/pulp_ansible/issues/1691)
@@ -92,13 +92,13 @@ No significant changes.
 
 ## 0.21.0 (2023-11-03) {: #0.21.0 }
 
-### Features
+#### Features
 
 -   Added pulpcore 3.40 compatibility.
 -   Display the `count` attribute in the tags of collections.
     [#1612](https://github.com/pulp/pulp_ansible/issues/1612)
 
-### Bugfixes
+#### Bugfixes
 
 -   Ignore the "users" field in namespace data during sync.
     [#1598](https://github.com/pulp/pulp_ansible/issues/1598)
@@ -109,7 +109,7 @@ No significant changes.
 
 ## 0.20.2 (2023-10-23) {: #0.20.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed highest version calculation failing when versions of a collection were created out of order.
     [#1623](https://github.com/pulp/pulp_ansible/issues/1623)
@@ -118,7 +118,7 @@ No significant changes.
 
 ## 0.20.1 (2023-10-03) {: #0.20.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Ignore the "users" field in namespace data during sync.
     [#1598](https://github.com/pulp/pulp_ansible/issues/1598)
@@ -127,7 +127,7 @@ No significant changes.
 
 ## 0.20.0 (2023-09-26) {: #0.20.0 }
 
-### Features
+#### Features
 
 -   Added settings `ANSIBLE_AUTHENTICATION_CLASSES` and `ANSIBLE_PERMISSION_CLASSES` to allow for
     customizing Galaxy authentication and authorization separate from Pulp APIs.
@@ -135,7 +135,7 @@ No significant changes.
 -   Adjusted default access policies for new labels api.
     [#1568](https://github.com/pulp/pulp_ansible/issues/1568)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed ordering by version in the `/ansible/search/collection-versions/` endpoint.
     [#1516](https://github.com/pulp/pulp_ansible/issues/1516)
@@ -146,7 +146,7 @@ No significant changes.
 -   Prevented a race condition that lead to contraint violations when calculating the highest version of a collection.
     [#1571](https://github.com/pulp/pulp_ansible/issues/1571)
 
-### Misc
+#### Misc
 
 -   [#1506](https://github.com/pulp/pulp_ansible/issues/1506)
 
@@ -154,13 +154,13 @@ No significant changes.
 
 ## 0.19.0 (2023-07-20) {: #0.19.0 }
 
-### Features
+#### Features
 
 -   Exposes collection download count in the api.
     Download count controlled by new setting ANSIBLE_COLLECT_DOWNLOAD_COUNT.
     [#1478](https://github.com/pulp/pulp_ansible/issues/1478)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed the migration 0030 in face of collections without runtime.yml.
     [#1480](https://github.com/pulp/pulp_ansible/issues/1480)
@@ -173,7 +173,7 @@ No significant changes.
 
 ## 0.18.2 (2023-10-03) {: #0.18.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Ignore the "users" field in namespace data during sync.
     [#1598](https://github.com/pulp/pulp_ansible/issues/1598)
@@ -182,7 +182,7 @@ No significant changes.
 
 ## 0.18.1 (2023-09-21) {: #0.18.1 }
 
-### Features
+#### Features
 
 -   Added settings `ANSIBLE_AUTHENTICATION_CLASSES` and `ANSIBLE_PERMISSION_CLASSES` to allow for
     customizing Galaxy authentication and authorization separate from Pulp APIs.
@@ -192,12 +192,12 @@ No significant changes.
 
 ## 0.18.0 (2023-05-25) {: #0.18.0 }
 
-### Features
+#### Features
 
 -   Updated compatibility for pulpcore 3.25 and Django 4.2.
     [#1462](https://github.com/pulp/pulp_ansible/issues/1462)
 
-### Bugfixes
+#### Bugfixes
 
 -   Reduce fetched fields in cv list endpoint to prevent oomkill.
     [#1433](https://github.com/pulp/pulp_ansible/issues/1433)
@@ -212,7 +212,7 @@ No significant changes.
 
 ## 0.17.5 (2023-10-03) {: #0.17.5 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Ignore the "users" field in namespace data during sync.
     [#1598](https://github.com/pulp/pulp_ansible/issues/1598)
@@ -221,7 +221,7 @@ No significant changes.
 
 ## 0.17.4 (2023-08-10) {: #0.17.4 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Stopped collection sync from failing if a namespace's avatar url was unreachable.
     [#1543](https://github.com/pulp/pulp_ansible/issues/1543)
@@ -232,7 +232,7 @@ No significant changes.
 
 ## 0.17.3 (2023-07-05) {: #0.17.3 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed updated namespacemetadata in x-repo search indexing.
     [#1494](https://github.com/pulp/pulp_ansible/issues/1494)
@@ -241,7 +241,7 @@ No significant changes.
 
 ## 0.17.2 (2023-05-30) {: #0.17.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed several bugs in the galaxy v2 API related to generating URLs for various collection resources.
     [#1452](https://github.com/pulp/pulp_ansible/issues/1452)
@@ -252,7 +252,7 @@ No significant changes.
 
 ## 0.17.1 (2023-05-09) {: #0.17.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Reduce fetched fields in cv list endpoint to prevent oomkill.
     [#1433](https://github.com/pulp/pulp_ansible/issues/1433)
@@ -263,7 +263,7 @@ No significant changes.
 
 ## 0.17.0 (2023-03-30) {: #0.17.0 }
 
-### Features
+#### Features
 
 -   Added Namespace metadata content model and Galaxy endpoints v3/namespaces/ & [v3/plugin/ansible/content/<base_path>/namespaces/]{.title-ref}.
 
@@ -296,7 +296,7 @@ No significant changes.
     allow for copying and moving collections between repos.
     [#1394](https://github.com/pulp/pulp_ansible/issues/1394)
 
-### Bugfixes
+#### Bugfixes
 
 -   GitRemotes can now be attached to an AnsibleRepository.
     [#1140](https://github.com/pulp/pulp_ansible/issues/1140)
@@ -318,12 +318,12 @@ No significant changes.
 -   Selectively delete indexes for content no longer in the repo.
     [#1396](https://github.com/pulp/pulp_ansible/issues/1396)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Fixed linebreak issues in remote workflow cli examples.
     [#1328](https://github.com/pulp/pulp_ansible/issues/1328)
 
-### Misc
+#### Misc
 
 -   [#1349](https://github.com/pulp/pulp_ansible/issues/1349)
 
@@ -331,17 +331,17 @@ No significant changes.
 
 ## 0.16.1 (2023-02-23) {: #0.16.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Removed unused dependency on packaging.
     [#1366](https://github.com/pulp/pulp_ansible/issues/1366)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Fixed linebreak issues in remote workflow cli examples.
     [#1328](https://github.com/pulp/pulp_ansible/issues/1328)
 
-### Misc
+#### Misc
 
 -   [#1349](https://github.com/pulp/pulp_ansible/issues/1349)
 
@@ -349,12 +349,12 @@ No significant changes.
 
 ## 0.16.0 (2022-12-01) {: #0.16.0 }
 
-### Features
+#### Features
 
 -   An existing artifact or upload object can now be used to create a Collection.
     [#1175](https://github.com/pulp/pulp_ansible/issues/1175)
 
-### Bugfixes
+#### Bugfixes
 
 -   Properly return 400 error when trying to create/upload a duplicate Collection.
     [#1175](https://github.com/pulp/pulp_ansible/issues/1175)
@@ -363,7 +363,7 @@ No significant changes.
 -   Limit search_vector to only tags for the collectionversion instead of all collectionversions.
     [#1278](https://github.com/pulp/pulp_ansible/issues/1278)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Renamed CollectionVersion upload fields [namespace, name, version] to [expected]()[namespace, name, version].
 
@@ -372,7 +372,7 @@ No significant changes.
     Deprecated Galaxy V2 Collection upload endpoint. Use Galaxy V3 Collection Artifact upload endpoint instead.
     [#1176](https://github.com/pulp/pulp_ansible/issues/1176)
 
-### Misc
+#### Misc
 
 -   [#1273](https://github.com/pulp/pulp_ansible/issues/1273)
 
@@ -380,12 +380,12 @@ No significant changes.
 
 ## 0.15.3 (2023-02-23) {: #0.15.3 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Removed unused dependency on packaging.
     [#1366](https://github.com/pulp/pulp_ansible/issues/1366)
 
-### Misc
+#### Misc
 
 -   [#1349](https://github.com/pulp/pulp_ansible/issues/1349)
 
@@ -393,7 +393,7 @@ No significant changes.
 
 ## 0.15.2 (2023-02-03) {: #0.15.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
     PEP-440 parsing.
@@ -403,12 +403,12 @@ No significant changes.
 
 ## 0.15.1 (2023-01-20) {: #0.15.1 }
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Fixed linebreak issues in remote workflow cli examples.
     [#1328](https://github.com/pulp/pulp_ansible/issues/1328)
 
-### Misc
+#### Misc
 
 -   [#1273](https://github.com/pulp/pulp_ansible/issues/1273)
 
@@ -416,7 +416,7 @@ No significant changes.
 
 ## 0.15.0 (2022-09-21) {: #0.15.0 }
 
-### Features
+#### Features
 
 -   Implement v3/plugin/client-configuration/ endpoint to communicate to the ansible galaxy client
     which distribution to use.
@@ -428,7 +428,7 @@ No significant changes.
 -   Added `rebuild_metadata` endpoint to ansible repositories and repository versions.
     [#1106](https://github.com/pulp/pulp_ansible/issues/1106)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed bug where Git Remote failed to clone git submodules when syncing a collection from a git
     repository.
@@ -443,12 +443,12 @@ No significant changes.
     be exposed in the API.
     [#1221](https://github.com/pulp/pulp_ansible/issues/1221)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Removed `keyring` attribute from repositories in favor of `gpgkey`.
     [#1086](https://github.com/pulp/pulp_ansible/issues/1086)
 
-### Misc
+#### Misc
 
 -   [#1230](https://github.com/pulp/pulp_ansible/issues/1230), [#1245](https://github.com/pulp/pulp_ansible/issues/1245)
 
@@ -456,7 +456,7 @@ No significant changes.
 
 ## 0.14.2 (2022-09-15) {: #0.14.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Update the jsonschema requirements to not conflict with ansible-lint. Currently ansible-lint requires at least 4.9, so match that.
     [#1202](https://github.com/pulp/pulp_ansible/issues/1202)
@@ -465,7 +465,7 @@ No significant changes.
 
 ## 0.14.1 (2022-09-09) {: #0.14.1 }
 
-### Misc
+#### Misc
 
 -   [#1230](https://github.com/pulp/pulp_ansible/issues/1230)
 
@@ -473,12 +473,12 @@ No significant changes.
 
 ## 0.14.0 (2022-06-30) {: #0.14.0 }
 
-### Features
+#### Features
 
 -   Enable support for the pulpcore setting `REDIRECT_TO_OBJECT_STORAGE=False`.
     [#943](https://github.com/pulp/pulp_ansible/issues/943)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed 500 error when accessing Galaxy APIs when distribution is not pointing to a repository.
     [#909](https://github.com/pulp/pulp_ansible/issues/909)
@@ -489,7 +489,7 @@ No significant changes.
 -   Fixed improper type `KeyringEnum` being generated in client bindings.
     [#973](https://github.com/pulp/pulp_ansible/issues/973)
 
-### Misc
+#### Misc
 
 -   [#1035](https://github.com/pulp/pulp_ansible/issues/1035)
 
@@ -497,13 +497,13 @@ No significant changes.
 
 ## 0.13.6 (2023-02-03) {: #0.13.6 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
     PEP-440 parsing.
     [#1340](https://github.com/pulp/pulp_ansible/issues/1340)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Fixed linebreak issues in remote workflow cli examples.
     [#1328](https://github.com/pulp/pulp_ansible/issues/1328)
@@ -512,12 +512,12 @@ No significant changes.
 
 ## 0.13.5 (2022-11-16) {: #0.13.5 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Switched the attribute token on CollectionRemotes not to be exposed in the API.
     [#1221](https://github.com/pulp/pulp_ansible/issues/1221)
 
-### Misc
+#### Misc
 
 -   [#1218](https://github.com/pulp/pulp_ansible/issues/1218)
 
@@ -543,7 +543,7 @@ No significant changes.
 
 ## 0.13.1 (2022-06-15) {: #0.13.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Allow deleting collection versions when another version of the collection satisfies requirements.
     [#933](https://github.com/pulp/pulp_ansible/issues/933)
@@ -554,7 +554,7 @@ No significant changes.
 
 ## 0.13.0 (2022-04-11) {: #0.13.0 }
 
-### Features
+#### Features
 
 -   Galaxy API Refactor stage 1
 
@@ -575,7 +575,7 @@ No significant changes.
 -   Add api endpoints to delete collections and collection versions.
     [#879](https://github.com/pulp/pulp_ansible/issues/879)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed `manifest` and `files` fields not being set when uploading a collection.
     [#840](https://github.com/pulp/pulp_ansible/issues/840)
@@ -591,7 +591,7 @@ No significant changes.
 
 ## 0.12.1 (2022-04-11) {: #0.12.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed `manifest` and `files` fields not being set when uploading a collection.
     [#840](https://github.com/pulp/pulp_ansible/issues/840)
@@ -600,7 +600,7 @@ No significant changes.
 
 ## 0.12.0 (2022-02-02) {: #0.12.0 }
 
-### Features
+#### Features
 
 -   Added Collection Signatures to the Galaxy V3 API to allow for syncing of signatures during a collection sync.
     [#748](https://github.com/pulp/pulp_ansible/issues/748)
@@ -611,7 +611,7 @@ No significant changes.
 -   Enabled Collection Remote to sync content that was initially synced using Git Remote.
     [#778](https://github.com/pulp/pulp_ansible/issues/778)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed the migrations 0035 and 0036 that handle the transition of deprecations to being repository
     content and used to fail on uniquenes constraints.
@@ -622,7 +622,7 @@ No significant changes.
     `meta/runtime.yml` data. This can happen in collections from `galaxy.ansible.com`.
     [#806](https://github.com/pulp/pulp_ansible/issues/806)
 
-### Misc
+#### Misc
 
 -   [#813](https://github.com/pulp/pulp_ansible/issues/813)
 
@@ -630,7 +630,7 @@ No significant changes.
 
 ## 0.11.1 (2021-12-20) {: #0.11.1 }
 
-### Misc
+#### Misc
 
 -   [#774](https://github.com/pulp/pulp_ansible/issues/774)
 
@@ -638,7 +638,7 @@ No significant changes.
 
 ## 0.11.0 (2021-12-15) {: #0.11.0 }
 
-### Features
+#### Features
 
 -   Added ability to sync only metadata from a Git remote. This is a tech preview feature. The
     functionality may change in the future.
@@ -654,7 +654,7 @@ No significant changes.
 -   Use `shared_resources` in tasks where appropriate.
     [#753](https://github.com/pulp/pulp_ansible/issues/753)
 
-### Bugfixes
+#### Bugfixes
 
 -   Case-insensitive search for the `owner__username` and role `name` fields in the pulp_ansible role view (same as on galaxy.ansible.com).
     [#747](https://github.com/pulp/pulp_ansible/issues/747)
@@ -663,13 +663,13 @@ No significant changes.
 
 ## 0.10.5 (2023-02-03) {: #0.10.5 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Pinned the dependency upper bound on setuptools to <66.2.0. Newer versions introduce stricter
     PEP-440 parsing.
     [#1340](https://github.com/pulp/pulp_ansible/issues/1340)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Fixed linebreak issues in remote workflow cli examples.
     [#1328](https://github.com/pulp/pulp_ansible/issues/1328)
@@ -678,7 +678,7 @@ No significant changes.
 
 ## 0.10.4 (2022-11-17) {: #0.10.4 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Switched the attribute token on CollectionRemotes not to be exposed in the API.
     [#1221](https://github.com/pulp/pulp_ansible/issues/1221)
@@ -687,7 +687,7 @@ No significant changes.
 
 ## 0.10.3 (2022-06-07) {: #0.10.3 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Syncing now excludes collection versions found at `/excludes/` endpoint of remote.
     [#960](https://github.com/pulp/pulp_ansible/issues/960)
@@ -696,7 +696,7 @@ No significant changes.
 
 ## 0.10.2 (2022-01-31) {: #0.10.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed the migrations 0035 and 0036 that handle the transition of deprecations to being repository
     content and used to fail on uniquenes constraints.
@@ -711,7 +711,7 @@ No significant changes.
 
 ## 0.10.1 (2021-10-05) {: #0.10.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Added a better error message when trying to sync a missing collection using V3 endpoints.
     [#9404](https://pulp.plan.io/issues/9404)
@@ -722,7 +722,7 @@ No significant changes.
 -   Changed the use of `dispatch` to match the signature from pulpcore>=3.15.
     [#9483](https://pulp.plan.io/issues/9483)
 
-### Misc
+#### Misc
 
 -   [#9368](https://pulp.plan.io/issues/9368)
 
@@ -730,17 +730,17 @@ No significant changes.
 
 ## 0.10.0 (2021-08-31) {: #0.10.0 }
 
-### Features
+#### Features
 
 -   Made deprecation exportable/importable
     [#8205](https://pulp.plan.io/issues/8205)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed bug where sync tasks would open a lot of DB connections.
     [#9260](https://pulp.plan.io/issues/9260)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Turned collection deprecation status into a content.
 
@@ -753,7 +753,7 @@ No significant changes.
 -   Dropped support for Python 3.6 and 3.7. pulp_ansible now supports Python 3.8+.
     [#9034](https://pulp.plan.io/issues/9034)
 
-### Misc
+#### Misc
 
 -   [#9119](https://pulp.plan.io/issues/9119)
 
@@ -761,7 +761,7 @@ No significant changes.
 
 ## 0.9.2 (2021-10-04) {: #0.9.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed optimized mirror syncs erroneously removing all content in the repository.
     (backported from #9476)
@@ -771,14 +771,14 @@ No significant changes.
 
 ## 0.9.1 (2021-08-25) {: #0.9.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Improved performance on reporting progress on parsing collection metadata
     [#9137](https://pulp.plan.io/issues/9137)
 -   Ensure galaxy-importer is used when uploading collections
     [#9220](https://pulp.plan.io/issues/9220)
 
-### Misc
+#### Misc
 
 -   [#9250](https://pulp.plan.io/issues/9250)
 
@@ -786,12 +786,12 @@ No significant changes.
 
 ## 0.9.0 (2021-07-21) {: #0.9.0 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Renaming bindings to be compatible with pulpcore >= 3.14
     [#8971](https://pulp.plan.io/issues/8971)
 
-### Misc
+#### Misc
 
 -   [#8882](https://pulp.plan.io/issues/8882)
 
@@ -799,7 +799,7 @@ No significant changes.
 
 ## 0.8.1 (2021-07-21) {: #0.8.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed an error message which indicated that the remote url was invalid when in fact the requirements
     source url was invalid.
@@ -807,7 +807,7 @@ No significant changes.
 -   Use proxy auth credentials of a Remote when syncing content.
     [#9075](https://pulp.plan.io/issues/9075)
 
-### Misc
+#### Misc
 
 -   [#9006](https://pulp.plan.io/issues/9006)
 
@@ -815,7 +815,7 @@ No significant changes.
 
 ## 0.8.0 (2021-06-01) {: #0.8.0 }
 
-### Features
+#### Features
 
 -   Pulp Ansible can now sync collection dependencies by setting the `sync_dependencies` option for `CollectionRemote` objects.
     (By default set to true)
@@ -825,7 +825,7 @@ No significant changes.
 -   Provide backend storage url to galaxy-importer on collection import.
     [#8486](https://pulp.plan.io/issues/8486)
 
-### Bugfixes
+#### Bugfixes
 
 -   /collection_versions/all/ endpoint is now streamed to alleviate timeout issues
     [#8439](https://pulp.plan.io/issues/8439)
@@ -844,12 +844,12 @@ No significant changes.
 -   Optimized unpaginated collection_versions endpoint
     [#8746](https://pulp.plan.io/issues/8746)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Fixed broken link on client bindings page
     [#8298](https://pulp.plan.io/issues/8298)
 
-### Misc
+#### Misc
 
 -   [#8589](https://pulp.plan.io/issues/8589)
 
@@ -857,7 +857,7 @@ No significant changes.
 
 ## 0.7.6 (2022-06-07) {: #0.7.6 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Syncing now excludes collection versions found at `/excludes/` endpoint of remote.
     [#959](https://github.com/pulp/pulp_ansible/issues/959)
@@ -868,7 +868,7 @@ No significant changes.
 
 ## 0.7.5 (2022-01-31) {: #0.7.5 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Use proxy auth credentials of a Remote when syncing content
     [#801](https://github.com/pulp/pulp_ansible/issues/801)
@@ -880,7 +880,7 @@ No significant changes.
 
 ## 0.7.4 (2021-11-12) {: #0.7.4 }
 
-### Bugfixes
+#### Bugfixes
 
 -   /collection_versions/all/ endpoint is now streamed to alleviate timeout issues
     Optimized unpaginated collection_versions endpoint
@@ -890,7 +890,7 @@ No significant changes.
     The actual fix is shipped with 0.7.5.
     [#9391](https://pulp.plan.io/issues/9391)
 
-### Misc
+#### Misc
 
 -   [#8857](https://pulp.plan.io/issues/8857)
 
@@ -898,7 +898,7 @@ No significant changes.
 
 ## 0.7.3 (2021-04-29) {: #0.7.3 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fix requirements.yml parser for pinned collection version
     [#8647](https://pulp.plan.io/issues/8647)
@@ -921,7 +921,7 @@ No significant changes.
 
 ## 0.7.1 (2021-03-04) {: #0.7.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Removing `manifest` and `files` from metadata endpoints.
     [#8264](https://pulp.plan.io/issues/8264)
@@ -936,7 +936,7 @@ No significant changes.
 
 ## 0.7.0 (2021-02-11) {: #0.7.0 }
 
-### Features
+#### Features
 
 -   Ansible export/import is now available as a tech preview feature
     [#6738](https://pulp.plan.io/issues/6738)
@@ -960,19 +960,19 @@ No significant changes.
 -   Efficient sync with unpaginated metadata endpoints if they are available.
     [#8177](https://pulp.plan.io/issues/8177)
 
-### Bugfixes
+#### Bugfixes
 
 -   Make collection namespace max_length consistent in models
     [#8078](https://pulp.plan.io/issues/8078)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Move official docs site to <https://docs.pulpproject.org/pulp_ansible/>.
     [#7926](https://pulp.plan.io/issues/7926)
 -   Updated Roles and Collections workflows to use Pulp-CLI commands
     [#8076](https://pulp.plan.io/issues/8076)
 
-### Misc
+#### Misc
 
 -   [#8216](https://pulp.plan.io/issues/8216)
 
@@ -980,7 +980,7 @@ No significant changes.
 
 ## 0.6.2 (2021-03-03) {: #0.6.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Use DRF token when no `auth_url` is provided
     [#8290](https://pulp.plan.io/issues/8290)
@@ -989,7 +989,7 @@ No significant changes.
 
 ## 0.6.1 (2021-01-15) {: #0.6.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Allow updating `auth_url` on CollectionRemote when `token` is already set
     [#7957](https://pulp.plan.io/issues/7957)
@@ -1000,12 +1000,12 @@ No significant changes.
 
 ## 0.6.0 (2020-12-01) {: #0.6.0 }
 
-### Features
+#### Features
 
 -   Enable filter by name/namespace on Collections V3 endpoint
     [#7873](https://pulp.plan.io/issues/7873)
 
-### Bugfixes
+#### Bugfixes
 
 -   Allows a requirements.yml collection version specification to be respected during sync.
     [#7739](https://pulp.plan.io/issues/7739)
@@ -1015,7 +1015,7 @@ No significant changes.
     used on galaxy.ansible.com.
     [#7827](https://pulp.plan.io/issues/7827)
 
-### Misc
+#### Misc
 
 -   [#7777](https://pulp.plan.io/issues/7777)
 
@@ -1023,7 +1023,7 @@ No significant changes.
 
 ## 0.5.11 (2022-01-31) {: #0.5.11 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Use proxy auth credentials of a Remote when syncing content
     [#801](https://github.com/pulp/pulp_ansible/issues/801)
@@ -1032,7 +1032,7 @@ No significant changes.
 
 ## 0.5.10 (2021-09-13) {: #0.5.10 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Use proxy auth credentials of a Remote when syncing content.
     [#9390](https://pulp.plan.io/issues/9390)
@@ -1041,7 +1041,7 @@ No significant changes.
 
 ## 0.5.9 (2021-04-29) {: #0.5.9 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Remove scheme from apache snippet
     [#8661](https://pulp.plan.io/issues/8661)
@@ -1054,7 +1054,7 @@ No significant changes.
 
 ## 0.5.8 (2021-03-08) {: #0.5.8 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Allow updating `auth_url` on CollectionRemote when `token` is already set
     [#8362](https://pulp.plan.io/issues/8362)
@@ -1063,7 +1063,7 @@ No significant changes.
 
 ## 0.5.7 (2021-03-03) {: #0.5.7 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Use DRF token when no `auth_url` is provided
     [#8290](https://pulp.plan.io/issues/8290)
@@ -1072,7 +1072,7 @@ No significant changes.
 
 ## 0.5.6 (2021-01-12) {: #0.5.6 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed v3 schema pagination to match OpenAPI standard
     [#8037](https://pulp.plan.io/issues/8037)
@@ -1085,7 +1085,7 @@ No significant changes.
 
 ## 0.5.5 (2020-12-11) {: #0.5.5 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Field `updated_at` from Galaxy v3 Collections endpoint using highest version
     [#7990](https://pulp.plan.io/issues/7990)
@@ -1094,7 +1094,7 @@ No significant changes.
 
 ## 0.5.4 (2020-12-04) {: #0.5.4 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Increase interval between requests when token is required
     [#7929](https://pulp.plan.io/issues/7929)
@@ -1103,7 +1103,7 @@ No significant changes.
 
 ## 0.5.3 (2020-12-04) {: #0.5.3 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Avoid rate limiting by slowing down sync when token is required
     [#7917](https://pulp.plan.io/issues/7917)
@@ -1112,7 +1112,7 @@ No significant changes.
 
 ## 0.5.2 (2020-11-19) {: #0.5.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Improve MANIFEST.json handling and provide better error message
     [#5745](https://pulp.plan.io/issues/5745)
@@ -1136,7 +1136,7 @@ No significant changes.
 
 ## 0.5.1 (2020-11-09) {: #0.5.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Token refresh happens when needed, not on every call.
     [#7643](https://pulp.plan.io/issues/7643)
@@ -1152,13 +1152,13 @@ No significant changes.
 
 ## 0.5.0 (2020-10-29) {: #0.5.0 }
 
-### Features
+#### Features
 
 -   Adds a new `/pulp/api/v3/ansible/copy/` endpoint allowing content to be copied from one
     `AnsibleRepository` version to a destination `AnsibleRepository`.
     [#7621](https://pulp.plan.io/issues/7621)
 
-### Bugfixes
+#### Bugfixes
 
 -   Sync collection deprecation status
     [#7504](https://pulp.plan.io/issues/7504)
@@ -1174,7 +1174,7 @@ No significant changes.
 -   Fixed bug where we didn't properly handle trailing slashes.
     [#7767](https://pulp.plan.io/issues/7767)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Remove 'certification' flag from CollectionVersion
     [#6715](https://pulp.plan.io/issues/6715)
@@ -1195,7 +1195,7 @@ No significant changes.
 
 ## 0.4.3 (2020-11-04) {: #0.4.3 }
 
-### Features
+#### Features
 
 -   Allow CollectionUploadViewSet subclass to set own serializer
     [#7788](https://pulp.plan.io/issues/7788)
@@ -1204,7 +1204,7 @@ No significant changes.
 
 ## 0.4.2 (2020-10-09) {: #0.4.2 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Update Collection serializer to match Galaxy v2
     [#7647](https://pulp.plan.io/issues/7647)
@@ -1215,7 +1215,7 @@ No significant changes.
 
 ## 0.4.1 (2020-09-30) {: #0.4.1 }
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixing docs-blob file parser
     [#7551](https://pulp.plan.io/issues/7551)
@@ -1226,7 +1226,7 @@ No significant changes.
 
 ## 0.4.0 (2020-09-23) {: #0.4.0 }
 
-### Bugfixes
+#### Bugfixes
 
 -   List highest versions per repository
     [#7428](https://pulp.plan.io/issues/7428)
@@ -1237,7 +1237,7 @@ No significant changes.
 
 ## 0.3.0 (2020-09-09) {: #0.3.0 }
 
-### Features
+#### Features
 
 -   Add endpoint to show docs_blob for a CollectionVersion
     [#7397](https://pulp.plan.io/issues/7397)
@@ -1246,7 +1246,7 @@ No significant changes.
 -   Sync docs_blob information for collection versions
     [#7439](https://pulp.plan.io/issues/7439)
 
-### Bugfixes
+#### Bugfixes
 
 -   Replace URLField with CharField
     [#7353](https://pulp.plan.io/issues/7353)
@@ -1257,12 +1257,12 @@ No significant changes.
 -   Build collections URL according to requirements.yml
     [#7412](https://pulp.plan.io/issues/7412)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Changed V3 pagination to match Galaxy V3 API pagination
     [#7435](https://pulp.plan.io/issues/7435)
 
-### Misc
+#### Misc
 
 -   [#7453](https://pulp.plan.io/issues/7453)
 
@@ -1270,20 +1270,20 @@ No significant changes.
 
 ## 0.2.0 (2020-08-17) {: #0.2.0 }
 
-### Features
+#### Features
 
 -   Allow a Remote to be associated with a Repository and automatically use it when syncing the
     Repository.
     [#7194](https://pulp.plan.io/issues/7194)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Moved the role remote path from `/pulp/api/v3/remotes/ansible/ansible/` to
     `/pulp/api/v3/remotes/ansible/role/` to be consistent with
     `/pulp/api/v3/remotes/ansible/collection/`.
     [#7305](https://pulp.plan.io/issues/7305)
 
-### Misc
+#### Misc
 
 -   [#6718](https://pulp.plan.io/issues/6718)
 
@@ -1291,7 +1291,7 @@ No significant changes.
 
 ## 0.2.0b15 (2020-07-14)
 
-### Features
+#### Features
 
 -   Enable token authentication for syncing Collections.
     Added auth_url and token [fields](https://docs.ansible.com/ansible/latest/user_guide/collections_using.html#configuring-the-ansible-galaxy-client) to CollectionRemote
@@ -1301,14 +1301,14 @@ No significant changes.
 
 ## 0.2.0b14 (2020-06-19)
 
-### Bugfixes
+#### Bugfixes
 
 -   Make default page size equals to 100
     [#5494](https://pulp.plan.io/issues/5494)
 -   Including requirements.txt on MANIFEST.in
     [#6889](https://pulp.plan.io/issues/6889)
 
-### Misc
+#### Misc
 
 -   [#6772](https://pulp.plan.io/issues/6772)
 
@@ -1316,12 +1316,12 @@ No significant changes.
 
 ## 0.2.0b13 (2020-05-28)
 
-### Features
+#### Features
 
 -   Increased max length for documentation, homepage, issues, repository in CollectionVersion
     [#6648](https://pulp.plan.io/issues/6648)
 
-### Bugfixes
+#### Bugfixes
 
 -   Galaxy V3 download_url now uses fully qualified URL
     [#6510](https://pulp.plan.io/issues/6510)
@@ -1330,12 +1330,12 @@ No significant changes.
 -   Fix filename generation for ansible collection artifacts.
     [#6855](https://pulp.plan.io/issues/6855)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Updated the required roles names
     [#6760](https://pulp.plan.io/issues/6760)
 
-### Misc
+#### Misc
 
 -   [#6673](https://pulp.plan.io/issues/6673), [#6848](https://pulp.plan.io/issues/6848), [#6850](https://pulp.plan.io/issues/6850)
 
@@ -1343,12 +1343,12 @@ No significant changes.
 
 ## 0.2.0b12 (2020-04-30)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Documented bindings installation on dev environment
     [#6390](https://pulp.plan.io/issues/6390)
 
-### Misc
+#### Misc
 
 -   [#6391](https://pulp.plan.io/issues/6391)
 
@@ -1356,23 +1356,23 @@ No significant changes.
 
 ## 0.2.0b11 (2020-03-13)
 
-### Features
+#### Features
 
 -   Add support for syncing collections from Automation Hub's v3 api.
     [#6132](https://pulp.plan.io/issues/6132)
 
-### Bugfixes
+#### Bugfixes
 
 -   Including file type extension when uploading collections.
     This comes with a data migration that will fix incorrect fields for already uploaded collections.
     [#6223](https://pulp.plan.io/issues/6223)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Added docs on how to use the new scale testing tools.
     [#6272](https://pulp.plan.io/issues/6272)
 
-### Misc
+#### Misc
 
 -   [#6155](https://pulp.plan.io/issues/6155), [#6223](https://pulp.plan.io/issues/6223), [#6272](https://pulp.plan.io/issues/6272), [#6300](https://pulp.plan.io/issues/6300)
 
@@ -1380,12 +1380,12 @@ No significant changes.
 
 ## 0.2.0b10 (2020-02-29)
 
-### Bugfixes
+#### Bugfixes
 
 -   Includes webserver snippets in the packaged version also.
     [#6248](https://pulp.plan.io/issues/6248)
 
-### Misc
+#### Misc
 
 -   [#6250](https://pulp.plan.io/issues/6250)
 
@@ -1393,12 +1393,12 @@ No significant changes.
 
 ## 0.2.0b9 (2020-02-28)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fix 404 error with ansible-galaxy 2.10.0 while staying compatible with 2.9.z CLI clients also.
     [#6239](https://pulp.plan.io/issues/6239)
 
-### Misc
+#### Misc
 
 -   [#6188](https://pulp.plan.io/issues/6188)
 
@@ -1406,19 +1406,19 @@ No significant changes.
 
 ## 0.2.0b8 (2020-02-02)
 
-### Bugfixes
+#### Bugfixes
 
 -   Fixed `ansible-galaxy publish` command which was failing with a 400 error.
     [#5905](https://pulp.plan.io/issues/5905)
 -   Fixes `ansible-galaxy role install` when installing from Pulp.
     [#5929](https://pulp.plan.io/issues/5929)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Heavy overhaul of workflow docs to be two long pages that are focused on the `ansible-galaxy` cli.
     [#4889](https://pulp.plan.io/issues/4889)
 
-### Misc
+#### Misc
 
 -   [#5867](https://pulp.plan.io/issues/5867), [#5929](https://pulp.plan.io/issues/5929), [#5930](https://pulp.plan.io/issues/5930), [#5931](https://pulp.plan.io/issues/5931)
 
@@ -1426,17 +1426,17 @@ No significant changes.
 
 ## 0.2.0b7 (2019-12-16)
 
-### Features
+#### Features
 
 -   Add "modify" endpoint as `/pulp/api/v3/repositories/ansible/ansible/<uuid>/modify/`.
     [#5783](https://pulp.plan.io/issues/5783)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Adds copyright notice to source.
     [#4592](https://pulp.plan.io/issues/4592)
 
-### Misc
+#### Misc
 
 -   [#5693](https://pulp.plan.io/issues/5693), [#5701](https://pulp.plan.io/issues/5701), [#5757](https://pulp.plan.io/issues/5757)
 
@@ -1444,7 +1444,7 @@ No significant changes.
 
 ## 0.2.0b6 (2019-11-20)
 
-### Features
+#### Features
 
 -   Add Ansible Collection endpoint.
     [#5520](https://pulp.plan.io/issues/5520)
@@ -1463,7 +1463,7 @@ No significant changes.
 -   Added filters to v3 collection version endpoint
     [#5670](https://pulp.plan.io/issues/5670)
 
-### Bugfixes
+#### Bugfixes
 
 -   Reverting back to the older upload serializers.
     [#5555](https://pulp.plan.io/issues/5555)
@@ -1474,7 +1474,7 @@ No significant changes.
 -   Fix 500 error for /pulp/api/v3/ page and drf_yasg error on api docs.
     [#5748](https://pulp.plan.io/issues/5748)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Change _id, _created, _last_updated, _href to pulp_id, pulp_created, pulp_last_updated, pulp_href
     [#5457](https://pulp.plan.io/issues/5457)
@@ -1496,7 +1496,7 @@ No significant changes.
 -   Removing unnecessary DELETE action for set_certified method.
     [#5711](https://pulp.plan.io/issues/5711)
 
-### Misc
+#### Misc
 
 -   [#4554](https://pulp.plan.io/issues/4554), [#5580](https://pulp.plan.io/issues/5580), [#5629](https://pulp.plan.io/issues/5629)
 
@@ -1504,7 +1504,7 @@ No significant changes.
 
 ## 0.2.0b5 (2019-10-01)
 
-### Misc
+#### Misc
 
 -   [#5462](https://pulp.plan.io/issues/5462), [#5468](https://pulp.plan.io/issues/5468)
 
@@ -1512,7 +1512,7 @@ No significant changes.
 
 ## 0.2.0b3 (2019-09-18)
 
-### Features
+#### Features
 
 -   Setting code on ProgressBar.
     [#5184](https://pulp.plan.io/issues/5184)
@@ -1554,7 +1554,7 @@ No significant changes.
     FQDN, which works with [the installer](https://github.com/pulp/ansible-pulp) defaults.
     [#5466](https://pulp.plan.io/issues/5466)
 
-### Bugfixes
+#### Bugfixes
 
 -   Treating how JSONFields will be handled by OpenAPI.
     [#5299](https://pulp.plan.io/issues/5299)
@@ -1564,12 +1564,12 @@ No significant changes.
     Fixes ansible issue <https://github.com/ansible/ansible/issues/62076>
     [#5459](https://pulp.plan.io/issues/5459)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Added documentation on all settings.
     [#5244](https://pulp.plan.io/issues/5244)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Removing latest filter Collection Version.
     [#5227](https://pulp.plan.io/issues/5227)
@@ -1578,7 +1578,7 @@ No significant changes.
 -   Renamed _artifact on content creation to artifact.
     [#5428](https://pulp.plan.io/issues/5428)
 
-### Misc
+#### Misc
 
 -   [#4681](https://pulp.plan.io/issues/4681), [#5236](https://pulp.plan.io/issues/5236), [#5262](https://pulp.plan.io/issues/5262), [#5332](https://pulp.plan.io/issues/5332), [#5333](https://pulp.plan.io/issues/5333)
 
@@ -1586,7 +1586,7 @@ No significant changes.
 
 ## 0.2.0b2 (2019-08-12)
 
-### Features
+#### Features
 
 -   Fulltext Collection search is available with the `q` filter argument. A migration creates
     databases indexes to speed up the search.
@@ -1604,7 +1604,7 @@ No significant changes.
 -   Implements Galaxy API v3 collections and collection versions endpoints
     [#5225](https://pulp.plan.io/issues/5225)
 
-### Bugfixes
+#### Bugfixes
 
 -   Validating collection remote URL
     [#4996](https://pulp.plan.io/issues/4996)
@@ -1613,12 +1613,12 @@ No significant changes.
 -   Fixes exception when generating initial full text search index on more than one collection.
     [#5226](https://pulp.plan.io/issues/5226)
 
-### Deprecations and Removals
+#### Deprecations and Removals
 
 -   Removing whitelist field from CollectionRemote.
     [#5165](https://pulp.plan.io/issues/5165)
 
-### Misc
+#### Misc
 
 -   [#4970](https://pulp.plan.io/issues/4970), [#5106](https://pulp.plan.io/issues/5106), [#5223](https://pulp.plan.io/issues/5223)
 
@@ -1626,7 +1626,7 @@ No significant changes.
 
 ## 0.2.0b1 (2019-07-12)
 
-### Features
+#### Features
 
 -   Adds Artifact sha details to the Collection list and detail APIs.
     [#4827](https://pulp.plan.io/issues/4827)
@@ -1639,7 +1639,7 @@ No significant changes.
     each `namespace` and `name` combination is included in filter results.
     [#5076](https://pulp.plan.io/issues/5076)
 
-### Bugfixes
+#### Bugfixes
 
 -   Collection sync now creates a new RepositoryVersion even if no new Collection content was added.
     [#4920](https://pulp.plan.io/issues/4920)
@@ -1648,7 +1648,7 @@ No significant changes.
 -   Collection sync no longer logs errors about a missing directory named 'ansible_collections'
     [#4999](https://pulp.plan.io/issues/4999)
 
-### Improved Documentation
+#### Improved Documentation
 
 -   Switch to using [towncrier](https://github.com/hawkowl/towncrier) for better release notes.
     [#4875](https://pulp.plan.io/issues/4875)
