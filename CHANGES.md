@@ -166,6 +166,17 @@ No significant changes.
 
 ---
 
+## 0.20.9 (2024-10-31) {: #0.20.9 }
+
+#### Bugfixes {: #0.20.9-bugfix }
+
+- Set `is_highest` to `False` before importing a collection version to prevent conflicts.
+  [#1986](https://github.com/pulp/pulp_ansible/issues/1986)
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+
+---
+
 ## 0.20.8 (2024-07-22) {: #0.20.8 }
 
 
@@ -283,6 +294,16 @@ No significant changes.
     [#1491](https://github.com/pulp/pulp_ansible/issues/1491)
 -   Fixed updated namespacemetadata in x-repo search indexing.
     [#1494](https://github.com/pulp/pulp_ansible/issues/1494)
+
+---
+
+## 0.18.3 (2024-10-31) {: #0.18.3 }
+
+#### Bugfixes {: #0.18.3-bugfix }
+
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+- Fixed the openapi spec for the collection version search.
 
 ---
 
@@ -444,6 +465,15 @@ No significant changes.
 
 ---
 
+## 0.16.5 (2024-10-31) {: #0.16.5 }
+
+#### Bugfixes {: #0.16.5-bugfix }
+
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+
+---
+
 ## 0.16.4 (2024-09-25) {: #0.16.4 }
 
 #### Bugfixes {: #0.16.4-bugfix }
@@ -521,6 +551,15 @@ No significant changes.
 #### Misc
 
 -   [#1273](https://github.com/pulp/pulp_ansible/issues/1273)
+
+---
+
+## 0.15.6 (2024-10-31) {: #0.15.6 }
+
+#### Bugfixes {: #0.15.6-bugfix }
+
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
 
 ---
 
