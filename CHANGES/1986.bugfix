@@ -1,1 +1,0 @@
-Fixed a bug hitting a db restriction with `is_highest` on import.
