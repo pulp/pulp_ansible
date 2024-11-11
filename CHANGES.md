@@ -8,6 +8,36 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.23.0 (2024-11-11) {: #0.23.0 }
+
+#### Features {: #0.23.0-feature }
+
+- Added sha256 to collection versions.
+  This is the first part of a change to make this field the uniqueness constraint in the database.
+  The `datarepair-ansible-collection-sha256` management command is provided to prepare for the next release bringing the second and final step.
+
+#### Bugfixes {: #0.23.0-bugfix }
+
+- Fixed some 500 errors when browsing the Galaxy API.
+  [#galaxy500s](https://github.com/pulp/pulp_ansible/issues/galaxy500s)
+- Cast the content object to a collectionversion before setting the rebuild metadata.
+  [#1921](https://github.com/pulp/pulp_ansible/issues/1921)
+- Fixed a bug hitting a db restriction with `is_highest` on import.
+  [#1986](https://github.com/pulp/pulp_ansible/issues/1986)
+- Use the highest collection version to reflect a collection's update_at timestamp.
+  [#2000](https://github.com/pulp/pulp_ansible/issues/2000)
+- Fixed the JSONField specification so it doesn't break ruby bindings.
+  See context [here](https://github.com/pulp/pulp_rpm/issues/3639).
+- Fixed the openapi spec for the collection version search.
+
+#### Deprecations and Removals {: #0.23.0-removal }
+
+- Removed `is_highest` from collection versions.
+  [#1986](https://github.com/pulp/pulp_ansible/issues/1986)
+- Removed the `is_highest` attribute on CollectionVersion.
+
+---
+
 ## 0.22.2 (2024-10-29) {: #0.22.2 }
 
 #### Bugfixes {: #0.22.2-bugfix }
