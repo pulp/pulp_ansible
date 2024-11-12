@@ -197,4 +197,26 @@ jobs:
           branch: "update-ci/0.21"
           base: "0.21"
           delete-branch: true
+      - uses: "actions/checkout@v4"
+        with:
+          fetch-depth: 0
+          path: "pulp_ansible"
+          ref: "0.22"
+
+      - name: "Run update"
+        working-directory: "pulp_ansible"
+        run: |
+          ../plugin_template/scripts/update_ci.sh --release
+
+      - name: "Create Pull Request for CI files"
+        uses: "peter-evans/create-pull-request@v6"
+        with:
+          token: "${{ secrets.RELEASE_TOKEN }}"
+          path: "pulp_ansible"
+          committer: "pulpbot <pulp-infra@redhat.com>"
+          author: "pulpbot <pulp-infra@redhat.com>"
+          title: "Update CI files for branch 0.22"
+          branch: "update-ci/0.22"
+          base: "0.22"
+          delete-branch: true
 ...
