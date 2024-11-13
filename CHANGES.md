@@ -38,6 +38,15 @@
 
 ---
 
+## 0.22.3 (2024-11-12) {: #0.22.3 }
+
+#### Bugfixes {: #0.22.3-bugfix }
+
+- Fixed some 500 errors when browsing the Galaxy API.
+  [#galaxy500s](https://github.com/pulp/pulp_ansible/issues/galaxy500s)
+
+---
+
 ## 0.22.2 (2024-10-29) {: #0.22.2 }
 
 #### Bugfixes {: #0.22.2-bugfix }
