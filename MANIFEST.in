@@ -5,7 +5,6 @@ include coverage.md
 include functest_requirements.txt
 include LICENSE
 include pulp_ansible/app/webserver_snippets/*
-include requirements.txt
 include test_requirements.txt
 include unittest_requirements.txt
 include pyproject.toml

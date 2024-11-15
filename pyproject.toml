@@ -5,6 +5,51 @@ requires = [
 ]
 build-backend = 'setuptools.build_meta'
 
+[project]
+name = "pulp-ansible"
+version = "0.24.0.dev"
+description = "Pulp plugin to manage Ansible content, e.g. roles"
+readme = "README.rst"
+authors = [
+  {name="Pulp Ansible Plugin Project Developers", email="pulp-dev@redhat.com"}
+]
+classifiers = [
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+  "Operating System :: POSIX :: Linux",
+  "Development Status :: 5 - Production/Stable",
+  "Framework :: Django",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.9",
+]
+requires-python = ">=3.9"
+dependencies = [
+  "async_lru>=1.0,<2.1",
+  "galaxy_importer>=0.4.5,<0.5",
+  "GitPython>=3.1.24,<3.2",
+  "jsonschema>=4.9,<4.24",
+  "Pillow>=10.3,<11.1",
+  "pulpcore>=3.49.0,<3.70",
+  "PyYAML>=5.4.1,<7.0",
+  "semantic_version>=2.9,<2.11",
+]
+
+[project.urls]
+Homepage = "https://pulpproject.org"
+Documentation = "https://pulpproject.org/pulp_ansible/"
+Repository = "https://github.com/pulp/pulp_ansible"
+"Bug Tracker" = "https://github.com/pulp/pulp_ansible/issues"
+Changelog = "https://pulpproject.org/pulp_ansible/changes/"
+
+[project.entry-points."pulpcore.plugin"]
+pulp_ansible = "pulp_ansible:default_app_config"
+
+[project.entry-points."pytest11"]
+pulp_ansible = "pulp_ansible.pytest_plugin"
+
+[tool.setuptools.packages.find]
+where = ["."]
+
 [tool.towncrier]
 package = "pulp_ansible"
 filename = "CHANGES.md"
