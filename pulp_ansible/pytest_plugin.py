@@ -1,6 +1,5 @@
 import uuid
 import pytest
-import numpy as np
 import subprocess
 import time
 import yaml
@@ -210,6 +209,7 @@ def ansible_dir_factory(tmp_path, bindings_cfg):
 @pytest.fixture(scope="session")
 def random_image_factory(tmp_path_factory):
     """Factory to produce a random 100x100 image."""
+    import numpy as np
     from PIL import Image
 
     def _random_image():
