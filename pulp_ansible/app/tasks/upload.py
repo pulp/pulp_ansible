@@ -25,7 +25,9 @@ def process_collection_artifact(artifact, namespace, name, version):
 
     # Set up logging for CollectionImport object
     CollectionImport.objects.get_or_create(task_id=Task.current().pulp_id)
-    user_facing_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
+    user_facing_logger = logging.getLogger(
+        "pulp_ansible.app.tasks.upload.process_collection_artifact"
+    )
 
     artifact_url = reverse("artifacts-detail", args=[artifact.pk])
     filename = CollectionFilename(namespace, name, version)

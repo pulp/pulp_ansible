@@ -6,7 +6,6 @@ from semantic_version import Version
 
 from django.conf import settings
 from django.db import models
-from django.db.models import UniqueConstraint, Q
 from django.db.utils import IntegrityError
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
@@ -150,10 +149,6 @@ class CollectionVersion(Content):
         repository (models.CharField): The URL of the originating SCM repository.
         version (models.CharField): The version of the collection.
         requires_ansible (models.CharField): The version of Ansible required to use the collection.
-        is_highest (models.BooleanField): Indicates that the version is the highest one
-            in the collection. Import and sync workflows update this field, which then
-            triggers the database to [re]build the search_vector.
-            This field is Deprecated and scheduled for removal as soon as 0.24.0.
 
     Relations:
 
@@ -180,16 +175,13 @@ class CollectionVersion(Content):
     namespace = models.CharField(max_length=64, editable=False)
     repository = models.CharField(default="", blank=True, max_length=2000, editable=False)
     requires_ansible = models.CharField(null=True, max_length=255)
-    sha256 = models.CharField(max_length=64, null=True, blank=False)
+    sha256 = models.CharField(max_length=64, db_index=True, null=False, blank=False)
 
     version = models.CharField(max_length=128, db_collation="pulp_ansible_semver")
     version_major = models.IntegerField()
     version_minor = models.IntegerField()
     version_patch = models.IntegerField()
     version_prerelease = models.CharField(max_length=128)
-
-    # This field is deprecated. We keep it for some releases for 0-Downtime upgrades.
-    is_highest = models.BooleanField(editable=False, default=False)
 
     # Foreign Key Fields
     collection = models.ForeignKey(
@@ -202,15 +194,8 @@ class CollectionVersion(Content):
     #   a migration file. The trigger only runs when the table is
     #   updated. CollectionVersions are INSERT'ed into the table, so
     #   the search_vector does not get populated at initial creation
-    #   time. In the import or sync workflows, is_highest gets toggled
-    #   back and forth, which causes an UPDATE operation and then the
-    #   search_vector is built.
+    #   time.
     search_vector = psql_search.SearchVectorField(default="")
-
-    @classmethod
-    def natural_key_fields(cls):
-        # This method should be removed when the uniqueness is properly switched to sha256.
-        return cls._meta.unique_together[0]
 
     @hook(BEFORE_SAVE)
     def calculate_version_parts(self):
@@ -236,14 +221,7 @@ class CollectionVersion(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = (("namespace", "name", "version"), ("sha256",))
-        constraints = [
-            UniqueConstraint(
-                fields=("collection", "is_highest"),
-                name="unique_is_highest",
-                condition=Q(is_highest=True),
-            )
-        ]
+        unique_together = ("sha256",)
 
 
 class CollectionVersionMark(Content):
