@@ -6,7 +6,6 @@ from semantic_version import Version
 
 from django.conf import settings
 from django.db import models
-from django.db.models import UniqueConstraint, Q
 from django.db.utils import IntegrityError
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
@@ -150,10 +149,6 @@ class CollectionVersion(Content):
         repository (models.CharField): The URL of the originating SCM repository.
         version (models.CharField): The version of the collection.
         requires_ansible (models.CharField): The version of Ansible required to use the collection.
-        is_highest (models.BooleanField): Indicates that the version is the highest one
-            in the collection. Import and sync workflows update this field, which then
-            triggers the database to [re]build the search_vector.
-            This field is Deprecated and scheduled for removal as soon as 0.24.0.
 
     Relations:
 
@@ -188,9 +183,6 @@ class CollectionVersion(Content):
     version_patch = models.IntegerField()
     version_prerelease = models.CharField(max_length=128)
 
-    # This field is deprecated. We keep it for some releases for 0-Downtime upgrades.
-    is_highest = models.BooleanField(editable=False, default=False)
-
     # Foreign Key Fields
     collection = models.ForeignKey(
         Collection, on_delete=models.PROTECT, related_name="versions", editable=False
@@ -202,9 +194,7 @@ class CollectionVersion(Content):
     #   a migration file. The trigger only runs when the table is
     #   updated. CollectionVersions are INSERT'ed into the table, so
     #   the search_vector does not get populated at initial creation
-    #   time. In the import or sync workflows, is_highest gets toggled
-    #   back and forth, which causes an UPDATE operation and then the
-    #   search_vector is built.
+    #   time.
     search_vector = psql_search.SearchVectorField(default="")
 
     @hook(BEFORE_SAVE)
@@ -232,13 +222,6 @@ class CollectionVersion(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("sha256",)
-        constraints = [
-            UniqueConstraint(
-                fields=("collection", "is_highest"),
-                name="unique_is_highest",
-                condition=Q(is_highest=True),
-            ),
-        ]
 
 
 class CollectionVersionMark(Content):
