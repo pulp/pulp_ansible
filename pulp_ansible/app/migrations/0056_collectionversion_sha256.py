@@ -16,8 +16,4 @@ class Migration(migrations.Migration):
             field=models.CharField(default='', max_length=64, null=True),
             preserve_default=False,
         ),
-        migrations.AlterUniqueTogether(
-            name="collectionversion",
-            unique_together={("sha256",), ("namespace", "name", "version")},
-        ),
     ]
