@@ -236,13 +236,18 @@ class CollectionVersion(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = (("namespace", "name", "version"), ("sha256",))
+        unique_together = (("namespace", "name", "version"),)
         constraints = [
+            UniqueConstraint(
+                fields=("sha256",),
+                name="unique_sha256",
+                condition=Q(sha256__isnull=False),
+            ),
             UniqueConstraint(
                 fields=("collection", "is_highest"),
                 name="unique_is_highest",
                 condition=Q(is_highest=True),
-            )
+            ),
         ]
 
 
