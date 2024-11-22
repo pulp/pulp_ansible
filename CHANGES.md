@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.23.1 (2024-11-22) {: #0.23.1 }
+
+#### Bugfixes {: #0.23.1-bugfix }
+
+- Fixed a regression with migration 0056 failing on multiple null values on a unique constraint.
+  [#2040](https://github.com/pulp/pulp_ansible/issues/2040)
+
+---
+
 ## 0.23.0 (2024-11-11) {: #0.23.0 }
 
 #### Features {: #0.23.0-feature }
