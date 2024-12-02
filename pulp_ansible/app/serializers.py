@@ -505,10 +505,9 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         # Call super to ensure that data contains artifact
         data = super().deferred_validate(data)
         artifact = data.get("artifact")
+
         if (sha256 := data.get("sha256")) and sha256 != artifact.sha256:
             raise ValidationError(_("Expected sha256 did not match uploaded artifact's sha256"))
-        else:
-            data["sha256"] = artifact.sha256
 
         collection_info = process_collection_artifact(
             artifact=artifact,
@@ -519,35 +518,18 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         # repository field clashes
         collection_info["origin_repository"] = collection_info.pop("repository", None)
         data.update(collection_info)
-        # `retrieve` needs artifact, but it won't be in validated_data because of `get_artifacts`
-        self.context["artifact"] = artifact
 
         return data
 
     def retrieve(self, validated_data):
         """Reuse existing CollectionVersion if provided artifact matches."""
-        namespace = validated_data["namespace"]
-        name = validated_data["name"]
-        version = validated_data["version"]
-        artifact = self.context["artifact"]
-        # TODO switch this check to use digest when ColVersion uniqueness constraint is changed
-        col = CollectionVersion.objects.filter(
-            namespace=namespace, name=name, version=version
-        ).first()
-        if col:
-            if col._artifacts.get() != artifact:
-                raise ValidationError(
-                    _("Collection {}.{}-{} already exists with a different artifact").format(
-                        namespace, name, version
-                    )
-                )
-
-        return col
+        return CollectionVersion.objects.filter(sha256=validated_data["sha256"]).first()
 
     def create(self, validated_data):
         """Final step in creating the CollectionVersion."""
         tags = validated_data.pop("tags")
         origin_repository = validated_data.pop("origin_repository")
+
         # Create CollectionVersion from its metadata and adds to repository if specified
         content = super().create(validated_data)
 

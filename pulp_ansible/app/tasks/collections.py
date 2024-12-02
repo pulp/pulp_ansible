@@ -145,7 +145,7 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
             version = metadata["metadata"]["version"]
         else:
             raise e
-        collection_version = await sync_to_async(CollectionVersion.objects.get)(
+        collection_version = await CollectionVersion.objects.aget(
             namespace=namespace, name=name, version=version
         )
     if artifact is None:
@@ -275,7 +275,7 @@ def import_collection(
     temp_file = PulpTemporaryFile.objects.get(pk=temp_file_pk)
     filename = CollectionFilename(expected_namespace, expected_name, expected_version)
     log.info(f"Processing collection from {temp_file.file.name}")
-    user_facing_logger = logging.getLogger("pulp_ansible.app.tasks.collection.import_collection")
+    user_facing_logger = logging.getLogger("pulp_ansible.app.tasks.collections.import_collection")
 
     try:
         with temp_file.file.open() as artifact_file:
@@ -673,9 +673,7 @@ class CollectionSyncFirstStage(Stage):
         """Adds A Namespace metadata content to the pipeline."""
 
         try:
-            ns = await sync_to_async(AnsibleNamespaceMetadata.objects.get)(
-                metadata_sha256=namespace_sha
-            )
+            ns = await AnsibleNamespaceMetadata.objects.aget(metadata_sha256=namespace_sha)
             await self.put(DeclarativeContent(ns))
             return True
         except AnsibleNamespaceMetadata.DoesNotExist:
