@@ -31,5 +31,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(code=migrate_artifact_relative_path),
+        migrations.RunPython(code=migrate_artifact_relative_path, elidable=True),
     ]

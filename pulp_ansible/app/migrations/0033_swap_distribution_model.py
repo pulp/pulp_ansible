@@ -5,9 +5,9 @@ import django.db.models.deletion
 
 
 def migrate_data_from_old_model_to_new_model_up(apps, schema_editor):
-    """ Move objects from AnsibleDistribution to NewAnsibleDistribution."""
-    AnsibleDistribution = apps.get_model('ansible', 'AnsibleDistribution')
-    NewAnsibleDistribution = apps.get_model('ansible', 'NewAnsibleDistribution')
+    """Move objects from AnsibleDistribution to NewAnsibleDistribution."""
+    AnsibleDistribution = apps.get_model("ansible", "AnsibleDistribution")
+    NewAnsibleDistribution = apps.get_model("ansible", "NewAnsibleDistribution")
     for ansible_distribution in AnsibleDistribution.objects.all():
         with transaction.atomic():
             NewAnsibleDistribution(
@@ -20,15 +20,15 @@ def migrate_data_from_old_model_to_new_model_up(apps, schema_editor):
                 content_guard=ansible_distribution.content_guard,
                 remote=ansible_distribution.remote,
                 repository_version=ansible_distribution.repository_version,
-                repository=ansible_distribution.repository
+                repository=ansible_distribution.repository,
             ).save()
             ansible_distribution.delete()
 
 
 def migrate_data_from_old_model_to_new_model_down(apps, schema_editor):
-    """ Move objects from NewAnsibleDistribution to AnsibleDistribution."""
-    AnsibleDistribution = apps.get_model('ansible', 'AnsibleDistribution')
-    NewAnsibleDistribution = apps.get_model('ansible', 'NewAnsibleDistribution')
+    """Move objects from NewAnsibleDistribution to AnsibleDistribution."""
+    AnsibleDistribution = apps.get_model("ansible", "AnsibleDistribution")
+    NewAnsibleDistribution = apps.get_model("ansible", "NewAnsibleDistribution")
     for ansible_distribution in NewAnsibleDistribution.objects.all():
         with transaction.atomic():
             AnsibleDistribution(
@@ -41,7 +41,7 @@ def migrate_data_from_old_model_to_new_model_down(apps, schema_editor):
                 content_guard=ansible_distribution.content_guard,
                 remote=ansible_distribution.remote,
                 repository_version=ansible_distribution.repository_version,
-                repository=ansible_distribution.repository
+                repository=ansible_distribution.repository,
             ).save()
             ansible_distribution.delete()
 
@@ -50,29 +50,41 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('ansible', '0032_collectionremote_sync_dependencies'),
+        ("ansible", "0032_collectionremote_sync_dependencies"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='NewAnsibleDistribution',
+            name="NewAnsibleDistribution",
             fields=[
-                ('distribution_ptr', models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, related_name='ansible_ansibledistribution', serialize=False, to='core.Distribution')),
+                (
+                    "distribution_ptr",
+                    models.OneToOneField(
+                        auto_created=True,
+                        on_delete=django.db.models.deletion.CASCADE,
+                        parent_link=True,
+                        primary_key=True,
+                        related_name="ansible_ansibledistribution",
+                        serialize=False,
+                        to="core.Distribution",
+                    ),
+                ),
             ],
             options={
-                'default_related_name': '%(app_label)s_%(model_name)s',
+                "default_related_name": "%(app_label)s_%(model_name)s",
             },
-            bases=('core.distribution',),
+            bases=("core.distribution",),
         ),
         migrations.RunPython(
             code=migrate_data_from_old_model_to_new_model_up,
             reverse_code=migrate_data_from_old_model_to_new_model_down,
+            elidable=True,
         ),
         migrations.DeleteModel(
-            name='AnsibleDistribution',
+            name="AnsibleDistribution",
         ),
         migrations.RenameModel(
-            old_name='NewAnsibleDistribution',
-            new_name='AnsibleDistribution',
+            old_name="NewAnsibleDistribution",
+            new_name="AnsibleDistribution",
         ),
     ]

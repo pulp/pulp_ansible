@@ -22,5 +22,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunPython(add_extension),
+        migrations.RunPython(add_extension, elidable=True),
     ]

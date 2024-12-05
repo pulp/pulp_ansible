@@ -48,6 +48,7 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             code=data_bytes_to_string_up,
             reverse_code=data_bytes_to_string_down,
+            elidable=True,
         ),
         migrations.RemoveField(
             model_name='collectionversionsignature',

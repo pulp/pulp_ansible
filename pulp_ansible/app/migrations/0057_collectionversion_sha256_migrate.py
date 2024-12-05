@@ -60,4 +60,6 @@ class Migration(migrations.Migration):
         ("ansible", "0056_collectionversion_sha256"),
     ]
 
-    operations = [migrations.RunPython(add_sha256_to_current_models, migrations.RunPython.noop, elidable=True)]
+    operations = [
+        migrations.RunPython(add_sha256_to_current_models, migrations.RunPython.noop, elidable=True)
+    ]
