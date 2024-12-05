@@ -46,7 +46,7 @@ class Migration(migrations.Migration):
             },
             bases=(django_lifecycle.mixins.LifecycleModelMixin, models.Model),
         ),
-        migrations.RunPython(migrate_deprecated),
+        migrations.RunPython(migrate_deprecated, elidable=True),
         migrations.RemoveField(
             model_name='collection',
             name='deprecated',

@@ -77,7 +77,7 @@ class Migration(migrations.Migration):
                 null=True,
             ),
         ),
-        migrations.RunPython(code=migrate_collections),
+        migrations.RunPython(code=migrate_collections, elidable=True),
         migrations.AlterField(
             model_name="collectionversion",
             name="collection",

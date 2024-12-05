@@ -60,6 +60,7 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             code=parse_versions,
             reverse_code=migrations.RunPython.noop,
+            elidable=True,
         ),
         migrations.AlterField(
             model_name="collectiondownloadcount",

@@ -23,5 +23,5 @@ class Migration(migrations.Migration):
             name='remote_ptr',
             field=models.OneToOneField(auto_created=True, on_delete=django.db.models.deletion.CASCADE, parent_link=True, primary_key=True, related_name='ansible_roleremote', serialize=False, to='core.Remote'),
         ),
-        migrations.RunPython(update_pulp_type),
+        migrations.RunPython(update_pulp_type, elidable=True),
     ]

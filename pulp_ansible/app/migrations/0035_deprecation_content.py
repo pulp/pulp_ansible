@@ -133,6 +133,7 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             code=migrate_data_from_old_model_to_new_model_up,
             reverse_code=migrate_data_from_old_model_to_new_model_down,
+            elidable=True,
         ),
         migrations.DeleteModel(
             name='AnsibleCollectionDeprecated',
@@ -144,5 +145,6 @@ class Migration(migrations.Migration):
         migrations.RunPython(
             code=create_repository_content_for_deprecation,
             reverse_code=create_deprecation_from_repository_content,
+            elidable=True,
         ),
     ]
