@@ -13,7 +13,6 @@ def update_pulp_type(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0039_change_download_concurrency'),
         ('ansible', '0020_auto_20200810_1926'),
     ]
 

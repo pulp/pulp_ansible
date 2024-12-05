@@ -111,7 +111,6 @@ def create_deprecation_from_repository_content(apps, schema_editor):
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('core', '0068_add_timestamp_of_interest'),
         ('ansible', '0034_handle_jsonfield_warnings'),
     ]
 

@@ -50,7 +50,6 @@ class Migration(migrations.Migration):
     atomic = False
 
     dependencies = [
-        ('core', '0062_add_new_distribution_mastermodel'),
         ('ansible', '0032_collectionremote_sync_dependencies'),
     ]
 
