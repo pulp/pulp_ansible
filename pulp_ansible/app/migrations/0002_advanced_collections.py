@@ -20,7 +20,10 @@ def migrate_collections(apps, schema_editor):
 
 
 class Migration(migrations.Migration):
-    dependencies = [("core", "0001_initial"), ("ansible", "0001_initial")]
+
+    dependencies = [
+        ('ansible', '0001_initial'),
+    ]
 
     operations = [
         migrations.RenameModel(old_name="collection", new_name="collectionversion"),
