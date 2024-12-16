@@ -52,4 +52,8 @@ def test_collection_version_sha256_migrate(migrate):
     cv1 = CollectionVersion.objects.get(pk=cv1.pk)
     assert cv1.sha256 == "SENTINEL1"
 
-    apps = migrate([("ansible", "0058_fix_0056_regression")])
+    apps = migrate([("ansible", "0059_collectionversion_unique_sha256")])
+    CollectionVersion = apps.get_model("ansible", "CollectionVersion")
+
+    cv1 = CollectionVersion.objects.get(pk=cv1.pk)
+    assert cv1.sha256 == "SENTINEL1"
