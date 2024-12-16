@@ -56,6 +56,7 @@ jobs:
 
       - name: "Create Pull Request for CI files"
         uses: "peter-evans/create-pull-request@v6"
+        id: "create_pr_main"
         with:
           token: "${{ secrets.RELEASE_TOKEN }}"
           path: "pulp_ansible"
@@ -65,4 +66,12 @@ jobs:
           branch: "update-ci/main"
           base: "main"
           delete-branch: true
+      - name: "Mark PR automerge"
+        working-directory: "pulp_ansible"
+        run: |
+          gh pr merge --rebase --auto "${{ steps.create_pr_main.outputs.pull-request-number }}"
+        if: "steps.create_pr_main.outputs.pull-request-number"
+        env:
+          GH_TOKEN: "${{ secrets.RELEASE_TOKEN }}"
+        continue-on-error: true
 ...
