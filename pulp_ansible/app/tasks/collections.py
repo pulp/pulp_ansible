@@ -428,19 +428,18 @@ def _rebuild_collection_version_meta(content_object):
 def _get_backend_storage_url(artifact_file):
     """Get artifact url from pulp backend storage."""
     if (
-        settings.DEFAULT_FILE_STORAGE == "pulpcore.app.models.storage.FileSystem"
+        settings.STORAGES["default"]["BACKEND"] == "pulpcore.app.models.storage.FileSystem"
         or not settings.REDIRECT_TO_OBJECT_STORAGE
     ):
         url = None
-    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.s3boto3.S3Boto3Storage":
+    elif settings.STORAGES["default"]["BACKEND"] == "storages.backends.s3boto3.S3Boto3Storage":
         parameters = {"ResponseContentDisposition": "attachment%3Bfilename=archive.tar.gz"}
         url = artifact_file.storage.url(artifact_file.name, parameters=parameters)
-    elif settings.DEFAULT_FILE_STORAGE == "storages.backends.azure_storage.AzureStorage":
+    elif settings.STORAGES["default"]["BACKEND"] == "storages.backends.azure_storage.AzureStorage":
         url = artifact_file.storage.url(artifact_file.name)
     else:
         raise NotImplementedError(
-            f"The value settings.DEFAULT_FILE_STORAGE={settings.DEFAULT_FILE_STORAGE} "
-            "was not expected"
+            f'The value {settings.STORAGES["default"]["BACKEND"]=} was not expected'
         )
     return url
 
