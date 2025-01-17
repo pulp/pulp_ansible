@@ -214,6 +214,12 @@ No significant changes.
 
 ---
 
+## 0.20.10 (2025-01-16) {: #0.20.10 }
+
+No significant changes.
+
+---
+
 ## 0.20.9 (2024-10-31) {: #0.20.9 }
 
 #### Bugfixes {: #0.20.9-bugfix }
@@ -510,6 +516,12 @@ No significant changes.
 #### Misc
 
 -   [#1349](https://github.com/pulp/pulp_ansible/issues/1349)
+
+---
+
+## 0.16.6 (2025-01-16) {: #0.16.6 }
+
+No significant changes.
 
 ---
 
