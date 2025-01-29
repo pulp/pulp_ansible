@@ -1,6 +1,4 @@
 import copy
-import pickle
-import logging
 import os
 import random
 import uuid
@@ -8,7 +6,6 @@ from semantic_version import Version
 
 import pytest
 
-from pulp_smash.pulp3.bindings import delete_orphans
 from pulp_ansible.tests.functional.utils import (
     gen_distribution,
     gen_remote,
@@ -17,7 +14,14 @@ from pulp_ansible.tests.functional.utils import (
 )
 
 
-logger = logging.getLogger(__name__)
+# We need to cary a copy of this fixture with extended scope for now. Regret...
+@pytest.fixture(scope="session")
+def ascii_armored_detached_signing_service(
+    _ascii_armored_detached_signing_service_name, pulpcore_bindings
+):
+    return pulpcore_bindings.SigningServicesApi.list(
+        name=_ascii_armored_detached_signing_service_name
+    ).results[0]
 
 
 REPO_SPECS = {
@@ -207,10 +211,6 @@ def keys_from_client_results(results):
     return sorted(keys)
 
 
-def keys_from_results(specs):
-    return keys_from_client_results(specs)
-
-
 def compare_keys(a, b):
     result = ""
     a_missing = []
@@ -395,20 +395,6 @@ def get_collection_versions(ansible_bindings):
     return dict(((x.namespace, x.name, x.version), x.to_dict()) for x in cversions.results)
 
 
-def get_repositories(xclient):
-    repos = {}
-    for repo in xclient.list().results:
-        repos[repo.name] = repo.to_dict()
-    return repos
-
-
-def get_distributions(xclient):
-    dists = {}
-    for dist in xclient.list().results:
-        dists[dist.name] = dist.to_dict()
-    return dists
-
-
 def client_results_to_dict(results):
     rmap = {}
     for result in results:
@@ -416,7 +402,7 @@ def client_results_to_dict(results):
     return rmap
 
 
-def delete_repos_and_distros(ansible_bindings, reponames=None):
+def delete_repos_and_distros(pulpcore_bindings, ansible_bindings, monitor_task, reponames=None):
     # map out existing distros
     dists = client_results_to_dict(
         ansible_bindings.DistributionsAnsibleApi.list(limit=1000).results
@@ -437,7 +423,7 @@ def delete_repos_and_distros(ansible_bindings, reponames=None):
             ansible_bindings.RepositoriesAnsibleApi.delete(repos[rname]["pulp_href"])
 
     # cv's and artifacts should be orphaned if the repos are gone ...
-    delete_orphans()
+    monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"protection_time": 0}).task)
 
 
 def create_repos_and_dists(
@@ -459,7 +445,6 @@ def create_repos_and_dists(
             if repo_specs.get(spec["repository_name"], {}).get("pulp_labels"):
                 repo_data["pulp_labels"] = repo_specs[spec["repository_name"]]["pulp_labels"]
 
-            # pulp_repo = ansible_bindings.RepositoriesAnsibleApi.create(repo_data)
             pulp_repo = gen_object_with_cleanup(ansible_bindings.RepositoriesAnsibleApi, repo_data)
             created_repos[pulp_repo.name] = pulp_repo.to_dict()
 
@@ -477,239 +462,203 @@ def create_repos_and_dists(
                 base_path=pulp_repo.name,
                 repository=pulp_repo.pulp_href,
             )
-            # res = monitor_task(ansible_bindings.DistributionsAnsibleApi.create(dist_data).task)
-            # dist = ansible_bindings.DistributionsAnsibleApi.read(res.created_resources[0])
             dist = gen_object_with_cleanup(ansible_bindings.DistributionsAnsibleApi, dist_data)
             created_dists[dist.name] = dist.to_dict()
 
     return created_dists, created_repos
 
 
-@pytest.fixture()
+@pytest.fixture(scope="class")
 def search_specs(
+    pulpcore_bindings,
     ansible_bindings,
     ansible_collection_factory,
-    tmp_path,
     signing_gpg_homedir_path,
     ascii_armored_detached_signing_service,
     monitor_task,
     gen_object_with_cleanup,
 ):
-    repo_specs = copy.deepcopy(REPO_SPECS)
+    repo_specs = REPO_SPECS
     specs = copy.deepcopy(SPECS)
-    new_specs = None
 
-    cachefile = os.path.join("/tmp", "xrepo_cache.pickle")
+    # define signing service
+    signing_service = ascii_armored_detached_signing_service
+    signing_body = {"signing_service": signing_service.pulp_href, "content_units": ["*"]}
 
-    # if os.path.exists(cachefile):
-    #    os.remove(cachefile)
+    # make a place to store artifacts in between runs ...
+    # artifact_cache = os.path.join(tmp_path, "artifacts")
+    artifact_cache = os.path.join("/tmp", "artifacts")
+    if not os.path.exists(artifact_cache):
+        os.makedirs(artifact_cache)
 
-    if not os.path.exists(cachefile):
-        # define signing service
-        signing_service = ascii_armored_detached_signing_service
-        signing_body = {"signing_service": signing_service.pulp_href, "content_units": ["*"]}
+    reponames = sorted(set([x["repository_name"] for x in specs]))
 
-        # make a place to store artifacts in between runs ...
-        # artifact_cache = os.path.join(tmp_path, "artifacts")
-        artifact_cache = os.path.join("/tmp", "artifacts")
-        if not os.path.exists(artifact_cache):
-            os.makedirs(artifact_cache)
+    delete_repos_and_distros(pulpcore_bindings, ansible_bindings, monitor_task, reponames=reponames)
 
-        reponames = sorted(set([x["repository_name"] for x in specs]))
+    created_dists, created_repos = create_repos_and_dists(
+        ansible_bindings,
+        gen_object_with_cleanup,
+        monitor_task,
+        signing_body,
+        repo_specs,
+        specs,
+    )
 
-        delete_repos_and_distros(ansible_bindings, reponames=reponames)
+    # keep track of what got uploaded
+    uploaded_artifacts = {}
 
-        created_dists, created_repos = create_repos_and_dists(
-            ansible_bindings,
-            gen_object_with_cleanup,
-            monitor_task,
-            signing_body,
-            repo_specs,
-            specs,
-        )
+    # make and upload each cv
+    for ids, spec in enumerate(specs):
+        ckey = (spec["namespace"], spec["name"], spec["version"])
 
-        # keep track of what got uploaded
-        uploaded_artifacts = {}
+        """
+        if spec["repository_name"] in created_dists:
+            pulp_dist = created_dists[spec["repository_name"]]
+        else:
+            pulp_dist = {"base_path": spec["repository_name"]}
+        """
 
-        # make and upload each cv
-        for ids, spec in enumerate(specs):
-            ckey = (spec["namespace"], spec["name"], spec["version"])
+        if ckey not in uploaded_artifacts:
+            # upload to the repo ...
+            build_spec = copy.deepcopy(spec)
+            build_spec["repository"] = "https://github.com/foo/bar"
+            cv_fn = ansible_collection_factory(config=build_spec).filename
+            specs[ids]["artifact"] = cv_fn
+            body = {
+                "file": cv_fn,
+                "repository": created_repos[spec["repository_name"]]["pulp_href"],
+            }
+            res = monitor_task(ansible_bindings.ContentCollectionVersionsApi.create(**body).task)
+            assert res.state == "completed"
+            uploaded_artifacts[ckey] = cv_fn
 
-            """
-            if spec["repository_name"] in created_dists:
-                pulp_dist = created_dists[spec["repository_name"]]
-            else:
-                pulp_dist = {"base_path": spec["repository_name"]}
-            """
-
-            if ckey not in uploaded_artifacts:
-                # upload to the repo ...
-                build_spec = copy.deepcopy(spec)
-                build_spec["repository"] = "https://github.com/foo/bar"
-                cv_fn = ansible_collection_factory(config=build_spec).filename
-                specs[ids]["artifact"] = cv_fn
-                body = {
-                    "file": cv_fn,
-                    "repository": created_repos[spec["repository_name"]]["pulp_href"],
-                }
-                res = monitor_task(
-                    ansible_bindings.ContentCollectionVersionsApi.create(**body).task
-                )
-                assert res.state == "completed"
-                uploaded_artifacts[ckey] = cv_fn
-
-            else:
-                # copy to the repo ...
-                # https://docs.pulpproject.org/pulp_rpm/workflows/copy.html
-                repo = created_repos[spec["repository_name"]]
-                repo_href = repo["pulp_href"]
-                cvs = get_collection_versions(ansible_bindings)
-                this_cv = cvs[ckey]
-                cv_href = this_cv["pulp_href"]
-                payload = {"add_content_units": [cv_href]}
-                res = monitor_task(
-                    ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
-                )
-                assert res.state == "completed"
-
-            # sign it ...
-            if spec.get("signed"):
-                cvs = get_collection_versions(ansible_bindings)
-                ckey = (spec["namespace"], spec["name"], spec["version"])
-                cv = cvs[ckey]
-                collection_url = cv["pulp_href"]
-                repo = created_repos[spec["repository_name"]]
-                body = {
-                    "content_units": [collection_url],
-                    "signing_service": ascii_armored_detached_signing_service.pulp_href,
-                }
-                res = monitor_task(
-                    ansible_bindings.RepositoriesAnsibleApi.sign(repo["pulp_href"], body).task
-                )
-                assert res.state == "completed"
-
-        # delete distributions so that some repos can hold CVs but not be "distributed"
-        current_dists = ansible_bindings.DistributionsAnsibleApi.list().results
-        current_dists = dict((x.name, x) for x in current_dists)
-        distros_deleted = []
-        for spec in specs:
-            if not spec.get("has_distribution", True):
-                dname = spec["repository_name"]
-                if dname in distros_deleted:
-                    continue
-                ansible_bindings.DistributionsAnsibleApi.delete(current_dists[dname].pulp_href)
-                distros_deleted.append(dname)
-
-        # limit our actions to only the repos under test ...
-        reponames = sorted(set([x["repository_name"] for x in specs]))
-
-        # remove stuff -after- it's copied around ...
-        for ids, spec in enumerate(specs):
-            if spec.get("removed") or spec.get("readded"):
-                cvs = get_collection_versions(ansible_bindings)
-                ckey = (spec["namespace"], spec["name"], spec["version"])
-                cv = cvs[ckey]
-                collection_url = cv["pulp_href"]
-                repo = created_repos[spec["repository_name"]]
-                repo_href = repo["pulp_href"]
-
-                payload = {"remove_content_units": [collection_url]}
-                res = monitor_task(
-                    ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
-                )
-                assert res.state == "completed"
-
-        # re-add stuff
-        for ids, spec in enumerate(specs):
-            if spec.get("readded"):
-                cvs = get_collection_versions(ansible_bindings)
-                ckey = (spec["namespace"], spec["name"], spec["version"])
-                cv = cvs[ckey]
-                collection_url = cv["pulp_href"]
-                repo = created_repos[spec["repository_name"]]
-                repo_href = repo["pulp_href"]
-
-                payload = {"add_content_units": [collection_url]}
-                res = monitor_task(
-                    ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
-                )
-                assert res.state == "completed"
-
-        # generate some new repo version numbers to ensure content shows up
-        reponames = [x["repository_name"] for x in specs]
-        for reponame in reponames:
+        else:
+            # copy to the repo ...
+            # https://docs.pulpproject.org/pulp_rpm/workflows/copy.html
             repo = created_repos[spec["repository_name"]]
             repo_href = repo["pulp_href"]
+            cvs = get_collection_versions(ansible_bindings)
+            this_cv = cvs[ckey]
+            cv_href = this_cv["pulp_href"]
+            payload = {"add_content_units": [cv_href]}
+            res = monitor_task(
+                ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
+            )
+            assert res.state == "completed"
 
-            # what should be IN the repo already?
-            candidates = [x for x in specs if x.get("repository_name") == reponame]
-            candidates = [x for x in candidates if not x.get("removed") and not x.get("readded")]
-            if not candidates:
-                continue
-
-            # pick one at random
-            spec = random.choice(candidates)
+        # sign it ...
+        if spec.get("signed"):
+            cvs = get_collection_versions(ansible_bindings)
             ckey = (spec["namespace"], spec["name"], spec["version"])
             cv = cvs[ckey]
             collection_url = cv["pulp_href"]
+            repo = created_repos[spec["repository_name"]]
+            body = {
+                "content_units": [collection_url],
+                "signing_service": ascii_armored_detached_signing_service.pulp_href,
+            }
+            res = monitor_task(
+                ansible_bindings.RepositoriesAnsibleApi.sign(repo["pulp_href"], body).task
+            )
+            assert res.state == "completed"
 
-            # add it to the repo to bump the repo version and
-            # validate the other CVs continue to live in "latest"
+    # delete distributions so that some repos can hold CVs but not be "distributed"
+    current_dists = ansible_bindings.DistributionsAnsibleApi.list().results
+    current_dists = dict((x.name, x) for x in current_dists)
+    distros_deleted = []
+    for spec in specs:
+        if not spec.get("has_distribution", True):
+            dname = spec["repository_name"]
+            if dname in distros_deleted:
+                continue
+            ansible_bindings.DistributionsAnsibleApi.delete(current_dists[dname].pulp_href)
+            distros_deleted.append(dname)
+
+    # limit our actions to only the repos under test ...
+    reponames = sorted(set([x["repository_name"] for x in specs]))
+
+    # remove stuff -after- it's copied around ...
+    for ids, spec in enumerate(specs):
+        if spec.get("removed") or spec.get("readded"):
+            cvs = get_collection_versions(ansible_bindings)
+            ckey = (spec["namespace"], spec["name"], spec["version"])
+            cv = cvs[ckey]
+            collection_url = cv["pulp_href"]
+            repo = created_repos[spec["repository_name"]]
+            repo_href = repo["pulp_href"]
+
+            payload = {"remove_content_units": [collection_url]}
+            res = monitor_task(
+                ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
+            )
+            assert res.state == "completed"
+
+    # re-add stuff
+    for ids, spec in enumerate(specs):
+        if spec.get("readded"):
+            cvs = get_collection_versions(ansible_bindings)
+            ckey = (spec["namespace"], spec["name"], spec["version"])
+            cv = cvs[ckey]
+            collection_url = cv["pulp_href"]
+            repo = created_repos[spec["repository_name"]]
+            repo_href = repo["pulp_href"]
+
             payload = {"add_content_units": [collection_url]}
             res = monitor_task(
                 ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
             )
             assert res.state == "completed"
 
-        # make some deprecations ...
-        for ids, spec in enumerate(specs):
-            if spec.get("deprecated"):
-                result = monitor_task(
-                    ansible_bindings.PulpAnsibleApiV3CollectionsApi.update(
-                        spec["name"],
-                        spec["namespace"],
-                        spec["repository_name"],
-                        {"deprecated": True},
-                    ).task
-                )
-                assert result.state == "completed", result
+    # generate some new repo version numbers to ensure content shows up
+    reponames = [x["repository_name"] for x in specs]
+    for reponame in reponames:
+        repo = created_repos[spec["repository_name"]]
+        repo_href = repo["pulp_href"]
 
-        # make new specs with the enumerated content of all repos ...
-        reponames = sorted(
-            set([x["repository_name"] for x in specs if x.get("has_distribution", True)])
-        )
+        # what should be IN the repo already?
+        candidates = [x for x in specs if x.get("repository_name") == reponame]
+        candidates = [x for x in candidates if not x.get("removed") and not x.get("readded")]
+        if not candidates:
+            continue
 
-        # map out all of the known distributed CVs
-        new_specs = get_collection_versions_by_repo(ansible_bindings, repo_names=reponames)
+        # pick one at random
+        spec = random.choice(candidates)
+        ckey = (spec["namespace"], spec["name"], spec["version"])
+        cv = cvs[ckey]
+        collection_url = cv["pulp_href"]
 
-        with open(cachefile, "wb") as f:
-            pickle.dump(new_specs, f)
+        # add it to the repo to bump the repo version and
+        # validate the other CVs continue to live in "latest"
+        payload = {"add_content_units": [collection_url]}
+        res = monitor_task(ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task)
+        assert res.state == "completed"
 
-    if new_specs is None:
-        with open(cachefile, "rb") as f:
-            new_specs = pickle.loads(f.read())
+    # make some deprecations ...
+    for ids, spec in enumerate(specs):
+        if spec.get("deprecated"):
+            result = monitor_task(
+                ansible_bindings.PulpAnsibleApiV3CollectionsApi.update(
+                    spec["name"],
+                    spec["namespace"],
+                    spec["repository_name"],
+                    {"deprecated": True},
+                ).task
+            )
+            assert result.state == "completed", result
 
-    yield new_specs
+    # make new specs with the enumerated content of all repos ...
+    reponames = sorted(
+        set([x["repository_name"] for x in specs if x.get("has_distribution", True)])
+    )
+
+    # map out all of the known distributed CVs
+    new_specs = get_collection_versions_by_repo(ansible_bindings, repo_names=reponames)
+
+    return new_specs
 
 
 class TestCrossRepoSearchFilters:
     """Validate the cross repo search endpoint filters."""
-
-    cachefile = os.path.join("/tmp", "xrepo_cache.pickle")
-    clean = True
-    # clean = False
-
-    @classmethod
-    def setup_class(cls):
-        """Make spec building a singleton."""
-        if os.path.exists(cls.cachefile):
-            os.remove(cls.cachefile)
-
-    @classmethod
-    def teardown_class(cls):
-        """Make spec building a singleton."""
-        if os.path.exists(cls.cachefile):
-            os.remove(cls.cachefile)
 
     def _run_search(self, search_client, specs, specs_filter, search_filters):
         if specs_filter:
@@ -916,42 +865,37 @@ class TestCrossRepoSearchFilters:
 
 
 def test_cross_repo_search_index_on_distribution_without_repository(
-    ansible_bindings, gen_object_with_cleanup
+    ansible_bindings, ansible_distribution_factory
 ):
     """Make sure no indexes are created for a repo-less distribution."""
-    distro_data = gen_distribution()
-    distro = gen_object_with_cleanup(ansible_bindings.DistributionsAnsibleApi, distro_data)
-    dist_id = distro.pulp_href.split("/")[-2]
+    distribution = ansible_distribution_factory()
+    distribution_id = distribution.pulp_href.split("/")[-2]
     resp = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
-        limit=1000, distribution=[dist_id]
+        limit=1000, distribution=[distribution_id]
     )
     assert resp.meta.count == 0
 
 
 def test_cross_repo_search_index_on_distribution_with_repository_latest_version(
     ansible_bindings,
+    ansible_repository_factory,
+    ansible_distribution_factory,
     build_and_upload_collection,
-    gen_object_with_cleanup,
 ):
     """Make sure indexes are created for a distribution that points at a repo version."""
 
-    pulp_repo = gen_object_with_cleanup(
-        ansible_bindings.RepositoriesAnsibleApi, {"name": str(uuid.uuid4())}
-    )
-    build_and_upload_collection(ansible_repo=pulp_repo)
+    repository = ansible_repository_factory()
+    build_and_upload_collection(ansible_repo=repository)
 
     # get the latest repo version ...
-    repository_versions = ansible_bindings.RepositoriesAnsibleVersionsApi.list(pulp_repo.pulp_href)
+    repository_versions = ansible_bindings.RepositoriesAnsibleVersionsApi.list(repository.pulp_href)
     repository_version_latest = repository_versions.results[0]
 
     # make a distro that points only at the latest repo version ...
-    distro = gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name,
-            "base_path": pulp_repo.name,
-            "repository_version": repository_version_latest.pulp_href,
-        },
+    distro = ansible_distribution_factory(
+        name=repository.name,
+        base_path=repository.name,
+        repository_version=repository_version_latest.pulp_href,
     )
 
     # make sure the CV was indexed
@@ -964,28 +908,24 @@ def test_cross_repo_search_index_on_distribution_with_repository_latest_version(
 
 def test_cross_repo_search_index_on_distribution_with_repository_previous_version(
     ansible_bindings,
+    ansible_repository_factory,
+    ansible_distribution_factory,
     build_and_upload_collection,
-    gen_object_with_cleanup,
 ):
     """Make sure indexes are created for a distribution that points at the latest repo version."""
 
-    pulp_repo = gen_object_with_cleanup(
-        ansible_bindings.RepositoriesAnsibleApi, {"name": str(uuid.uuid4())}
-    )
-    build_and_upload_collection(ansible_repo=pulp_repo)
+    repository = ansible_repository_factory()
+    build_and_upload_collection(ansible_repo=repository)
 
     # get the latest repo version ...
-    repository_versions = ansible_bindings.RepositoriesAnsibleVersionsApi.list(pulp_repo.pulp_href)
+    repository_versions = ansible_bindings.RepositoriesAnsibleVersionsApi.list(repository.pulp_href)
     repository_version_latest = repository_versions.results[0]
 
     # make a distro that points only at the latest repo version ...
-    distro = gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name,
-            "base_path": pulp_repo.name,
-            "repository_version": repository_version_latest.pulp_href,
-        },
+    distro = ansible_distribution_factory(
+        name=repository.name,
+        base_path=repository.name,
+        repository_version=repository_version_latest.pulp_href,
     )
 
     # make sure the CV was indexed
@@ -1050,8 +990,9 @@ def test_cross_repo_search_index_on_repository_version_latest_filter(
 
 def test_cross_repo_search_index_on_multi_distro_single_repo(
     ansible_bindings,
+    ansible_repository_factory,
+    ansible_distribution_factory,
     build_and_upload_collection,
-    gen_object_with_cleanup,
 ):
     """Make sure indexes are created for a repo with multiple distributions."""
 
@@ -1062,9 +1003,7 @@ def test_cross_repo_search_index_on_multi_distro_single_repo(
     }
 
     # make the repo
-    pulp_repo = gen_object_with_cleanup(
-        ansible_bindings.RepositoriesAnsibleApi, {"name": str(uuid.uuid4())}
-    )
+    pulp_repo = ansible_repository_factory()
     repo_id = pulp_repo.pulp_href.split("/")[-2]
 
     # add a collection to bump the version number
@@ -1075,13 +1014,10 @@ def test_cross_repo_search_index_on_multi_distro_single_repo(
     repository_version_latest = repository_versions.results[0]
 
     # make a distro that points at the first version
-    gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name + "_v1",
-            "base_path": pulp_repo.name + "_v1",
-            "repository_version": repository_version_latest.pulp_href,
-        },
+    ansible_distribution_factory(
+        name=pulp_repo.name + "_v1",
+        base_path=pulp_repo.name + "_v1",
+        repository_version=repository_version_latest.pulp_href,
     )
 
     # we should now have 1 index
@@ -1102,13 +1038,10 @@ def test_cross_repo_search_index_on_multi_distro_single_repo(
     repository_version_latest = repository_versions.results[0]
 
     # make a distro that points at the second version
-    gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name + "_v2",
-            "base_path": pulp_repo.name + "_v2",
-            "repository_version": repository_version_latest.pulp_href,
-        },
+    ansible_distribution_factory(
+        name=pulp_repo.name + "_v2",
+        base_path=pulp_repo.name + "_v2",
+        repository_version=repository_version_latest.pulp_href,
     )
 
     # per david, we should have 3 entries now
@@ -1128,13 +1061,10 @@ def test_cross_repo_search_index_on_multi_distro_single_repo(
     build_and_upload_collection(ansible_repo=pulp_repo, config=build_config)
 
     # make a distro that points at the repository instead of a version
-    gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name + "_vN",
-            "base_path": pulp_repo.name + "_vN",
-            "repository": pulp_repo.pulp_href,
-        },
+    ansible_distribution_factory(
+        name=pulp_repo.name + "_vN",
+        base_path=pulp_repo.name + "_vN",
+        repository=pulp_repo,
     )
 
     # per david, we should have 6 entries now
@@ -1252,23 +1182,18 @@ def test_cross_repo_search_index_on_distro_no_repo_version_and_removed_cv(
 
 def test_cross_repo_search_index_on_deleted_distro(
     ansible_bindings,
+    ansible_repository_factory,
+    ansible_distribution_factory,
     build_and_upload_collection,
-    gen_object_with_cleanup,
     monitor_task,
 ):
     """Make sure a deleted distro triggers an index cleanup."""
-    pulp_repo = gen_object_with_cleanup(
-        ansible_bindings.RepositoriesAnsibleApi, {"name": str(uuid.uuid4())}
-    )
+    pulp_repo = ansible_repository_factory()
 
-    # make a distro that points only at the repo ...
-    distro = gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name,
-            "base_path": pulp_repo.name,
-            "repository": pulp_repo.pulp_href,
-        },
+    distro = ansible_distribution_factory(
+        name=pulp_repo.name,
+        base_path=pulp_repo.name,
+        repository=pulp_repo,
     )
 
     # upload a CV
@@ -1281,7 +1206,7 @@ def test_cross_repo_search_index_on_deleted_distro(
     assert resp.meta.count == 1
 
     # now delete the distro ...
-    ansible_bindings.DistributionsAnsibleApi.delete(distro.pulp_href)
+    monitor_task(ansible_bindings.DistributionsAnsibleApi.delete(distro.pulp_href).task)
 
     # make sure the CV is not indexed
     resp = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
@@ -1292,33 +1217,24 @@ def test_cross_repo_search_index_on_deleted_distro(
 
 def test_cross_repo_search_index_on_deleted_distro_with_another_still_remaining(
     ansible_bindings,
+    ansible_repository_factory,
+    ansible_distribution_factory,
     build_and_upload_collection,
-    gen_object_with_cleanup,
     monitor_task,
 ):
     """Make sure a deleted distro only triggers cleanup if no distros point at the repo."""
-    pulp_repo = gen_object_with_cleanup(
-        ansible_bindings.RepositoriesAnsibleApi, {"name": str(uuid.uuid4())}
+    pulp_repo = ansible_repository_factory()
+
+    distro1 = ansible_distribution_factory(
+        name=pulp_repo.name + "1",
+        base_path=pulp_repo.name + "1",
+        repository=pulp_repo,
     )
 
-    # make a distro that points only at the repo ...
-    distro1 = gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name + "1",
-            "base_path": pulp_repo.name + "1",
-            "repository": pulp_repo.pulp_href,
-        },
-    )
-
-    # make a distro that points only at the repo ...
-    gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name + "2",
-            "base_path": pulp_repo.name + "2",
-            "repository": pulp_repo.pulp_href,
-        },
+    ansible_distribution_factory(
+        name=pulp_repo.name + "2",
+        base_path=pulp_repo.name + "2",
+        repository=pulp_repo,
     )
 
     # upload a CV
@@ -1331,7 +1247,7 @@ def test_cross_repo_search_index_on_deleted_distro_with_another_still_remaining(
     assert resp.meta.count == 1
 
     # now delete the distro ...
-    ansible_bindings.DistributionsAnsibleApi.delete(distro1.pulp_href)
+    monitor_task(ansible_bindings.DistributionsAnsibleApi.delete(distro1.pulp_href).task)
 
     # make sure the CV is still indexed based on the existence of distro2 ...
     resp = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
@@ -1389,29 +1305,20 @@ def test_cross_repo_search_index_on_distribution_with_repository_and_deprecation
 def test_cross_repo_search_index_with_updated_namespace_metadata(
     add_to_cleanup,
     ansible_bindings,
+    ansible_repository_factory,
+    ansible_distribution_factory,
     build_and_upload_collection,
-    gen_object_with_cleanup,
     monitor_task,
     random_image_factory,
 ):
     """Make sure namespace metdata updates are reflected in the index."""
 
-    # make a repo
-    pulp_repo = gen_object_with_cleanup(
-        ansible_bindings.RepositoriesAnsibleApi, {"name": str(uuid.uuid4())}
-    )
+    repository = ansible_repository_factory()
+    name = repository.name
+    distribution = ansible_distribution_factory(name=name, base_path=name, repository=repository)
 
-    # make a distro that points at the repository
-    distro = gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name,
-            "base_path": pulp_repo.name,
-            "repository": pulp_repo.pulp_href,
-        },
-    )
-    dist_id = distro.pulp_href.split("/")[-2]
-    distro_kwargs = {"path": distro.base_path, "distro_base_path": distro.base_path}
+    dist_id = distribution.pulp_href.split("/")[-2]
+    distribution_kwargs = {"path": name, "distro_base_path": name}
 
     # define col namespace
     namespace_name = randstr()
@@ -1421,7 +1328,7 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
 
     # make namespace metadata
     task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
-        name=namespace_name, description="hello", company="Testing Co.", **distro_kwargs
+        name=namespace_name, description="hello", company="Testing Co.", **distribution_kwargs
     )
     result = monitor_task(task.task)
     namespace_href = [x for x in result.created_resources if "namespaces" in x][0]
@@ -1431,17 +1338,19 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
 
     # make and publish a collection
     build_and_upload_collection(
-        ansible_repo=pulp_repo, config={"namespace": namespace_name, "name": collection_name}
+        ansible_repo=repository, config={"namespace": namespace_name, "name": collection_name}
     )
 
     # make sure the CV was indexed
-    resp = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
-        limit=1000, distribution=[dist_id]
+    response = (
+        ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
+            limit=1000, distribution=[dist_id]
+        )
     )
-    assert resp.meta.count == 1, resp
+    assert response.meta.count == 1, response
 
     # did it get all the metadata?
-    cv = resp.data[0]
+    cv = response.data[0]
     assert cv.namespace_metadata.pulp_href == namespace_href
     assert cv.namespace_metadata.avatar_url is None
     # assert cv.namespace_metadata.avatar_sha256 is None
@@ -1456,7 +1365,7 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
         description="hello 2",
         company="Testing Co. redux",
         avatar=avatar_path,
-        **distro_kwargs,
+        **distribution_kwargs,
     )
     result2 = monitor_task(task2.task)
     namespace2_href = [x for x in result2.created_resources if "namespaces" in x][0]
@@ -1465,13 +1374,15 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
     )
 
     # make sure the CV was re-indexed
-    resp2 = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
-        limit=1000, distribution=[dist_id]
+    response2 = (
+        ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
+            limit=1000, distribution=[dist_id]
+        )
     )
-    assert resp2.meta.count == 1, resp2
+    assert response2.meta.count == 1, response2
 
     # did it get all the NEW metadata?
-    cv2 = resp2.data[0]
+    cv2 = response2.data[0]
     assert cv2.namespace_metadata.pulp_href == namespace2_href
     assert cv2.namespace_metadata.avatar_url is not None
     # assert cv2.namespace_metadata.avatar_sha256 is not None
@@ -1482,22 +1393,14 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
 
 def test_cross_repo_search_semantic_version_ordering(
     ansible_bindings,
+    ansible_repository_factory,
+    ansible_distribution_factory,
     build_and_upload_collection,
-    gen_object_with_cleanup,
 ):
     """Make sure collections are properly sorted using the order_by='version' parameter."""
-    pulp_repo = gen_object_with_cleanup(
-        ansible_bindings.RepositoriesAnsibleApi, {"name": str(uuid.uuid4())}
-    )
-
-    gen_object_with_cleanup(
-        ansible_bindings.DistributionsAnsibleApi,
-        {
-            "name": pulp_repo.name,
-            "base_path": pulp_repo.name,
-            "repository": pulp_repo.pulp_href,
-        },
-    )
+    repository = ansible_repository_factory()
+    name = repository.name
+    ansible_distribution_factory(name=name, base_path=name, repository=repository)
 
     versions = [
         "2.0.0",
@@ -1512,17 +1415,18 @@ def test_cross_repo_search_semantic_version_ordering(
         "1.0.1",
         "1.0.0",
     ]
-
-    for version in versions:
-        build_and_upload_collection(ansible_repo=pulp_repo, config={"version": version})
-
-    resp = ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
-        limit=1000, order_by=["-version"], repository_name=[pulp_repo.name]
-    )
-
-    built_collection_versions = [col.collection_version.version for col in resp.data]
-
     # Make sure versions are correctly sorted according to Semantic Versioning.
     assert versions == sorted(versions, key=Version, reverse=True)
+
+    for version in versions:
+        build_and_upload_collection(ansible_repo=repository, config={"version": version})
+
+    response = (
+        ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
+            limit=1000, order_by=["-version"], repository_name=[name]
+        )
+    )
+
+    built_collection_versions = [col.collection_version.version for col in response.data]
 
     assert versions == built_collection_versions
