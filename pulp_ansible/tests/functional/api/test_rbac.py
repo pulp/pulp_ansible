@@ -1,10 +1,9 @@
 import pytest
 import uuid
 
-from pulp_ansible.tests.functional.constants import ANSIBLE_GALAXY_URL
-from pulp_ansible.tests.functional.utils import gen_ansible_remote
-
 from pulpcore.client.pulp_ansible import ApiException, AsyncOperationResponse
+
+from pulp_ansible.tests.functional.constants import ANSIBLE_GALAXY_URL
 
 
 # TODO Find a way to make the factories work with try_action
@@ -14,6 +13,10 @@ def gen_repo():
 
 def gen_distribution():
     return {"name": str(uuid.uuid4()), "base_path": str(uuid.uuid4())}
+
+
+def gen_remote():
+    return {"name": str(uuid.uuid4()), "url": ANSIBLE_GALAXY_URL, "rate_limit": 5}
 
 
 @pytest.fixture()
@@ -501,21 +504,21 @@ def test_remotes_rbac(
         remote_api,
         "create",
         201,
-        gen_ansible_remote(url=ANSIBLE_GALAXY_URL),
+        gen_remote(),
     )
     try_action(
         user_reader,
         remote_api,
         "create",
         403,
-        gen_ansible_remote(url=ANSIBLE_GALAXY_URL),
+        gen_remote(),
     )
     try_action(
         user_helpless,
         remote_api,
         "create",
         403,
-        gen_ansible_remote(url=ANSIBLE_GALAXY_URL),
+        gen_remote(),
     )
 
     # View testing
@@ -524,7 +527,7 @@ def test_remotes_rbac(
     try_action(user_helpless, remote_api, "read", 404, remote.pulp_href)
 
     # Update testing
-    update_args = [remote.pulp_href, gen_ansible_remote(url=ANSIBLE_GALAXY_URL)]
+    update_args = [remote.pulp_href, gen_remote()]
     try_action(user_creator, remote_api, "update", 202, *update_args)
     try_action(user_reader, remote_api, "update", 403, *update_args)
     try_action(user_helpless, remote_api, "update", 404, *update_args)
@@ -564,7 +567,7 @@ def test_remotes_role_management(
         remote_api,
         "create",
         201,
-        gen_ansible_remote(url=ANSIBLE_GALAXY_URL),
+        gen_remote(),
     )
     href = remote.pulp_href
 
