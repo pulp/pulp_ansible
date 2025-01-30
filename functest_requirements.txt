@@ -7,6 +7,3 @@ requests
 proxy.py~=2.4.9
 trustme~=1.2.0
 pytest-timeout
-
-# Legacy:
-pulp-smash @ git+https://github.com/pulp/pulp-smash.git
