@@ -243,10 +243,10 @@ def get_collection_versions_by_repo(
     repository_dist_map = {}
     repository_version_dist_map = {}
     for dist, dist_info in dists.items():
-        if dist_info["repository"]:
-            repository_dist_map[dist_info["repository"]] = dist_info
-        elif dist_info["repository_version"]:
-            repository_version_dist_map[dist_info["repository_version"]] = dist_info
+        if dist_info.repository:
+            repository_dist_map[dist_info.repository] = dist_info
+        elif dist_info.repository_version:
+            repository_version_dist_map[dist_info.repository_version] = dist_info
 
     if repo_names is None:
         repo_names = list(repos.keys())
@@ -256,11 +256,11 @@ def get_collection_versions_by_repo(
     # iterate repos
     for repo_name in repo_names:
         repo_info = repos[repo_name]
-        repo_pulp_href = repos[repo_name]["pulp_href"]
-        repo_id = repos[repo_name]["pulp_href"].split("/")[-2]
-        repo_latest_version = int(repo_info["latest_version_href"].split("/")[-2])
+        repo_pulp_href = repos[repo_name].pulp_href
+        repo_id = repos[repo_name].pulp_href.split("/")[-2]
+        repo_latest_version = int(repo_info.latest_version_href.split("/")[-2])
         repository_versions = ansible_bindings.RepositoriesAnsibleVersionsApi.list(
-            repo_info["pulp_href"], limit=1000
+            repo_info.pulp_href, limit=1000
         )
 
         # iterate repo versions
@@ -307,12 +307,12 @@ def get_collection_versions_by_repo(
                 "ansible.collection_signature" in present
                 and present["ansible.collection_signature"]["count"] > 0
             ):
-                rv_signatures = ansible_bindings.ContentCollectionSignaturesApi.list(
-                    repository_version=repository_version.pulp_href, limit=1000
-                )
-                rv_signatures = dict(
-                    (x.signed_collection.split("/")[-2], x.to_dict()) for x in rv_signatures.results
-                )
+                rv_signatures = {
+                    x.signed_collection.split("/")[-2]: x
+                    for x in ansible_bindings.ContentCollectionSignaturesApi.list(
+                        repository_version=repository_version.pulp_href, limit=1000
+                    ).results
+                }
 
             # get the collection versions ...
             rv_cvs = ansible_bindings.ContentCollectionVersionsApi.list(
@@ -330,13 +330,13 @@ def get_collection_versions_by_repo(
 
                 cv_id = cv.pulp_href.split("/")[-2]
                 cv_info = {
-                    "base_path": dist["base_path"],
-                    "distribution_id": dist["pulp_href"].split("/")[-2],
-                    "distribution_name": dist["name"],
-                    "distribution_repository": dist["repository"],
-                    "distribution_repository_version": dist["repository_version"],
+                    "base_path": dist.base_path,
+                    "distribution_id": dist.pulp_href.split("/")[-2],
+                    "distribution_name": dist.name,
+                    "distribution_repository": dist.repository,
+                    "distribution_repository_version": dist.repository_version,
                     "repository_name": repo_name,
-                    "repository_href": repo_info["pulp_href"],
+                    "repository_href": repo_info.pulp_href,
                     "repository_id": repo_id,
                     "repository_version_number": repository_version.number,
                     "repository_version_is_latest": repository_version.number
@@ -360,14 +360,14 @@ def get_collection_versions_by_repo(
                     "signatures": [],
                     "tags": [],
                     "dependencies": cv.dependencies,
-                    "pulp_labels": repo_info.get("pulp_labels", {}),
+                    "pulp_labels": repo_info.pulp_labels or {},
                 }
                 if cv.tags:
                     cv_info["tags"] = [x.name for x in cv.tags]
                 if rv_signatures:
                     for signature_cvid, signature_data in rv_signatures.items():
                         if signature_cvid == cv_id:
-                            cv_info["signatures"].append(signature_data["pubkey_fingerprint"])
+                            cv_info["signatures"].append(signature_data.pubkey_fingerprint)
                 cv_info["signed"] = len(cv_info["signatures"]) > 0
                 rv_cvs_info.append(cv_info)
 
@@ -386,13 +386,13 @@ def get_collection_versions_by_repo(
 
 def get_collection_versions(ansible_bindings):
     cversions = ansible_bindings.ContentCollectionVersionsApi.list(limit=1000)
-    return dict(((x.namespace, x.name, x.version), x.to_dict()) for x in cversions.results)
+    return {(x.namespace, x.name, x.version): x.pulp_href for x in cversions.results}
 
 
 def client_results_to_dict(results):
     rmap = {}
     for result in results:
-        rmap[result.name] = result.to_dict()
+        rmap[result.name] = result
     return rmap
 
 
@@ -410,11 +410,11 @@ def delete_repos_and_distros(pulpcore_bindings, ansible_bindings, monitor_task, 
     for rname in reponames:
         # clean the dist
         if rname in dists:
-            ansible_bindings.DistributionsAnsibleApi.delete(dists[rname]["pulp_href"])
+            ansible_bindings.DistributionsAnsibleApi.delete(dists[rname].pulp_href)
 
         # clean the repo
         if rname in repos:
-            ansible_bindings.RepositoriesAnsibleApi.delete(repos[rname]["pulp_href"])
+            ansible_bindings.RepositoriesAnsibleApi.delete(repos[rname].pulp_href)
 
     # cv's and artifacts should be orphaned if the repos are gone ...
     monitor_task(pulpcore_bindings.OrphansCleanupApi.cleanup({"protection_time": 0}).task)
@@ -430,7 +430,6 @@ def create_repos_and_dists(
     specs,
 ):
     created_repos = {}
-    created_dists = {}
 
     # create repo & distro ...
     for ids, spec in enumerate(specs):
@@ -441,15 +440,12 @@ def create_repos_and_dists(
                 repo_data["pulp_labels"] = pulp_labels
 
             repository = ansible_repository_factory(**repo_data)
-            created_repos[name] = repository.to_dict()
+            created_repos[name] = repository.pulp_href
 
             # make the distribution
-            distribution = ansible_distribution_factory(
-                name=name, base_path=name, repository=repository
-            )
-            created_dists[name] = distribution.to_dict()
+            ansible_distribution_factory(name=name, base_path=name, repository=repository)
 
-    return created_dists, created_repos
+    return created_repos
 
 
 @pytest.fixture(scope="class")
@@ -480,7 +476,7 @@ def search_specs(
 
     delete_repos_and_distros(pulpcore_bindings, ansible_bindings, monitor_task, reponames=reponames)
 
-    created_dists, created_repos = create_repos_and_dists(
+    created_repos = create_repos_and_dists(
         ansible_bindings,
         ansible_repository_factory,
         ansible_distribution_factory,
@@ -497,13 +493,6 @@ def search_specs(
     for ids, spec in enumerate(specs):
         ckey = (spec["namespace"], spec["name"], spec["version"])
 
-        """
-        if spec["repository_name"] in created_dists:
-            pulp_dist = created_dists[spec["repository_name"]]
-        else:
-            pulp_dist = {"base_path": spec["repository_name"]}
-        """
-
         if ckey not in uploaded_artifacts:
             # upload to the repo ...
             build_spec = copy.deepcopy(spec)
@@ -512,7 +501,7 @@ def search_specs(
             specs[ids]["artifact"] = cv_fn
             body = {
                 "file": cv_fn,
-                "repository": created_repos[spec["repository_name"]]["pulp_href"],
+                "repository": created_repos[spec["repository_name"]],
             }
             res = monitor_task(ansible_bindings.ContentCollectionVersionsApi.create(**body).task)
             assert res.state == "completed"
@@ -521,12 +510,9 @@ def search_specs(
         else:
             # copy to the repo ...
             # https://docs.pulpproject.org/pulp_rpm/workflows/copy.html
-            repo = created_repos[spec["repository_name"]]
-            repo_href = repo["pulp_href"]
+            repo_href = created_repos[spec["repository_name"]]
             cvs = get_collection_versions(ansible_bindings)
-            this_cv = cvs[ckey]
-            cv_href = this_cv["pulp_href"]
-            payload = {"add_content_units": [cv_href]}
+            payload = {"add_content_units": [cvs[ckey]]}
             res = monitor_task(
                 ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
             )
@@ -536,16 +522,12 @@ def search_specs(
         if spec.get("signed"):
             cvs = get_collection_versions(ansible_bindings)
             ckey = (spec["namespace"], spec["name"], spec["version"])
-            cv = cvs[ckey]
-            collection_url = cv["pulp_href"]
-            repo = created_repos[spec["repository_name"]]
+            repo_href = created_repos[spec["repository_name"]]
             body = {
-                "content_units": [collection_url],
+                "content_units": [cvs[ckey]],
                 "signing_service": ascii_armored_detached_signing_service.pulp_href,
             }
-            res = monitor_task(
-                ansible_bindings.RepositoriesAnsibleApi.sign(repo["pulp_href"], body).task
-            )
+            res = monitor_task(ansible_bindings.RepositoriesAnsibleApi.sign(repo_href, body).task)
             assert res.state == "completed"
 
     # delete distributions so that some repos can hold CVs but not be "distributed"
@@ -568,12 +550,9 @@ def search_specs(
         if spec.get("removed") or spec.get("readded"):
             cvs = get_collection_versions(ansible_bindings)
             ckey = (spec["namespace"], spec["name"], spec["version"])
-            cv = cvs[ckey]
-            collection_url = cv["pulp_href"]
-            repo = created_repos[spec["repository_name"]]
-            repo_href = repo["pulp_href"]
+            repo_href = created_repos[spec["repository_name"]]
 
-            payload = {"remove_content_units": [collection_url]}
+            payload = {"remove_content_units": [cvs[ckey]]}
             res = monitor_task(
                 ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
             )
@@ -584,12 +563,9 @@ def search_specs(
         if spec.get("readded"):
             cvs = get_collection_versions(ansible_bindings)
             ckey = (spec["namespace"], spec["name"], spec["version"])
-            cv = cvs[ckey]
-            collection_url = cv["pulp_href"]
-            repo = created_repos[spec["repository_name"]]
-            repo_href = repo["pulp_href"]
+            repo_href = created_repos[spec["repository_name"]]
 
-            payload = {"add_content_units": [collection_url]}
+            payload = {"add_content_units": [cvs[ckey]]}
             res = monitor_task(
                 ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task
             )
@@ -598,8 +574,7 @@ def search_specs(
     # generate some new repo version numbers to ensure content shows up
     reponames = [x["repository_name"] for x in specs]
     for reponame in reponames:
-        repo = created_repos[spec["repository_name"]]
-        repo_href = repo["pulp_href"]
+        repo_href = created_repos[spec["repository_name"]]
 
         # what should be IN the repo already?
         candidates = [x for x in specs if x.get("repository_name") == reponame]
@@ -610,12 +585,9 @@ def search_specs(
         # pick one at random
         spec = random.choice(candidates)
         ckey = (spec["namespace"], spec["name"], spec["version"])
-        cv = cvs[ckey]
-        collection_url = cv["pulp_href"]
-
         # add it to the repo to bump the repo version and
         # validate the other CVs continue to live in "latest"
-        payload = {"add_content_units": [collection_url]}
+        payload = {"add_content_units": [cvs[ckey]]}
         res = monitor_task(ansible_bindings.RepositoriesAnsibleApi.modify(repo_href, payload).task)
         assert res.state == "completed"
 
@@ -1319,7 +1291,7 @@ def test_cross_repo_search_index_with_updated_namespace_metadata(
         name=namespace_name,
         description="hello 2",
         company="Testing Co. redux",
-        avatar=avatar_path,
+        avatar=str(avatar_path),
         **distribution_kwargs,
     )
     result2 = monitor_task(task2.task)

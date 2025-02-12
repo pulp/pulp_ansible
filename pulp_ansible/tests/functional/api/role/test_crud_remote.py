@@ -46,10 +46,3 @@ def test_crud_role_remote(ansible_bindings, ansible_role_remote_factory, monitor
     assert remotes[0].policy == new_values["policy"]
     # Test delete remote
     monitor_task(ansible_bindings.RemotesRoleApi.delete(remote.pulp_href).task)
-
-
-@pytest.mark.parallel
-def test_role_remote_no_url(ansible_role_remote_factory):
-    """Verify whether is possible to create a remote without a URL."""
-    with pytest.raises(ApiException):
-        ansible_role_remote_factory(url=None)

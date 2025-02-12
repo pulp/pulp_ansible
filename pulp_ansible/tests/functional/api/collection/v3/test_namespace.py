@@ -156,11 +156,10 @@ def test_namespace_avatar(
 
     name = random_string()
     avatar_path = random_image_factory()
-    with open(avatar_path, "rb") as av:
-        avatar_sha256 = hashlib.sha256(av.read()).hexdigest()
+    avatar_sha256 = hashlib.sha256(avatar_path.read_bytes()).hexdigest()
 
     task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
-        name=name, avatar=avatar_path, **kwargs
+        name=name, avatar=str(avatar_path), **kwargs
     )
     result = monitor_task(task.task)
 
@@ -206,7 +205,7 @@ def test_namespace_syncing(
         collection, _ = build_and_upload_collection(repo1, config={"namespace": namespace})
         avatar_path = random_image_factory()
         task = ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
-            name=namespace, avatar=avatar_path, **kwargs1
+            name=namespace, avatar=str(avatar_path), **kwargs1
         )
         result = monitor_task(task.task)
         collections.append(collection)

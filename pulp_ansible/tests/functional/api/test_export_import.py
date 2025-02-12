@@ -63,7 +63,7 @@ def test_export_then_import(
 
     namespace_body = {
         "name": collection.namespace,
-        "avatar": random_image_factory(),
+        "avatar": str(random_image_factory()),
         "links": [
             {"name": "homepage", "url": "https://example.com"},
             {"name": "github", "url": "https://gh.com"},
