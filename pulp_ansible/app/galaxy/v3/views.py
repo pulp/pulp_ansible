@@ -899,7 +899,7 @@ class CollectionVersionViewSet(
         return self.list_serializer_class(*args, **kwargs)
 
     @extend_schema(
-        responses={202: list_serializer_class},
+        responses={200: list_serializer_class},
     )
     def list(self, request, *args, **kwargs):
         """
@@ -1067,7 +1067,7 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
         )
 
     @extend_schema(
-        responses={202: list_serializer_class},
+        responses={200: list_serializer_class},
     )
     def list(self, request, *args, **kwargs):
         """
@@ -1247,7 +1247,14 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
             default = list_serializer
         elif action == "destroy":
             default = AsyncOperationResponseSerializer
-        return {302: None, 202: responses.get(action, default)}
+        response = responses.get(action, default)
+        if response == AsyncOperationResponseSerializer:
+            status_code = 202
+        elif response is None:
+            status_code = 204
+        else:
+            status_code = 200
+        return {status_code: response, 302: None}
 
     # subclasses viewset to make .as_view work correctly on non viewset views
     # subclasses the redirected viewset to get pagination class and query params

@@ -65,7 +65,7 @@ def test_content_unit_lifecycle(ansible_bindings, build_and_upload_collection, m
     # Read a content unit by its href.
     content_unit = ansible_bindings.ContentCollectionVersionsApi.read(content_unit_href)
     for key, val in attrs.items():
-        assert content_unit.to_dict()[key] == val
+        assert getattr(content_unit, key) == val
 
     # Read a content unit by its pkg_id.
     page = ansible_bindings.ContentCollectionVersionsApi.list(

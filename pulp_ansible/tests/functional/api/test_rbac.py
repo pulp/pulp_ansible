@@ -42,14 +42,19 @@ def try_action(monitor_task):
         action_api = getattr(client, f"{action}_with_http_info")
         try:
             with user:
-                response, status, _ = action_api(*args, **kwargs, _return_http_data_only=False)
-            if isinstance(response, AsyncOperationResponse):
-                response = monitor_task(response.task)
+                try:
+                    data, status, _ = action_api(*args, **kwargs, _return_http_data_only=False)
+                except ValueError:
+                    response = action_api(*args, **kwargs)
+                    data = response.data
+                    status = response.status_code
+            if isinstance(data, AsyncOperationResponse):
+                data = monitor_task(data.task)
         except ApiException as e:
             assert e.status == outcome, f"{e}"
         else:
             assert status == outcome, f"User performed {action} when they shouldn't been able to"
-            return response
+            return data
 
     return _try_action
 

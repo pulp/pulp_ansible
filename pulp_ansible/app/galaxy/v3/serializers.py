@@ -1,4 +1,4 @@
-from typing import List
+import typing as t
 from django.conf import settings
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes
@@ -88,7 +88,7 @@ class CollectionSerializer(serializers.ModelSerializer):
         )
         return {"href": href, "version": obj.highest_version}
 
-    def get_download_count(self, obj):
+    def get_download_count(self, obj) -> int:
         """Get the download count of the collection"""
 
         return obj.download_count or 0
@@ -113,7 +113,7 @@ class CollectionVersionListSerializer(serializers.ModelSerializer):
         )
         model = models.CollectionVersion
 
-    def get_marks(self, obj) -> List[str]:
+    def get_marks(self, obj) -> t.List[str]:
         """Get a list of mark values filtering only those in the current repo."""
         return [x.value for x in obj.marks.all()]
 
@@ -394,8 +394,8 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             "is_signed",
         )
 
-    def get_repository_version(self, obj):
+    def get_repository_version(self, obj) -> str:
         if obj.repository_version:
-            return obj.repository_version.number
+            return str(obj.repository_version.number)
         else:
             return "latest"

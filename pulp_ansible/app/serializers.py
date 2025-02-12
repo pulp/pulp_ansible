@@ -1,3 +1,4 @@
+import typing as t
 from gettext import gettext as _
 
 import json
@@ -155,7 +156,7 @@ class AnsibleRepositorySerializer(RepositorySerializer):
         )
         model = AnsibleRepository
 
-    def get_last_sync_task(self, obj):
+    def get_last_sync_task(self, obj: AnsibleRepository) -> t.Any:
         if hasattr(obj, "last_sync_task"):
             return obj.last_sync_task
 
@@ -225,12 +226,12 @@ class CollectionRemoteSerializer(RemoteSerializer):
 
     sync_dependencies = serializers.BooleanField(
         help_text=_("Sync dependencies for collections specified via requirements file"),
-        default=True,
+        required=False,
     )
 
     signed_only = serializers.BooleanField(
         help_text=_("Sync only collections that have a signature"),
-        default=False,
+        required=False,
     )
 
     last_sync_task = serializers.SerializerMethodField()
@@ -565,7 +566,7 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         read_only=True,
     )
 
-    contents = fields.JSONDictField(
+    contents = fields.JSONListField(
         help_text=_("A JSON field with data about the contents."), read_only=True
     )
 

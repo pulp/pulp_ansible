@@ -24,7 +24,7 @@ def test_collection_deletion(
             config={"name": collection_name, "namespace": collection_namespace, "version": version},
         )
 
-    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(distribution.base_path)
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(path=distribution.base_path)
     assert collections.meta.count == 1
 
     task = monitor_task(

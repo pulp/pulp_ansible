@@ -10,3 +10,8 @@ class JSONDictField(serializers.JSONField):
     Not strictly correct, but we relied on that for a long time.
     See: https://github.com/tfranzel/drf-spectacular/issues/1095
     """
+
+
+@extend_schema_field({"type": "array", "items": {}})
+class JSONListField(serializers.JSONField):
+    """A drf JSONField override to force openapi schema to use 'array' type."""
