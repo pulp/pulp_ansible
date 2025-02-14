@@ -5,5 +5,5 @@ pytest-xdist
 numpy
 requests
 proxy.py~=2.4.9
-trustme~=1.2.0
+trustme~=1.2.1
 pytest-timeout
