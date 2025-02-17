@@ -8,6 +8,38 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.0 (2025-02-17) {: #0.24.0 }
+
+#### Features {: #0.24.0-feature }
+
+- CollectionVersion global uniqueness constraint is now its sha256 digest. Repository level uniqueness
+  is still (namespace, name, version).
+  [#1052](https://github.com/pulp/pulp_ansible/issues/1052)
+
+#### Bugfixes {: #0.24.0-bugfix }
+
+- Fixed a regression with migration 0056 failing on multiple null values on a unique constraint.
+  [#2040](https://github.com/pulp/pulp_ansible/issues/2040)
+
+#### Deprecations and Removals {: #0.24.0-removal }
+
+- Added the final migration to make the sha256 of the collection version artifact the uniqueness
+  constraint. This allows users to serve their own interpretation of the content in their private
+  repositories.
+  The migration will only succeed if all the content has been adjusted. To account for content that
+  was not migrated by the migration shipped with 0.22.0, you can run the content repair command
+  ``datarepair-ansible-collection-sha256`` prior to upgrading.
+  This version removed the content repair command.
+  [#1052](https://github.com/pulp/pulp_ansible/issues/1052)
+- Rebased and squashed old migrations to prepare for pulpcore 3.70 compatibility.
+  [#2062](https://github.com/pulp/pulp_ansible/issues/2062)
+
+#### Misc {: #0.24.0-misc }
+
+- [#2081](https://github.com/pulp/pulp_ansible/issues/2081), [#2083](https://github.com/pulp/pulp_ansible/issues/2083)
+
+---
+
 ## 0.23.1 (2024-11-22) {: #0.23.1 }
 
 #### Bugfixes {: #0.23.1-bugfix }
