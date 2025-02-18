@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.1 (2025-02-18) {: #0.24.1 }
+
+#### Bugfixes {: #0.24.1-bugfix }
+
+- Fixed a migration that was failing when upgrading on a system that was on 0.23.0 at one point in time.
+  [#2118](https://github.com/pulp/pulp_ansible/issues/2118)
+
+---
+
 ## 0.24.0 (2025-02-17) {: #0.24.0 }
 
 #### Features {: #0.24.0-feature }
