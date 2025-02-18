@@ -7,20 +7,31 @@ from pulpcore.plugin.migrations import RequireVersion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ansible', '0058_fix_0056_regression'),
-        ('core', '0110_apiappstatus'),
+        ("ansible", "0058_fix_0056_regression"),
+        ("core", "0110_apiappstatus"),
     ]
 
     operations = [
         RequireVersion("ansible", "0.23.0"),
         migrations.AlterField(
-            model_name='collectionversion',
-            name='sha256',
+            model_name="collectionversion",
+            name="sha256",
             field=models.CharField(db_index=True, max_length=64, null=False),
         ),
+        # ---
+        # The previous fix in migration 0058 did not do the job.
+        # But we can just drop the contstraint if present.
+        # And this is only necessary if this migration failed to apply before.
+        migrations.RunSQL(
+            sql="ALTER TABLE ansible_collectionversion DROP CONSTRAINT IF EXISTS "
+            "ansible_collectionversion_sha256_a4d120ab_uniq",
+            reverse_sql="",
+            elidable=True,
+        ),
+        # ---
         migrations.AlterUniqueTogether(
-            name='collectionversion',
-            unique_together={('sha256',)},
+            name="collectionversion",
+            unique_together={("sha256",)},
         ),
         migrations.RemoveConstraint(
             model_name="collectionversion",
