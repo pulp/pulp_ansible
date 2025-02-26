@@ -48,6 +48,7 @@ pulp_settings:
   ansible_content_hostname: https://pulp:443/pulp/content
   ansible_signature_require_verification: false
 pulp_settings_azure:
+  spectacular_settings__oas_version: "3.0.3"
   ansible_collect_download_count: true
   ansible_collect_download_log: false
 pulp_settings_gcp:
@@ -80,4 +81,3 @@ test_reroute: true
 test_s3: true
 test_storages_compat_layer: true
 use_issue_template: true
-
