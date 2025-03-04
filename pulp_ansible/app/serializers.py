@@ -726,6 +726,7 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
             "pulp_created",
             "pulp_last_updated",
             "sha256",
+            "pulp_labels",
         }
         model = CollectionVersion
 
