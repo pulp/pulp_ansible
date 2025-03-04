@@ -97,7 +97,6 @@ def busted_collection_build(basedir=None, namespace=None, name=None, version=Non
     return os.path.join(content_dir, "artifact.tar.gz")
 
 
-@pytest.mark.parallel
 def test_collection_named_collections(
     ansible_bindings,
     tmp_path,
@@ -143,7 +142,6 @@ def test_collection_named_collections(
     assert resp.name == spec["name"]
 
 
-@pytest.mark.parallel
 def test_collection_named_with_slashes(
     ansible_bindings,
     tmp_path,

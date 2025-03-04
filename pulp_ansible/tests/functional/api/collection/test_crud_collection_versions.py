@@ -54,7 +54,6 @@ def test_tags_filter(
     assert len(collections) == 0, collections
 
 
-@pytest.mark.parallel
 def test_content_unit_lifecycle(ansible_bindings, build_and_upload_collection, monitor_task):
     """Create content unit."""
     attrs = {"namespace": randstr(), "name": "squeezer", "version": "0.0.9"}
