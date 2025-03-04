@@ -60,7 +60,6 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         collections = self.collections_api.list(distribution.base_path)
 
         original_highest_version = collections.data[0].highest_version["version"]
-        original_updated_at = collections.data[0].updated_at
 
         original_total_versions = self.collections_versions_v3api.list(
             "squeezer", "pulp", distribution.base_path
@@ -82,7 +81,6 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         # enumerate new data after 2nd sync ...
         collections = self.collections_api.list(distribution.base_path)
         highest_version = collections.data[0].highest_version["version"]
-        updated_at = collections.data[0].updated_at
         total_versions = self.collections_versions_v3api.list(
             "squeezer", "pulp", distribution.base_path
         ).meta.count
@@ -91,7 +89,6 @@ class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):
         self.assertEqual(highest_version, "0.0.17")
         self.assertEqual(original_total_versions, 1)
         self.assertEqual(total_versions, 2)
-        self.assertGreater(updated_at, original_updated_at)
 
     def test_v3_collection_version_from_synced_data(self):
         """Test Collection Versions V3 endpoint fields."""

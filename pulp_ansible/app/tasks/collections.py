@@ -1142,16 +1142,14 @@ class AnsibleContentSaver(ContentSaver):
                 :class:`~pulpcore.plugin.stages.DeclarativeContent` objects to be saved.
 
         """
+        # Sort the batch by natural key to prevent deadlocks
+        # Keep this here until added to Pulpcore
+        batch.sort(key=lambda x: "".join(map(str, x.content.natural_key())))
         for d_content in batch:
             if d_content is None:
                 continue
             if isinstance(d_content.content, CollectionVersion):
-                info = d_content.content.natural_key_dict()
-                collection, created = Collection.objects.get_or_create(
-                    namespace=info["namespace"], name=info["name"]
-                )
-
-                d_content.content.collection = collection
+                d_content.content = self._handle_collection_version(d_content)
             elif isinstance(d_content.content, AnsibleNamespaceMetadata):
                 name = d_content.content.name
                 namespace, created = AnsibleNamespace.objects.get_or_create(name=name)
@@ -1165,65 +1163,80 @@ class AnsibleContentSaver(ContentSaver):
                         d_content.content.avatar_sha256 = None
                         d_content.content.metadata_sha256 = None
 
+    def _handle_collection_version(self, d_content):
+        collection_version = d_content.content
+
+        collection, created = Collection.objects.get_or_create(
+            namespace=d_content.content.namespace, name=d_content.content.name
+        )
+        collection_version.collection = collection
+
+        docs_blob = d_content.extra_data.get("docs_blob", {})
+        if docs_blob:
+            collection_version.docs_blob = docs_blob
+        d_artifact_files = d_content.extra_data.get("d_artifact_files", {})
+
+        for d_artifact in d_content.d_artifacts:
+            artifact = d_artifact.artifact
+            # TODO change logic when implementing normal on-demand syncing
+            # Special Case for Git sync w/ metadata_only=True
+            if artifact_file_name := d_artifact_files.get(d_artifact):
+                artifact_file = open(artifact_file_name, mode="rb")
+            else:
+                artifact_file = artifact.file.open()
+            with tarfile.open(fileobj=artifact_file, mode="r") as tar:
+                runtime_metadata = get_file_obj_from_tarball(
+                    tar, "meta/runtime.yml", artifact.file.name, raise_exc=False
+                )
+                if runtime_metadata:
+                    runtime_yaml = yaml.safe_load(runtime_metadata)
+                    if runtime_yaml:
+                        collection_version.requires_ansible = runtime_yaml.get("requires_ansible")
+                manifest_data = json.load(
+                    get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
+                )
+                files_data = json.load(
+                    get_file_obj_from_tarball(tar, "FILES.json", artifact.file.name)
+                )
+                collection_version.manifest = manifest_data
+                collection_version.files = files_data
+                info = manifest_data["collection_info"]
+            artifact_file.close()
+
+            # Remove fields not used by this model
+            info.pop("license_file")
+            info.pop("readme")
+
+            # Get tags for saving in _post_save
+            tags = info.pop("tags")
+            d_content.extra_data["tags"] = tags
+
+            # Update with the additional data from the Collection
+            for attr_name, attr_value in info.items():
+                if attr_value is None:
+                    continue
+                setattr(collection_version, attr_name, attr_value)
+            return collection_version
+
     def _post_save(self, batch):
         """
-        Save a batch of CollectionVersion, Tag objects.
+        Create the tags for the saved CollectionVersion.
 
         Args:
             batch (list of :class:`~pulpcore.plugin.stages.DeclarativeContent`): The batch of
                 :class:`~pulpcore.plugin.stages.DeclarativeContent` objects to be saved.
-
         """
         for d_content in batch:
             if d_content is None:
                 continue
-            if not isinstance(d_content.content, CollectionVersion):
-                continue
-            collection_version = d_content.content
-            docs_blob = d_content.extra_data.get("docs_blob", {})
-            if docs_blob:
-                collection_version.docs_blob = docs_blob
-
-            for d_artifact in d_content.d_artifacts:
-                artifact = d_artifact.artifact
-                with artifact.file.open() as artifact_file, tarfile.open(
-                    fileobj=artifact_file, mode="r"
-                ) as tar:
-                    runtime_metadata = get_file_obj_from_tarball(
-                        tar, "meta/runtime.yml", artifact.file.name, raise_exc=False
-                    )
-                    if runtime_metadata:
-                        runtime_yaml = yaml.safe_load(runtime_metadata)
-                        if runtime_yaml:
-                            collection_version.requires_ansible = runtime_yaml.get(
-                                "requires_ansible"
-                            )
-                    manifest_data = json.load(
-                        get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
-                    )
-                    files_data = json.load(
-                        get_file_obj_from_tarball(tar, "FILES.json", artifact.file.name)
-                    )
-                    collection_version.manifest = manifest_data
-                    collection_version.files = files_data
-                    info = manifest_data["collection_info"]
-
+            if isinstance(d_content.content, CollectionVersion):
+                collection_version = d_content.content
                 # Create the tags
-                tags = info.pop("tags")
-                for name in tags:
+                tag_names = d_content.extra_data.get("tags", [])
+                tags = []
+                for name in tag_names:
                     tag, created = Tag.objects.get_or_create(name=name)
-                    collection_version.tags.add(tag)
+                    tags.append(tag)
+                collection_version.tags.add(*tags)
 
-                # Remove fields not used by this model
-                info.pop("license_file")
-                info.pop("readme")
-
-                # Update with the additional data from the Collection
-                for attr_name, attr_value in info.items():
-                    if attr_value is None:
-                        continue
-                    setattr(collection_version, attr_name, attr_value)
-
-                collection_version.is_highest = False
-                collection_version.save()
                 _update_highest_version(collection_version)
