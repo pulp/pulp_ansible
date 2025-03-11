@@ -664,17 +664,15 @@ class CollectionSyncFirstStage(Stage):
         if namespace_sha:
             namespace = collection_version.namespace
 
-            if namespace not in self.namespaces_seen:
-                if await self._add_namespace(namespace, namespace_sha):
-                    self.namespaces_seen.add(namespace)
+            if namespace_sha not in self.namespaces_seen:
+                await self._add_namespace(namespace, namespace_sha)
 
     async def _add_namespace(self, name, namespace_sha):
         """Adds A Namespace metadata content to the pipeline."""
-
+        self.namespaces_seen.add(namespace_sha)
         try:
             ns = await AnsibleNamespaceMetadata.objects.aget(metadata_sha256=namespace_sha)
             await self.put(DeclarativeContent(ns))
-            return True
         except AnsibleNamespaceMetadata.DoesNotExist:
             pass
 
@@ -719,9 +717,6 @@ class CollectionSyncFirstStage(Stage):
             namespace = AnsibleNamespaceMetadata(**namespace)
             dc = DeclarativeContent(namespace, d_artifacts=da)
             await self.put(dc)
-            return True
-
-        return False
 
     async def _add_collection_version_from_git(self, url, gitref, metadata_only):
         d_content = await declarative_content_from_git_repo(
