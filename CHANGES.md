@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.22.4 (2025-03-12) {: #0.22.4 }
+
+#### Bugfixes {: #0.22.4-bugfix }
+
+- Fixed deadlock when performing multiple syncs with similar collections.
+  [#2131](https://github.com/pulp/pulp_ansible/issues/2131)
+
+---
+
 ## 0.22.3 (2024-11-12) {: #0.22.3 }
 
 #### Bugfixes {: #0.22.3-bugfix }
