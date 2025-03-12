@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.2 (2025-03-12) {: #0.24.2 }
+
+#### Bugfixes {: #0.24.2-bugfix }
+
+- Fixed deadlock when performing multiple syncs with similar collections.
+  [#2131](https://github.com/pulp/pulp_ansible/issues/2131)
+- Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
+
+---
+
 ## 0.24.1 (2025-02-18) {: #0.24.1 }
 
 #### Bugfixes {: #0.24.1-bugfix }
