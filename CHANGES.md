@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.2 (2025-03-12) {: #0.24.2 }
+
+#### Bugfixes {: #0.24.2-bugfix }
+
+- Fixed deadlock when performing multiple syncs with similar collections.
+  [#2131](https://github.com/pulp/pulp_ansible/issues/2131)
+- Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
+
+---
+
 ## 0.24.1 (2025-02-18) {: #0.24.1 }
 
 #### Bugfixes {: #0.24.1-bugfix }
@@ -85,6 +95,15 @@
 - Removed `is_highest` from collection versions.
   [#1986](https://github.com/pulp/pulp_ansible/issues/1986)
 - Removed the `is_highest` attribute on CollectionVersion.
+
+---
+
+## 0.22.4 (2025-03-12) {: #0.22.4 }
+
+#### Bugfixes {: #0.22.4-bugfix }
+
+- Fixed deadlock when performing multiple syncs with similar collections.
+  [#2131](https://github.com/pulp/pulp_ansible/issues/2131)
 
 ---
 
@@ -563,6 +582,12 @@ No significant changes.
 #### Misc
 
 -   [#1349](https://github.com/pulp/pulp_ansible/issues/1349)
+
+---
+
+## 0.16.7 (2025-03-12) {: #0.16.7 }
+
+No significant changes.
 
 ---
 
