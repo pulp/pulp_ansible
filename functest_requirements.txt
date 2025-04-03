@@ -4,6 +4,6 @@ pytest-custom_exit_code
 pytest-xdist
 numpy
 requests
-proxy.py~=2.4.9
+proxy.py~=2.4.10
 trustme~=1.2.0
 pytest-timeout
