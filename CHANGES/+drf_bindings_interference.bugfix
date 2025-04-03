@@ -1,1 +1,0 @@
-Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
