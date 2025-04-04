@@ -393,6 +393,11 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             "is_deprecated",
             "is_signed",
         )
+        # This is a read only serializer.
+        # But the uniqueness of the underlying model interfers with the SerilizerMethodField.
+        # See https://github.com/encode/django-rest-framework/pull/9531#issuecomment-2778892573 .
+        # This is a workaround. I don't even expect it to work forever.
+        validators = []
 
     def get_repository_version(self, obj) -> str:
         if obj.repository_version:
