@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.3 (2025-04-03) {: #0.24.3 }
+
+#### Bugfixes {: #0.24.3-bugfix }
+
+- Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
+
+---
+
 ## 0.24.2 (2025-03-12) {: #0.24.2 }
 
 #### Bugfixes {: #0.24.2-bugfix }
