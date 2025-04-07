@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.4 (2025-04-07) {: #0.24.4 }
+
+#### Bugfixes {: #0.24.4-bugfix }
+
+- Added a workaround to the `CollectionVersionSearchListSerializer` to allow installing djangorestframework>=3.16.
+
+---
+
 ## 0.24.3 (2025-04-03) {: #0.24.3 }
 
 #### Bugfixes {: #0.24.3-bugfix }
