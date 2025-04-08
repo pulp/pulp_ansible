@@ -510,7 +510,7 @@ class CollectionSyncFirstStage(Stage):
         self._unpaginated_collection_version_metadata = None
         self.optimize = optimize
         self.last_synced_metadata_time = None
-        self.namespaces_seen = set()
+        self.namespace_shas = {}
         self._unpaginated_namespace_metadata = None
 
         # Interpret download policy
@@ -663,11 +663,7 @@ class CollectionSyncFirstStage(Stage):
         # Process syncing CV Namespace Metadata if present
         namespace_sha = metadata["namespace"].get("metadata_sha256")
         if namespace_sha:
-            namespace = collection_version.namespace
-
-            if namespace not in self.namespaces_seen:
-                if await self._add_namespace(namespace, namespace_sha):
-                    self.namespaces_seen.add(namespace)
+            self.namespace_shas[collection_version.namespace] = namespace_sha
 
     async def _add_namespace(self, name, namespace_sha):
         """Adds A Namespace metadata content to the pipeline."""
@@ -675,6 +671,7 @@ class CollectionSyncFirstStage(Stage):
         try:
             ns = await AnsibleNamespaceMetadata.objects.aget(metadata_sha256=namespace_sha)
             await self.put(DeclarativeContent(ns))
+            await self.parsing_namespace_progress_bar.aincrement()
             return True
         except AnsibleNamespaceMetadata.DoesNotExist:
             pass
@@ -720,6 +717,7 @@ class CollectionSyncFirstStage(Stage):
             namespace = AnsibleNamespaceMetadata(**namespace)
             dc = DeclarativeContent(namespace, d_artifacts=da)
             await self.put(dc)
+            await self.parsing_namespace_progress_bar.aincrement()
             return True
 
         return False
@@ -1051,6 +1049,15 @@ class CollectionSyncFirstStage(Stage):
             await asyncio.gather(*tasks)
             # Ensure PR 'total' is correct before stage finishes
             pb.total = pb.done
+
+        tasks = []
+        msg = _("Parsing Namespace Metadata")
+        async with ProgressReport(message=msg, code="sync.parsing.namespace", total=0) as pr:
+            self.parsing_namespace_progress_bar = pr
+            for namespace, namespace_sha in self.namespace_shas.items():
+                tasks.append(loop.create_task(self._add_namespace(namespace, namespace_sha)))
+            await asyncio.gather(*tasks)
+            pr.total = pr.done
 
 
 class DeclarativeFailsafeArtifact(DeclarativeArtifact):
