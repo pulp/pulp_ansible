@@ -138,8 +138,8 @@ else
     cmd_user_prefix bash -c "pytest -v --timeout=300 -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8 --nightly"
     cmd_user_prefix bash -c "pytest -v --timeout=300 -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m 'not parallel' --nightly"
   else
-    cmd_user_prefix bash -c "pytest -v --timeout=300 -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8"
-    cmd_user_prefix bash -c "pytest -v --timeout=300 -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m 'not parallel'"
+    cmd_user_prefix bash -c "pytest -v --timeout=300 -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m parallel -n 8 --durations=20"
+    cmd_user_prefix bash -c "pytest -v --timeout=300 -r sx --color=yes --suppress-no-test-exit-code --pyargs pulp_ansible.tests.functional -m 'not parallel' --durations=20"
   fi
 fi
 pushd ../pulp-cli
