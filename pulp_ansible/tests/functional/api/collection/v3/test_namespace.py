@@ -232,3 +232,33 @@ def test_namespace_syncing(
     for namespace in synced_namespaces.results:
         assert namespace.name in namespaces
         assert namespaces[namespace.name] == namespace.pulp_href
+
+
+def test_shared_namespace_solo_fetch(
+    ansible_bindings,
+    ansible_repo,
+    ansible_collection_remote_factory,
+    monitor_task,
+    delete_orphans_pre,
+):
+    """Test syncing multiple collections from a shared namespace only fetches the namespace once."""
+    requirements = "collections:\n  - pulp.squeezer"
+    remote = ansible_collection_remote_factory(
+        url="https://galaxy.ansible.com",
+        requirements_file=requirements,
+    )
+    task = monitor_task(
+        ansible_bindings.RepositoriesAnsibleApi.sync(
+            ansible_repo.pulp_href, {"remote": remote.pulp_href}
+        ).task
+    )
+    number_cvs = 0
+    number_artifacts = 0
+    for report in task.progress_reports:
+        if report.code == "sync.parsing.metadata":
+            number_cvs = report.done
+        elif report.code == "sync.downloading.artifacts":
+            number_artifacts = report.done
+    # The number of artifacts is equal to number of CVs + number of namespace logos downloaded
+    # Since all the CVs have the same namespace, we should only download the namespace logo once
+    assert number_artifacts == number_cvs + 1
