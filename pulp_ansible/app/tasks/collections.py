@@ -710,6 +710,7 @@ class CollectionSyncFirstStage(Stage):
                         remote=self.remote,
                         relative_path=f"{name}-avatar",
                         deferred_download=False,
+                        extra_data={"namespace": name},
                     )
                 ]
                 if url
