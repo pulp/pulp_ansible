@@ -361,11 +361,12 @@ def test_sync_progress_report(
     )
 
     progress_reports = task.progress_reports
-    assert len(progress_reports) == 4
+    assert len(progress_reports) == 5
     messages = {pr.message for pr in progress_reports}
 
     assert messages == {
         "Parsing CollectionVersion Metadata",
+        "Parsing Namespace Metadata",
         "Downloading Artifacts",
         "Downloading Docs Blob",
         "Associating Content",
@@ -374,3 +375,5 @@ def test_sync_progress_report(
     for pr in progress_reports:
         if pr.message == "Parsing CollectionVersion Metadata":
             assert pr.total == pr.done
+        if pr.message == "Parsing Namespace Metadata":
+            assert pr.total == pr.done == 1
