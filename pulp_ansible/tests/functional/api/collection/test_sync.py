@@ -380,3 +380,39 @@ def test_last_synced_metadata_time(
     )
     repository = ansible_repo_api_client.read(repository.pulp_href)
     assert repository.last_synced_metadata_time is None
+
+
+@pytest.mark.parallel
+def test_sync_progress_report(
+    ansible_repo_api_client,
+    ansible_repo,
+    ansible_collection_remote_factory,
+    monitor_task,
+):
+    """Checks that the progress report messages are correct."""
+    remote = ansible_collection_remote_factory(
+        url="https://galaxy.ansible.com",
+        requirements_file="collections:\n  - robertdebock.ansible_development_environment",
+        sync_dependencies=False,
+        signed_only=False,
+    )
+    body = {"remote": remote.pulp_href}
+    task = monitor_task(ansible_repo_api_client.sync(ansible_repo.pulp_href, body).task)
+
+    progress_reports = task.progress_reports
+    assert len(progress_reports) == 5
+    messages = {pr.message for pr in progress_reports}
+
+    assert messages == {
+        "Parsing CollectionVersion Metadata",
+        "Parsing Namespace Metadata",
+        "Downloading Artifacts",
+        # "Downloading Docs Blob",  # This reuses the "Downloading Artifacts" name.
+        "Associating Content",
+    }
+
+    for pr in progress_reports:
+        if pr.message == "Parsing CollectionVersion Metadata":
+            assert pr.total == pr.done
+        if pr.message == "Parsing Namespace Metadata":
+            assert pr.total == pr.done == 1
