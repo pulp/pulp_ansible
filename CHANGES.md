@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.21.11 (2025-04-15) {: #0.21.11 }
+
+#### Bugfixes {: #0.21.11-bugfix }
+
+- Fixed namespace avatar download log.
+
+---
+
 ## 0.21.10 (2025-03-18) {: #0.21.10 }
 
 #### Bugfixes {: #0.21.10-bugfix }
