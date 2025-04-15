@@ -42,8 +42,13 @@ def ansible_repository_factory(ansible_bindings, gen_object_with_cleanup):
     """A factory that creates an Ansible Repository and deletes it at test cleanup time."""
 
     def _ansible_repository_factory(**kwargs):
+        extra_args = {}
+        if pulp_domain := kwargs.pop("pulp_domain", None):
+            extra_args["pulp_domain"] = pulp_domain
         kwargs.setdefault("name", str(uuid.uuid4()))
-        return gen_object_with_cleanup(ansible_bindings.RepositoriesAnsibleApi, kwargs)
+        return gen_object_with_cleanup(
+            ansible_bindings.RepositoriesAnsibleApi, kwargs, **extra_args
+        )
 
     return _ansible_repository_factory
 
