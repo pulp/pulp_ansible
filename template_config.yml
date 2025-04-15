@@ -48,6 +48,7 @@ pulp_settings:
   ansible_content_hostname: https://pulp:443/pulp/content
   ansible_signature_require_verification: false
 pulp_settings_azure:
+  domain_enabled: true
   ansible_collect_download_count: true
   ansible_collect_download_log: false
 pulp_settings_gcp:

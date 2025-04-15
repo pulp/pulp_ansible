@@ -10,3 +10,4 @@ class PulpAnsiblePluginAppConfig(PulpPluginAppConfig):
     label = "ansible"
     version = "0.27.0.dev"
     python_package_name = "pulp-ansible"
+    domain_compatible = True

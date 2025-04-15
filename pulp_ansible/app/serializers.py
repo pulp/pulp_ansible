@@ -7,6 +7,7 @@ from django.db import transaction
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema_field
 
 from galaxy_importer.constants import NAME_REGEXP
@@ -27,8 +28,7 @@ from pulpcore.plugin.serializers import (
     RepositoryVersionRelatedField,
     validate_unknown_fields,
 )
-from pulpcore.plugin.util import get_url
-from rest_framework.exceptions import ValidationError
+from pulpcore.plugin.util import get_url, get_domain_pk
 
 from .models import (
     AnsibleDistribution,
@@ -54,6 +54,14 @@ from pulp_ansible.app.tasks.utils import (
 )
 from pulp_ansible.app.tasks.signature import verify_signature_upload
 from pulp_ansible.app.tasks.upload import process_collection_artifact
+
+
+class DomainUniqueTogetherValidator(serializers.UniqueTogetherValidator):
+    def filter_queryset(self, *args, **kwargs):
+        domain_pk = get_domain_pk()
+        assert domain_pk is not None
+        qs = super().filter_queryset(*args, **kwargs).filter(_pulp_domain=domain_pk)
+        return qs
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -93,6 +101,12 @@ class RoleSerializer(SingleArtifactContentSerializer):
             "namespace",
         )
         model = Role
+        validators = [
+            DomainUniqueTogetherValidator(
+                queryset=Role.objects.all(),
+                fields=["namespace", "name", "version"],
+            )
+        ]
 
 
 class RoleRemoteSerializer(RemoteSerializer):
@@ -513,7 +527,9 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
 
     def retrieve(self, validated_data):
         """Reuse existing CollectionVersion if provided artifact matches."""
-        return CollectionVersion.objects.filter(sha256=validated_data["sha256"]).first()
+        return CollectionVersion.objects.filter(
+            sha256=validated_data["sha256"], pulp_domain=get_domain()
+        ).first()
 
     def create(self, validated_data):
         """Final step in creating the CollectionVersion."""

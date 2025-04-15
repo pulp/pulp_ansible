@@ -17,7 +17,6 @@ from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.db.utils import IntegrityError
-from django.urls import reverse
 from django.utils.dateparse import parse_datetime
 from galaxy_importer.collection import CollectionFilename
 from galaxy_importer.collection import import_collection as process_collection
@@ -50,6 +49,7 @@ from pulpcore.plugin.stages import (
     ResolveContentFutures,
     Stage,
 )
+from pulpcore.plugin.util import get_url, get_domain
 from rest_framework.serializers import ValidationError
 from semantic_version import SimpleSpec, Version
 from semantic_version.base import Always
@@ -76,6 +76,8 @@ from pulp_ansible.app.tasks.utils import (
 )
 
 log = logging.getLogger(__name__)
+
+aget_url = sync_to_async(get_url)
 
 
 # semantic_version.SimpleSpec interpretes "*" as ">=0.0.0"
@@ -125,8 +127,10 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
                 await sync_to_async(artifact.save)()
                 assert artifact._state.adding is False
             except IntegrityError:
-                artifact = await Artifact.objects.aget(sha256=artifact.sha256)
-        metadata["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
+                artifact = await Artifact.objects.aget(
+                    sha256=artifact.sha256, pulp_domain=get_domain()
+                )
+        metadata["artifact_url"] = await aget_url(artifact)
         metadata["artifact"] = artifact
     metadata["remote_artifact_url"] = "{}/commit/{}".format(url.rstrip("/"), commit_sha)
     metadata["sha256"] = artifact.sha256
@@ -290,7 +294,7 @@ def import_collection(
             )
         artifact = Artifact.from_pulp_temporary_file(temp_file)
         temp_file = None
-        importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
+        importer_result["artifact_url"] = get_url(artifact)
         importer_result["sha256"] = artifact.sha256
         collection_version = create_collection_from_importer(importer_result)
         collection_version.manifest = manifest_data
