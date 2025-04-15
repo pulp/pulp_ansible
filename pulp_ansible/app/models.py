@@ -31,6 +31,7 @@ from pulpcore.plugin.models import (
     EncryptedTextField,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
+from pulpcore.plugin.util import get_domain_pk
 
 from .downloaders import AnsibleDownloaderFactory
 
@@ -48,6 +49,7 @@ class Role(Content):
     namespace = models.CharField(max_length=64)
     name = models.CharField(max_length=64)
     version = models.CharField(max_length=128, db_collation="pulp_ansible_semver")
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     @property
     def relative_path(self):
@@ -58,7 +60,7 @@ class Role(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("version", "name", "namespace")
+        unique_together = ("version", "name", "namespace", "_pulp_domain")
 
 
 class Collection(BaseModel):
@@ -181,6 +183,7 @@ class CollectionVersion(Content):
     #   the search_vector does not get populated at initial creation
     #   time.
     search_vector = psql_search.SearchVectorField(default="")
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     @hook(BEFORE_SAVE)
     def calculate_version_parts(self):
@@ -206,7 +209,7 @@ class CollectionVersion(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("sha256",)
+        unique_together = ("sha256", "_pulp_domain")
 
 
 class CollectionVersionMark(Content):
@@ -225,10 +228,11 @@ class CollectionVersionMark(Content):
     marked_collection = models.ForeignKey(
         CollectionVersion, null=False, on_delete=models.CASCADE, related_name="marks"
     )
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("value", "marked_collection")
+        unique_together = ("value", "marked_collection", "_pulp_domain")
 
 
 class CollectionVersionSignature(Content):
@@ -257,10 +261,11 @@ class CollectionVersionSignature(Content):
     signing_service = models.ForeignKey(
         SigningService, on_delete=models.SET_NULL, related_name="signatures", null=True
     )
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("pubkey_fingerprint", "signed_collection")
+        unique_together = ("pubkey_fingerprint", "signed_collection", "_pulp_domain")
 
 
 class AnsibleNamespaceMetadata(Content):
@@ -301,6 +306,7 @@ class AnsibleNamespaceMetadata(Content):
     namespace = models.ForeignKey(
         AnsibleNamespace, on_delete=models.PROTECT, related_name="metadatas"
     )
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     @property
     def avatar_artifact(self):
@@ -332,7 +338,7 @@ class AnsibleNamespaceMetadata(Content):
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("metadata_sha256",)
+        unique_together = ("metadata_sha256", "_pulp_domain")
 
 
 class DownloadLog(BaseModel):
@@ -460,10 +466,11 @@ class AnsibleCollectionDeprecated(Content):
 
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
+    _pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
-        unique_together = ("namespace", "name")
+        unique_together = ("namespace", "name", "_pulp_domain")
 
 
 class AnsibleRepository(Repository, AutoAddObjPermsMixin):

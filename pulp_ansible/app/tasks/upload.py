@@ -3,10 +3,10 @@ import logging
 import tarfile
 
 from django.db import transaction
-from django.urls import reverse
 
 from galaxy_importer.collection import import_collection
 from pulpcore.plugin.models import Task
+from pulpcore.plugin.util import get_url
 
 from pulp_ansible.app.models import Collection, CollectionImport
 from pulp_ansible.app.tasks.utils import CollectionFilename, get_file_obj_from_tarball
@@ -29,7 +29,7 @@ def process_collection_artifact(artifact, namespace, name, version):
         "pulp_ansible.app.tasks.upload.process_collection_artifact"
     )
 
-    artifact_url = reverse("artifacts-detail", args=[artifact.pk])
+    artifact_url = get_url(artifact)
     filename = CollectionFilename(namespace, name, version)
     log.info(f"Processing collection {filename} from {artifact_url}")
 

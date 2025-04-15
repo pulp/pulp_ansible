@@ -40,6 +40,7 @@ from pulpcore.plugin.viewsets import (
     NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
+from pulpcore.plugin.util import get_domain, get_url
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -567,7 +568,7 @@ class CollectionUploadViewSet(
         serializer.is_valid(raise_exception=True)
 
         # Check that namespace, name and version can be extracted
-        request.data["repository"] = reverse("repositories-ansible/ansible-detail", args=[repo.pk])
+        request.data["repository"] = get_url(repo)
         serializer = CollectionVersionUploadSerializer(
             data=request.data, context=self.get_serializer_context()
         )
@@ -704,11 +705,14 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
     def get(self, request, *args, **kwargs):
         """Download collection."""
         distro_base_path = self.kwargs["distro_base_path"]
-        distribution = AnsibleDistribution.objects.get(base_path=distro_base_path)
+        distribution = AnsibleDistribution.objects.get(
+            base_path=distro_base_path, pulp_domain=get_domain()
+        )
 
-        url = "{host}/{prefix}/{distro_base_path}/{filename}".format(
+        url = "{host}/{prefix}{domain}/{distro_base_path}/{filename}".format(
             host=settings.CONTENT_ORIGIN.strip("/"),
             prefix=settings.CONTENT_PATH_PREFIX.strip("/"),
+            domain="/" + get_domain().name if settings.DOMAIN_ENABLED else "",
             distro_base_path=distro_base_path,
             filename=self.kwargs["filename"],
         )

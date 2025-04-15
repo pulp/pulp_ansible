@@ -110,7 +110,7 @@ if [ "$TEST" = "azure" ]; then
       - ./azurite:/etc/pulp\
     command: "azurite-blob --blobHost 0.0.0.0"' vars/main.yaml
   sed -i -e '$a azure_test: true\
-pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": false}\
+pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": false, "domain_enabled": true}\
 pulp_scenario_env: {}\
 ' vars/main.yaml
 fi
