@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.5 (2025-04-15) {: #0.24.5 }
+
+#### Bugfixes {: #0.24.5-bugfix }
+
+- Fixed namespace avatar download log.
+
+---
+
 ## 0.24.4 (2025-04-07) {: #0.24.4 }
 
 #### Bugfixes {: #0.24.4-bugfix }
@@ -188,6 +196,14 @@
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.11 (2025-04-15) {: #0.21.11 }
+
+#### Bugfixes {: #0.21.11-bugfix }
+
+- Fixed namespace avatar download log.
 
 ---
 
