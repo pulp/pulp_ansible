@@ -1,1 +1,0 @@
-Added a workaround to the `CollectionVersionSearchListSerializer` to allow installing djangorestframework>=3.16.
