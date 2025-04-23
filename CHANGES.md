@@ -8,6 +8,19 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.22.5 (2025-04-23) {: #0.22.5 }
+
+#### Features {: #0.22.5-feature }
+
+- Added namespace progress report.
+
+#### Bugfixes {: #0.22.5-bugfix }
+
+- Fixed optimization of fetching namespace logos during sync.
+  [#2138](https://github.com/pulp/pulp_ansible/issues/2138)
+
+---
+
 ## 0.22.4 (2025-03-12) {: #0.22.4 }
 
 #### Bugfixes {: #0.22.4-bugfix }
