@@ -1,1 +1,0 @@
-Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
