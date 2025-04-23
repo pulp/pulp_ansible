@@ -1,1 +1,0 @@
-Fixed deadlock when performing multiple syncs with similar collections.
