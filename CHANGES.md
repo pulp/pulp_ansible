@@ -8,6 +8,42 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.25.0 (2025-04-23) {: #0.25.0 }
+
+#### Features {: #0.25.0-feature }
+
+- Added namespace progress report.
+
+#### Bugfixes {: #0.25.0-bugfix }
+
+- Renamed duplicate 'Downloading Artifacts' sync progress report message to 'Downloading Docs Blob'.
+  [#1369](https://github.com/pulp/pulp_ansible/issues/1369)
+- Fixed a migration that was failing when upgrading on a system that was on 0.23.0 at one point in time.
+  [#2118](https://github.com/pulp/pulp_ansible/issues/2118)
+- Fixed deadlock when performing multiple syncs with similar collections.
+  [#2131](https://github.com/pulp/pulp_ansible/issues/2131)
+- Fixed optimization of fetching namespace logos during sync.
+  [#2138](https://github.com/pulp/pulp_ansible/issues/2138)
+- Added a workaround to the `CollectionVersionSearchListSerializer` to allow installing djangorestframework>=3.16.
+- Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
+- Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
+- Fixed namespace avatar download log.
+
+---
+
+## 0.24.6 (2025-04-23) {: #0.24.6 }
+
+#### Features {: #0.24.6-feature }
+
+- Added namespace progress report.
+
+#### Bugfixes {: #0.24.6-bugfix }
+
+- Fixed optimization of fetching namespace logos during sync.
+  [#2138](https://github.com/pulp/pulp_ansible/issues/2138)
+
+---
+
 ## 0.24.5 (2025-04-15) {: #0.24.5 }
 
 #### Bugfixes {: #0.24.5-bugfix }
@@ -122,6 +158,19 @@
 
 ---
 
+## 0.22.5 (2025-04-23) {: #0.22.5 }
+
+#### Features {: #0.22.5-feature }
+
+- Added namespace progress report.
+
+#### Bugfixes {: #0.22.5-bugfix }
+
+- Fixed optimization of fetching namespace logos during sync.
+  [#2138](https://github.com/pulp/pulp_ansible/issues/2138)
+
+---
+
 ## 0.22.4 (2025-03-12) {: #0.22.4 }
 
 #### Bugfixes {: #0.22.4-bugfix }
@@ -196,6 +245,19 @@
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.12 (2025-04-23) {: #0.21.12 }
+
+#### Features {: #0.21.12-feature }
+
+- Added namespace progress report.
+
+#### Bugfixes {: #0.21.12-bugfix }
+
+- Fixed optimization of fetching namespace logos during sync.
+  [#2138](https://github.com/pulp/pulp_ansible/issues/2138)
 
 ---
 
@@ -312,6 +374,19 @@ No significant changes.
     [#1598](https://github.com/pulp/pulp_ansible/issues/1598)
 -   Fixed highest version calculation failing when versions of a collection were created out of order.
     [#1623](https://github.com/pulp/pulp_ansible/issues/1623)
+
+---
+
+## 0.20.11 (2025-04-23) {: #0.20.11 }
+
+#### Features {: #0.20.11-feature }
+
+- Added namespace progress report.
+
+#### Bugfixes {: #0.20.11-bugfix }
+
+- Fixed optimization of fetching namespace logos during sync.
+  [#2138](https://github.com/pulp/pulp_ansible/issues/2138)
 
 ---
 
