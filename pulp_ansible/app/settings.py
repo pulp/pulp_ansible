@@ -2,7 +2,7 @@ import socket
 
 LOGGING = {
     "loggers": {
-        "pulp_ansible.app.tasks.collection.import_collection": {
+        "pulp_ansible.app.tasks.upload.process_collection_artifact": {
             "level": "INFO",
             "handlers": ["collection_import"],
             "propagate": False,
