@@ -856,9 +856,11 @@ class CollectionSyncFirstStage(Stage):
     @staticmethod
     def _get_response_next_value(api_version, response):
         if api_version == 2:
-            return response["next"]
+            return response.get("next")
+        elif links := response.get("links"):
+            return links.get("next")
         else:
-            return response["links"]["next"]
+            return None
 
     def _collection_list_downloader(self, api_version, collection_endpoint, page_num, page_size):
         if api_version == 2:
