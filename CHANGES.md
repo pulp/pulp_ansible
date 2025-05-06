@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.21.13 (2025-05-06) {: #0.21.13 }
+
+#### Bugfixes {: #0.21.13-bugfix }
+
+- Made collection sync slightly more resiliant in face of missing "next" links.
+
+---
+
 ## 0.21.12 (2025-04-23) {: #0.21.12 }
 
 #### Features {: #0.21.12-feature }
