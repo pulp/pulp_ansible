@@ -119,7 +119,7 @@ class RoleViewSet(ContentViewSet):
                 "condition": [
                     "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
                     "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
-                    "has_upload_param_model_or_obj_perms:core.change_upload",
+                    "has_upload_param_model_or_domain_or_obj_perms:core.change_upload",
                 ],
             },
         ],
@@ -242,7 +242,7 @@ class CollectionVersionViewSet(UploadGalaxyCollectionMixin, SingleArtifactConten
                 "condition": [
                     "has_required_repo_perms_on_upload:ansible.modify_ansible_repo_content",
                     "has_required_repo_perms_on_upload:ansible.view_ansiblerepository",
-                    "has_upload_param_model_or_obj_perms:core.change_upload",
+                    "has_upload_param_model_or_domain_or_obj_perms:core.change_upload",
                 ],
             },
         ],
@@ -441,25 +441,25 @@ class RoleRemoteViewSet(RemoteViewSet, RolesMixin):
                 "action": "create",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_perms:ansible.add_roleremote",
+                "condition": "has_model_or_domain_perms:ansible.add_roleremote",
             },
             {
                 "action": "destroy",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.delete_roleremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.delete_roleremote",
             },
             {
                 "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.change_roleremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.change_roleremote",
             },
             {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.manage_roles_roleremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.manage_roles_roleremote",
             },
         ],
         "creation_hooks": [
@@ -506,25 +506,25 @@ class GitRemoteViewSet(RemoteViewSet, RolesMixin):
                 "action": "create",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_perms:ansible.add_gitremote",
+                "condition": "has_model_or_domain_perms:ansible.add_gitremote",
             },
             {
                 "action": "destroy",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.delete_gitremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.delete_gitremote",
             },
             {
                 "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.change_gitremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.change_gitremote",
             },
             {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.manage_roles_gitremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.manage_roles_gitremote",
             },
         ],
         "creation_hooks": [
@@ -578,21 +578,21 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "action": "create",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_perms:ansible.add_ansiblerepository",
+                "condition": "has_model_or_domain_perms:ansible.add_ansiblerepository",
             },
             {
                 "action": "destroy",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.delete_ansiblerepository",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.delete_ansiblerepository",
             },
             {
                 "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.change_ansiblerepository",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.change_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
             },
             {
@@ -600,8 +600,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.modify_ansible_repo_content",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.modify_ansible_repo_content",
+                    "has_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
             },
             {
@@ -609,7 +609,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.rebuild_metadata_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.rebuild_metadata_ansiblerepository",
                 ],
             },
             {
@@ -617,8 +617,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.repair_ansiblerepository"
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.repair_ansiblerepository"
+                    "has_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
             },
             {
@@ -626,8 +626,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.sign_ansiblerepository",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.sign_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
             },
             {
@@ -635,12 +635,12 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.sync_ansiblerepository",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.sync_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                     # TODO Update has_remote_param_model_or_obj to handle multiple remote types
-                    # "has_remote_param_model_or_obj_perms:ansible.view_collectionremote",
-                    # "has_remote_param_model_or_obj_perms:ansible.view_gitremote",
-                    # "has_remote_param_model_or_obj_perms:ansible.view_roleremote",
+                    # "has_remote_param_model_or_domain_or_obj_perms:ansible.view_collectionremote",
+                    # "has_remote_param_model_or_domain_or_obj_perms:ansible.view_gitremote",
+                    # "has_remote_param_model_or_domain_or_obj_perms:ansible.view_roleremote",
                 ],
             },
             {
@@ -648,8 +648,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:modify_ansible_repo_content",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:modify_ansible_repo_content",
+                    "has_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
                 # TODO: create a custom access condition to ensure user has perms on dest repos
             },
@@ -658,8 +658,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:modify_ansible_repo_content",
-                    "has_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_model_or_domain_or_obj_perms:modify_ansible_repo_content",
+                    "has_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
                 # TODO: create a custom access condition to ensure user has perms on dest repos
             },
@@ -667,7 +667,8 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.manage_roles_ansiblerepository",
+                "condition": "has_model_or_domain_or_obj_perms:"
+                "ansible.manage_roles_ansiblerepository",
             },
         ],
         "creation_hooks": [
@@ -931,15 +932,16 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
                 "action": ["list", "retrieve"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_repository_model_or_obj_perms:ansible.view_ansiblerepository",
+                "condition": "has_repository_model_or_domain_or_obj_perms:"
+                "ansible.view_ansiblerepository",
             },
             {
                 "action": "destroy",
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_repository_model_or_obj_perms:ansible.delete_ansiblerepository",
-                    "has_repository_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_repository_model_or_domain_or_obj_perms:ansible.delete_ansiblerepository",
+                    "has_repository_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
             },
             {
@@ -947,8 +949,8 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_repository_model_or_obj_perms:ansible.repair_ansiblerepository",
-                    "has_repository_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_repository_model_or_domain_or_obj_perms:ansible.repair_ansiblerepository",
+                    "has_repository_model_or_domain_or_obj_perms:ansible.view_ansiblerepository",
                 ],
             },
             {
@@ -956,7 +958,8 @@ class AnsibleRepositoryVersionViewSet(RepositoryVersionViewSet):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_repository_model_or_obj_perms:ansible.rebuild_metadata_ansiblerepository",
+                    "has_repository_model_or_domain_or_obj_perms:"
+                    "ansible.rebuild_metadata_ansiblerepository",
                 ],
             },
         ],
@@ -1019,25 +1022,26 @@ class CollectionRemoteViewSet(RemoteViewSet, RolesMixin):
                 "action": "create",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_perms:ansible.add_collectionremote",
+                "condition": "has_model_or_domain_perms:ansible.add_collectionremote",
             },
             {
                 "action": "destroy",
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.delete_collectionremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.delete_collectionremote",
             },
             {
                 "action": ["update", "partial_update", "set_label", "unset_label"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.change_collectionremote",
+                "condition": "has_model_or_domain_or_obj_perms:ansible.change_collectionremote",
             },
             {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.manage_roles_collectionremote",
+                "condition": "has_model_or_domain_or_obj_perms:"
+                "ansible.manage_roles_collectionremote",
             },
         ],
         "creation_hooks": [
@@ -1142,7 +1146,8 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
                 "effect": "allow",
                 "condition": [
                     "has_model_perms:ansible.add_ansibledistribution",
-                    "has_repo_or_repo_ver_param_model_or_obj_perms:ansible.view_ansiblerepository",
+                    "has_repo_or_repo_ver_param_model_or_domain_or_obj_perms:"
+                    "ansible.view_ansiblerepository",
                 ],
             },
             {
@@ -1150,7 +1155,7 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.delete_ansibledistribution",
+                    "has_model_or_domain_or_obj_perms:ansible.delete_ansibledistribution",
                 ],
             },
             {
@@ -1158,14 +1163,15 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
                 "principal": "authenticated",
                 "effect": "allow",
                 "condition": [
-                    "has_model_or_obj_perms:ansible.change_ansibledistribution",
+                    "has_model_or_domain_or_obj_perms:ansible.change_ansibledistribution",
                 ],
             },
             {
                 "action": ["list_roles", "add_role", "remove_role"],
                 "principal": "authenticated",
                 "effect": "allow",
-                "condition": "has_model_or_obj_perms:ansible.manage_roles_ansibledistribution",
+                "condition": "has_model_or_domain_or_obj_perms:"
+                "ansible.manage_roles_ansibledistribution",
             },
         ],
         "creation_hooks": [
