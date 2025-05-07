@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.25.1 (2025-05-06) {: #0.25.1 }
+
+#### Bugfixes {: #0.25.1-bugfix }
+
+- Fixed broken collection import logs.
+- Made collection sync slightly more resiliant in face of missing "next" links.
+
+---
+
 ## 0.25.0 (2025-04-23) {: #0.25.0 }
 
 #### Features {: #0.25.0-feature }
@@ -158,6 +167,14 @@
 
 ---
 
+## 0.22.6 (2025-05-06) {: #0.22.6 }
+
+#### Bugfixes {: #0.22.6-bugfix }
+
+- Made collection sync slightly more resiliant in face of missing "next" links.
+
+---
+
 ## 0.22.5 (2025-04-23) {: #0.22.5 }
 
 #### Features {: #0.22.5-feature }
@@ -245,6 +262,14 @@
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.13 (2025-05-06) {: #0.21.13 }
+
+#### Bugfixes {: #0.21.13-bugfix }
+
+- Made collection sync slightly more resiliant in face of missing "next" links.
 
 ---
 
@@ -374,6 +399,14 @@ No significant changes.
     [#1598](https://github.com/pulp/pulp_ansible/issues/1598)
 -   Fixed highest version calculation failing when versions of a collection were created out of order.
     [#1623](https://github.com/pulp/pulp_ansible/issues/1623)
+
+---
+
+## 0.20.12 (2025-05-06) {: #0.20.12 }
+
+#### Bugfixes {: #0.20.12-bugfix }
+
+- Made collection sync slightly more resiliant in face of missing "next" links.
 
 ---
 
