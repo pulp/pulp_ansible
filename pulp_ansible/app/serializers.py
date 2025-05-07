@@ -351,11 +351,10 @@ class AnsibleDistributionSerializer(DistributionSerializer):
     )
 
     def get_client_url(self, obj) -> str:
-        """
-        Get client_url.
-        """
-        return "{hostname}/pulp_ansible/galaxy/{base_path}/".format(
-            hostname=settings.ANSIBLE_API_HOSTNAME, base_path=obj.base_path
+        return "{hostname}/{api_root}/{base_path}/".format(
+            hostname=settings.ANSIBLE_API_HOSTNAME,
+            api_root=settings.GALAXY_API_ROOT.replace("/<path:path>/api/", ""),
+            base_path=obj.base_path,
         )
 
     class Meta:
