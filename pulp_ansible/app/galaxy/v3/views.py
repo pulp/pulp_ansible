@@ -40,6 +40,7 @@ from pulpcore.plugin.viewsets import (
     NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
+from pulpcore.plugin.util import get_domain
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -706,9 +707,10 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
         distro_base_path = self.kwargs["distro_base_path"]
         distribution = AnsibleDistribution.objects.get(base_path=distro_base_path)
 
-        url = "{host}/{prefix}/{distro_base_path}/{filename}".format(
+        url = "{host}/{prefix}{domain}/{distro_base_path}/{filename}".format(
             host=settings.CONTENT_ORIGIN.strip("/"),
             prefix=settings.CONTENT_PATH_PREFIX.strip("/"),
+            domain="/" + get_domain().name if settings.DOMAIN_ENABLED else "",
             distro_base_path=distro_base_path,
             filename=self.kwargs["filename"],
         )
