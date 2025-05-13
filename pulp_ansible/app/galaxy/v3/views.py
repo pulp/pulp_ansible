@@ -40,7 +40,7 @@ from pulpcore.plugin.viewsets import (
     NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
-from pulpcore.plugin.util import get_domain
+from pulpcore.plugin.util import get_domain, get_url
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -568,7 +568,7 @@ class CollectionUploadViewSet(
         serializer.is_valid(raise_exception=True)
 
         # Check that namespace, name and version can be extracted
-        request.data["repository"] = reverse("repositories-ansible/ansible-detail", args=[repo.pk])
+        request.data["repository"] = get_url(repo)
         serializer = CollectionVersionUploadSerializer(
             data=request.data, context=self.get_serializer_context()
         )
