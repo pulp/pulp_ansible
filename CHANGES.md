@@ -115,7 +115,7 @@
   constraint. This allows users to serve their own interpretation of the content in their private
   repositories.
   The migration will only succeed if all the content has been adjusted. To account for content that
-  was not migrated by the migration shipped with 0.22.0, you can run the content repair command
+  was not migrated by the migration shipped with 0.23.0, you can run the content repair command
   ``datarepair-ansible-collection-sha256`` prior to upgrading.
   This version removed the content repair command.
   [#1052](https://github.com/pulp/pulp_ansible/issues/1052)
