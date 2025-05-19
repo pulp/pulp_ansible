@@ -338,6 +338,9 @@ def create_collection_from_importer(importer_result):
     Do not perform any database operations, just return an unsaved CollectionVersion.
     """
     collection_info = importer_result["metadata"]
+
+    # Remove, once the new_tags is properly named tags
+    collection_info["new_tags"] = collection_info["tags"]
     tags = collection_info.pop("tags")
 
     # Remove fields not used by this model
@@ -1215,6 +1218,7 @@ class AnsibleContentSaver(ContentSaver):
 
             # Get tags for saving in _post_save
             tags = info.pop("tags")
+            info["new_tags"] = tags
             d_content.extra_data["tags"] = tags
 
             # Update with the additional data from the Collection
