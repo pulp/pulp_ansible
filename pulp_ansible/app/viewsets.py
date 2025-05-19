@@ -1199,8 +1199,16 @@ class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
     serializer_class = TagSerializer
 
     def get_queryset(self):
-        qs = super().get_queryset()
-        return qs.annotate(count=Count("ansible_collectionversion"))
+        if CollectionVersion.objects.filter(new_tags__isnull=True).exists():
+            qs = super().get_queryset().annotate(count=Count("ansible_collectionversion"))
+        else:
+            qs = (
+                CollectionVersion.objects.all()
+                .annotate(tag=Func(F("new_tags"), function="unnest"))
+                .values("tag")
+                .values(count=Count("pk"), name=F("tag"))
+            )
+        return qs
 
 
 class CopyViewSet(viewsets.ViewSet):
