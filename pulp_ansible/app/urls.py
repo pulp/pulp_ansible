@@ -1,5 +1,5 @@
 from django.conf import settings
-from django.urls import include, path, re_path
+from django.urls import include, path
 
 from pulp_ansible.app.galaxy.views import (
     GalaxyVersionView,
@@ -9,7 +9,7 @@ from pulp_ansible.app.galaxy.views import (
 from pulp_ansible.app.galaxy.v3 import views as views_v3
 from pulp_ansible.app.galaxy.v3 import viewsets as viewsets_v3
 
-from pulp_ansible.app.viewsets import CopyViewSet, CollectionUploadViewSet
+from pulp_ansible.app.viewsets import CopyViewSet, CollectionUploadViewSet, TagViewSet
 
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 
@@ -249,5 +249,12 @@ urlpatterns = [
     path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
     path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
     path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
-    re_path(r"^pulp/api/v3/ansible/copy/$", CopyViewSet.as_view({"post": "create"})),
+    path(
+        settings.V3_API_ROOT_NO_FRONT_SLASH + "pulp_ansible/tags/",
+        TagViewSet.as_view({"get": "list"}),
+    ),
+    path(
+        settings.V3_API_ROOT_NO_FRONT_SLASH + "ansible/copy/",
+        CopyViewSet.as_view({"post": "create"}),
+    ),
 ]

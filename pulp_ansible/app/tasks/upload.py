@@ -8,7 +8,7 @@ from django.urls import reverse
 from galaxy_importer.collection import import_collection
 from pulpcore.plugin.models import Task
 
-from pulp_ansible.app.models import Collection, CollectionImport, Tag
+from pulp_ansible.app.models import Collection, CollectionImport
 from pulp_ansible.app.tasks.utils import CollectionFilename, get_file_obj_from_tarball
 
 log = logging.getLogger(__name__)
@@ -75,12 +75,8 @@ def process_collection_artifact(artifact, namespace, name, version):
     return collection_info
 
 
-def finish_collection_upload(collection_version, tags, origin_repository):
-    """After CollectionVersion has been created update its tags and latest_version."""
-    for name in tags:
-        tag, created = Tag.objects.get_or_create(name=name)
-        collection_version.tags.add(tag)
-
+def finish_collection_upload(collection_version, origin_repository):
+    """After CollectionVersion has been created update its repository."""
     # Workaround for ColVersion's `repository` field name clashing with upload serializer's field
     if origin_repository is not None and collection_version.repository != origin_repository:
         collection_version.repository = origin_repository
