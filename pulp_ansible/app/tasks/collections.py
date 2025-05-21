@@ -66,7 +66,6 @@ from pulp_ansible.app.models import (
     CollectionVersion,
     CollectionVersionMark,
     CollectionVersionSignature,
-    Tag,
 )
 from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
@@ -88,7 +87,7 @@ class AnsibleSpec(SimpleSpec):
 
 
 @sync_to_async
-def _save_collection_version(collection_version, artifact, tags):
+def _save_collection_version(collection_version, artifact):
     with transaction.atomic():
         collection_version.save()
         ContentArtifact.objects.create(
@@ -96,9 +95,6 @@ def _save_collection_version(collection_version, artifact, tags):
             content=collection_version,
             relative_path=collection_version.relative_path,
         )
-        for name in tags:
-            tag, created = Tag.objects.get_or_create(name=name)
-            collection_version.tags.add(tag)
 
 
 async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_only=False):
@@ -137,8 +133,8 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
 
     artifact = metadata["artifact"]
     try:
-        collection_version, tags = await sync_to_async(create_collection_from_importer)(metadata)
-        await _save_collection_version(collection_version, artifact, tags)
+        collection_version = await sync_to_async(create_collection_from_importer)(metadata)
+        await _save_collection_version(collection_version, artifact)
     except ValidationError as e:
         if "unique" in str(e):
             namespace = metadata["metadata"]["namespace"]
@@ -296,7 +292,7 @@ def import_collection(
         temp_file = None
         importer_result["artifact_url"] = reverse("artifacts-detail", args=[artifact.pk])
         importer_result["sha256"] = artifact.sha256
-        collection_version, tags = create_collection_from_importer(importer_result)
+        collection_version = create_collection_from_importer(importer_result)
         collection_version.manifest = manifest_data
         collection_version.files = files_data
         with transaction.atomic():
@@ -306,9 +302,6 @@ def import_collection(
                 content=collection_version,
                 relative_path=collection_version.relative_path,
             )
-            for name in tags:
-                tag, created = Tag.objects.get_or_create(name=name)
-                collection_version.tags.add(tag)
 
     except ImporterError as exc:
         log.info(f"Collection processing was not successful: {exc}")
@@ -339,10 +332,6 @@ def create_collection_from_importer(importer_result):
     """
     collection_info = importer_result["metadata"]
 
-    # Remove, once the new_tags is properly named tags
-    collection_info["new_tags"] = collection_info["tags"]
-    tags = collection_info.pop("tags")
-
     # Remove fields not used by this model
     collection_info.pop("license_file")
     collection_info.pop("readme")
@@ -366,12 +355,11 @@ def create_collection_from_importer(importer_result):
 
     serializer_fields = CollectionVersionSerializer.Meta.fields
     data = {k: v for k, v in collection_version.__dict__.items() if k in serializer_fields}
-    data["id"] = collection_version.pulp_id
 
     serializer = CollectionVersionSerializer(data=data)
     serializer.is_valid(raise_exception=True)
 
-    return collection_version, tags
+    return collection_version
 
 
 def rebuild_repository_collection_versions_metadata(
@@ -1135,7 +1123,7 @@ class AnsibleContentSaver(ContentSaver):
     """
     A modification of ContentSaver stage that additionally saves Ansible plugin specific items.
 
-    Saves Collection and Tag objects related to the CollectionVersion content unit.
+    Saves Collection objects related to the CollectionVersion content unit.
     """
 
     def __init__(self, repository_version, *args, **kwargs):
@@ -1216,35 +1204,9 @@ class AnsibleContentSaver(ContentSaver):
             info.pop("license_file")
             info.pop("readme")
 
-            # Get tags for saving in _post_save
-            tags = info.pop("tags")
-            info["new_tags"] = tags
-            d_content.extra_data["tags"] = tags
-
             # Update with the additional data from the Collection
             for attr_name, attr_value in info.items():
                 if attr_value is None:
                     continue
                 setattr(collection_version, attr_name, attr_value)
             return collection_version
-
-    def _post_save(self, batch):
-        """
-        Create the tags for the saved CollectionVersion.
-
-        Args:
-            batch (list of :class:`~pulpcore.plugin.stages.DeclarativeContent`): The batch of
-                :class:`~pulpcore.plugin.stages.DeclarativeContent` objects to be saved.
-        """
-        for d_content in batch:
-            if d_content is None:
-                continue
-            if isinstance(d_content.content, CollectionVersion):
-                collection_version = d_content.content
-                # Create the tags
-                tag_names = d_content.extra_data.get("tags", [])
-                tags = []
-                for name in tag_names:
-                    tag, created = Tag.objects.get_or_create(name=name)
-                    tags.append(tag)
-                collection_version.tags.add(*tags)

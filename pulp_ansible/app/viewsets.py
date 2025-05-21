@@ -52,7 +52,6 @@ from .models import (
     CollectionVersionSignature,
     CollectionRemote,
     Role,
-    Tag,
 )
 from .serializers import (
     AnsibleDistributionSerializer,
@@ -202,8 +201,7 @@ class CollectionVersionFilter(ContentFilter):
             Queryset of CollectionVersion that matches all tags
 
         """
-        for tag in value.split(","):
-            qs = qs.filter(tags__name=tag)
+        qs = qs.filter(tags__contains=value.split(","))
         return qs
 
     class Meta:
@@ -1189,26 +1187,19 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
     }
 
 
-class TagViewSet(NamedModelViewSet, mixins.ListModelMixin):
+class TagViewSet(viewsets.GenericViewSet, mixins.ListModelMixin):
     """
     ViewSet for Tag models.
     """
 
     endpoint_name = "pulp_ansible/tags"
-    queryset = Tag.objects.all()
+    queryset = (
+        CollectionVersion.objects.all()
+        .annotate(tag=Func(F("tags"), function="unnest"))
+        .values("tag")
+        .values(count=Count("pk"), name=F("tag"))
+    )
     serializer_class = TagSerializer
-
-    def get_queryset(self):
-        if CollectionVersion.objects.filter(new_tags__isnull=True).exists():
-            qs = super().get_queryset().annotate(count=Count("ansible_collectionversion"))
-        else:
-            qs = (
-                CollectionVersion.objects.all()
-                .annotate(tag=Func(F("new_tags"), function="unnest"))
-                .values("tag")
-                .values(count=Count("pk"), name=F("tag"))
-            )
-        return qs
 
 
 class CopyViewSet(viewsets.ViewSet):

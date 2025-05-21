@@ -99,21 +99,6 @@ class CollectionImport(models.Model):
         )
 
 
-class Tag(BaseModel):
-    """A model representing a Tag.
-
-    Fields:
-
-        name (models.CharField): The Tag's name.
-    """
-
-    name = models.CharField(max_length=64, unique=True, editable=False)
-
-    def __str__(self):
-        """Returns tag name."""
-        return self.name
-
-
 class AnsibleNamespace(BaseModel):
     """
     A model representing a Namespace. This should be used for permissions.
@@ -149,11 +134,11 @@ class CollectionVersion(Content):
         repository (models.CharField): The URL of the originating SCM repository.
         version (models.CharField): The version of the collection.
         requires_ansible (models.CharField): The version of Ansible required to use the collection.
+        tag (ArrayField): Taglist.
 
     Relations:
 
         collection (models.ForeignKey): Reference to a collection model.
-        tag (models.ManyToManyField): A symmetric reference to the Tag objects.
     """
 
     TYPE = "collection_version"
@@ -182,19 +167,11 @@ class CollectionVersion(Content):
     version_minor = models.IntegerField()
     version_patch = models.IntegerField()
     version_prerelease = models.CharField(max_length=128)
+    tags = psql_fields.ArrayField(models.CharField(max_length=64, unique=True), default=list)
 
     # Foreign Key Fields
     collection = models.ForeignKey(
         Collection, on_delete=models.PROTECT, related_name="versions", editable=False
-    )
-    tags = models.ManyToManyField(Tag, editable=False)
-    # -----
-    # Upgrade steps (spaced out by releases):
-    # 1. Add new field and start populating in current code also.
-    # 2. Migrate remaining entries and delete m2m table.
-    #    Rename python field name without changing db_column.
-    new_tags = psql_fields.ArrayField(
-        models.CharField(max_length=64, unique=True), null=True, db_column="tags"
     )
 
     # Search Fields

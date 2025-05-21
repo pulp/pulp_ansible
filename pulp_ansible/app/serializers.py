@@ -45,7 +45,6 @@ from .models import (
     CollectionVersionSignature,
     CollectionRemote,
     Role,
-    Tag,
 )
 from pulp_ansible.app import fields
 from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
@@ -374,32 +373,22 @@ class AnsibleDistributionSerializer(DistributionSerializer):
         model = AnsibleDistribution
 
 
-class TagSerializer(serializers.ModelSerializer):
+class TagSerializer(serializers.Serializer):
     """
-    A serializer for the Tag model.
+    A serializer for the Tags on  CollectionVersions.
     """
 
     name = serializers.CharField(help_text=_("The name of the Tag."), read_only=True)
     count = serializers.IntegerField(read_only=True)
 
     class Meta:
-        model = Tag
         fields = ["name", "count"]
 
 
-class TagNestedSerializer(ModelSerializer):
-    """
-    A serializer for nesting in the CollectionVersion model.
-    """
-
-    name = serializers.CharField(help_text=_("The name of the Tag."), read_only=True)
-
-    class Meta:
-        model = Tag
-        # this serializer is meant to be nested inside CollectionVersion serializer, so it will not
-        # have its own endpoint. That's why we need to explicitly define fields to exclude other
-        # inherited fields
-        fields = ("name",)
+@extend_schema_field({"type": "object", "properties": {"name": {"type": "string"}}})
+class NestedTagField(serializers.Field):
+    def to_representation(self, value):
+        return {"name": value}
 
 
 class CollectionSerializer(ModelSerializer):
@@ -519,8 +508,6 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         )
         # repository field clashes
         collection_info["origin_repository"] = collection_info.pop("repository", None)
-        # Remove this once new_tags is properly named tags
-        collection_info["new_tags"] = collection_info["tags"]
         data.update(collection_info)
 
         return data
@@ -531,14 +518,13 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
 
     def create(self, validated_data):
         """Final step in creating the CollectionVersion."""
-        tags = validated_data.pop("tags")
         origin_repository = validated_data.pop("origin_repository")
 
         # Create CollectionVersion from its metadata and adds to repository if specified
         content = super().create(validated_data)
 
         # Now add tags and update latest CollectionVersion
-        finish_collection_upload(content, tags=tags, origin_repository=origin_repository)
+        finish_collection_upload(content, origin_repository=origin_repository)
 
         return content
 
@@ -643,7 +629,7 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         read_only=True,
     )
 
-    tags = serializers.SerializerMethodField()
+    tags = serializers.ListField(child=NestedTagField(read_only=True), read_only=True)
 
     version = serializers.CharField(
         help_text=_("The version of the collection."), max_length=128, read_only=True
@@ -660,13 +646,6 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
     )
 
     creating = True
-
-    @extend_schema_field(serializers.ListField(child=TagNestedSerializer()))
-    def get_tags(self, obj):
-        if obj.new_tags is None:
-            return [{"name": tag.name} for tag in obj.tags.all()]
-        else:
-            return [{"name": tag} for tag in obj.new_tags]
 
     def validate(self, data):
         """Run super() validate if creating, else return data."""
