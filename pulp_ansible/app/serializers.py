@@ -379,6 +379,7 @@ class TagSerializer(serializers.ModelSerializer):
     A serializer for the Tag model.
     """
 
+    name = serializers.CharField(help_text=_("The name of the Tag."), read_only=True)
     count = serializers.IntegerField(read_only=True)
 
     class Meta:
@@ -518,6 +519,8 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         )
         # repository field clashes
         collection_info["origin_repository"] = collection_info.pop("repository", None)
+        # Remove this once new_tags is properly named tags
+        collection_info["new_tags"] = collection_info["tags"]
         data.update(collection_info)
 
         return data
@@ -640,7 +643,7 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         read_only=True,
     )
 
-    tags = TagNestedSerializer(many=True, read_only=True)
+    tags = serializers.SerializerMethodField()
 
     version = serializers.CharField(
         help_text=_("The version of the collection."), max_length=128, read_only=True
@@ -657,6 +660,13 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
     )
 
     creating = True
+
+    @extend_schema_field(serializers.ListField(child=TagNestedSerializer()))
+    def get_tags(self, obj):
+        if obj.new_tags is None:
+            return [{"name": tag.name} for tag in obj.tags.all()]
+        else:
+            return [{"name": tag} for tag in obj.new_tags]
 
     def validate(self, data):
         """Run super() validate if creating, else return data."""

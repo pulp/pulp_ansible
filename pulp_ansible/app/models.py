@@ -188,6 +188,14 @@ class CollectionVersion(Content):
         Collection, on_delete=models.PROTECT, related_name="versions", editable=False
     )
     tags = models.ManyToManyField(Tag, editable=False)
+    # -----
+    # Upgrade steps (spaced out by releases):
+    # 1. Add new field and start populating in current code also.
+    # 2. Migrate remaining entries and delete m2m table.
+    #    Rename python field name without changing db_column.
+    new_tags = psql_fields.ArrayField(
+        models.CharField(max_length=64, unique=True), null=True, db_column="tags"
+    )
 
     # Search Fields
     #   This field is populated by a trigger setup in the database by
