@@ -8,6 +8,26 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.26.0 (2025-05-27) {: #0.26.0 }
+
+#### Features {: #0.26.0-feature }
+
+- Added a migration to prepare moving tags into an array field on collection versions.
+
+  The second part of the migration will be shipped in the next release to keep the process zero downtime safe.
+
+#### Bugfixes {: #0.26.0-bugfix }
+
+- Fixed broken collection import logs.
+- Made collection sync slightly more resiliant in face of missing "next" links.
+
+#### Deprecations and Removals {: #0.26.0-removal }
+
+- Remove the `is_highest` field from CollectionVersion table.
+  [#1550](https://github.com/pulp/pulp_ansible/issues/1550)
+
+---
+
 ## 0.25.1 (2025-05-06) {: #0.25.1 }
 
 #### Bugfixes {: #0.25.1-bugfix }
