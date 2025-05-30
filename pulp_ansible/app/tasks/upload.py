@@ -73,11 +73,3 @@ def process_collection_artifact(artifact, namespace, name, version):
         ".tar.gz"
     )
     return collection_info
-
-
-def finish_collection_upload(collection_version, origin_repository):
-    """After CollectionVersion has been created update its repository."""
-    # Workaround for ColVersion's `repository` field name clashing with upload serializer's field
-    if origin_repository is not None and collection_version.repository != origin_repository:
-        collection_version.repository = origin_repository
-        collection_version.save()

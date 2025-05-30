@@ -53,7 +53,7 @@ from pulp_ansible.app.tasks.utils import (
     parse_collection_filename,
 )
 from pulp_ansible.app.tasks.signature import verify_signature_upload
-from pulp_ansible.app.tasks.upload import process_collection_artifact, finish_collection_upload
+from pulp_ansible.app.tasks.upload import process_collection_artifact
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -523,8 +523,11 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         # Create CollectionVersion from its metadata and adds to repository if specified
         content = super().create(validated_data)
 
-        # Now add tags and update latest CollectionVersion
-        finish_collection_upload(content, origin_repository=origin_repository)
+        # Workaround for CollectionVersion's `repository` field name clashing with the upload
+        # serializer's field
+        if origin_repository is not None:
+            content.repository = origin_repository
+            content.save()
 
         return content
 
