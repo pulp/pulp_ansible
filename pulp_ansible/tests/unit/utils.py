@@ -66,7 +66,11 @@ def build_cvs_from_specs(specs):
 
         col, _ = Collection.objects.get_or_create(name=spec[0])
         cv = CollectionVersion.objects.create(
-            collection=col, sha256=artifact.sha256, namespace=spec[0], name=spec[1], version=spec[2]
+            collection=col,
+            sha256=artifact.sha256,
+            namespace=spec[0],
+            name=spec[1],
+            version=spec[2],
         )
         collection_versions.append(cv)
 

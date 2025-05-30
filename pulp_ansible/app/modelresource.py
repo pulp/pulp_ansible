@@ -1,7 +1,7 @@
 import json
 
 from import_export import fields
-from import_export.widgets import ManyToManyWidget, Widget
+from import_export.widgets import Widget
 from pulpcore.plugin.importexport import BaseContentResource, QueryModelResource
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -10,7 +10,6 @@ from pulp_ansible.app.models import (
     CollectionVersionMark,
     Role,
     Collection,
-    Tag,
     CollectionVersion,
     CollectionVersionSignature,
 )
@@ -98,10 +97,6 @@ class CollectionVersionContentResource(BaseContentResource):
     """
     Resource for import/export of ansible_collectionversion-content entities.
     """
-
-    tags = fields.Field(
-        column_name="tags", attribute="tags", widget=ManyToManyWidget(Tag, field="name")
-    )
 
     def before_import_row(self, row, **kwargs):
         """
@@ -222,29 +217,11 @@ class CollectionDeprecationResource(BaseContentResource):
         import_id_fields = ("namespace", "name")
 
 
-class TagResource(QueryModelResource):
-    """
-    Resource for import/export of ansible_tag entities.
-    """
-
-    def set_up_queryset(self):
-        """
-        :return: Tags specific to a specified repo-version.
-        """
-        collection_versions = CollectionVersion.objects.filter(pk__in=self.repo_version.content)
-        return Tag.objects.filter(pk__in=collection_versions.values_list("tags", flat=True))
-
-    class Meta:
-        model = Tag
-        import_id_fields = ("name",)
-
-
 IMPORT_ORDER = [
     AnsibleNamespaceResource,
     AnsibleNamespaceMetadataResource,
     CollectionResource,
     CollectionDeprecationResource,
-    TagResource,
     CollectionVersionContentResource,
     CollectionVersionMarkResource,
     CollectionVersionSignatureResource,

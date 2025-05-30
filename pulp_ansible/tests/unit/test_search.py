@@ -8,7 +8,6 @@ from django.test import TestCase
 from pulp_ansible.app.models import (
     Collection,
     CollectionVersion,
-    Tag,
 )
 
 
@@ -44,15 +43,14 @@ class TestSearchUtil(TestCase):
 
             # make the collection version
             cv = CollectionVersion.objects.create(
-                collection=col, sha256=str(ids), namespace=spec[0], name=spec[1], version=spec[2]
+                collection=col,
+                sha256=str(ids),
+                namespace=spec[0],
+                name=spec[1],
+                version=spec[2],
+                tags=cdata["tags"],
             )
             self.collections[spec]["cv"] = cv
-
-            # add tags ...
-            #   ansible_collectionversion -> ansible_collectionversion_tags -> ansible_tags
-            for tag_name in cdata["tags"]:
-                this_tag, _ = Tag.objects.get_or_create(name=tag_name)
-                cv.tags.add(this_tag)
 
             # trigger an update and rebuild of the search vector
             #   THIS IS THE ONLY WAY THAT THE SEARCH VECTOR IS CREATED!
