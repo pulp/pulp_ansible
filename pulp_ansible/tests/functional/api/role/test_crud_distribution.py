@@ -36,7 +36,9 @@ def test_crud_distribution(
         )
     assert "Invalid hyperlink - No URL match." in exc_info.value.body
 
-    ansible_distro_api_client.partial_update(distribution.pulp_href, {"repository": None})
+    monitor_task(
+        ansible_distro_api_client.partial_update(distribution.pulp_href, {"repository": None}).task
+    )
     monitor_task(
         ansible_distro_api_client.partial_update(
             distribution.pulp_href, {"repository_version": repository.latest_version_href}
@@ -74,4 +76,4 @@ def test_crud_distribution(
     monitor_task(ansible_distro_api_client.delete(distribution.pulp_href).task)
     with pytest.raises(ApiException) as exc_info:
         ansible_distro_api_client.delete(distribution.pulp_href)
-    assert "Not found." in exc_info.value.body
+    assert exc_info.value.status == 404
