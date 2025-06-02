@@ -69,6 +69,7 @@ supported_release_branches:
 - '0.20'
 - '0.21'
 - '0.22'
+- '0.24'
 sync_ci: true
 test_azure: true
 test_cli: true
@@ -80,4 +81,3 @@ test_reroute: true
 test_s3: true
 test_storages_compat_layer: true
 use_issue_template: true
-
