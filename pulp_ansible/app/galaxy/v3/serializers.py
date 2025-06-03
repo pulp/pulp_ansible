@@ -3,7 +3,7 @@ from django.conf import settings
 from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
-from rest_framework import serializers, relations
+from rest_framework import serializers
 
 from pulp_ansible.app import models, fields, serializers as ansible_serializers
 from pulpcore.plugin.models import RepositoryVersion
@@ -164,8 +164,6 @@ class CollectionMetadataSerializer(serializers.ModelSerializer):
     """
     A serializer for a CollectionVersion metadata.
     """
-
-    tags = relations.ManyRelatedField(relations.StringRelatedField())
 
     class Meta:
         model = models.CollectionVersion
