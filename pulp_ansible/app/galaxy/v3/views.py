@@ -40,7 +40,7 @@ from pulpcore.plugin.viewsets import (
     NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
-from pulpcore.plugin.util import get_domain, get_url
+from pulpcore.plugin.util import get_domain, get_domain_pk, get_url
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -132,6 +132,7 @@ class AnsibleDistributionMixin:
                 "base_path", "repository_version", "repository"
             ).select_related("repository__ansible_ansiblerepository"),
             base_path=path,
+            pulp_domain=get_domain_pk(),
         )
         if distro.repository_version_id:
             self.pulp_context = {path: distro.repository_version}
@@ -1285,7 +1286,10 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
                     # remove the old path kwarg since we're redirecting to the new api endpoints
                     del kwargs["path"]
 
-                kwargs = {**self.kwargs, "distro_base_path": path}
+                kwargs["distro_base_path"] = path
+
+            if settings.DOMAIN_ENABLED:
+                kwargs["pulp_domain"] = get_domain().name
 
             # don't pass request. redirects work with just the path and this solves the client
             # redirect issues for aiohttp
@@ -1295,9 +1299,9 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
                 # request=self.request,
             )
 
-            args = self.request.META.get("QUERY_STRING", "")
-            if args:
-                url = "%s?%s" % (url, args)
+            qs = self.request.META.get("QUERY_STRING", "")
+            if qs:
+                url = "%s?%s" % (url, qs)
 
             return url
 
