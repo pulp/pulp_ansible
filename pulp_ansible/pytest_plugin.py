@@ -77,11 +77,16 @@ def ansible_distribution_factory(ansible_bindings, gen_object_with_cleanup):
     """A factory to generate an Ansible Distribution with auto-cleanup."""
 
     def _ansible_distribution_factory(repository=None, **kwargs):
+        extra_args = {}
+        if pulp_domain := kwargs.pop("pulp_domain", None):
+            extra_args["pulp_domain"] = pulp_domain
         kwargs.setdefault("name", str(uuid.uuid4()))
         kwargs.setdefault("base_path", str(uuid.uuid4()))
         if repository:
             kwargs["repository"] = repository.pulp_href
-        return gen_object_with_cleanup(ansible_bindings.DistributionsAnsibleApi, kwargs)
+        return gen_object_with_cleanup(
+            ansible_bindings.DistributionsAnsibleApi, kwargs, **extra_args
+        )
 
     return _ansible_distribution_factory
 

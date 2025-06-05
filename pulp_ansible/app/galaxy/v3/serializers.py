@@ -5,17 +5,23 @@ from drf_spectacular.types import OpenApiTypes
 from rest_framework.reverse import reverse
 from rest_framework import serializers
 
-from pulp_ansible.app import models, fields, serializers as ansible_serializers
+from pulpcore.plugin.util import get_domain
 from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin import serializers as core_serializers
+
+from pulp_ansible.app import models, fields, serializers as ansible_serializers
+
+DOMAIN_ENABLED = settings.DOMAIN_ENABLED
 
 
 def _get_distro_context(context):
     distro_context = {}
-    if "path" in context:
-        distro_context["path"] = context["path"]
+    if path := context.get("path") or context.get("distro_base_path"):
+        distro_context["path"] = path
     if "distro_base_path" in context:
         distro_context["distro_base_path"] = context["distro_base_path"]
+    if DOMAIN_ENABLED:
+        distro_context["pulp_domain"] = get_domain().name
     return distro_context
 
 
@@ -263,9 +269,16 @@ class UnpaginatedCollectionVersionSerializer(CollectionVersionListSerializer):
             # because using the request context to generate the full URL causes the download URL
             # to be inaccessible when pulp is running behind a reverse proxy.
             host = settings.ANSIBLE_API_HOSTNAME.strip("/")
+            extra_args = {}
+            if DOMAIN_ENABLED:
+                extra_args["pulp_domain"] = get_domain().name
             path = reverse(
                 settings.ANSIBLE_URL_NAMESPACE + "collection-artifact-download",
-                kwargs={"distro_base_path": distro_base_path, "filename": filename_path},
+                kwargs={
+                    "distro_base_path": distro_base_path,
+                    "filename": filename_path,
+                    **extra_args,
+                },
             ).strip("/")
 
             return f"{host}/{path}"
