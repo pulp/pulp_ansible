@@ -9,6 +9,9 @@ from urllib.parse import urljoin
 
 import pytest
 import requests
+from django.conf import settings
+
+DOMAIN_ENABLED = settings.DOMAIN_ENABLED
 
 
 class NullAuth(requests.auth.AuthBase):
@@ -32,12 +35,16 @@ def http_session(bindings_cfg):
         yield session
 
 
-def get_galaxy_url(base, path):
+def get_galaxy_url(base, path, domain="default"):
     """Given an Ansible Distribution base_path and an endpoint path, construct a URL.
 
     Takes the expected GALAXY_API_ROOT setting of the target into consideration.
     """
-    GALAXY_API_ROOT = f"/pulp_ansible/galaxy/{base}/api/"
+    GALAXY_API_ROOT = (
+        f"/pulp_ansible/galaxy/{domain}/{base}/api/"
+        if DOMAIN_ENABLED
+        else f"/pulp_ansible/galaxy/{base}/api/"
+    )
     return urljoin(GALAXY_API_ROOT, path.lstrip("/"))
 
 
