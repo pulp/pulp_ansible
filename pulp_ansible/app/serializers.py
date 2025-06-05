@@ -28,7 +28,7 @@ from pulpcore.plugin.serializers import (
     RepositoryVersionRelatedField,
     validate_unknown_fields,
 )
-from pulpcore.plugin.util import get_url, get_domain_pk
+from pulpcore.plugin.util import get_url, get_domain, get_domain_pk
 
 from .models import (
     AnsibleDistribution,
@@ -365,11 +365,11 @@ class AnsibleDistributionSerializer(DistributionSerializer):
     )
 
     def get_client_url(self, obj) -> str:
-        return "{hostname}/{api_root}/{base_path}/".format(
-            hostname=settings.ANSIBLE_API_HOSTNAME,
-            api_root=settings.GALAXY_API_ROOT.replace("/<path:path>/api/", ""),
-            base_path=obj.base_path,
-        )
+        hostname = settings.ANSIBLE_API_HOSTNAME
+        api_root = settings.GALAXY_API_ROOT.replace("/<path:path>/api/", "")
+        base_path = obj.base_path
+        domain = (get_domain().name + "/") if settings.DOMAIN_ENABLED else ""
+        return f"{hostname}/{api_root}/{domain}{base_path}/"
 
     class Meta:
         fields = (

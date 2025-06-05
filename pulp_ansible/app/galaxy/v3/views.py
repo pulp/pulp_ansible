@@ -40,7 +40,7 @@ from pulpcore.plugin.viewsets import (
     NAME_FILTER_OPTIONS,
 )
 from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
-from pulpcore.plugin.util import get_domain, get_url
+from pulpcore.plugin.util import get_domain, get_domain_pk, get_url
 
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
 from pulp_ansible.app.galaxy.v3.serializers import (
@@ -81,6 +81,8 @@ from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_co
 
 from pulp_ansible.app.utils import filter_content_for_repo_version
 
+
+DOMAIN_ENABLED = settings.DOMAIN_ENABLED
 
 _CAN_VIEW_REPO_CONTENT = {
     "action": ["list", "retrieve", "download"],
@@ -132,6 +134,7 @@ class AnsibleDistributionMixin:
                 "base_path", "repository_version", "repository"
             ).select_related("repository__ansible_ansiblerepository"),
             base_path=path,
+            pulp_domain=get_domain_pk(),
         )
         if distro.repository_version_id:
             self.pulp_context = {path: distro.repository_version}
@@ -586,10 +589,14 @@ class CollectionUploadViewSet(
         )
         # Create CollectionImport and response
         CollectionImport.objects.create(task_id=task.pk)
+        if DOMAIN_ENABLED:
+            kwargs = {"pk": task.pk, "pulp_domain": get_domain().name}
+        else:
+            kwargs = {"pk": task.pk}
         data = {
             "task": reverse(
                 settings.ANSIBLE_URL_NAMESPACE + "collection-imports-detail",
-                kwargs={"pk": task.pk},
+                kwargs=kwargs,
                 request=None,
             )
         }
@@ -712,7 +719,7 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
         url = "{host}/{prefix}{domain}/{distro_base_path}/{filename}".format(
             host=settings.CONTENT_ORIGIN.strip("/"),
             prefix=settings.CONTENT_PATH_PREFIX.strip("/"),
-            domain="/" + get_domain().name if settings.DOMAIN_ENABLED else "",
+            domain="/" + get_domain().name if DOMAIN_ENABLED else "",
             distro_base_path=distro_base_path,
             filename=self.kwargs["filename"],
         )
@@ -1287,7 +1294,10 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
                     # remove the old path kwarg since we're redirecting to the new api endpoints
                     del kwargs["path"]
 
-                kwargs = {**self.kwargs, "distro_base_path": path}
+                kwargs["distro_base_path"] = path
+
+            if DOMAIN_ENABLED:
+                kwargs["pulp_domain"] = get_domain().name
 
             # don't pass request. redirects work with just the path and this solves the client
             # redirect issues for aiohttp
@@ -1297,9 +1307,9 @@ def redirect_view_generator(actions, url, viewset, distro_view=True, responses={
                 # request=self.request,
             )
 
-            args = self.request.META.get("QUERY_STRING", "")
-            if args:
-                url = "%s?%s" % (url, args)
+            qs = self.request.META.get("QUERY_STRING", "")
+            if qs:
+                url = "%s?%s" % (url, qs)
 
             return url
 

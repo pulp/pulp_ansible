@@ -13,7 +13,11 @@ from pulp_ansible.app.viewsets import CopyViewSet, CollectionUploadViewSet, TagV
 
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 
-GALAXY_API_ROOT = settings.GALAXY_API_ROOT
+GALAXY_API_ROOT = (
+    settings.GALAXY_API_ROOT.replace("<path:path>", "<slug:pulp_domain>/<path:path>")
+    if settings.DOMAIN_ENABLED
+    else settings.GALAXY_API_ROOT
+)
 
 
 v1_urls = [
