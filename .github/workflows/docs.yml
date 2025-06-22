@@ -6,12 +6,12 @@
 # For more info visit https://github.com/pulp/plugin_template
 
 ---
-name: "Docs"
+name: "Docs CI"
 on:
   workflow_call:
 
 jobs:
-  test:
+  changelog:
     if: "endsWith(github.base_ref, 'main')"
     runs-on: "ubuntu-latest"
     defaults:
@@ -24,31 +24,24 @@ jobs:
           path: "pulp_ansible"
       - uses: "actions/setup-python@v5"
         with:
-          python-version: "3.11"
-      - name: "Setup cache key"
-        run: |
-          git ls-remote https://github.com/pulp/pulp-docs main | tee pulp-docs-main-sha
-      - uses: "actions/cache@v4"
-        with:
-          path: "~/.cache/pip"
-          key: ${{ runner.os }}-pip-${{ hashFiles('pulp-docs-main-sha') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          python-version: "3.12"
       - name: "Install python dependencies"
         run: |
           echo ::group::PYDEPS
-          pip install -r doc_requirements.txt
+          pip install towncrier
           echo ::endgroup::
       - name: "Build changelog"
         run: |
           towncrier build --yes --version 4.0.0.ci
-      - name: "Build docs"
-        run: |
-          pulp-docs build
+  docs:
+    if: "endsWith(github.base_ref, 'main')"
+    uses: 'pulp/pulp-docs/.github/workflows/docs-ci.yml@rewrite-as-mkdocs-plugin'
+    with:
+      pulpdocs_ref: 'rewrite-as-mkdocs-plugin'
 
   no-test:
     if: "!endsWith(github.base_ref, 'main')"
     runs-on: "ubuntu-latest"
     steps:
       - run: |
-          echo "Skip docs testing on non-main branches."
+          echo "Skip docs testing on non-default branches."
