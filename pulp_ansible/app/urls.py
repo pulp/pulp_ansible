@@ -239,6 +239,11 @@ v3_urls = [
     path("plugin/ansible/", include(v3_plugin_urls)),
 ]
 
+if settings.DOMAIN_ENABLED:
+    V3_API_ROOT = settings.V3_DOMAIN_API_ROOT_NO_FRONT_SLASH
+else:
+    V3_API_ROOT = settings.V3_API_ROOT_NO_FRONT_SLASH
+
 urlpatterns = [
     path("ansible/collections/", CollectionUploadViewSet.as_view({"post": "create"})),
     path(GALAXY_API_ROOT.split("<path:path>")[0] + "default/api/v3/", include(v3_urls)),
@@ -249,12 +254,33 @@ urlpatterns = [
     path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
     path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
     path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
+]
+
+additional_apis = [
     path(
-        settings.V3_API_ROOT_NO_FRONT_SLASH + "pulp_ansible/tags/",
+        "pulp_ansible/tags/",
         TagViewSet.as_view({"get": "list"}),
     ),
     path(
-        settings.V3_API_ROOT_NO_FRONT_SLASH + "ansible/copy/",
+        "ansible/copy/",
         CopyViewSet.as_view({"post": "create"}),
     ),
 ]
+
+urlpatterns.append(
+    path(f"{V3_API_ROOT}", include(additional_apis)),
+)
+
+if getattr(settings, "ENABLE_V4_API", False):
+    V4_API_ROOT = settings.V4_DOMAIN_API_ROOT_NO_FRONT_SLASH
+
+    additional_apis = [
+        path("pulp_ansible/tags/", TagViewSet.as_view({"get": "list"}), name="ansible-list-tags"),
+        path(
+            "ansible/copy/",
+            CopyViewSet.as_view({"post": "create"}),
+            name="ansible-copy",
+        ),
+    ]
+
+    urlpatterns.append(path(f"{V4_API_ROOT}", include((additional_apis, "rpm"), namespace="v4")))
