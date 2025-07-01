@@ -11,7 +11,7 @@ from rest_framework.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema_field
 
 from galaxy_importer.constants import NAME_REGEXP
-from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
@@ -893,32 +893,32 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     @transaction.atomic
     def create(self, validated_data):
         """Create the Namespace and add it to the Repository if present."""
-        namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
+        namespace, created = AnsibleNamespace.objects.get_or_create(
+            name=validated_data["name"], pulp_domain=get_domain()
+        )
         metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
         metadata.calculate_metadata_sha256()
-        content = AnsibleNamespaceMetadata.objects.filter(
-            metadata_sha256=metadata.metadata_sha256
-        ).first()
-        if content:
-            content.touch()
-        else:
+        try:
+            metadata = AnsibleNamespaceMetadata.objects.filter(
+                pulp_domain=get_domain_pk(), metadata_sha256=metadata.metadata_sha256
+            ).get()
+            metadata.touch()
+        except AnsibleNamespaceMetadata.DoesNotExist:
             metadata.save()
-            content = metadata
             if metadata.avatar_sha256:
                 ContentArtifact.objects.create(
                     artifact_id=self.context["artifact"],
-                    content=content,
+                    content=metadata,
                     relative_path=f"{metadata.name}-avatar",
                 )
 
         repository = self.context.pop("repository", None)
         if repository:
             repository = AnsibleRepository.objects.get(pk=repository)
-            content_to_add = AnsibleNamespaceMetadata.objects.filter(pk=content.pk)
 
             with repository.new_version() as new_version:
-                new_version.add_content(content_to_add)
-        return content
+                new_version.add_content(Content.objects.filter(pk=metadata.pk))
+        return metadata
 
     class Meta:
         model = AnsibleNamespaceMetadata

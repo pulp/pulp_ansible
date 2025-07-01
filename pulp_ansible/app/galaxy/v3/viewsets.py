@@ -9,7 +9,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 )
 from pulp_ansible.app.galaxy.mixins import GalaxyAuthMixin
 
-from pulpcore.plugin.util import get_url
+from pulpcore.plugin.util import get_url, get_domain_pk
 
 from pulp_ansible.app.models import CrossRepositoryCollectionVersionIndex, AnsibleDistribution
 
@@ -83,7 +83,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
             .select_related("collection_version")
             .select_related("repository_version")
             .select_related("namespace_metadata")
-            .all()
+            .filter(repository__pulp_domain_id=get_domain_pk())
         )
 
         for permission_class in self.get_permissions():

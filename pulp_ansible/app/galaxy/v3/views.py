@@ -338,7 +338,7 @@ class CollectionViewSet(
         )
 
         download_count_qs = CollectionDownloadCount.objects.filter(
-            name=OuterRef("name"), namespace=OuterRef("namespace")
+            name=OuterRef("name"), namespace=OuterRef("namespace"), pulp_domain=get_domain()
         )
 
         qs = (
@@ -464,7 +464,9 @@ def get_collection_dependents(parent):
     """Given a parent collection, return a list of collection versions that depend on it."""
     key = f"{parent.namespace}.{parent.name}"
     return list(
-        CollectionVersion.objects.exclude(collection=parent).filter(dependencies__has_key=key)
+        CollectionVersion.objects.exclude(collection=parent).filter(
+            dependencies__has_key=key, pulp_domain=get_domain()
+        )
     )
 
 
@@ -481,7 +483,9 @@ def get_unique_dependents(parent):
         other_versions.append(semantic_version.Version(v.version))
 
     dependents = []
-    for child in CollectionVersion.objects.filter(dependencies__has_key=key):
+    for child in CollectionVersion.objects.filter(
+        dependencies__has_key=key, pulp_domain=get_domain()
+    ):
         spec = semantic_version.SimpleSpec(child.dependencies[key])
 
         # If this collection matches the parent collections version and there are no other
@@ -810,7 +814,9 @@ class AnsibleNamespaceViewSet(
             except IntegrityError:
                 # if artifact already exists, let's use it
                 try:
-                    artifact = Artifact.objects.get(sha256=artifact.sha256)
+                    artifact = Artifact.objects.get(
+                        sha256=artifact.sha256, pulp_domain=get_domain()
+                    )
                     artifact.touch()
                 except (Artifact.DoesNotExist, DatabaseError):
                     # the artifact has since been removed from when we first attempted to save it
@@ -842,7 +848,9 @@ class AnsibleNamespaceViewSet(
                 serializer.validated_data.setdefault(name, serializer.data[name])
         context = {}
         if "avatar" not in request.data and namespace.avatar_sha256:
-            context["artifact"] = Artifact.objects.get(sha256=namespace.avatar_sha256).pk
+            context["artifact"] = Artifact.objects.get(
+                sha256=namespace.avatar_sha256, pulp_domain=get_domain()
+            ).pk
         return self._create(request, data=serializer.validated_data, context=context)
 
     def delete(self, request, *args, **kwargs):
