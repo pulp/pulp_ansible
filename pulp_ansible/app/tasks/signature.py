@@ -12,6 +12,7 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
+from pulpcore.plugin.util import get_domain
 
 from pulp_ansible.app.models import (
     AnsibleRepository,
@@ -20,7 +21,6 @@ from pulp_ansible.app.models import (
 )
 
 from django.conf import settings
-from django.core.files.storage import default_storage as storage
 from pulpcore.plugin.models import SigningService, ProgressReport
 from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
 from pulpcore.plugin.util import gpg_verify
@@ -41,10 +41,9 @@ def verify_signature_upload(data):
     repository = data.get("repository")
     gpgkey = repository and repository.gpgkey or ""
 
-    artifact = collection.contentartifact_set.select_related("artifact").first().artifact.file.name
-    artifact_file = storage.open(artifact)
-    with tarfile.open(fileobj=artifact_file, mode="r") as tar:
-        manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact_file)
+    artifact = collection.contentartifact_set.select_related("artifact").first().artifact
+    with tarfile.open(fileobj=artifact.file, mode="r") as tar:
+        manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
         with tempfile.NamedTemporaryFile(dir=".") as manifest_file:
             manifest_file.write(manifest.read())
             manifest_file.flush()
@@ -119,11 +118,11 @@ class CollectionSigningFirstStage(Stage):
         """Signs the collection version."""
 
         def _extract_manifest():
-            cartifact = collection_version.contentartifact_set.select_related("artifact").first()
-            artifact_name = cartifact.artifact.file.name
-            artifact_file = storage.open(artifact_name)
-            with tarfile.open(fileobj=artifact_file, mode="r") as tar:
-                manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact_name)
+            artifact = (
+                collection_version.contentartifact_set.select_related("artifact").first().artifact
+            )
+            with tarfile.open(fileobj=artifact.file, mode="r") as tar:
+                manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
                 return manifest.read()
 
         # Limits the number of subprocesses spawned/running at one time
@@ -153,7 +152,7 @@ class CollectionSigningFirstStage(Stage):
         tasks = []
         # Filter out any content that already has a signature with pubkey_fingerprint
         current_signatures = CollectionVersionSignature.objects.filter(
-            pubkey_fingerprint=self.signing_service.pubkey_fingerprint
+            pulp_domain=get_domain(), pubkey_fingerprint=self.signing_service.pubkey_fingerprint
         )
         new_content = self.content.exclude(signatures__in=current_signatures)
         ntotal = await sync_to_async(new_content.count)()

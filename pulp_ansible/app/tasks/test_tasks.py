@@ -10,6 +10,7 @@ import uuid
 from django.db import IntegrityError
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.util import get_domain
 
 from pulp_ansible.app.models import AnsibleRepository, CollectionVersion
 from pulp_ansible.app.tasks.collections import import_collection
@@ -72,7 +73,7 @@ def import_collection_from_path(path):
     try:
         artifact.save()
     except IntegrityError:
-        artifact = Artifact.objects.get(sha256=artifact.sha256)
+        artifact = Artifact.objects.get(sha256=artifact.sha256, pulp_domain=get_domain())
 
     import_collection(artifact.pk)
 
@@ -129,10 +130,12 @@ def promote_content(repos_per_task, num_repos_to_update):
         num_repos_to_update: The total number of repositories to update.
 
     """
-    random_collection_version = CollectionVersion.objects.order_by("?").first()
+    random_collection_version = (
+        CollectionVersion.objects.order_by("?").filter(pulp_domain=get_domain()).first()
+    )
     repos_to_dispatch = []
     locks = []
-    for repo_num, repo in enumerate(AnsibleRepository.objects.all(), 1):
+    for repo_num, repo in enumerate(AnsibleRepository.objects.filter(pulp_domain=get_domain()), 1):
         if repo_num > num_repos_to_update:
             break
         repos_to_dispatch.append(repo.pk)

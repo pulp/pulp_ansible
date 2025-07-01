@@ -68,13 +68,14 @@ class Collection(BaseModel):
 
     namespace = models.CharField(max_length=64, editable=False)
     name = models.CharField(max_length=64, editable=False)
+    pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
 
     def __str__(self):
         """Return a representation."""
         return f"<{self.__class__.__name__}: {self.namespace}.{self.name}>"
 
     class Meta:
-        unique_together = ("namespace", "name")
+        unique_together = ("pulp_domain", "namespace", "name")
 
 
 class CollectionImport(models.Model):
@@ -106,7 +107,11 @@ class AnsibleNamespace(BaseModel):
     A model representing a Namespace. This should be used for permissions.
     """
 
-    name = models.CharField(max_length=64, unique=True, editable=True)
+    name = models.CharField(max_length=64, editable=True)
+    pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
+
+    class Meta:
+        unique_together = ("pulp_domain", "name")
 
 
 class CollectionVersion(Content):
@@ -311,7 +316,7 @@ class AnsibleNamespaceMetadata(Content):
     @property
     def avatar_artifact(self):
         return self._artifacts.filter(
-            content_memberships__relative_path=f"{self.name}-avatar"
+            pulp_domain=get_domain_pk(), content_memberships__relative_path=f"{self.name}-avatar"
         ).first()
 
     @hook(BEFORE_SAVE)
@@ -371,12 +376,13 @@ class CollectionDownloadCount(BaseModel):
     Aggregate count of downloads per collection
     """
 
+    pulp_domain = models.ForeignKey("core.Domain", default=get_domain_pk, on_delete=models.PROTECT)
     namespace = models.CharField(max_length=64, editable=False, db_index=True)
     name = models.CharField(max_length=64, editable=False, db_index=True)
     download_count = models.BigIntegerField(default=0)
 
     class Meta:
-        unique_together = ("namespace", "name")
+        unique_together = ("pulp_domain", "namespace", "name")
 
 
 class RoleRemote(Remote, AutoAddObjPermsMixin):
