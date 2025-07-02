@@ -157,7 +157,9 @@
 
 ---
 
-## 0.23.0 (2024-11-11) {: #0.23.0 }
+## YANKED 0.23.0 (2024-11-11) {: #0.23.0 }
+
+Yank reason: Contains a bad migration
 
 #### Features {: #0.23.0-feature }
 
@@ -1140,7 +1142,7 @@ No significant changes.
 
 ---
 
-## 0.11.0 (2021-12-15) {: #0.11.0 }
+## YANKED 0.11.0 (2021-12-15) {: #0.11.0 }
 
 #### Features
 
