@@ -7,10 +7,11 @@ from django.db import transaction
 from django.conf import settings
 from jsonschema import Draft7Validator
 from rest_framework import serializers
+from rest_framework.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema_field
 
 from galaxy_importer.constants import NAME_REGEXP
-from pulpcore.plugin.models import Artifact, ContentArtifact, SigningService
+from pulpcore.plugin.models import Artifact, Content, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
@@ -27,8 +28,7 @@ from pulpcore.plugin.serializers import (
     RepositoryVersionRelatedField,
     validate_unknown_fields,
 )
-from pulpcore.plugin.util import get_url
-from rest_framework.exceptions import ValidationError
+from pulpcore.plugin.util import get_url, get_domain, get_domain_pk
 
 from .models import (
     AnsibleDistribution,
@@ -54,6 +54,14 @@ from pulp_ansible.app.tasks.utils import (
 )
 from pulp_ansible.app.tasks.signature import verify_signature_upload
 from pulp_ansible.app.tasks.upload import process_collection_artifact
+
+
+class DomainUniqueTogetherValidator(serializers.UniqueTogetherValidator):
+    def filter_queryset(self, *args, **kwargs):
+        domain_pk = get_domain_pk()
+        assert domain_pk is not None
+        qs = super().filter_queryset(*args, **kwargs).filter(_pulp_domain=domain_pk)
+        return qs
 
 
 class RoleSerializer(SingleArtifactContentSerializer):
@@ -93,6 +101,12 @@ class RoleSerializer(SingleArtifactContentSerializer):
             "namespace",
         )
         model = Role
+        validators = [
+            DomainUniqueTogetherValidator(
+                queryset=Role.objects.all(),
+                fields=["namespace", "name", "version"],
+            )
+        ]
 
 
 class RoleRemoteSerializer(RemoteSerializer):
@@ -351,12 +365,11 @@ class AnsibleDistributionSerializer(DistributionSerializer):
     )
 
     def get_client_url(self, obj) -> str:
-        """
-        Get client_url.
-        """
-        return "{hostname}/pulp_ansible/galaxy/{base_path}/".format(
-            hostname=settings.ANSIBLE_API_HOSTNAME, base_path=obj.base_path
-        )
+        hostname = settings.ANSIBLE_API_HOSTNAME
+        api_root = settings.GALAXY_API_ROOT.replace("/<path:path>/api/", "")
+        base_path = obj.base_path
+        domain = (get_domain().name + "/") if settings.DOMAIN_ENABLED else ""
+        return f"{hostname}/{api_root}/{domain}{base_path}/"
 
     class Meta:
         fields = (
@@ -514,7 +527,9 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
 
     def retrieve(self, validated_data):
         """Reuse existing CollectionVersion if provided artifact matches."""
-        return CollectionVersion.objects.filter(sha256=validated_data["sha256"]).first()
+        return CollectionVersion.objects.filter(
+            sha256=validated_data["sha256"], pulp_domain=get_domain()
+        ).first()
 
     def create(self, validated_data):
         """Final step in creating the CollectionVersion."""
@@ -878,32 +893,32 @@ class AnsibleNamespaceMetadataSerializer(NoArtifactContentSerializer):
     @transaction.atomic
     def create(self, validated_data):
         """Create the Namespace and add it to the Repository if present."""
-        namespace, created = AnsibleNamespace.objects.get_or_create(name=validated_data["name"])
+        namespace, created = AnsibleNamespace.objects.get_or_create(
+            name=validated_data["name"], pulp_domain=get_domain()
+        )
         metadata = AnsibleNamespaceMetadata(namespace=namespace, **validated_data)
         metadata.calculate_metadata_sha256()
-        content = AnsibleNamespaceMetadata.objects.filter(
-            metadata_sha256=metadata.metadata_sha256
-        ).first()
-        if content:
-            content.touch()
-        else:
+        try:
+            metadata = AnsibleNamespaceMetadata.objects.filter(
+                pulp_domain=get_domain_pk(), metadata_sha256=metadata.metadata_sha256
+            ).get()
+            metadata.touch()
+        except AnsibleNamespaceMetadata.DoesNotExist:
             metadata.save()
-            content = metadata
             if metadata.avatar_sha256:
                 ContentArtifact.objects.create(
                     artifact_id=self.context["artifact"],
-                    content=content,
+                    content=metadata,
                     relative_path=f"{metadata.name}-avatar",
                 )
 
         repository = self.context.pop("repository", None)
         if repository:
             repository = AnsibleRepository.objects.get(pk=repository)
-            content_to_add = AnsibleNamespaceMetadata.objects.filter(pk=content.pk)
 
             with repository.new_version() as new_version:
-                new_version.add_content(content_to_add)
-        return content
+                new_version.add_content(Content.objects.filter(pk=metadata.pk))
+        return metadata
 
     class Meta:
         model = AnsibleNamespaceMetadata

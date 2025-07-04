@@ -3,6 +3,7 @@ import re
 from django.shortcuts import get_object_or_404
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, response, views
+from pulpcore.plugin.util import get_domain
 
 from pulp_ansible.app.models import AnsibleDistribution, Role
 
@@ -89,7 +90,9 @@ class RoleList(DistributionMixin, generics.ListAPIView):
         """
         Get the list of items for this view.
         """
-        roles = Role.objects.distinct("namespace", "name").filter(pk__in=self._distro_content)
+        roles = Role.objects.distinct("namespace", "name").filter(
+            pk__in=self._distro_content, pulp_domain=get_domain()
+        )
 
         namespace = self.request.query_params.get("owner__username", None)
         if namespace:
@@ -117,5 +120,7 @@ class RoleVersionList(DistributionMixin, generics.ListAPIView):
         Get the list of items for this view.
         """
         namespace, name = re.split(r"\.", self.kwargs["role_pk"])
-        versions = Role.objects.filter(pk__in=self._distro_content, name=name, namespace=namespace)
+        versions = Role.objects.filter(
+            pk__in=self._distro_content, name=name, namespace=namespace, pulp_domain=get_domain()
+        )
         return versions
