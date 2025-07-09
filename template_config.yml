@@ -24,7 +24,7 @@ docker_fixtures: false
 flake8: true
 flake8_ignore: []
 github_org: pulp
-latest_release_branch: '0.26'
+latest_release_branch: '0.27'
 lint_requirements: true
 os_required_packages: []
 parallel_test_workers: 8
@@ -48,9 +48,9 @@ pulp_settings:
   ansible_content_hostname: https://pulp:443/pulp/content
   ansible_signature_require_verification: false
 pulp_settings_azure:
-  domain_enabled: true
   ansible_collect_download_count: true
   ansible_collect_download_log: false
+  domain_enabled: true
 pulp_settings_gcp:
   ansible_collect_download_count: false
   ansible_collect_download_log: true
@@ -81,3 +81,4 @@ test_reroute: true
 test_s3: true
 test_storages_compat_layer: true
 use_issue_template: true
+
