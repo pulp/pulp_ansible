@@ -1,3 +1,0 @@
-This is the second part of the tags db reorganization.
-
-This release contains a migration that allows zero downtime upgrades only from version 0.26.
