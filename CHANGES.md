@@ -8,6 +8,21 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.27.0 (2025-07-09) {: #0.27.0 }
+
+#### Features {: #0.27.0-feature }
+
+- Added support for the domains feature.
+  [#1549](https://github.com/pulp/pulp_ansible/issues/1549)
+
+#### Deprecations and Removals {: #0.27.0-removal }
+
+- This is the second part of the tags db reorganization.
+
+  This release contains a migration that allows zero downtime upgrades only from version 0.26.
+
+---
+
 ## 0.26.0 (2025-05-27) {: #0.26.0 }
 
 #### Features {: #0.26.0-feature }
