@@ -35,7 +35,6 @@ def test_deprecation(
     collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(
         first_distribution.base_path, namespace="testing"
     )
-
     assert collections.data[0].deprecated
     collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(
         first_distribution.base_path, namespace="pulp"
@@ -62,15 +61,12 @@ def test_deprecation(
     )
     assert collections.data[0].deprecated
 
-    # Change the deprecated status for the testing collection on the original repo to False
-    result = ansible_bindings.PulpAnsibleApiV3CollectionsApi.update(
-        "k8s_demo_collection", "testing", first_distribution.base_path, {"deprecated": False}
-    )
-    monitor_task(result.task)
+    # Sync again to see if the deprecated state is kept.
+    ansible_sync_factory(second_repo, optimize=False)
     collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(
-        first_distribution.base_path, namespace="testing"
+        second_distribution.base_path, namespace="testing"
     )
-    assert not collections.data[0].deprecated
+    assert collections.data[0].deprecated
 
     # Update the requirements to sync down both collections this time
     requirements = (
@@ -83,9 +79,34 @@ def test_deprecation(
     # Sync the second repo again
     second_repo = ansible_sync_factory(second_repo)
 
+    # Assert the state of deprecated True for testing, False for pulp
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(
+        second_distribution.base_path, namespace="testing"
+    )
+    assert collections.data[0].deprecated
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(
+        second_distribution.base_path, namespace="pulp"
+    )
+    assert not collections.data[0].deprecated
+
+    # Change the deprecated status for the testing collection on the original repo to False
+    monitor_task(
+        ansible_bindings.PulpAnsibleApiV3CollectionsApi.update(
+            "k8s_demo_collection", "testing", first_distribution.base_path, {"deprecated": False}
+        ).task
+    )
+    collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(
+        first_distribution.base_path, namespace="testing"
+    )
+    assert not collections.data[0].deprecated
+
+    # Sync the second repo again
+    second_repo = ansible_sync_factory(second_repo)
+
     # Assert both collections show deprecated=False
     collections = ansible_bindings.PulpAnsibleApiV3CollectionsApi.list(
         second_distribution.base_path
     )
+    assert len(collections.data) == 2, collections
     for collection in collections.data:
         assert not collection.deprecated
