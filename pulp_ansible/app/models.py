@@ -215,6 +215,9 @@ class CollectionVersion(Content):
     class Meta:
         default_related_name = "%(app_label)s_%(model_name)s"
         unique_together = ("sha256", "_pulp_domain")
+        indexes = [
+            models.Index(fields=["namespace", "name", "version"]),
+        ]
 
 
 class CollectionVersionMark(Content):
