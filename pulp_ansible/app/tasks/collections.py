@@ -8,6 +8,7 @@ from gettext import gettext as _
 from operator import attrgetter
 from urllib.parse import urljoin
 from uuid import uuid4
+import tempfile
 
 import yaml
 from aiohttp.client_exceptions import ClientError, ClientResponseError
@@ -32,7 +33,6 @@ from pulpcore.plugin.models import (
     ProgressReport,
     PulpTemporaryFile,
     Remote,
-    RepositoryContent,
     RepositoryVersion,
     Task,
 )
@@ -40,6 +40,8 @@ from pulpcore.plugin.stages import (
     ArtifactDownloader,
     ArtifactSaver,
     ContentSaver,
+    ContentAssociation,
+    EndStage,
     DeclarativeArtifact,
     DeclarativeContent,
     DeclarativeVersion,
@@ -49,6 +51,7 @@ from pulpcore.plugin.stages import (
     RemoteArtifactSaver,
     ResolveContentFutures,
     Stage,
+    create_pipeline,
 )
 from rest_framework.serializers import ValidationError
 from semantic_version import SimpleSpec, Version
@@ -196,14 +199,7 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
-    deprecation_before_sync = set()
-    for namespace, name in AnsibleCollectionDeprecated.objects.filter(
-        pk__in=repository.latest_version().content
-    ).values_list("namespace", "name"):
-        deprecation_before_sync.add(f"{namespace}.{name}")
-    first_stage = CollectionSyncFirstStage(
-        remote, repository, is_repo_remote, deprecation_before_sync, optimize
-    )
+    first_stage = CollectionSyncFirstStage(remote, repository, is_repo_remote, optimize)
     if first_stage.should_sync is False:
         log.debug(_("no-op: remote wasn't updated since last sync."))
         return
@@ -216,23 +212,6 @@ def sync(remote_pk, repository_pk, mirror, optimize):
 
     repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
     repository.save(update_fields=["last_synced_metadata_time"])
-
-    # This goes against all rules!
-    # Content must be added and removed via the dedicated functions, which is impossible after the
-    # repository version was finalized.
-    # TODO Fix this!
-    to_undeprecate = Q()
-    undeprecated = deprecation_before_sync.difference(first_stage.deprecation_after_sync)
-    if undeprecated:
-        for collection in undeprecated:
-            namespace, name = collection.split(".")
-            to_undeprecate |= Q(namespace=namespace, name=name)
-        deprecated = AnsibleCollectionDeprecated.objects.filter(to_undeprecate)
-        RepositoryContent.objects.filter(
-            repository=repository,
-            content__in=deprecated,
-            version_removed__isnull=True,
-        ).update(version_removed=repo_version)
 
 
 def import_collection(
@@ -478,13 +457,58 @@ class AnsibleDeclarativeVersion(DeclarativeVersion):
 
         return pipeline
 
+    def create(self):
+        """
+        Perform the work. This is the long-blocking call where all syncing occurs.
+
+        Returns: The created RepositoryVersion or None if it represents no change from the latest.
+        """
+        with tempfile.TemporaryDirectory(dir="."):
+            with self.repository.new_version() as new_version:
+                deprecation_before_sync = {
+                    (namespace, name)
+                    for namespace, name in AnsibleCollectionDeprecated.objects.filter(
+                        pk__in=self.repository.latest_version().content
+                    ).values_list("namespace", "name")
+                }
+                loop = asyncio.get_event_loop()
+                stages = self.pipeline_stages(new_version)
+                stages.append(UndeprecateStage(deprecation_before_sync))
+                stages.append(ContentAssociation(new_version, self.mirror))
+                stages.append(EndStage())
+                pipeline = create_pipeline(stages)
+                loop.run_until_complete(pipeline)
+
+                if deprecation_before_sync:
+                    to_undeprecate = Q()
+                    for namespace, name in deprecation_before_sync:
+                        to_undeprecate |= Q(namespace=namespace, name=name)
+                    new_version.remove_content(
+                        AnsibleCollectionDeprecated.objects.filter(to_undeprecate)
+                    )
+
+        return new_version if new_version.complete else None
+
+
+class UndeprecateStage(Stage):
+    def __init__(self, deprecation_before_sync):
+        self.deprecation_before_sync = deprecation_before_sync
+
+    async def run(self):
+        async for batch in self.batches():
+            for d_content in batch:
+                if isinstance(d_content.content, AnsibleCollectionDeprecated):
+                    key = (d_content.content.namespace, d_content.content.name)
+                    self.deprecation_before_sync.discard(key)
+                await self.put(d_content)
+
 
 class CollectionSyncFirstStage(Stage):
     """
     The first stage of a pulp_ansible sync pipeline.
     """
 
-    def __init__(self, remote, repository, is_repo_remote, deprecation_before_sync, optimize):
+    def __init__(self, remote, repository, is_repo_remote, optimize):
         """
         The first stage of a pulp_ansible sync pipeline.
 
@@ -492,15 +516,12 @@ class CollectionSyncFirstStage(Stage):
             remote (CollectionRemote): The remote data to be used when syncing
             repository (AnsibleRepository): The repository being syncedself.
             is_repo_remote (bool): True if the remote is the repository's remote.
-            deprecation_before_sync (set): Set of deprecations before the sync.
             optimize (boolean): Whether to optimize sync or not.
 
         """
         super().__init__()
         self.remote = remote
         self.repository = repository
-        self.deprecation_before_sync = deprecation_before_sync
-        self.deprecation_after_sync = set()
         self.collection_info = parse_collections_requirements_file(remote.requirements_file)
         self.exclude_info = {}
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
@@ -767,7 +788,6 @@ class CollectionSyncFirstStage(Stage):
                         d_content = DeclarativeContent(
                             content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
                         )
-                        self.deprecation_after_sync.add(f"{namespace}.{name}")
                         await self.put(d_content)
                     tasks.append(
                         loop.create_task(
@@ -802,7 +822,6 @@ class CollectionSyncFirstStage(Stage):
             d_content = DeclarativeContent(
                 content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
             )
-            self.deprecation_after_sync.add(f"{namespace}.{name}")
             await self.put(d_content)
 
         all_versions_of_collection = self._unpaginated_collection_version_metadata[namespace][name]
@@ -924,9 +943,6 @@ class CollectionSyncFirstStage(Stage):
                         content=AnsibleCollectionDeprecated(
                             namespace=collection["namespace"], name=collection["name"]
                         ),
-                    )
-                    self.deprecation_after_sync.add(
-                        f"{collection['namespace']}.{collection['name']}"
                     )
                     await self.put(d_content)
 
