@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.27.1 (2025-07-15) {: #0.27.1 }
+
+#### Bugfixes {: #0.27.1-bugfix }
+
+- Fixed the sync pipeline to not manipulate the RepositoryContent table directly when undeprecating collections.
+
+---
+
 ## 0.27.0 (2025-07-09) {: #0.27.0 }
 
 #### Features {: #0.27.0-feature }
