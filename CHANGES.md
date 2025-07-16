@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.27.1 (2025-07-15) {: #0.27.1 }
+
+#### Bugfixes {: #0.27.1-bugfix }
+
+- Fixed the sync pipeline to not manipulate the RepositoryContent table directly when undeprecating collections.
+
+---
+
 ## 0.27.0 (2025-07-09) {: #0.27.0 }
 
 #### Features {: #0.27.0-feature }
@@ -72,6 +80,14 @@
 - Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
 - Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
 - Fixed namespace avatar download log.
+
+---
+
+## 0.24.7 (2025-07-15) {: #0.24.7 }
+
+#### Bugfixes {: #0.24.7-bugfix }
+
+- Fixed the sync pipeline to not manipulate the RepositoryContent table directly when undeprecating collections.
 
 ---
 
