@@ -21,6 +21,7 @@ deploy_to_pypi: true
 disabled_redis_runners:
 - s3
 docker_fixtures: false
+extra_files: []
 flake8: true
 flake8_ignore: []
 github_org: pulp
