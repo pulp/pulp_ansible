@@ -24,7 +24,6 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-  "async_lru>=1.0,<2.1",
   "galaxy_importer>=0.4.27,<0.5",
   "GitPython>=3.1.24,<3.2",
   "jsonschema>=4.9,<4.26",
