@@ -1,4 +1,5 @@
 import asyncio
+import functools
 import hashlib
 import json
 import logging
@@ -13,7 +14,6 @@ import tempfile
 import yaml
 from aiohttp.client_exceptions import ClientError, ClientResponseError
 from asgiref.sync import sync_to_async
-from async_lru import alru_cache
 from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
@@ -79,6 +79,26 @@ from pulp_ansible.app.tasks.utils import (
 )
 
 log = logging.getLogger(__name__)
+
+
+def async_cache(f):
+    # A simple implementation for caching an async function with hashable arguments.
+    _cache = {}
+
+    @functools.wraps(f)
+    async def _wrapped_f(*args):
+        try:
+            return _cache[args]
+        except KeyError:
+            result = await f(*args)
+            _cache[args] = result
+            if len(_cache) > 128:
+                # This is a bit ad hoc and will give fifo instead of lru behaviour.
+                # I doubt it even makes a difference here.
+                _cache.pop(next(iter(_cache.keys())))
+            return result
+
+    return _wrapped_f
 
 
 # semantic_version.SimpleSpec interpretes "*" as ">=0.0.0"
@@ -541,7 +561,7 @@ class CollectionSyncFirstStage(Stage):
             self._should_we_sync()
         )
 
-    @alru_cache(maxsize=128)
+    @async_cache
     async def _get_root_api(self, root):
         """
         Returns the root api path and api version.
@@ -577,7 +597,7 @@ class CollectionSyncFirstStage(Stage):
 
         return endpoint, api_version
 
-    @alru_cache(maxsize=128)
+    @async_cache
     async def _get_paginated_collection_api(self, root):
         """
         Returns the collection api path and api version.
