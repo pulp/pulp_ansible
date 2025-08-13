@@ -8,6 +8,22 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.28.0 (2025-08-13) {: #0.28.0 }
+
+#### Features {: #0.28.0-feature }
+
+- Add a database index to collection version lookup by namespace, name, version to speed up common queries.
+
+#### Bugfixes {: #0.28.0-bugfix }
+
+- Fixed the sync pipeline to not manipulate the RepositoryContent table directly when undeprecating collections.
+
+#### Deprecations and Removals {: #0.28.0-removal }
+
+- This release drops support for Python<3.11.
+
+---
+
 ## 0.27.1 (2025-07-15) {: #0.27.1 }
 
 #### Bugfixes {: #0.27.1-bugfix }
