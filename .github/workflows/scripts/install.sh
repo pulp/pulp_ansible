@@ -112,6 +112,7 @@ if [ "$TEST" = "azure" ]; then
   sed -i -e '$a azure_test: true\
 pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": false}\
 pulp_scenario_env: {}\
+test_storages_compat_layer: true\
 ' vars/main.yaml
 fi
 
