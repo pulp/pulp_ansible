@@ -97,7 +97,6 @@ minio_access_key: "'$MINIO_ACCESS_KEY'"\
 minio_secret_key: "'$MINIO_SECRET_KEY'"\
 pulp_scenario_settings: {"AWS_ACCESS_KEY_ID": "AKIAIT2Z5TDYPX3ARJBA", "AWS_DEFAULT_ACL": "@none None", "AWS_S3_ADDRESSING_STYLE": "path", "AWS_S3_ENDPOINT_URL": "http://minio:9000", "AWS_S3_REGION_NAME": "eu-central-1", "AWS_S3_SIGNATURE_VERSION": "s3v4", "AWS_SECRET_ACCESS_KEY": "fqRvjWaPU5o0fCqQuUWbj9Fainj2pVZtBCiDiieS", "AWS_STORAGE_BUCKET_NAME": "pulp3", "DEFAULT_FILE_STORAGE": "storages.backends.s3boto3.S3Boto3Storage", "MEDIA_ROOT": "", "ansible_collect_download_count": true, "ansible_collect_download_log": true}\
 pulp_scenario_env: {}\
-test_storages_compat_layer: false\
 ' vars/main.yaml
   export PULP_API_ROOT="/rerouted/djnd/"
 fi
