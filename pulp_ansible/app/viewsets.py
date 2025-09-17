@@ -470,14 +470,27 @@ class RoleRemoteViewSet(RemoteViewSet, RolesMixin):
     }
 
     LOCKED_ROLES = {
-        "ansible.roleremote_creator": ["ansible.add_roleremote"],
-        "ansible.roleremote_owner": [
-            "ansible.view_roleremote",
-            "ansible.change_roleremote",
-            "ansible.delete_roleremote",
-            "ansible.manage_roles_roleremote",
-        ],
-        "ansible.roleremote_viewer": ["ansible.view_roleremote"],
+        "ansible.roleremote_creator": {
+            "description": (
+                "This role allows you to create new role remote for syncing Ansible roles."
+            ),
+            "permissions": ["ansible.add_roleremote"],
+        },
+        "ansible.roleremote_owner": {
+            "description": (
+                "This role allows you to view, edit, delete, and manage roles for role remote."
+            ),
+            "permissions": [
+                "ansible.view_roleremote",
+                "ansible.change_roleremote",
+                "ansible.delete_roleremote",
+                "ansible.manage_roles_roleremote",
+            ],
+        },
+        "ansible.roleremote_viewer": {
+            "description": "This role allows you to view role remote.",
+            "permissions": ["ansible.view_roleremote"],
+        },
     }
 
 
@@ -535,14 +548,27 @@ class GitRemoteViewSet(RemoteViewSet, RolesMixin):
     }
 
     LOCKED_ROLES = {
-        "ansible.gitremote_creator": ["ansible.add_gitremote"],
-        "ansible.gitremote_owner": [
-            "ansible.view_gitremote",
-            "ansible.change_gitremote",
-            "ansible.delete_gitremote",
-            "ansible.manage_roles_gitremote",
-        ],
-        "ansible.gitremote_viewer": ["ansible.view_gitremote"],
+        "ansible.gitremote_creator": {
+            "description": (
+                "This role allows you to create new git remote for syncing Ansible content from git repository."
+            ),
+            "permissions": ["ansible.add_gitremote"],
+        },
+        "ansible.gitremote_owner": {
+            "description": (
+                "This role allows you to view, edit, delete, and manage roles for git remote."
+            ),
+            "permissions": [
+                "ansible.view_gitremote",
+                "ansible.change_gitremote",
+                "ansible.delete_gitremote",
+                "ansible.manage_roles_gitremote",
+            ],
+        },
+        "ansible.gitremote_viewer": {
+            "description": "This role allows you to view git remote.",
+            "permissions": ["ansible.view_gitremote"],
+        },
     }
 
 
@@ -679,19 +705,35 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
     }
 
     LOCKED_ROLES = {
-        "ansible.ansiblerepository_creator": ["ansible.add_ansiblerepository"],
-        "ansible.ansiblerepository_owner": [
-            "ansible.view_ansiblerepository",
-            "ansible.change_ansiblerepository",
-            "ansible.delete_ansiblerepository",
-            "ansible.manage_roles_ansiblerepository",
-            "ansible.modify_ansible_repo_content",
-            "ansible.rebuild_metadata_ansiblerepository",
-            "ansible.repair_ansiblerepository",
-            "ansible.sign_ansiblerepository",
-            "ansible.sync_ansiblerepository",
-        ],
-        "ansible.ansiblerepository_viewer": ["ansible.view_ansiblerepository"],
+        "ansible.ansiblerepository_creator": {
+            "description": (
+                "This role allows you to create new Ansible repositories for storing collections and roles."
+            ),
+            "permissions": ["ansible.add_ansiblerepository"],
+        },
+        "ansible.ansiblerepository_owner": {
+            "description": (
+                "This role allows you to view, edit, delete, and manage all aspects of Ansible repositories including "
+                "content modification, syncing, signing, and metadata operations."
+            ),
+            "permissions": [
+                "ansible.view_ansiblerepository",
+                "ansible.change_ansiblerepository",
+                "ansible.delete_ansiblerepository",
+                "ansible.manage_roles_ansiblerepository",
+                "ansible.modify_ansible_repo_content",
+                "ansible.rebuild_metadata_ansiblerepository",
+                "ansible.repair_ansiblerepository",
+                "ansible.sign_ansiblerepository",
+                "ansible.sync_ansiblerepository",
+            ],
+        },
+        "ansible.ansiblerepository_viewer": {
+            "description": (
+                "This role allows you to view Ansible repository information and contents."
+            ),
+            "permissions": ["ansible.view_ansiblerepository"],
+        },
     }
 
     @extend_schema(
@@ -1052,14 +1094,28 @@ class CollectionRemoteViewSet(RemoteViewSet, RolesMixin):
     }
 
     LOCKED_ROLES = {
-        "ansible.collectionremote_creator": ["ansible.add_collectionremote"],
-        "ansible.collectionremote_owner": [
-            "ansible.view_collectionremote",
-            "ansible.change_collectionremote",
-            "ansible.delete_collectionremote",
-            "ansible.manage_roles_collectionremote",
-        ],
-        "ansible.collectionremote_viewer": ["ansible.view_collectionremote"],
+        "ansible.collectionremote_creator": {
+            "description": (
+                "This role allows you to create new collection remotes for syncing Ansible collections from "
+                "external sources."
+            ),
+            "permissions": ["ansible.add_collectionremote"],
+        },
+        "ansible.collectionremote_owner": {
+            "description": (
+                "This role allows you to view, edit, delete, and manage roles for collection remotes."
+            ),
+            "permissions": [
+                "ansible.view_collectionremote",
+                "ansible.change_collectionremote",
+                "ansible.delete_collectionremote",
+                "ansible.manage_roles_collectionremote",
+            ],
+        },
+        "ansible.collectionremote_viewer": {
+            "description": "This role allows you to view collection remote.",
+            "permissions": ["ansible.view_collectionremote"],
+        },
     }
 
     def async_reserved_resources(self, instance):
@@ -1182,14 +1238,27 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
     }
 
     LOCKED_ROLES = {
-        "ansible.ansibledistribution_creator": ["ansible.add_ansibledistribution"],
-        "ansible.ansibledistribution_owner": [
-            "ansible.view_ansibledistribution",
-            "ansible.change_ansibledistribution",
-            "ansible.delete_ansibledistribution",
-            "ansible.manage_roles_ansibledistribution",
-        ],
-        "ansible.ansibledistribution_viewer": ["ansible.view_ansibledistribution"],
+        "ansible.ansibledistribution_creator": {
+            "description": (
+                "This role allows you to create new Ansible distributions for serving collections and roles to clients."
+            ),
+            "permissions": ["ansible.add_ansibledistribution"],
+        },
+        "ansible.ansibledistribution_owner": {
+            "description": (
+                "This role allows you to view, edit, delete, and manage roles for Ansible distributions."
+            ),
+            "permissions": [
+                "ansible.view_ansibledistribution",
+                "ansible.change_ansibledistribution",
+                "ansible.delete_ansibledistribution",
+                "ansible.manage_roles_ansibledistribution",
+            ],
+        },
+        "ansible.ansibledistribution_viewer": {
+            "description": "This role allows you to view Ansible distribution.",
+            "permissions": ["ansible.view_ansibledistribution"],
+        },
     }
 
 
@@ -1268,9 +1337,9 @@ class CopyViewSet(viewsets.ViewSet):
                         number=entry["dest_base_version"]
                     ).pk
                 except RepositoryVersion.DoesNotExist:
-                    message = _(
-                        "Version {version} does not exist for repository " "'{repo}'."
-                    ).format(version=entry["dest_base_version"], repo=dest_repo.name)
+                    message = _("Version {version} does not exist for repository '{repo}'.").format(
+                        version=entry["dest_base_version"], repo=dest_repo.name
+                    )
                     raise DRFValidationError(detail=message)
 
             if entry.get("content") is not None:
