@@ -18,6 +18,12 @@ from pulp_ansible.app.tasks.collections import (
     AnsibleContentSaver,
 )
 
+try:
+    from pulpcore.plugin.serializers import RepositoryVersionSerializer
+except ImportError:
+    RepositoryVersionSerializer = None
+
+
 log = logging.getLogger(__name__)
 
 
@@ -47,7 +53,11 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     )
     first_stage = GitFirstStage(remote)
     d_version = GitDeclarativeVersion(first_stage, repository, mirror=mirror)
-    return d_version.create()
+    repository_version = d_version.create()
+    if RepositoryVersionSerializer is not None and repository_version:
+        return RepositoryVersionSerializer(
+            instance=repository_version, context={"request": None}
+        ).data
 
 
 class GitDeclarativeVersion(DeclarativeVersion):

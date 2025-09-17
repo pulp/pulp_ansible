@@ -16,6 +16,11 @@ from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import AnsibleRepository, RoleRemote, Role
 from pulp_ansible.app.tasks.utils import get_api_version, get_page_url, parse_metadata
 
+try:
+    from pulpcore.plugin.serializers import RepositoryVersionSerializer
+except ImportError:
+    RepositoryVersionSerializer = None
+
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +55,11 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     )
     first_stage = RoleFirstStage(remote)
     d_version = DeclarativeVersion(first_stage, repository, mirror=mirror)
-    return d_version.create()
+    repository_version = d_version.create()
+    if RepositoryVersionSerializer is not None and repository_version:
+        return RepositoryVersionSerializer(
+            instance=repository_version, context={"request": None}
+        ).data
 
 
 class RoleFirstStage(Stage):

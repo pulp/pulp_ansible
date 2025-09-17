@@ -77,6 +77,13 @@ from pulp_ansible.app.tasks.utils import (
     parse_metadata,
 )
 
+
+try:
+    from pulpcore.plugin.serializers import RepositoryVersionSerializer
+except ImportError:
+    RepositoryVersionSerializer = None
+
+
 log = logging.getLogger(__name__)
 
 aget_url = sync_to_async(get_url)
@@ -213,26 +220,25 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     remote = CollectionRemote.objects.get(pk=remote_pk)
     repository = AnsibleRepository.objects.get(pk=repository_pk)
 
-    is_repo_remote = False
-    if repository.remote:
-        is_repo_remote = remote.pk == repository.remote.pk
+    is_repo_remote = repository.remote is not None and remote.pk == repository.remote.pk
 
     if not remote.url:
         raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
 
     first_stage = CollectionSyncFirstStage(remote, repository, is_repo_remote, optimize)
-    if first_stage.should_sync is False:
+    if first_stage.should_sync:
+        d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
+        repository_version = d_version.create()
+
+        if repository_version is not None:
+            repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
+            repository.save(update_fields=["last_synced_metadata_time"])
+            if RepositoryVersionSerializer is not None:
+                return RepositoryVersionSerializer(
+                    instance=repository_version, context={"request": None}
+                ).data
+    else:
         log.debug(_("no-op: remote wasn't updated since last sync."))
-        return
-
-    d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
-    repo_version = d_version.create()
-
-    if not repo_version:
-        return
-
-    repository.last_synced_metadata_time = first_stage.last_synced_metadata_time
-    repository.save(update_fields=["last_synced_metadata_time"])
 
 
 def import_collection(
