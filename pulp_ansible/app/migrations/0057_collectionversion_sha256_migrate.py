@@ -16,11 +16,11 @@ def add_sha256_to_current_models(apps, schema_editor):
 
     for collection_version in (
         CollectionVersion.objects.prefetch_related(
-            "content_artifacts", "content_artifacts__artifact"
+            "contentartifact_set", "contentartifact_set__artifact"
         )
         .filter(sha256="")
         .only("pk", "sha256")
-        .iterator()
+        .iterator(chunk_size=2000)
     ):
         content_artifact = collection_version.contentartifact_set.get()
         if content_artifact.artifact:
