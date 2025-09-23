@@ -18,7 +18,6 @@ from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
 
 pytestmark = [
-    pytest.mark.skipif(settings.DOMAIN_ENABLED, reason="Domains do not support export."),
     pytest.mark.skipif(
         "/tmp" not in settings.ALLOWED_EXPORT_PATHS,
         reason="Cannot run export-tests unless /tmp is in ALLOWED_EXPORT_PATHS "
