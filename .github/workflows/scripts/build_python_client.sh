@@ -21,10 +21,10 @@ rm -rf "pulp_ansible-client"
 ./gen-client.sh "../pulp_ansible/ansible-api.json" "ansible" python "pulp_ansible"
 
 pushd pulp_ansible-client
-python setup.py sdist bdist_wheel --python-tag py3
+python -m build
 
 twine check "dist/pulp_ansible_client-"*"-py3-none-any.whl"
-twine check "dist/pulp_ansible-client-"*".tar.gz"
+twine check "dist/pulp_ansible_client-"*".tar.gz"
 
 tar cvf "../../pulp_ansible/ansible-python-client.tar" ./dist
 
