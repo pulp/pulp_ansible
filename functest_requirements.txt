@@ -1,5 +1,5 @@
 ansible-core!=2.13.9,!=2.14.5
-pytest<9
+pytest<10
 pytest-custom_exit_code
 pytest-xdist
 numpy
