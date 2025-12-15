@@ -187,6 +187,4 @@ class CollectionVersionSearchFilter(FilterSet):
         Returns:
             Queryset of CollectionVersion that matches all tags
         """
-        for tag in value.split(","):
-            qs = qs.filter(collection_version__tags__name=tag)
-        return qs
+        return qs.filter(collection_version__tags__contains=value.split(","))
