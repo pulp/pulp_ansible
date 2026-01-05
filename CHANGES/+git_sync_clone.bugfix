@@ -1,0 +1,1 @@
+Fixed a bug that made synching git repositories fail on clone.
