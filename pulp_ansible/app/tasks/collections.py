@@ -126,13 +126,15 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
     if git_ref:
         try:
             gitrepo = Repo.clone_from(
-                url, uuid4(), depth=1, branch=git_ref, multi_options=["--recurse-submodules"]
+                url, str(uuid4()), depth=1, branch=git_ref, multi_options=["--recurse-submodules"]
             )
         except GitCommandError:
-            gitrepo = Repo.clone_from(url, uuid4(), multi_options=["--recurse-submodules"])
+            gitrepo = Repo.clone_from(url, str(uuid4()), multi_options=["--recurse-submodules"])
             gitrepo.git.checkout(git_ref)
     else:
-        gitrepo = Repo.clone_from(url, uuid4(), depth=1, multi_options=["--recurse-submodules"])
+        gitrepo = Repo.clone_from(
+            url, str(uuid4()), depth=1, multi_options=["--recurse-submodules"]
+        )
     commit_sha = gitrepo.head.commit.hexsha
     metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
     artifact = Artifact.init_and_validate(artifact_path)
