@@ -25,7 +25,7 @@ extra_files: []
 flake8: true
 flake8_ignore: []
 github_org: pulp
-latest_release_branch: '0.28'
+latest_release_branch: '0.29'
 lint_requirements: true
 os_required_packages: []
 parallel_test_workers: 8
@@ -119,3 +119,4 @@ test_performance: false
 test_reroute: true
 test_s3: true
 use_issue_template: true
+
