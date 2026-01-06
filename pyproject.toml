@@ -27,7 +27,7 @@ dependencies = [
   "GitPython>=3.1.24,<3.2",
   "jsonschema>=4.9,<4.26",
   "Pillow>=10.3,<12.2",
-  "pulpcore>=3.63.0,<3.100",
+  "pulpcore>=3.63.0,<3.115",
   "PyYAML>=6.0.2,<7.0",
   "semantic_version>=2.9,<2.11",
 ]
