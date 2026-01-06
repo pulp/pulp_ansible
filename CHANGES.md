@@ -8,6 +8,20 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.0 (2026-01-06) {: #0.29.0 }
+
+#### Features {: #0.29.0-feature }
+
+- Added results to syncronize tasks.
+- Bump pulpcore upperbound to <3.115.
+
+#### Bugfixes {: #0.29.0-bugfix }
+
+- Fixed a bug that made synching git repositories fail on clone.
+- Fixed an incompatibility with Django5.
+
+---
+
 ## 0.28.1 (2025-12-17) {: #0.28.1 }
 
 No significant changes.
