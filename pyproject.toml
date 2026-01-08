@@ -25,7 +25,7 @@ requires-python = ">=3.11"
 dependencies = [
   "galaxy_importer>=0.4.27,<0.5",
   "GitPython>=3.1.24,<3.2",
-  "jsonschema>=4.9,<4.26",
+  "jsonschema>=4.9,<4.27",
   "Pillow>=10.3,<12.2",
   "pulpcore>=3.63.0,<3.115",
   "PyYAML>=6.0.2,<7.0",
