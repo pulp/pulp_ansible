@@ -658,6 +658,22 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
 
     creating = True
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        try:
+            request = self.context["request"]
+            if request.method != "GET":
+                return
+        except (AttributeError, TypeError, KeyError):
+            # The serializer was not initialized with request context.
+            return
+        query_params = request.query_params
+        if self.include_arg_name in query_params or self.exclude_arg_name in query_params:
+            return
+        for fieldname in ["files", "manifest", "docs_blob", "contents"]:
+            # Redact these fields by default as they have no size limit.
+            self.fields.pop(fieldname)
+
     def validate(self, data):
         """Run super() validate if creating, else return data."""
         # This validation is for creating CollectionVersions
