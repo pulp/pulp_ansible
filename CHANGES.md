@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.1 (2026-01-26) {: #0.29.1 }
+
+#### Bugfixes {: #0.29.1-bugfix }
+
+- Improved a migration that was prone to running out of memory.
+
+---
+
 ## 0.29.0 (2026-01-06) {: #0.29.0 }
 
 #### Features {: #0.29.0-feature }
