@@ -97,7 +97,6 @@ minio_access_key: "'$MINIO_ACCESS_KEY'"\
 minio_secret_key: "'$MINIO_SECRET_KEY'"\
 pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": true}\
 pulp_scenario_env: {}\
-test_storages_compat_layer: true\
 ' vars/main.yaml
   export PULP_API_ROOT="/rerouted/djnd/"
 fi
@@ -108,7 +107,7 @@ if [ "$TEST" = "azure" ]; then
     image: mcr.microsoft.com/azure-storage/azurite\
     volumes:\
       - ./azurite:/etc/pulp\
-    command: "azurite-blob --blobHost 0.0.0.0"' vars/main.yaml
+    command: "azurite-blob --skipApiVersionCheck --blobHost 0.0.0.0"' vars/main.yaml
   sed -i -e '$a azure_test: true\
 pulp_scenario_settings: {"ansible_collect_download_count": true, "ansible_collect_download_log": false}\
 pulp_scenario_env: {}\
