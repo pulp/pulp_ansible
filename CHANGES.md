@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.28.2 (2026-01-26) {: #0.28.2 }
+
+#### Bugfixes {: #0.28.2-bugfix }
+
+- Fixed a bug that made synching git repositories fail on clone.
+- Improved a migration that was prone to running out of memory.
+
+---
+
 ## 0.28.1 (2025-12-17) {: #0.28.1 }
 
 No significant changes.
