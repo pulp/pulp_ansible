@@ -8,7 +8,7 @@ from pulpcore.plugin.migrations import RequireVersion
 def migrate_missing_tags_up(apps, schema):
     CollectionVersion = apps.get_model("ansible", "CollectionVersion")
     cv_to_update = []
-    for cv in CollectionVersion.objects.filter(new_tags=None).prefetch_related("tags"):
+    for cv in CollectionVersion.objects.filter(new_tags=None).only("new_tags").prefetch_related("tags"):
         cv.new_tags = [t.name for t in cv.tags.all()]
         cv_to_update.append(cv)
         if len(cv_to_update) >= 100:
@@ -23,7 +23,7 @@ def migrate_missing_tags_down(apps, schema):
     # Also it's not optimized.
     Tag = apps.get_model("ansible", "Tag")
     CollectionVersion = apps.get_model("ansible", "CollectionVersion")
-    for cv in CollectionVersion.objects.filter(new_tags__len__gt=0):
+    for cv in CollectionVersion.objects.filter(new_tags__len__gt=0).only("new_tags"):
         for tag_name in cv.new_tags:
             tag, created = Tag.objects.get_or_create(name=tag_name)
             cv.tags.add(tag)
