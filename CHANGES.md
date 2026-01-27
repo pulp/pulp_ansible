@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.2 (2026-01-27) {: #0.29.2 }
+
+#### Bugfixes {: #0.29.2-bugfix }
+
+- Exclude some bloated fields by default from the collection version views.
+
+---
+
 ## 0.29.1 (2026-01-26) {: #0.29.1 }
 
 #### Bugfixes {: #0.29.1-bugfix }
