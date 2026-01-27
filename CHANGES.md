@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.24.8 (2026-01-27) {: #0.24.8 }
+
+#### Bugfixes {: #0.24.8-bugfix }
+
+- Exclude some bloated fields by default from the collection version views.
+- Fixed a bug that made synching git repositories fail on clone.
+- Fixed an incompatibility with Django5.
+
+---
+
 ## 0.24.7 (2025-07-15) {: #0.24.7 }
 
 #### Bugfixes {: #0.24.7-bugfix }
