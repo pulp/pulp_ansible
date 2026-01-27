@@ -8,6 +8,17 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.25.2 (2026-01-27) {: #0.25.2 }
+
+#### Bugfixes {: #0.25.2-bugfix }
+
+- Exclude some bloated fields by default from the collection version views.
+- Fixed a bug that made synching git repositories fail on clone.
+- Fixed an incompatibility with Django5.
+- Fixed the sync pipeline to not manipulate the RepositoryContent table directly when undeprecating collections.
+
+---
+
 ## 0.25.1 (2025-05-06) {: #0.25.1 }
 
 #### Bugfixes {: #0.25.1-bugfix }
