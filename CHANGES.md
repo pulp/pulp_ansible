@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.21.14 (2026-01-27) {: #0.21.14 }
+
+#### Bugfixes {: #0.21.14-bugfix }
+
+- Fixed a bug that made synching git repositories fail on clone.
+
+---
+
 ## 0.21.13 (2025-05-06) {: #0.21.13 }
 
 #### Bugfixes {: #0.21.13-bugfix }
