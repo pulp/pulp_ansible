@@ -30,12 +30,23 @@ def test_role_sync(
 
 
 @pytest.mark.parallel
-def test_role_sync_invalid(ansible_repo_factory, ansible_role_remote_factory, ansible_sync_factory):
+def test_role_sync_invalid(
+    has_pulp_plugin,
+    ansible_repo_factory,
+    ansible_role_remote_factory,
+    ansible_sync_factory,
+):
+    # Note this is not a DNS lookup error.
+    # This url fails a check before even reaching out overthe network.
     remote = ansible_role_remote_factory(url="http://i-am-an-invalid-url.com/invalid/")
 
     with pytest.raises(PulpTaskError) as exc_info:
         ansible_sync_factory(remote=remote.pulp_href)
-    assert (
-        exc_info.value.task.error["description"]
-        == "Could not determine API version for: http://i-am-an-invalid-url.com/invalid/"
-    )
+    if has_pulp_plugin("core", min="3.102"):
+        # This should actually have been caught by validation of the remote.
+        assert "[PLP0000]" in exc_info.value.task.error["description"]
+    else:
+        assert (
+            exc_info.value.task.error["description"]
+            == "Could not determine API version for: http://i-am-an-invalid-url.com/invalid/"
+        )

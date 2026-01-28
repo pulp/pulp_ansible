@@ -57,6 +57,7 @@ from semantic_version import SimpleSpec, Version
 from semantic_version.base import Always
 
 from pulp_ansible.app.constants import PAGE_SIZE
+from pulp_ansible.exceptions import CollectionNotFound
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleNamespace,
@@ -841,9 +842,7 @@ class CollectionSyncFirstStage(Stage):
             namespace not in self._unpaginated_collection_metadata
             or name not in self._unpaginated_collection_metadata[namespace]
         ):
-            raise FileNotFoundError(
-                f"Collection {namespace}.{name} does not exist on {self.remote.url}"
-            )
+            raise CollectionNotFound(namespace, name, self.remote.url)
 
         if self._unpaginated_collection_metadata[namespace][name]["deprecated"]:
             d_content = DeclarativeContent(
