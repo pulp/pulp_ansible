@@ -72,6 +72,7 @@ class TestSync:
     @pytest.mark.parametrize("mirror", (True, False))
     def test_sync_absent_collection_from_pulp_fails(
         self,
+        has_pulp_plugin,
         ansible_bindings,
         monitor_task,
         ansible_repository_factory,
@@ -89,10 +90,11 @@ class TestSync:
         result = ansible_bindings.RepositoriesAnsibleApi.sync(
             repository.pulp_href, {"mirror": mirror}
         )
-        message = "Collection absent.not_present does not exist on"
         with pytest.raises(Exception) as exc_info:
             monitor_task(result.task)
-        assert message in exc_info.value.task.error["description"]
+        if has_pulp_plugin("core", min="3.102"):
+            assert "[PLPAN01]" in exc_info.value.task.error["description"]
+        assert "absent.not_present" in exc_info.value.task.error["description"]
 
     @pytest.mark.parametrize("mirror", (True, False))
     def test_resync_is_noop(

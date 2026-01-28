@@ -77,6 +77,7 @@ def test_sync_through_http_proxy_with_auth(
 
 @pytest.mark.parallel
 def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
+    has_pulp_plugin,
     ansible_bindings,
     ansible_repo,
     ansible_collection_remote_factory,
@@ -101,4 +102,7 @@ def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
             monitor_task,
         )
     except PulpTaskError as exc:
-        assert "407, message='Proxy Authentication Required'" in exc.task.error["description"]
+        if has_pulp_plugin("core", min="3.102"):
+            assert "[PLP0010]" in exc.task.error["description"]
+        else:
+            assert "407, message='Proxy Authentication Required'" in exc.task.error["description"]
