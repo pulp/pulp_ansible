@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.2 (2026-01-27) {: #0.29.2 }
+
+#### Bugfixes {: #0.29.2-bugfix }
+
+- Exclude some bloated fields by default from the collection version views.
+
+---
+
 ## 0.29.1 (2026-01-26) {: #0.29.1 }
 
 #### Bugfixes {: #0.29.1-bugfix }
@@ -27,6 +35,14 @@
 
 - Fixed a bug that made synching git repositories fail on clone.
 - Fixed an incompatibility with Django5.
+
+---
+
+## 0.28.3 (2026-01-27) {: #0.28.3 }
+
+#### Bugfixes {: #0.28.3-bugfix }
+
+- Exclude some bloated fields by default from the collection version views.
 
 ---
 
@@ -104,6 +120,17 @@ No significant changes.
 
 ---
 
+## 0.25.2 (2026-01-27) {: #0.25.2 }
+
+#### Bugfixes {: #0.25.2-bugfix }
+
+- Exclude some bloated fields by default from the collection version views.
+- Fixed a bug that made synching git repositories fail on clone.
+- Fixed an incompatibility with Django5.
+- Fixed the sync pipeline to not manipulate the RepositoryContent table directly when undeprecating collections.
+
+---
+
 ## 0.25.1 (2025-05-06) {: #0.25.1 }
 
 #### Bugfixes {: #0.25.1-bugfix }
@@ -133,6 +160,16 @@ No significant changes.
 - Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
 - Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
 - Fixed namespace avatar download log.
+
+---
+
+## 0.24.8 (2026-01-27) {: #0.24.8 }
+
+#### Bugfixes {: #0.24.8-bugfix }
+
+- Exclude some bloated fields by default from the collection version views.
+- Fixed a bug that made synching git repositories fail on clone.
+- Fixed an incompatibility with Django5.
 
 ---
 
@@ -273,6 +310,14 @@ Yank reason: Contains a bad migration
 
 ---
 
+## 0.22.7 (2026-01-27) {: #0.22.7 }
+
+#### Bugfixes {: #0.22.7-bugfix }
+
+- Fixed a bug that made synching git repositories fail on clone.
+
+---
+
 ## 0.22.6 (2025-05-06) {: #0.22.6 }
 
 #### Bugfixes {: #0.22.6-bugfix }
@@ -368,6 +413,14 @@ Yank reason: Contains a bad migration
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.14 (2026-01-27) {: #0.21.14 }
+
+#### Bugfixes {: #0.21.14-bugfix }
+
+- Fixed a bug that made synching git repositories fail on clone.
 
 ---
 
