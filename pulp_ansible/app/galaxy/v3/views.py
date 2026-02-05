@@ -2,6 +2,7 @@ from datetime import datetime
 from gettext import gettext as _
 import semantic_version
 import base64
+import re
 
 from django.db import DatabaseError, IntegrityError
 from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
@@ -621,7 +622,7 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
 
     @staticmethod
-    def log_download(request, filename, distro_base_path):
+    def log_download(request, namespace, name, version, distro_base_path):
         """Log the download of the collection version."""
 
         def _get_org_id(request):
@@ -639,7 +640,7 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
 
             return identity["internal"]["org_id"]
 
-        # Gettung user IP
+        # Get user IP
         x_forwarded_for = request.META.get("HTTP_X_FORWARDED_FOR")
         ip = x_forwarded_for.split(",")[0] if x_forwarded_for else request.META.get("REMOTE_ADDR")
 
@@ -650,13 +651,9 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
             distribution.repository_version or distribution.repository.latest_version()
         )
 
-        # Getting collection version
-        ns, name, version = filename.split("-", maxsplit=2)
-        # Get off the ending .tar.gz
-        version = ".".join(version.split(".")[:3])
         collection_version = get_object_or_404(
             CollectionVersion.objects.filter(pk__in=repository_version.content),
-            namespace=ns,
+            namespace=namespace,
             name=name,
             version=version,
         )
@@ -681,11 +678,10 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
                 return
             raise
 
-    def count_download(filename):
-        ns, name, _ = filename.split("-", maxsplit=2)
+    def count_download(namespace, name):
         try:
             collection, created = CollectionDownloadCount.objects.get_or_create(
-                namespace=ns, name=name, defaults={"download_count": 1}
+                namespace=namespace, name=name, defaults={"download_count": 1}
             )
             if not created:
                 collection.download_count = F("download_count") + 1
@@ -713,13 +709,23 @@ class CollectionArtifactDownloadView(GalaxyAuthMixin, views.APIView, AnsibleDist
             filename=self.kwargs["filename"],
         )
 
+        match = re.fullmatch(
+            r"(?P<namespace>\w+)-(?P<name>\w+)-(?P<version>[\w.-]+)\.tar\.gz",
+            self.kwargs["filename"],
+        )
+        if not match:
+            raise NotFound()
+        namespace = match.group("namespace")
+        name = match.group("name")
+        version = match.group("version")
+
         if settings.ANSIBLE_COLLECT_DOWNLOAD_LOG:
             CollectionArtifactDownloadView.log_download(
-                request, self.kwargs["filename"], distro_base_path
+                request, namespace, name, version, distro_base_path
             )
 
         if settings.ANSIBLE_COLLECT_DOWNLOAD_COUNT:
-            CollectionArtifactDownloadView.count_download(self.kwargs["filename"])
+            CollectionArtifactDownloadView.count_download(namespace, name)
 
         if (
             distribution.content_guard
