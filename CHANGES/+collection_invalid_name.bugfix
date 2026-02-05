@@ -1,0 +1,1 @@
+Fixed a 500 error when attempting to download a collection with and invalid name.
