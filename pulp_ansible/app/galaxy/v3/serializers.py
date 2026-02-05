@@ -357,7 +357,6 @@ class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerialize
             "version",
             "requires_ansible",
             "pulp_created",
-            "contents",
             "dependencies",
             "description",
             "tags",
