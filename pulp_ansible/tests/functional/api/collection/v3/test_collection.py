@@ -126,6 +126,13 @@ def collection_detail(http_session, collection_upload, pulp_dist, collection_art
 
 
 @pytest.fixture(scope="class")
+def collection_highest_version(http_session, collection_detail):
+    response = http_session.get(collection_detail["highest_version"]["href"])
+    response.raise_for_status()
+    return response.json()
+
+
+@pytest.fixture(scope="class")
 def pulp_dist(ansible_repository_factory, ansible_distribution_factory):
     """Create an Ansible Distribution to simulate the automation hub environment for testing."""
     return ansible_distribution_factory(repository=ansible_repository_factory())
@@ -298,33 +305,51 @@ class TestCollection:
         #     #             'repository': 'http://github.example.com/orionuser1/skeleton',
         #     #             'tags': ['collectiontest']},
 
-    def test_collection_download(
+    def test_collection_download_metadata_unauthorized_fails(
         self,
         http_session,
         collection_detail,
-        collection_artifact,
     ):
-        """Test collection download URL.
-
-        Should require authentication and redirect to a download location.
-        """
         response = http_session.get(collection_detail["highest_version"]["href"], auth=NullAuth())
         assert response.status_code == 401
-        response = http_session.get(collection_detail["highest_version"]["href"])
-        response.raise_for_status()
-        version = response.json()
 
+    def test_collection_download_redirects(
+        self,
+        http_session,
+        collection_highest_version,
+        collection_artifact,
+    ):
         # Artifact Download Endoint
-        url = version["download_url"]
+        url = collection_highest_version["download_url"]
 
         with open(collection_artifact.filename, "rb") as fp:
             tarball = fp.read()
 
-        response = http_session.get(url, auth=NullAuth())
-        assert response.status_code == 401
         response = http_session.get(url)
         assert response.status_code == 200, (url, response.request.headers)
         assert response.content == tarball
+
+    def test_collection_download_redirect_fails_unauthorized(
+        self,
+        http_session,
+        collection_highest_version,
+    ):
+        # Artifact Download Endoint
+        url = collection_highest_version["download_url"]
+
+        response = http_session.get(url, auth=NullAuth())
+        assert response.status_code == 401
+
+    def test_downloading_collection_with_bad_name_returns_not_found(
+        self,
+        http_session,
+        collection_highest_version,
+    ):
+        # Artifact Download Endoint, but we mess up the address.
+        url = collection_highest_version["download_url"].replace("-", "_")
+
+        response = http_session.get(url)
+        assert response.status_code == 404
 
     def test_collection_upload_repeat(
         self, http_session, ansible_collection_factory, pulp_dist, collection_upload
