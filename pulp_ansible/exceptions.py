@@ -4,12 +4,18 @@ from pulpcore.plugin.exceptions import PulpException
 
 
 class CollectionNotFound(PulpException):
+    error_code = "PLPAN01"
+
     def __init__(self, namespace, name, url):
         """
         :param url: The full URL that failed validation.
         :type url: str
         """
-        super().__init__("PLPAN01")
+        # Work around a sudden api change in pulpcore 3.103.
+        try:
+            super().__init__()
+        except BaseException:
+            super().__init__(self.error_code)
         self.namespace = namespace
         self.name = name
         self.url = url
