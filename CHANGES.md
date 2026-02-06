@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.4 (2026-02-06) {: #0.29.4 }
+
+#### Bugfixes {: #0.29.4-bugfix }
+
+- Fixed a 500 error when attempting to download a collection with and invalid name.
+
+---
+
 ## 0.29.3 (2026-02-06) {: #0.29.3 }
 
 No significant changes.
