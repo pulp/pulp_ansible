@@ -8,6 +8,20 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.4 (2026-02-06) {: #0.29.4 }
+
+#### Bugfixes {: #0.29.4-bugfix }
+
+- Fixed a 500 error when attempting to download a collection with and invalid name.
+
+---
+
+## 0.29.3 (2026-02-06) {: #0.29.3 }
+
+No significant changes.
+
+---
+
 ## 0.29.2 (2026-01-27) {: #0.29.2 }
 
 #### Bugfixes {: #0.29.2-bugfix }
@@ -35,6 +49,14 @@
 
 - Fixed a bug that made synching git repositories fail on clone.
 - Fixed an incompatibility with Django5.
+
+---
+
+## 0.28.4 (2026-02-06) {: #0.28.4 }
+
+#### Bugfixes {: #0.28.4-bugfix }
+
+- Fixed a 500 error when attempting to download a collection with and invalid name.
 
 ---
 
@@ -117,6 +139,14 @@ No significant changes.
 
 - Remove the `is_highest` field from CollectionVersion table.
   [#1550](https://github.com/pulp/pulp_ansible/issues/1550)
+
+---
+
+## 0.25.3 (2026-02-06) {: #0.25.3 }
+
+#### Bugfixes {: #0.25.3-bugfix }
+
+- Fixed a 500 error when attempting to download a collection with and invalid name.
 
 ---
 
