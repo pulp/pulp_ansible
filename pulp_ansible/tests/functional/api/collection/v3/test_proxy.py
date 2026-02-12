@@ -1,9 +1,7 @@
 import pytest
 from pulpcore.tests.functional.utils import PulpTaskError
 
-from pulpcore.client.pulp_ansible import (
-    AnsibleRepositorySyncURL,
-)
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 
 def _sync_and_assert(
@@ -94,15 +92,17 @@ def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
         proxy_url=http_proxy_with_auth.proxy_url,
     )
 
-    try:
+    with pytest.raises(PulpTaskError) as exc_info:
         _sync_and_assert(
             ansible_bindings,
             ansible_remote,
             ansible_repo,
             monitor_task,
         )
-    except PulpTaskError as exc:
-        if has_pulp_plugin("core", min="3.102"):
-            assert "[PLP0010]" in exc.task.error["description"]
-        else:
-            assert "407, message='Proxy Authentication Required'" in exc.task.error["description"]
+    if has_pulp_plugin("core", min="3.102", max="3.103.3"):
+        assert "[PLP0010]" in exc_info.value.task.error["description"]
+    else:
+        assert (
+            "407, message='Proxy Authentication Required'"
+            in exc_info.value.task.error["description"]
+        )
