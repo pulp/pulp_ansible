@@ -20,7 +20,7 @@ from pulp_ansible.app.models import (
 )
 
 from django.conf import settings
-from django.core.files.storage import default_storage as storage
+from pulpcore.plugin.util import get_domain
 from pulpcore.plugin.models import SigningService, ProgressReport
 from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
 from pulpcore.plugin.util import gpg_verify
@@ -42,7 +42,7 @@ def verify_signature_upload(data):
     gpgkey = repository and repository.gpgkey or ""
 
     artifact = collection.contentartifact_set.select_related("artifact").first().artifact.file.name
-    artifact_file = storage.open(artifact)
+    artifact_file = get_domain().get_storage().open(artifact)
     with tarfile.open(fileobj=artifact_file, mode="r") as tar:
         manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact_file)
         with tempfile.NamedTemporaryFile(dir=".") as manifest_file:
@@ -121,7 +121,7 @@ class CollectionSigningFirstStage(Stage):
         def _extract_manifest():
             cartifact = collection_version.contentartifact_set.select_related("artifact").first()
             artifact_name = cartifact.artifact.file.name
-            artifact_file = storage.open(artifact_name)
+            artifact_file = get_domain().get_storage().open(artifact_name)
             with tarfile.open(fileobj=artifact_file, mode="r") as tar:
                 manifest = get_file_obj_from_tarball(tar, "MANIFEST.json", artifact_name)
                 return manifest.read()
