@@ -14,7 +14,6 @@ import tempfile
 import yaml
 from aiohttp.client_exceptions import ClientError, ClientResponseError
 from asgiref.sync import sync_to_async
-from django.conf import settings
 from django.db import transaction
 from django.db.models import Q
 from django.db.utils import IntegrityError
@@ -26,6 +25,7 @@ from galaxy_importer.collection import sync_collection
 from galaxy_importer.exceptions import ImporterError
 from git import GitCommandError, Repo
 from pulpcore.plugin.exceptions import DigestValidationError
+from pulpcore.plugin.util import get_domain
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -429,19 +429,20 @@ def _rebuild_collection_version_meta(content_object):
 
 def _get_backend_storage_url(artifact_file):
     """Get artifact url from pulp backend storage."""
+    domain = get_domain()
     if (
-        settings.STORAGES["default"]["BACKEND"] == "pulpcore.app.models.storage.FileSystem"
-        or not settings.REDIRECT_TO_OBJECT_STORAGE
+        domain.storage_class == "pulpcore.app.models.storage.FileSystem"
+        or not domain.redirect_to_object_storage
     ):
         url = None
-    elif settings.STORAGES["default"]["BACKEND"] == "storages.backends.s3boto3.S3Boto3Storage":
+    elif domain.storage_class == "storages.backends.s3boto3.S3Boto3Storage":
         parameters = {"ResponseContentDisposition": "attachment%3Bfilename=archive.tar.gz"}
         url = artifact_file.storage.url(artifact_file.name, parameters=parameters)
-    elif settings.STORAGES["default"]["BACKEND"] == "storages.backends.azure_storage.AzureStorage":
+    elif domain.storage_class == "storages.backends.azure_storage.AzureStorage":
         url = artifact_file.storage.url(artifact_file.name)
     else:
         raise NotImplementedError(
-            f'The value {settings.STORAGES["default"]["BACKEND"]=} was not expected'
+            f"The value domain.storage_class={domain.storage_class} was not expected"
         )
     return url
 
