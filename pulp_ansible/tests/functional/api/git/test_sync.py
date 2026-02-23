@@ -42,7 +42,6 @@ def test_sync_collection_from_git(
     """Sync collections from Git repositories and then install one of them."""
     body = {
         "url": "https://github.com/pulp/pulp_installer.git",
-        "include_pulp_auth": True,
     }
 
     repo = ansible_repo_factory()
@@ -170,7 +169,6 @@ def test_sync_metadata_only_collection_from_pulp(
         url="https://github.com/ansible-collections/amazon.aws/",
         metadata_only=True,
         git_ref="2.1.0",
-        include_pulp_auth=True,
     )
 
     first_repo = ansible_repo_factory()
