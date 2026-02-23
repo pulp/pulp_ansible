@@ -4,6 +4,7 @@ from django.test import TestCase
 
 from pulp_ansible.app.models import AnsibleDistribution, AnsibleRepository, CollectionVersion
 from pulp_ansible.app.tasks.collections import (
+    _add_auth_to_git_url,
     _rebuild_collection_version_meta,
     rebuild_repository_collection_versions_metadata,
 )
@@ -114,3 +115,43 @@ class TestCollectionReImport(TestCase):
         cv2 = cobject.cast()
         cv2.refresh_from_db()
         assert cv2.contents != ["a", "b", "c"]
+
+
+class TestAddAuthToGitUrl(TestCase):
+    """Test add_auth_to_git_url method."""
+
+    def test_add_auth_to_git_url_without_auth(self):
+        """Test that URL is unchanged when no password is provided."""
+        remote = mock.Mock()
+        remote.username = None
+        remote.password = None
+        url = "https://my-git-server.com/baz/my_public_repo.git"
+        final_url = _add_auth_to_git_url(url, remote)
+        assert final_url == url
+
+    def test_add_auth_to_git_url_with_username_and_password(self):
+        """Test adding username and password to a git URL."""
+        remote = mock.Mock()
+        remote.username = "foo"
+        remote.password = "bar"
+        url = "https://my-git-server.com/baz/my_private_repo.git"
+        final_url = _add_auth_to_git_url(url, remote)
+        assert final_url == "https://foo:bar@my-git-server.com/baz/my_private_repo.git"
+
+    def test_add_auth_to_git_url_with_password_only(self):
+        """Test adding password only (token) to a git URL."""
+        remote = mock.Mock()
+        remote.username = None
+        remote.password = "bar"
+        url = "https://my-git-server.com/baz/my_private_repo.git"
+        final_url = _add_auth_to_git_url(url, remote)
+        assert final_url == "https://token:bar@my-git-server.com/baz/my_private_repo.git"
+
+    def test_add_auth_to_git_url_with_special_characters(self):
+        """Test that special characters in username/password are URL-encoded."""
+        remote = mock.Mock()
+        remote.username = "foo:@"
+        remote.password = "bar:@"
+        url = "https://my-git-server.com/baz/my_private_repo.git"
+        final_url = _add_auth_to_git_url(url, remote)
+        assert final_url == "https://foo%3A%40:bar%3A%40@my-git-server.com/baz/my_private_repo.git"
