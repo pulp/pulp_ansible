@@ -10,7 +10,7 @@ from collections.abc import Coroutine
 from gettext import gettext as _
 from operator import attrgetter
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin, urlparse, urlunparse
 from uuid import uuid4
 
 import yaml
@@ -136,8 +136,30 @@ def _save_collection_version(collection_version, artifact):
         )
 
 
+def _add_auth_to_git_url(url, remote):
+    if remote.password:
+        parsed = urlparse(url)
+        encoded_password = quote(remote.password, safe="")
+
+        if remote.username:
+            encoded_username = quote(remote.username, safe="")
+            new_netloc = f"{encoded_username}:{encoded_password}@{parsed.netloc}"
+        else:
+            new_netloc = f"token:{encoded_password}@{parsed.netloc}"
+
+        git_url = urlunparse(
+            (parsed.scheme, new_netloc, parsed.path, parsed.params, parsed.query, parsed.fragment)
+        )
+    else:
+        git_url = url
+
+    return git_url
+
+
 async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_only=False):
     """Returns a DeclarativeContent for the Collection in a Git repository."""
+    url = _add_auth_to_git_url(url, remote)
+
     if git_ref:
         try:
             gitrepo = Repo.clone_from(
