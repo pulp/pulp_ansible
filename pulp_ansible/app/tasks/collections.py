@@ -1,4 +1,5 @@
 import asyncio
+import base64
 import functools
 import hashlib
 import json
@@ -9,6 +10,7 @@ from collections import defaultdict
 from collections.abc import Coroutine
 from gettext import gettext as _
 from pathlib import Path
+from shutil import rmtree
 from urllib.parse import urljoin
 from uuid import uuid4
 
@@ -137,20 +139,39 @@ def _save_collection_version(collection_version, artifact):
         )
 
 
-async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_only=False):
+def _set_auth_environment(url, remote):
+    username = remote.username if remote.username else "token"
+    auth = base64.b64encode(f"{username}:{remote.password}".encode()).decode()
+    environment = {
+        "GIT_CONFIG_COUNT": "1",
+        "GIT_CONFIG_KEY_0": f"http.{url.rstrip('/')}/.extraHeader",
+        "GIT_CONFIG_VALUE_0": f"Authorization: Basic {auth}",
+    }
+    return environment
+
+
+async def declarative_content_from_git_repo(
+    remote, url, git_ref=None, metadata_only=False, authenticate=False
+):
     """Returns a DeclarativeContent for the Collection in a Git repository."""
+    clone_path = str(uuid4())
+    common_clone_params = {
+        "url": url,
+        "to_path": clone_path,
+        "multi_options": ["--recurse-submodules"],
+    }
+    if authenticate and remote.password:
+        common_clone_params["env"] = _set_auth_environment(url, remote)
+
     if git_ref:
         try:
-            gitrepo = Repo.clone_from(
-                url, str(uuid4()), depth=1, branch=git_ref, multi_options=["--recurse-submodules"]
-            )
+            gitrepo = Repo.clone_from(**common_clone_params, depth=1, branch=git_ref)
         except GitCommandError:
-            gitrepo = Repo.clone_from(url, str(uuid4()), multi_options=["--recurse-submodules"])
+            rmtree(clone_path, ignore_errors=True)
+            gitrepo = Repo.clone_from(**common_clone_params)
             gitrepo.git.checkout(git_ref)
     else:
-        gitrepo = Repo.clone_from(
-            url, str(uuid4()), depth=1, multi_options=["--recurse-submodules"]
-        )
+        gitrepo = Repo.clone_from(**common_clone_params, depth=1)
     commit_sha = gitrepo.head.commit.hexsha
     metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
     artifact = Artifact.init_and_validate(artifact_path)
@@ -802,7 +823,7 @@ class CollectionSyncFirstStage(Stage):
 
     async def _add_collection_version_from_git(self, url, gitref, metadata_only) -> list[Coroutine]:
         d_content = await declarative_content_from_git_repo(
-            self.remote, url, gitref, metadata_only=False
+            self.remote, url, gitref, metadata_only=False, authenticate=False
         )
         await self.put(d_content)
         return []

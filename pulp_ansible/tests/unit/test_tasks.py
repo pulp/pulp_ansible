@@ -5,6 +5,7 @@ from django.test import TestCase
 from pulp_ansible.app.models import AnsibleDistribution, AnsibleRepository, CollectionVersion
 from pulp_ansible.app.tasks.collections import (
     _rebuild_collection_version_meta,
+    _set_auth_environment,
     rebuild_repository_collection_versions_metadata,
 )
 
@@ -114,3 +115,55 @@ class TestCollectionReImport(TestCase):
         cv2 = cobject.cast()
         cv2.refresh_from_db()
         assert cv2.contents != ["a", "b", "c"]
+
+
+class TestSetGitAuthEnv(TestCase):
+    """Test _set_auth_environment method."""
+
+    def test_set_auth_environment_with_username_and_password(self):
+        """Test adding username and password to a git URL."""
+        remote = mock.Mock()
+        remote.username = "foo"
+        remote.password = "bar"
+        url = "https://my-git-server.com/baz/my_private_repo"
+        assert _set_auth_environment(url, remote) == {
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "http.https://my-git-server.com/baz/my_private_repo/.extraHeader",
+            "GIT_CONFIG_VALUE_0": "Authorization: Basic Zm9vOmJhcg==",
+        }
+
+    def test_set_auth_environment_with_password_only(self):
+        """Test adding password only (token) to a git URL."""
+        remote = mock.Mock()
+        remote.username = None
+        remote.password = "bar"
+        url = "https://my-git-server.com/baz/my_private_repo"
+        assert _set_auth_environment(url, remote) == {
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "http.https://my-git-server.com/baz/my_private_repo/.extraHeader",
+            "GIT_CONFIG_VALUE_0": "Authorization: Basic dG9rZW46YmFy",
+        }
+
+    def test_set_auth_environment_with_special_characters(self):
+        """Test that special characters in username/password are URL-encoded."""
+        remote = mock.Mock()
+        remote.username = "foo@"
+        remote.password = "bar:@"
+        url = "https://my-git-server.com/baz/my_private_repo"
+        assert _set_auth_environment(url, remote) == {
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "http.https://my-git-server.com/baz/my_private_repo/.extraHeader",
+            "GIT_CONFIG_VALUE_0": "Authorization: Basic Zm9vQDpiYXI6QA==",
+        }
+
+    def test_set_auth_environment_with_trailing_slash(self):
+        """Test adding username and password to a git URL."""
+        remote = mock.Mock()
+        remote.username = "foo"
+        remote.password = "bar"
+        url = "https://my-git-server.com/baz/my_private_repo/"
+        assert _set_auth_environment(url, remote) == {
+            "GIT_CONFIG_COUNT": "1",
+            "GIT_CONFIG_KEY_0": "http.https://my-git-server.com/baz/my_private_repo/.extraHeader",
+            "GIT_CONFIG_VALUE_0": "Authorization: Basic Zm9vOmJhcg==",
+        }
