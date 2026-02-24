@@ -8,6 +8,18 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.21.15 (2026-02-24) {: #0.21.15 }
+
+#### Bugfixes {: #0.21.15-bugfix }
+
+- Fixed AnsibleNamespaceMetadata not being exported.
+  [#1764](https://github.com/pulp/pulp_ansible/issues/1764)
+- Fixed import failing to associate signatures and marks with their collection version.
+  [#1836](https://github.com/pulp/pulp_ansible/issues/1836)
+- Fixed the api for direct creation of collection_deprecated content.
+
+---
+
 ## 0.21.14 (2026-01-27) {: #0.21.14 }
 
 #### Bugfixes {: #0.21.14-bugfix }
