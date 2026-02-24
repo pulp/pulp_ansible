@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.28.5 (2026-02-24) {: #0.28.5 }
+
+#### Bugfixes {: #0.28.5-bugfix }
+
+- Fixed an incompatibility with Django5.
+
+---
+
 ## 0.28.4 (2026-02-06) {: #0.28.4 }
 
 #### Bugfixes {: #0.28.4-bugfix }
