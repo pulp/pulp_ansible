@@ -8,6 +8,12 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.5 (2026-02-24) {: #0.29.5 }
+
+No significant changes.
+
+---
+
 ## 0.29.4 (2026-02-06) {: #0.29.4 }
 
 #### Bugfixes {: #0.29.4-bugfix }
@@ -48,6 +54,14 @@ No significant changes.
 #### Bugfixes {: #0.29.0-bugfix }
 
 - Fixed a bug that made synching git repositories fail on clone.
+- Fixed an incompatibility with Django5.
+
+---
+
+## 0.28.5 (2026-02-24) {: #0.28.5 }
+
+#### Bugfixes {: #0.28.5-bugfix }
+
 - Fixed an incompatibility with Django5.
 
 ---
@@ -139,6 +153,12 @@ No significant changes.
 
 - Remove the `is_highest` field from CollectionVersion table.
   [#1550](https://github.com/pulp/pulp_ansible/issues/1550)
+
+---
+
+## 0.25.4 (2026-02-24) {: #0.25.4 }
+
+No significant changes.
 
 ---
 
@@ -443,6 +463,18 @@ Yank reason: Contains a bad migration
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.15 (2026-02-24) {: #0.21.15 }
+
+#### Bugfixes {: #0.21.15-bugfix }
+
+- Fixed AnsibleNamespaceMetadata not being exported.
+  [#1764](https://github.com/pulp/pulp_ansible/issues/1764)
+- Fixed import failing to associate signatures and marks with their collection version.
+  [#1836](https://github.com/pulp/pulp_ansible/issues/1836)
+- Fixed the api for direct creation of collection_deprecated content.
 
 ---
 
