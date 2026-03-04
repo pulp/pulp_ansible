@@ -1128,6 +1128,8 @@ class AnsibleDistributionViewSet(DistributionViewSet, RolesMixin):
     endpoint_name = "ansible"
     queryset = AnsibleDistribution.objects.all()
     serializer_class = AnsibleDistributionSerializer
+    ALLOW_NON_BLOCKING_UPDATE = False
+    ALLOW_NON_BLOCKING_DELETE = False
 
     queryset_filtering_required_permission = "ansible.view_ansibledistribution"
 
