@@ -1,6 +1,19 @@
+from contextvars import ContextVar
 from django.db.models import Q, OuterRef, Subquery, CharField
 from pulpcore.plugin.models import RepositoryVersion, RepositoryContent, Task
 from django.db.models.functions import Cast, JSONObject
+
+_collection_deferred_fields = ContextVar("collection_deferred_fields", default=[])
+
+
+def set_collection_deferred_fields(fields):
+    """Set which CollectionVersion fields to defer."""
+    _collection_deferred_fields.set(fields)
+
+
+def get_collection_deferred_fields():
+    """Get the list of CollectionVersion fields to defer."""
+    return _collection_deferred_fields.get()
 
 
 def filter_content_for_repo_version(qs, repo_version):

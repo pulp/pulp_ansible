@@ -23,6 +23,7 @@ from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
     BaseModel,
     Content,
+    ContentManager,
     Remote,
     Repository,
     RepositoryVersion,
@@ -34,6 +35,7 @@ from pulpcore.plugin.models import (
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 
 from .downloaders import AnsibleDownloaderFactory
+from .utils import get_collection_deferred_fields
 
 log = getLogger(__name__)
 
@@ -122,6 +124,14 @@ class AnsibleNamespace(BaseModel):
     name = models.CharField(max_length=64, unique=True, editable=True)
 
 
+class CollectionVersionManager(ContentManager):
+    """Manager that can dynamically defer large JSON fields."""
+
+    def get_queryset(self):
+        """Apply deferred fields from the current context."""
+        return super().get_queryset().defer(*get_collection_deferred_fields())
+
+
 class CollectionVersion(Content):
     """
     A content type representing a CollectionVersion.
@@ -160,6 +170,8 @@ class CollectionVersion(Content):
     """
 
     TYPE = "collection_version"
+    repo_key_fields = ("name", "namespace", "version")
+    objects = CollectionVersionManager()
 
     # Data Fields
     authors = psql_fields.ArrayField(models.CharField(max_length=64), default=list, editable=False)
