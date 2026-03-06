@@ -1,4 +1,5 @@
 import asyncio
+from collections.abc import Coroutine
 import functools
 import hashlib
 import json
@@ -7,6 +8,7 @@ import tarfile
 from collections import defaultdict
 from gettext import gettext as _
 from operator import attrgetter
+from pathlib import Path
 from urllib.parse import urljoin
 from uuid import uuid4
 import tempfile
@@ -14,7 +16,7 @@ import tempfile
 import yaml
 from aiohttp.client_exceptions import ClientError, ClientResponseError
 from asgiref.sync import sync_to_async
-from django.db import transaction
+from django.db import connection, transaction
 from django.db.models import Q
 from django.db.utils import IntegrityError
 from django.utils.dateparse import parse_datetime
@@ -76,6 +78,7 @@ from pulp_ansible.app.tasks.utils import (
     parse_collections_requirements_file,
     parse_metadata,
 )
+from pulp_ansible.app.utils import set_collection_deferred_fields
 
 log = logging.getLogger(__name__)
 
@@ -227,6 +230,7 @@ def sync(remote_pk, repository_pk, mirror, optimize):
         log.debug(_("no-op: remote wasn't updated since last sync."))
         return
 
+    set_collection_deferred_fields(["docs_blob", "manifest", "files", "contents"])
     d_version = AnsibleDeclarativeVersion(first_stage, repository, mirror=mirror)
     repo_version = d_version.create()
 
@@ -607,12 +611,16 @@ class CollectionSyncFirstStage(Stage):
         endpoint, api_version = await self._get_root_api(root)
         return f"{endpoint}/collections/", api_version
 
-    async def _fetch_collection_version_metadata(self, api_version, collection_version_url):
+    async def _fetch_collection_version_metadata(
+        self, api_version, collection_version_url
+    ) -> list[Coroutine]:
         downloader = self.remote.get_downloader(url=collection_version_url)
         metadata = parse_metadata(await downloader.run())
-        await self._add_collection_version(api_version, collection_version_url, metadata)
+        return await self._add_collection_version(api_version, collection_version_url, metadata)
 
-    async def _add_collection_version(self, api_version, collection_version_url, metadata):
+    async def _add_collection_version(
+        self, api_version, collection_version_url, metadata
+    ) -> list[Coroutine]:
         """Add CollectionVersion to the sync pipeline."""
         url = metadata["download_url"]
         collection_version = CollectionVersion(
@@ -623,7 +631,7 @@ class CollectionSyncFirstStage(Stage):
         cv_unique = attrgetter("namespace", "name", "version")(collection_version)
         fullname, version = f"{cv_unique[0]}.{cv_unique[1]}", cv_unique[2]
         if cv_unique in self.already_synced:
-            return
+            return []
 
         # Mark the collection version as being processed
         self.already_synced.add(cv_unique)
@@ -631,7 +639,7 @@ class CollectionSyncFirstStage(Stage):
 
         if fullname in self.exclude_info and Version(version) in self.exclude_info[fullname]:
             log.debug(_("{}-{} is in excludes list, skipping").format(fullname, version))
-            return
+            return []
 
         info = metadata["metadata"]
         signatures = metadata.get("signatures", [])
@@ -639,26 +647,29 @@ class CollectionSyncFirstStage(Stage):
 
         if self.signed_only and not signatures:
             log.debug(_("{}-{} does not have any signatures, skipping").format(fullname, version))
-            return
+            return []
 
+        dependencies_coros = []
         if self.add_dependents:
             dependencies = info["dependencies"]
-            tasks = []
-            loop = asyncio.get_event_loop()
             for full_name, version in dependencies.items():
                 namespace, name = full_name.split(".")
                 req = (namespace, name, version)
                 new_req = RequirementsFileEntry(full_name, version=version, source=None)
                 if not any([req in self.already_synced, new_req in self.collection_info]):
                     self.collection_info.append(new_req)
-                    tasks.append(loop.create_task(self._fetch_collection_metadata(new_req)))
-            await asyncio.gather(*tasks)
+                    dependencies_coros.append(self._fetch_collection_metadata(new_req))
 
         info.pop("tags")
         for attr_name, attr_value in info.items():
             if attr_value is None or attr_name not in collection_version.__dict__:
                 continue
             setattr(collection_version, attr_name, attr_value)
+
+        # Process later syncing of CV Namespace Metadata if present
+        namespace_sha = metadata["namespace"].get("metadata_sha256")
+        if namespace_sha:
+            self.namespace_shas[collection_version.namespace] = namespace_sha
 
         artifact = metadata["artifact"]
         collection_version.sha256 = artifact["sha256"]
@@ -679,6 +690,7 @@ class CollectionSyncFirstStage(Stage):
             d_artifacts=[d_artifact],
             extra_data=extra_data,
         )
+        del metadata  # Free up memory
         await self.put(d_content)
 
         if signatures or marks:
@@ -700,10 +712,7 @@ class CollectionSyncFirstStage(Stage):
                 )
                 await self.put(DeclarativeContent(content=cv_mark))
 
-        # Process syncing CV Namespace Metadata if present
-        namespace_sha = metadata["namespace"].get("metadata_sha256")
-        if namespace_sha:
-            self.namespace_shas[collection_version.namespace] = namespace_sha
+        return dependencies_coros
 
     async def _add_namespace(self, name, namespace_sha):
         """Adds A Namespace metadata content to the pipeline."""
@@ -765,11 +774,12 @@ class CollectionSyncFirstStage(Stage):
 
         log.info(f"Failed to find namespace {name}")
 
-    async def _add_collection_version_from_git(self, url, gitref, metadata_only):
+    async def _add_collection_version_from_git(self, url, gitref, metadata_only) -> list[Coroutine]:
         d_content = await declarative_content_from_git_repo(
             self.remote, url, gitref, metadata_only=False
         )
         await self.put(d_content)
+        return []
 
     def _collection_versions_list_downloader(
         self, api_version, collection_endpoint, namespace, name, page_num, page_size
@@ -782,15 +792,16 @@ class CollectionSyncFirstStage(Stage):
             versions_list_url = f"{url_without_get_params}?limit={page_size}&offset={offset}"
         return self.remote.get_downloader(url=versions_list_url)
 
-    async def _fetch_paginated_collection_metadata(self, name, namespace, requirement, source=None):
+    async def _fetch_paginated_collection_metadata(
+        self, name, namespace, requirement, source=None
+    ) -> list[Coroutine]:
         root = source or self.remote.url
         collection_endpoint, api_version = await self._get_paginated_collection_api(root)
         collection_url = f"{collection_endpoint}{namespace}/{name}"
         collection_metadata_downloader = self.remote.get_downloader(url=collection_url)
         collection_metadata = parse_metadata(await collection_metadata_downloader.run())
-        loop = asyncio.get_event_loop()
 
-        tasks = []
+        coros = []
         page_num = 1
         while True:
             versions_list_downloader = self._collection_versions_list_downloader(
@@ -810,12 +821,10 @@ class CollectionSyncFirstStage(Stage):
                             content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
                         )
                         await self.put(d_content)
-                    tasks.append(
-                        loop.create_task(
-                            self._fetch_collection_version_metadata(
-                                api_version,
-                                collection_version_detail_url,
-                            )
+                    coros.append(
+                        self._fetch_collection_version_metadata(
+                            api_version,
+                            collection_version_detail_url,
                         )
                     )
             next_value = self._get_response_next_value(api_version, collection_versions_list)
@@ -823,13 +832,12 @@ class CollectionSyncFirstStage(Stage):
                 break
             page_num = page_num + 1
 
-        self.parsing_metadata_progress_bar.total += len(tasks)
+        self.parsing_metadata_progress_bar.total += len(coros)
         await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
-        await asyncio.gather(*tasks)
+        return coros
 
-    async def _read_from_downloaded_metadata(self, name, namespace, requirement):
-        tasks = []
-        loop = asyncio.get_event_loop()
+    async def _read_from_downloaded_metadata(self, name, namespace, requirement) -> list[Coroutine]:
+        coros = []
 
         if (
             namespace not in self._unpaginated_collection_metadata
@@ -849,39 +857,35 @@ class CollectionSyncFirstStage(Stage):
         for col_version_metadata in all_versions_of_collection:
             if Version(col_version_metadata["version"]) in requirement:
                 if "git_url" in col_version_metadata and col_version_metadata["git_url"]:
-                    tasks.append(
-                        loop.create_task(
-                            self._add_collection_version_from_git(
-                                col_version_metadata["git_url"],
-                                col_version_metadata["git_commit_sha"],
-                                False,
-                            )
+                    coros.append(
+                        self._add_collection_version_from_git(
+                            col_version_metadata["git_url"],
+                            col_version_metadata["git_commit_sha"],
+                            False,
                         )
                     )
                 else:
                     collection_version_url = urljoin(
                         self.remote.url, f"{col_version_metadata['href']}"
                     )
-                    tasks.append(
-                        loop.create_task(
-                            self._add_collection_version(
-                                self._api_version, collection_version_url, col_version_metadata
-                            )
+                    coros.append(
+                        self._add_collection_version(
+                            self._api_version, collection_version_url, col_version_metadata
                         )
                     )
-        self.parsing_metadata_progress_bar.total += len(tasks)
+        self.parsing_metadata_progress_bar.total += len(coros)
         await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
-        await asyncio.gather(*tasks)
+        return coros
 
-    async def _fetch_collection_metadata(self, requirements_entry):
+    async def _fetch_collection_metadata(self, requirements_entry) -> list[Coroutine]:
         requirement_version = AnsibleSpec(requirements_entry.version)
 
         namespace, name = requirements_entry.name.split(".")
 
         if self._unpaginated_collection_version_metadata and requirements_entry.source is None:
-            await self._read_from_downloaded_metadata(name, namespace, requirement_version)
+            return await self._read_from_downloaded_metadata(name, namespace, requirement_version)
         else:
-            await self._fetch_paginated_collection_metadata(
+            return await self._fetch_paginated_collection_metadata(
                 name, namespace, requirement_version, requirements_entry.source
             )
 
@@ -953,9 +957,8 @@ class CollectionSyncFirstStage(Stage):
                         collection_version_metadata
                     )
 
-    async def _find_all_collections_from_unpaginated_data(self):
-        tasks = []
-        loop = asyncio.get_event_loop()
+    async def _find_all_collections_from_unpaginated_data(self) -> list[Coroutine]:
+        coros = []
 
         for collection_namespace_dict in self._unpaginated_collection_metadata.values():
             for collection in collection_namespace_dict.values():
@@ -973,27 +976,23 @@ class CollectionSyncFirstStage(Stage):
                     collection_version_url = urljoin(
                         self.remote.url, f"{collection_version['href']}"
                     )
-                    tasks.append(
-                        loop.create_task(
-                            self._add_collection_version(
-                                self._api_version, collection_version_url, collection_version
-                            )
+                    coros.append(
+                        self._add_collection_version(
+                            self._api_version, collection_version_url, collection_version
                         )
                     )
 
-        self.parsing_metadata_progress_bar.total = len(tasks)
+        self.parsing_metadata_progress_bar.total = len(coros)
         await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
-        await asyncio.gather(*tasks)
+        return coros
 
-    async def _find_all_collections(self):
+    async def _find_all_collections(self) -> list[Coroutine]:
         if self._unpaginated_collection_version_metadata:
-            await self._find_all_collections_from_unpaginated_data()
-            return
+            return await self._find_all_collections_from_unpaginated_data()
 
         collection_endpoint, api_version = await self._get_paginated_collection_api(self.remote.url)
-        loop = asyncio.get_event_loop()
 
-        tasks = []
+        coros = []
         page_num = 1
         while True:
             collection_list_downloader = self._collection_list_downloader(
@@ -1017,16 +1016,16 @@ class CollectionSyncFirstStage(Stage):
                     version="*",
                     source=None,
                 )
-                tasks.append(loop.create_task(self._fetch_collection_metadata(requirements_file)))
+                coros.append(self._fetch_collection_metadata(requirements_file))
 
             next_value = self._get_response_next_value(api_version, collection_list)
             if not next_value:
                 break
             page_num = page_num + 1
 
-        self.parsing_metadata_progress_bar.total = len(tasks)
+        self.parsing_metadata_progress_bar.total = len(coros)
         await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
-        await asyncio.gather(*tasks)
+        return coros
 
     async def _should_we_sync(self):
         """Check last synced metadata time."""
@@ -1072,6 +1071,7 @@ class CollectionSyncFirstStage(Stage):
         Build and emit `DeclarativeContent` from the ansible metadata.
         """
         tasks = []
+        new_tasks = []
         loop = asyncio.get_event_loop()
 
         msg = _("Parsing CollectionVersion Metadata")
@@ -1081,12 +1081,20 @@ class CollectionSyncFirstStage(Stage):
 
             if self.collection_info:
                 for requirement_entry in self.collection_info:
-                    tasks.append(
-                        loop.create_task(self._fetch_collection_metadata(requirement_entry))
-                    )
+                    tasks.append(self._fetch_collection_metadata(requirement_entry))
             else:
-                tasks.append(loop.create_task(self._find_all_collections()))
-            await asyncio.gather(*tasks)
+                tasks.extend(await self._find_all_collections())
+            # Process in chunks to limit memory usage
+            while True:
+                for i in range(0, len(tasks), 100):
+                    results = await asyncio.gather(*tasks[i : i + 100])
+                    for sublist in results:
+                        new_tasks.extend(sublist)
+
+                if not new_tasks:
+                    break
+                tasks = new_tasks
+                new_tasks = []
             # Ensure PR 'total' is correct before stage finishes
             pb.total = pb.done
 
@@ -1153,13 +1161,9 @@ class DocsBlobDownloader(GenericDownloader):
                 downloader = remote.get_downloader(
                     url=docs_blob, silence_errors_for_response_status_codes={404}
                 )
-                try:
-                    download_result = await downloader.run()
-                    with open(download_result.path, "r") as docs_blob_file:
-                        docs_blob_json = json.load(docs_blob_file)
-                        d_content.extra_data["docs_blob"] = docs_blob_json.get("docs_blob", {})
-                except FileNotFoundError:
-                    pass
+                download_result = await downloader.run()
+                if Path(download_result.path).exists():
+                    d_content.extra_data["docs_blob_path"] = download_result.path
 
         await self.put(d_content)
         return downloaded
@@ -1183,7 +1187,6 @@ class AnsibleContentSaver(ContentSaver):
         Args:
             batch (list of :class:`~pulpcore.plugin.stages.DeclarativeContent`): The batch of
                 :class:`~pulpcore.plugin.stages.DeclarativeContent` objects to be saved.
-
         """
         # Sort the batch by natural key to prevent deadlocks
         # Keep this here until added to Pulpcore
@@ -1192,7 +1195,10 @@ class AnsibleContentSaver(ContentSaver):
             if d_content is None:
                 continue
             if isinstance(d_content.content, CollectionVersion):
-                d_content.content = self._handle_collection_version(d_content)
+                d_content.extra_data["pre_save_pulp_id"] = d_content.content.pulp_id
+                d_content.extra_data["pre_save_adding"] = d_content.content._state.adding
+                if d_content.content._state.adding:
+                    d_content.content = self._handle_collection_version(d_content)
             elif isinstance(d_content.content, AnsibleNamespaceMetadata):
                 name = d_content.content.name
                 namespace, created = AnsibleNamespace.objects.get_or_create(name=name)
@@ -1206,6 +1212,51 @@ class AnsibleContentSaver(ContentSaver):
                         d_content.content.avatar_sha256 = None
                         d_content.content.metadata_sha256 = None
 
+    def _post_save(self, batch):
+        """
+        Update the collection version with the docs_blob and files efficiently
+        """
+        update_count = 0
+        skip_count = 0
+        with connection.cursor() as cursor:
+            for d_content in batch:
+                if d_content and isinstance(d_content.content, CollectionVersion):
+                    collection_version = d_content.content
+                    pre_adding = d_content.extra_data.get("pre_save_adding")
+                    pre_id = d_content.extra_data.get("pre_save_pulp_id")
+                    id_match = pre_id == collection_version.pulp_id
+                    if not (pre_adding and id_match):
+                        skip_count += 1
+                        continue
+                    files = d_content.extra_data.pop("files_raw")
+                    if docs_blob_path := d_content.extra_data.get("docs_blob_path"):
+                        with open(docs_blob_path, "r") as docs_blob_file:
+                            blob = docs_blob_file.read()
+                        sql = (
+                            "UPDATE ansible_collectionversion"
+                            " SET docs_blob = (%s::jsonb)->'docs_blob',"
+                            " files = (%s::jsonb)"
+                            " WHERE content_ptr_id = %s"
+                        )
+                        cursor.execute(
+                            sql,
+                            [blob, files, str(collection_version.pulp_id)],
+                        )
+                    else:
+                        sql = (
+                            "UPDATE ansible_collectionversion"
+                            " SET files = (%s::jsonb)"
+                            " WHERE content_ptr_id = %s"
+                        )
+                        cursor.execute(
+                            sql,
+                            [files, str(collection_version.pulp_id)],
+                        )
+                    update_count += 1
+        log.info(
+            f"_post_save: updated={update_count}, skipped={skip_count}, batch_size={len(batch)}"
+        )
+
     def _handle_collection_version(self, d_content):
         collection_version = d_content.content
 
@@ -1214,9 +1265,6 @@ class AnsibleContentSaver(ContentSaver):
         )
         collection_version.collection = collection
 
-        docs_blob = d_content.extra_data.get("docs_blob", {})
-        if docs_blob:
-            collection_version.docs_blob = docs_blob
         d_artifact_files = d_content.extra_data.get("d_artifact_files", {})
 
         for d_artifact in d_content.d_artifacts:
@@ -1228,6 +1276,10 @@ class AnsibleContentSaver(ContentSaver):
             else:
                 artifact_file = artifact.file.open()
             with tarfile.open(fileobj=artifact_file, mode="r") as tar:
+                # Defer loading FILES.json to avoid memory usage
+                files_fo = get_file_obj_from_tarball(tar, "FILES.json", artifact.file.name)
+                d_content.extra_data["files_raw"] = files_fo.read().decode("utf-8")
+
                 runtime_metadata = get_file_obj_from_tarball(
                     tar, "meta/runtime.yml", artifact.file.name, raise_exc=False
                 )
@@ -1238,11 +1290,7 @@ class AnsibleContentSaver(ContentSaver):
                 manifest_data = json.load(
                     get_file_obj_from_tarball(tar, "MANIFEST.json", artifact.file.name)
                 )
-                files_data = json.load(
-                    get_file_obj_from_tarball(tar, "FILES.json", artifact.file.name)
-                )
                 collection_version.manifest = manifest_data
-                collection_version.files = files_data
                 info = manifest_data["collection_info"]
             artifact_file.close()
 
