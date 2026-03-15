@@ -992,7 +992,23 @@ class CollectionSyncFirstStage(Stage):
 
     async def _find_all_collections(self):
         if self._unpaginated_collection_version_metadata:
-            await self._find_all_collections_from_unpaginated_data()
+            loop = asyncio.get_event_loop()
+            tasks = []
+            for namespace, collections in self._unpaginated_collection_metadata.items():
+                for name, collection in collections.items():
+                    highest = (collection.get("highest_version") or {}).get("version")
+                    version_spec = f"=={highest}" if highest else "*"
+                    entry = RequirementsFileEntry(
+                        name=f"{namespace}.{name}",
+                        version=version_spec,
+                        source=None,
+                    )
+                    tasks.append(
+                        loop.create_task(self._fetch_collection_metadata(entry))
+                    )
+            self.parsing_metadata_progress_bar.total = len(tasks)
+            await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
+            await asyncio.gather(*tasks)
             return
 
         collection_endpoint, api_version = await self._get_paginated_collection_api(self.remote.url)
@@ -1014,12 +1030,18 @@ class CollectionSyncFirstStage(Stage):
             for collection in collections:
                 if api_version == 2:
                     namespace = collection["namespace"]["name"]
+                    latest_version = (
+                        collection.get("latest_version") or {}
+                    ).get("version")
                 else:
                     namespace = collection["namespace"]
+                    latest_version = (
+                        collection.get("highest_version") or {}
+                    ).get("version")
                 name = collection["name"]
                 requirements_file = RequirementsFileEntry(
                     name=".".join([namespace, name]),
-                    version="*",
+                    version=f"=={latest_version}" if latest_version else "*",
                     source=None,
                 )
                 tasks.append(loop.create_task(self._fetch_collection_metadata(requirements_file)))

@@ -1,0 +1,1 @@
+Optimize collection sync to only fetch the latest version when no requirements filter is provided.
