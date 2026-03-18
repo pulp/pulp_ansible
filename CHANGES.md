@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.28.6 (2026-03-18) {: #0.28.6 }
+
+#### Bugfixes {: #0.28.6-bugfix }
+
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Greatly reduced memory usage when syncing collections.
+
+---
+
 ## 0.28.5 (2026-02-24) {: #0.28.5 }
 
 #### Bugfixes {: #0.28.5-bugfix }
