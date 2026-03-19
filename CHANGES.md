@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.6 (2026-03-18) {: #0.29.6 }
+
+#### Bugfixes {: #0.29.6-bugfix }
+
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Greatly reduced memory usage when syncing collections.
+
+---
+
 ## 0.29.5 (2026-02-24) {: #0.29.5 }
 
 No significant changes.
@@ -55,6 +65,16 @@ No significant changes.
 
 - Fixed a bug that made synching git repositories fail on clone.
 - Fixed an incompatibility with Django5.
+
+---
+
+## 0.28.6 (2026-03-18) {: #0.28.6 }
+
+#### Bugfixes {: #0.28.6-bugfix }
+
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Greatly reduced memory usage when syncing collections.
 
 ---
 
@@ -156,6 +176,16 @@ No significant changes.
 
 ---
 
+## 0.25.5 (2026-03-18) {: #0.25.5 }
+
+#### Bugfixes {: #0.25.5-bugfix }
+
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Greatly reduced memory usage when syncing collections.
+
+---
+
 ## 0.25.4 (2026-02-24) {: #0.25.4 }
 
 No significant changes.
@@ -210,6 +240,16 @@ No significant changes.
 - Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
 - Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
 - Fixed namespace avatar download log.
+
+---
+
+## 0.24.9 (2026-03-18) {: #0.24.9 }
+
+#### Bugfixes {: #0.24.9-bugfix }
+
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Greatly reduced memory usage when syncing collections.
 
 ---
 
