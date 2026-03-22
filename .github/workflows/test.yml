@@ -12,7 +12,7 @@ on:
     inputs:
       matrix_env:
         required: true
-        type: string
+        type: "string"
 
 defaults:
   run:
@@ -24,38 +24,38 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: ${{ fromJSON(inputs.matrix_env) }}
+        env: "${{ fromJSON(inputs.matrix_env) }}"
 
     steps:
-      - uses: "actions/checkout@v4"
+      - uses: "actions/checkout@v6"
         with:
           fetch-depth: 1
           path: "pulp_ansible"
 
-      - uses: "actions/checkout@v4"
+      - uses: "actions/checkout@v6"
         with:
           fetch-depth: 1
           repository: "pulp/pulp-openapi-generator"
           path: "pulp-openapi-generator"
 
-      - uses: "actions/setup-python@v5"
+      - uses: "actions/setup-python@v6"
         with:
           python-version: "3.11"
 
       - name: "Download plugin package"
-        uses: "actions/download-artifact@v4"
+        uses: "actions/download-artifact@v8"
         with:
           name: "plugin_package"
           path: "pulp_ansible/dist/"
 
       - name: "Download API specs"
-        uses: "actions/download-artifact@v4"
+        uses: "actions/download-artifact@v8"
         with:
           name: "api_spec"
           path: "pulp_ansible/"
 
       - name: "Download client packages"
-        uses: "actions/download-artifact@v4"
+        uses: "actions/download-artifact@v8"
         with:
           name: "python-client.tar"
           path: "pulp_ansible"
@@ -70,10 +70,8 @@ jobs:
 
       - name: "Install python dependencies"
         run: |
-          echo ::group::PYDEPS
           pip install build towncrier twine wheel httpie docker netaddr boto3 'ansible~=10.3.0' mkdocs jq jsonpatch bump-my-version
           echo "HTTPIE_CONFIG_DIR=$GITHUB_WORKSPACE/pulp_ansible/.ci/assets/httpie/" >> $GITHUB_ENV
-          echo ::endgroup::
 
       - name: "Set environment variables"
         run: |
@@ -124,7 +122,7 @@ jobs:
           docker logs pulp 2>&1 | grep -i pulpcore.deprecation | tee deprecations-${{ matrix.env.TEST }}.txt
 
       - name: "Upload Deprecations"
-        uses: actions/upload-artifact@v4
+        uses: "actions/upload-artifact@v7"
         with:
           name: "deprecations-${{ matrix.env.TEST }}"
           path: "pulp_ansible/deprecations-${{ matrix.env.TEST }}.txt"

@@ -5,7 +5,6 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexVersionsApi,
 )
 
-
 # Using requests for these tests because the client follows redirects and I need to inspect the URL
 # that gets redirected to
 

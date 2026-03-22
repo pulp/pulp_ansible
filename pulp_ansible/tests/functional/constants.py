@@ -5,7 +5,6 @@ from pulp_smash.pulp3.constants import (
     BASE_REPO_PATH,
 )
 
-
 GALAXY_ANSIBLE_BASE_URL = "https://galaxy.ansible.com"
 
 ANSIBLE_ROLE_NAME = "ansible.role"

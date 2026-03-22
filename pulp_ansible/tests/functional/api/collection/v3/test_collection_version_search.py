@@ -19,7 +19,6 @@ from pulp_ansible.tests.functional.utils import (
     gen_repo,
 )
 
-
 logger = logging.getLogger(__name__)
 
 

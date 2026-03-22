@@ -5,8 +5,7 @@ import textwrap
 
 from pypi_tools import get_package_from_pypi
 
-helper = textwrap.dedent(
-    """\
+helper = textwrap.dedent("""\
         Get Python client from PyPI or generate it using openapi-generator-cli.
 
         Example:
@@ -17,8 +16,7 @@ helper = textwrap.dedent(
 
         If a client package with the specified version does not exist on PyPI, it is generated using
         openapi-generator-cli.
-    """
-)
+    """)
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description=helper)
 parser.add_argument(
     "client_version",
