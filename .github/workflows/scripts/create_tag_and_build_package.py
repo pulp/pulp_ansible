@@ -7,8 +7,7 @@ from pypi_tools import get_package_from_pypi
 
 from git import Repo
 
-helper = textwrap.dedent(
-    """\
+helper = textwrap.dedent("""\
         Create a new tag and build a Python package.
 
         Example:
@@ -25,8 +24,7 @@ helper = textwrap.dedent(
         If the package does not exist on PyPI, two new packages are built with the names
         pulp-ansible-[tag].tar.gz and pulp_ansible-[tag]-py3-none-any.whl. They are
         stored in the 'dist' directory.
-    """
-)
+    """)
 parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter, description=helper)
 parser.add_argument(
     "desired_tag",

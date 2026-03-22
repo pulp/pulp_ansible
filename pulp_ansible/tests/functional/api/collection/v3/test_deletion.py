@@ -29,7 +29,7 @@ class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
     def setUp(self):
         """Set up the collection deletion tests."""
-        (self.repo, self.distribution) = self._create_empty_repo_and_distribution()
+        self.repo, self.distribution = self._create_empty_repo_and_distribution()
 
         self.collection_versions = ["1.0.0", "1.0.1"]
         self.collection_name = randstr()
