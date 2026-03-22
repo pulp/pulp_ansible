@@ -2,7 +2,6 @@
 
 import pytest
 
-
 REQUIREMENTS_FILE = "collections:\n  - testing.k8s_demo_collection"
 
 

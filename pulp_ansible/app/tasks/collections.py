@@ -81,7 +81,6 @@ from pulp_ansible.app.tasks.utils import (
 )
 from pulp_ansible.app.utils import set_collection_deferred_fields
 
-
 try:
     from pulpcore.plugin.serializers import RepositoryVersionSerializer
 except ImportError:
