@@ -51,7 +51,6 @@ from pulpcore.client.pulp_ansible import (
 
 from orionutils.generator import build_collection, randstr
 
-
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
 

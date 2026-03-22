@@ -6,7 +6,6 @@ from django.core.management import BaseCommand, CommandError
 
 from pulp_ansible.app.models import DownloadLog
 
-
 SEPARATOR = "\t"
 
 
