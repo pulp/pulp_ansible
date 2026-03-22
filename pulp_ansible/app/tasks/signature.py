@@ -28,7 +28,6 @@ from pulpcore.plugin.exceptions import InvalidSignatureError
 from pulp_ansible.app.tasks.utils import get_file_obj_from_tarball
 from rest_framework import serializers
 
-
 log = logging.getLogger(__name__)
 
 

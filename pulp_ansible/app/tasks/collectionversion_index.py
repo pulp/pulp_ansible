@@ -15,7 +15,6 @@ from pulp_ansible.app.models import (
 
 from pulpcore.plugin.models import RepositoryVersion
 
-
 log = logging.getLogger(__name__)
 
 
