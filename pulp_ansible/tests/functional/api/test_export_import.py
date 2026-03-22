@@ -12,7 +12,6 @@ from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 from pulpcore.app import settings
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
-
 # As long as we cannot run this test in domains, it must not run as parallel.
 # Orphan cleanup is unsafe in any scenario here.
 
