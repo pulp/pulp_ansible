@@ -33,7 +33,6 @@ from pulpcore.client.pulp_ansible import (
     PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi,
 )
 
-
 # Bindings API Fixtures
 
 

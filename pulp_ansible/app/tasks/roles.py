@@ -16,7 +16,6 @@ from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import AnsibleRepository, RoleRemote, Role
 from pulp_ansible.app.tasks.utils import get_api_version, get_page_url, parse_metadata
 
-
 log = logging.getLogger(__name__)
 
 

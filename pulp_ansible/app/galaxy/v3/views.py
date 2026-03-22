@@ -72,7 +72,6 @@ from pulp_ansible.app.viewsets import (
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
-
 _CAN_VIEW_REPO_CONTENT = {
     "action": ["list", "retrieve", "download"],
     "principal": "authenticated",
