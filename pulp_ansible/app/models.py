@@ -37,7 +37,6 @@ from pulpcore.plugin.util import get_domain_pk
 from .downloaders import AnsibleDownloaderFactory
 from .utils import get_collection_deferred_fields
 
-
 log = getLogger(__name__)
 
 

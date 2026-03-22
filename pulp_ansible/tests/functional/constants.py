@@ -1,6 +1,5 @@
 from urllib.parse import urljoin
 
-
 GALAXY_ANSIBLE_BASE_URL = "https://galaxy.ansible.com"
 
 ANSIBLE_ROLE_NAME = "ansible.role"

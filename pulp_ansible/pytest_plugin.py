@@ -9,7 +9,6 @@ from pulpcore.tests.functional.utils import BindingsNamespace
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 from pulp_ansible.tests.functional.utils import randstr
 
-
 # Bindings API Fixtures
 
 
