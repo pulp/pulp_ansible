@@ -3,7 +3,6 @@ from django.db.models import Q, OuterRef, Subquery, CharField
 from pulpcore.plugin.models import RepositoryVersion, RepositoryContent, Task
 from django.db.models.functions import Cast, JSONObject
 
-
 _collection_deferred_fields = ContextVar("collection_deferred_fields", default=[])
 
 
