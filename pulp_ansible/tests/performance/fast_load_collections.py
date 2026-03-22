@@ -13,7 +13,6 @@ from pulp_ansible.app.tasks.test_tasks import (  # noqa otherwise E402: module l
     import_collection_from_path,
 )
 
-
 parser = argparse.ArgumentParser(description="Quickly load collections form a folder.")
 
 parser.add_argument(

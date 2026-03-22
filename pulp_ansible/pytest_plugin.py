@@ -9,7 +9,6 @@ from orionutils.generator import build_collection, randstr
 from pulpcore.tests.functional.utils import BindingsNamespace
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
-
 # Bindings API Fixtures
 
 
