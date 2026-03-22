@@ -37,7 +37,6 @@ from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_
 from .downloaders import AnsibleDownloaderFactory
 from .utils import get_collection_deferred_fields
 
-
 log = getLogger(__name__)
 
 

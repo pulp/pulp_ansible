@@ -5,7 +5,6 @@ from collections import namedtuple
 
 from pulpcore.client.pulp_ansible import ApiException
 
-
 FakeRepository = namedtuple("FakeRepository", "pulp_href")
 
 
