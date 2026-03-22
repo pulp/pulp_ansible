@@ -45,7 +45,6 @@ from pulpcore.client.pulp_ansible import (
     RepositoriesAnsibleVersionsApi,
 )
 
-
 cfg = config.get_config()
 configuration = cfg.get_bindings_config()
 

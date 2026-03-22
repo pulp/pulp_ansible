@@ -81,7 +81,6 @@ from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_co
 
 from pulp_ansible.app.utils import filter_content_for_repo_version
 
-
 _CAN_VIEW_REPO_CONTENT = {
     "action": ["list", "retrieve", "download"],
     "principal": "authenticated",

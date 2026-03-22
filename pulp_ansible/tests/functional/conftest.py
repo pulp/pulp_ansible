@@ -36,7 +36,6 @@ from pulpcore.client.pulp_ansible import (
 
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
-
 # Bindings API Fixtures
 
 
