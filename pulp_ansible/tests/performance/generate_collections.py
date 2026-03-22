@@ -12,7 +12,6 @@ from pulp_ansible.app.tasks.test_tasks import (  # noqa otherwise E402: module l
     create_namespace,
 )
 
-
 parser = argparse.ArgumentParser(description="Generate some collections.")
 
 parser.add_argument(

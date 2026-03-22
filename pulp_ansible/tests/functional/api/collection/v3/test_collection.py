@@ -22,7 +22,6 @@ from pulp_ansible.tests.functional.constants import (
 )
 from orionutils.generator import build_collection
 
-
 logger = logging.getLogger(__name__)
 
 
