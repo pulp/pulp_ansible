@@ -1,0 +1,1 @@
+Excluded contents field from collection version search endpoint to prevent OOM.
