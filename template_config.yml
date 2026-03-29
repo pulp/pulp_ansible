@@ -6,7 +6,6 @@
 # After editing this file please always reapply the plugin template before committing any changes.
 
 ---
-api_root: "/pulp/"
 black: true
 check_commit_message: true
 check_gettext: true
@@ -49,6 +48,7 @@ pulp_settings:
   ansible_api_hostname: "https://pulp:443"
   ansible_content_hostname: "https://pulp:443/pulp/content"
   ansible_signature_require_verification: false
+  api_root: "/pulp/"
 pulp_settings_azure:
   MEDIA_ROOT: ""
   STORAGES:
@@ -97,6 +97,7 @@ pulp_settings_s3:
       BACKEND: "django.contrib.staticfiles.storage.StaticFilesStorage"
   ansible_collect_download_count: true
   ansible_collect_download_log: true
+  api_root: "/rerouted/djnd/"
 pydocstyle: true
 release_email: "pulp-infra@redhat.com"
 release_user: "pulpbot"
