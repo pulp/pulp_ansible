@@ -80,7 +80,7 @@ from pulp_ansible.app.viewsets import (
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
-from pulp_ansible.app.utils import filter_content_for_repo_version
+from pulp_ansible.app.utils import filter_content_for_repo_version, set_collection_deferred_fields
 
 DOMAIN_ENABLED = settings.DOMAIN_ENABLED
 
@@ -445,6 +445,11 @@ class CollectionViewSet(
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
+
+        # Defer loading large JSON fields to prevent memory exhaustion
+        set_collection_deferred_fields(
+            ["contents", "docs_blob", "manifest", "files", "dependencies"]
+        )
 
         repositories = set()
         for version in collection.versions.all():

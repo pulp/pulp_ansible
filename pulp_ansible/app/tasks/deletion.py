@@ -17,6 +17,7 @@ import logging
 from collections import defaultdict
 
 from pulp_ansible.app.models import Collection, CollectionVersion
+from pulp_ansible.app.utils import set_collection_deferred_fields
 from pulpcore.plugin.tasking import add_and_remove, orphan_cleanup
 
 log = logging.getLogger(__name__)
@@ -71,6 +72,9 @@ def delete_collection(collection_pk):
     2. Run orphan_cleanup to delete the CollectionVersions
     3. Delete Collection
     """
+    # Defer loading large JSON fields to prevent memory exhaustion
+    set_collection_deferred_fields(["contents", "docs_blob", "manifest", "files", "dependencies"])
+
     collection = Collection.objects.get(pk=collection_pk)
     versions = collection.versions.all()
     _remove_collection_version_from_repos(versions)
