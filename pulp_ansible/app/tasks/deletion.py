@@ -17,7 +17,6 @@ import logging
 from collections import defaultdict
 
 from pulp_ansible.app.models import Collection, CollectionVersion
-from pulp_ansible.app.utils import set_collection_deferred_fields
 from pulpcore.plugin.tasking import add_and_remove, orphan_cleanup
 
 log = logging.getLogger(__name__)
@@ -33,7 +32,7 @@ def _remove_collection_version_from_repos(collection_versions):
     """Remove CollectionVersions from latest RepositoryVersion of each repo."""
     repos_with_collections_to_delete = defaultdict(list)
     for collection_version in collection_versions:
-        for repo in collection_version.repositories.all():
+        for repo in collection_version.repositories.only("pk"):
             repos_with_collections_to_delete[repo].append(collection_version.pk)
     for repo, collections in repos_with_collections_to_delete.items():
         add_and_remove(repo.pk, add_content_units=[], remove_content_units=collections)
@@ -72,11 +71,8 @@ def delete_collection(collection_pk):
     2. Run orphan_cleanup to delete the CollectionVersions
     3. Delete Collection
     """
-    # Defer loading large JSON fields to prevent memory exhaustion
-    set_collection_deferred_fields(["contents", "docs_blob", "manifest", "files", "dependencies"])
-
     collection = Collection.objects.get(pk=collection_pk)
-    versions = collection.versions.all()
+    versions = collection.versions.only("pk")
     _remove_collection_version_from_repos(versions)
     version_pks = versions.values_list("pk", flat=True)
 

@@ -80,7 +80,7 @@ from pulp_ansible.app.viewsets import (
 
 from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
 
-from pulp_ansible.app.utils import filter_content_for_repo_version, set_collection_deferred_fields
+from pulp_ansible.app.utils import filter_content_for_repo_version
 
 DOMAIN_ENABLED = settings.DOMAIN_ENABLED
 
@@ -446,15 +446,9 @@ class CollectionViewSet(
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        # Defer loading large JSON fields to prevent memory exhaustion
-        set_collection_deferred_fields(
-            ["contents", "docs_blob", "manifest", "files", "dependencies"]
-        )
-
         repositories = set()
-        for version in collection.versions.all():
-            for repo in version.repositories.all():
-                repositories.add(repo)
+        for version in collection.versions.only("pk"):
+            repositories.update(version.repositories.only("pk"))
 
         async_result = dispatch(
             delete_collection,
@@ -469,9 +463,9 @@ def get_collection_dependents(parent):
     """Given a parent collection, return a list of collection versions that depend on it."""
     key = f"{parent.namespace}.{parent.name}"
     return list(
-        CollectionVersion.objects.exclude(collection=parent).filter(
-            dependencies__has_key=key, pulp_domain=get_domain()
-        )
+        CollectionVersion.objects.exclude(collection=parent)
+        .filter(dependencies__has_key=key, pulp_domain=get_domain())
+        .only("namespace", "name", "version")
     )
 
 
