@@ -9,7 +9,6 @@ from aiohttp.client_exceptions import ClientResponseError
 
 from pulpcore.plugin.download import DownloaderFactory, FileDownloader, HttpDownloader
 
-
 log = getLogger(__name__)
 
 
