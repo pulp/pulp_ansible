@@ -10,3 +10,5 @@ include unittest_requirements.txt
 include pyproject.toml
 include pulp_ansible/app/schema/*
 exclude releasing.md
+
+exclude .gitleaks.toml
