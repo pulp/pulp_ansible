@@ -1,1 +1,1 @@
-Reduced memory usage when deleting collections with many versions.
+Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
