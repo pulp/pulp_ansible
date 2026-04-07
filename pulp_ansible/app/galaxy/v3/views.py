@@ -57,6 +57,7 @@ from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
     AnsibleNamespaceMetadata,
+    AnsibleRepository,
     Collection,
     CollectionDownloadCount,
     CollectionVersion,
@@ -449,6 +450,7 @@ class CollectionViewSet(
         repositories = set()
         for version in collection.versions.only("pk"):
             repositories.update(version.repositories.only("pk"))
+        repositories = AnsibleRepository.objects.filter(pk__in=repositories)
 
         async_result = dispatch(
             delete_collection,
