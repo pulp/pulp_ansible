@@ -26,7 +26,7 @@ from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
 from pulpcore.plugin.util import gpg_verify
 from pulpcore.plugin.exceptions import InvalidSignatureError
 from pulp_ansible.app.tasks.utils import get_file_obj_from_tarball
-from rest_framework import serializers
+from pulp_ansible.exceptions import SignatureVerificationError
 
 log = logging.getLogger(__name__)
 
@@ -50,13 +50,9 @@ def verify_signature_upload(data):
                 verified = gpg_verify(gpgkey, file, manifest_file.name)
             except InvalidSignatureError as e:
                 if gpgkey:
-                    raise serializers.ValidationError(
-                        _("Signature verification failed: {}").format(e.verified.status)
-                    )
+                    raise SignatureVerificationError(str(e.verified.status))
                 elif settings.ANSIBLE_SIGNATURE_REQUIRE_VERIFICATION:
-                    raise serializers.ValidationError(
-                        _("Signature verification failed: No key available.")
-                    )
+                    raise SignatureVerificationError("No key available.")
                 else:
                     # We have no key configured. So we simply accept the signature as is
                     verified = e.verified

@@ -12,6 +12,7 @@ from pulpcore.plugin.stages import (
     ArtifactSaver,
     RemoteArtifactSaver,
 )
+from pulp_ansible.exceptions import RemoteURLRequiredError
 from pulp_ansible.app.models import AnsibleRepository, GitRemote
 from pulp_ansible.app.tasks.collections import (
     declarative_content_from_git_repo,
@@ -46,7 +47,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     repository = AnsibleRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise ValueError(_("A remote must have a url specified to synchronize."))
+        raise RemoteURLRequiredError()
 
     log.info(
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}

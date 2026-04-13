@@ -99,10 +99,10 @@ def test_sync_through_http_proxy_with_auth_but_auth_not_configured(
             ansible_repo,
             monitor_task,
         )
-    if has_pulp_plugin("core", min="3.102", max="3.103.3"):
-        assert "[PLP0010]" in exc_info.value.task.error["description"]
-    else:
-        assert (
-            "407, message='Proxy Authentication Required'"
-            in exc_info.value.task.error["description"]
-        )
+
+    # For compatibility with old pulpcore exception
+    assert (
+        "[PLP0010]" in exc_info.value.task.error["description"]
+        or "Proxy Authentication Required" in exc_info.value.task.error["description"]
+        or "Proxy authentication failed" in exc_info.value.task.error["description"]
+    )

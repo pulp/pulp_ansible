@@ -5,11 +5,21 @@ import json
 import re
 import yaml
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
-from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
 from galaxy_importer.schema import MAX_LENGTH_NAME, MAX_LENGTH_VERSION
 from pulp_ansible.app.constants import PAGE_SIZE
+from pulp_ansible.exceptions import (
+    APIVersionNotFoundError,
+    CollectionFieldTooLongError,
+    CollectionFileNotFoundError,
+    CollectionNameRequiredError,
+    InvalidCollectionFilenameError,
+    InvalidCollectionNameFormatError,
+    InvalidCollectionVersionError,
+    InvalidRequirementsFormatError,
+    RequirementsFileParseError,
+)
 
 log = logging.getLogger(__name__)
 
@@ -46,25 +56,20 @@ def parse_collection_filename(filename):
     match = FILENAME_REGEXP.match(filename)
 
     if not match:
-        msg = _("Invalid filename {filename}. Expected format: namespace-name-version.tar.gz")
-        raise ValueError(msg.format(filename=filename))
+        raise InvalidCollectionFilenameError(filename)
 
     namespace, name, version = match.groups()
 
     match = VERSION_REGEXP.match(version)
     if not match:
-        msg = _(
-            "Invalid version string {version} from filename {filename}. "
-            "Expected semantic version format."
-        )
-        raise ValueError(msg.format(version=version, filename=filename))
+        raise InvalidCollectionVersionError(version, filename)
 
     if len(namespace) > MAX_LENGTH_NAME:
-        raise ValueError(_("Expected namespace to be max length of %s") % MAX_LENGTH_NAME)
+        raise CollectionFieldTooLongError("namespace", MAX_LENGTH_NAME)
     if len(name) > MAX_LENGTH_NAME:
-        raise ValueError(_("Expected name to be max length of %s") % MAX_LENGTH_NAME)
+        raise CollectionFieldTooLongError("name", MAX_LENGTH_NAME)
     if len(version) > MAX_LENGTH_VERSION:
-        raise ValueError(_("Expected version to be max length of %s") % MAX_LENGTH_VERSION)
+        raise CollectionFieldTooLongError("version", MAX_LENGTH_VERSION)
 
     return CollectionFilename(namespace, name, version)
 
@@ -73,7 +78,7 @@ def get_api_version(url):
     """Get API version."""
     result = re.findall(r"/v(\d)/", url)
     if len(result) == 0:
-        raise RuntimeError(f"Could not determine API version for: {url}")
+        raise APIVersionNotFoundError(url)
     return int(result[0])
 
 
@@ -132,19 +137,12 @@ def parse_collections_requirements_file(requirements_file_string):
             try:
                 requirements = yaml.safe_load(requirements_file_string)
             except YAMLError as err:
-                raise ValidationError(
-                    _(
-                        "Failed to parse the collection requirements yml: {file} "
-                        "with the following error: {error}".format(
-                            file=requirements_file_string, error=err
-                        )
-                    )
-                )
+                raise RequirementsFileParseError(requirements_file_string, str(err))
         else:
             requirements = requirements_file_string
 
         if not isinstance(requirements, dict) or "collections" not in requirements:
-            raise ValidationError(
+            raise InvalidRequirementsFormatError(
                 _(
                     "Expecting collections requirements file to be a dict with the key "
                     "collections that contains a list of collections to install."
@@ -152,7 +150,7 @@ def parse_collections_requirements_file(requirements_file_string):
             )
 
         if not isinstance(requirements["collections"], list):
-            raise ValidationError(
+            raise InvalidRequirementsFormatError(
                 _(
                     "Expecting collections requirements file to be a dict with the key "
                     "collections that contains a list of collections to install."
@@ -163,9 +161,7 @@ def parse_collections_requirements_file(requirements_file_string):
             if isinstance(collection_req, dict):
                 req_name = collection_req.get("name", None)
                 if req_name is None:
-                    raise ValidationError(
-                        _("Collections requirement entry should contain the key name.")
-                    )
+                    raise CollectionNameRequiredError()
 
                 req_version = collection_req.get("version", "*")
                 req_source = collection_req.get("source", None)
@@ -174,12 +170,7 @@ def parse_collections_requirements_file(requirements_file_string):
             else:
                 entry = RequirementsFileEntry(name=collection_req, version="*", source=None)
             if "." not in entry.name:
-                raise ValidationError(
-                    _(
-                        "Collections requirement entry should contain the collection name in the "
-                        "format namespace.name"
-                    )
-                )
+                raise InvalidCollectionNameFormatError()
             collection_info.append(entry)
 
     return collection_info
@@ -213,6 +204,6 @@ def get_file_obj_from_tarball(tar, file_path, artifact_path, raise_exc=True):
             break
 
     if not file_obj and raise_exc:
-        raise FileNotFoundError(f"{file_path} not found")
+        raise CollectionFileNotFoundError(file_path=file_path)
 
     return file_obj
