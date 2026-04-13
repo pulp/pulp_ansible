@@ -13,6 +13,7 @@ from pulpcore.plugin.stages import (
     Stage,
 )
 from pulp_ansible.app.constants import PAGE_SIZE
+from pulp_ansible.exceptions import RemoteURLRequiredError
 from pulp_ansible.app.models import AnsibleRepository, RoleRemote, Role
 from pulp_ansible.app.tasks.utils import get_api_version, get_page_url, parse_metadata
 
@@ -48,7 +49,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     repository = AnsibleRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise ValueError(_("A remote must have a url specified to synchronize."))
+        raise RemoteURLRequiredError()
 
     log.info(
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}

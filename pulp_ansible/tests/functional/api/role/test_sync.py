@@ -42,11 +42,5 @@ def test_role_sync_invalid(
 
     with pytest.raises(PulpTaskError) as exc_info:
         ansible_sync_factory(remote=remote.pulp_href)
-    if has_pulp_plugin("core", min="3.102", max="3.103.3"):
-        # This should actually have been caught by validation of the remote.
-        assert "[PLP0000]" in exc_info.value.task.error["description"]
-    else:
-        assert (
-            exc_info.value.task.error["description"]
-            == "Could not determine API version for: http://i-am-an-invalid-url.com/invalid/"
-        )
+    assert "[ANS0007]" in exc_info.value.task.error["description"]
+    assert "Could not determine API version for" in exc_info.value.task.error["description"]

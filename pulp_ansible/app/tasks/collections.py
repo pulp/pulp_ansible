@@ -59,7 +59,13 @@ from semantic_version import SimpleSpec, Version
 from semantic_version.base import Always
 
 from pulp_ansible.app.constants import PAGE_SIZE
-from pulp_ansible.exceptions import CollectionNotFound
+from pulp_ansible.exceptions import (
+    AvailableVersionsNotFoundError,
+    CollectionNotFound,
+    RemoteURLRequiredError,
+    UnsupportedAPIVersionError,
+    UnsupportedStorageBackendError,
+)
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleNamespace,
@@ -228,7 +234,7 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     is_repo_remote = repository.remote is not None and remote.pk == repository.remote.pk
 
     if not remote.url:
-        raise ValueError(_("A CollectionRemote must have a 'url' specified to synchronize."))
+        raise RemoteURLRequiredError()
 
     first_stage = CollectionSyncFirstStage(remote, repository, is_repo_remote, optimize)
     if first_stage.should_sync:
@@ -451,7 +457,7 @@ def _get_backend_storage_url(artifact_file):
     elif domain.storage_class == "storages.backends.azure_storage.AzureStorage":
         url = artifact_file.storage.url(artifact_file.name)
     else:
-        raise NotImplementedError(f"The value {domain.storage_class=} was not expected")
+        raise UnsupportedStorageBackendError(storage_class=domain.storage_class)
     return url
 
 
@@ -598,14 +604,14 @@ class CollectionSyncFirstStage(Stage):
             api_data = parse_metadata(await downloader.run())
 
         if "available_versions" not in api_data:
-            raise RuntimeError(_("Could not find 'available_versions' at {}").format(root))
+            raise AvailableVersionsNotFoundError(root)
 
         if "v3" in api_data.get("available_versions", {}):
             api_version = 3
         elif "v2" in api_data.get("available_versions", {}):
             api_version = 2
         else:
-            raise RuntimeError(_("Unsupported API versions at {}").format(root))
+            raise UnsupportedAPIVersionError(root)
 
         endpoint = f"{root}v{api_version}"
 

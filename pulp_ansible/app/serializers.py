@@ -11,7 +11,12 @@ from rest_framework.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema_field
 
 from galaxy_importer.constants import NAME_REGEXP
+from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import Artifact, Content, ContentArtifact, SigningService
+from pulp_ansible.exceptions import (
+    CollectionFilenameParseError,
+    MissingExpectedFieldsError,
+)
 from pulpcore.plugin.serializers import (
     DetailRelatedField,
     ContentChecksumSerializer,
@@ -484,19 +489,12 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         fields = ("namespace", "name", "version")
         if not all((f"expected_{x}" in data for x in fields)):
             if not ("file" in data or "filename" in self.context):
-                raise ValidationError(
-                    _(
-                        "expected_namespace, expected_name, and expected_version must be "
-                        "specified when using artifact or upload objects"
-                    )
-                )
+                raise MissingExpectedFieldsError()
             filename = self.context.get("filename") or data["file"].name
             try:
                 collection = parse_collection_filename(filename)
             except ValueError:
-                raise ValidationError(
-                    _("Failed to parse Collection file upload '{}'").format(filename)
-                )
+                raise CollectionFilenameParseError(filename)
             data["expected_namespace"] = collection.namespace
             data["expected_name"] = collection.name
             data["expected_version"] = collection.version
@@ -511,7 +509,7 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         artifact = data.get("artifact")
 
         if (sha256 := data.get("sha256")) and sha256 != artifact.sha256:
-            raise ValidationError(_("Expected sha256 did not match uploaded artifact's sha256"))
+            raise DigestValidationError(actual=artifact.sha256, expected=sha256)
 
         collection_info = process_collection_artifact(
             artifact=artifact,

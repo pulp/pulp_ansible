@@ -91,8 +91,7 @@ class TestSync:
         )
         with pytest.raises(Exception) as exc_info:
             monitor_task(result.task)
-        if has_pulp_plugin("core", min="3.102"):
-            assert "[PLPAN01]" in exc_info.value.task.error["description"]
+        assert "[ANS0001]" in exc_info.value.task.error["description"]
         assert "absent.not_present" in exc_info.value.task.error["description"]
 
     @pytest.mark.parametrize("mirror", (True, False))
