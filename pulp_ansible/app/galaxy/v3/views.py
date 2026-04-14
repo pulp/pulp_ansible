@@ -56,6 +56,7 @@ from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
     AnsibleNamespaceMetadata,
+    AnsibleRepository,
     Collection,
     CollectionDownloadCount,
     CollectionVersion,
@@ -443,9 +444,9 @@ class CollectionViewSet(
             )
 
         repositories = set()
-        for version in collection.versions.all():
-            for repo in version.repositories.all():
-                repositories.add(repo)
+        for version in collection.versions.only("pk"):
+            repositories.update(version.repositories.only("pk"))
+        repositories = AnsibleRepository.objects.filter(pk__in=repositories)
 
         async_result = dispatch(
             delete_collection,
@@ -460,7 +461,9 @@ def get_collection_dependents(parent):
     """Given a parent collection, return a list of collection versions that depend on it."""
     key = f"{parent.namespace}.{parent.name}"
     return list(
-        CollectionVersion.objects.exclude(collection=parent).filter(dependencies__has_key=key)
+        CollectionVersion.objects.exclude(collection=parent)
+        .filter(dependencies__has_key=key)
+        .only("namespace", "name", "version")
     )
 
 
