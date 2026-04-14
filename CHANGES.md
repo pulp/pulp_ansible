@@ -243,6 +243,12 @@ No significant changes.
 
 ---
 
+## 0.24.10 (2026-04-13) {: #0.24.10 }
+
+No significant changes.
+
+---
+
 ## 0.24.9 (2026-03-18) {: #0.24.9 }
 
 #### Bugfixes {: #0.24.9-bugfix }
