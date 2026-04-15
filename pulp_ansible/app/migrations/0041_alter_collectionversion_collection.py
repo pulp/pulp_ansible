@@ -7,7 +7,7 @@ import django.db.models.deletion
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ansible', '0040_ansiblerepository_keyring'),
+        ('ansible', '0001_initial_squashed_0040_ansiblerepository_keyring'),
     ]
 
     operations = [
