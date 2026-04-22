@@ -396,13 +396,17 @@ def rebuild_repository_collection_versions_metadata(
         qs = CollectionVersion.objects.filter(**qkwargs)
 
     qs = repov.get_content(content_qs=qs)
-    with ProgressReport(
-        message=_("Rebuild collection version metadata (total)"),
-        code="rebuild_metadata.total",
-        total=qs.count(),
-    ) as ptotal, ProgressReport(
-        message=_("Rebuild collection version metadata (failed)"), code="rebuild_metadata.failed"
-    ) as pfailed:
+    with (
+        ProgressReport(
+            message=_("Rebuild collection version metadata (total)"),
+            code="rebuild_metadata.total",
+            total=qs.count(),
+        ) as ptotal,
+        ProgressReport(
+            message=_("Rebuild collection version metadata (failed)"),
+            code="rebuild_metadata.failed",
+        ) as pfailed,
+    ):
         for cv in qs:
             try:
                 _rebuild_collection_version_meta(cv)
