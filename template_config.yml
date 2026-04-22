@@ -6,7 +6,6 @@
 # After editing this file please always reapply the plugin template before committing any changes.
 
 ---
-black: true
 check_commit_message: true
 check_gettext: true
 check_manifest: true
@@ -24,10 +23,9 @@ disabled_redis_runners:
   - "s3"
 docker_fixtures: false
 extra_files: []
-flake8: true
-flake8_ignore: []
 github_org: "pulp"
 latest_release_branch: "0.28"
+lint_ignore: []
 lint_requirements: true
 os_required_packages: []
 parallel_test_workers: 8
@@ -98,7 +96,6 @@ pulp_settings_s3:
   ansible_collect_download_count: true
   ansible_collect_download_log: true
   api_root: "/rerouted/djnd/"
-pydocstyle: true
 release_email: "pulp-infra@redhat.com"
 release_user: "pulpbot"
 stalebot: true
