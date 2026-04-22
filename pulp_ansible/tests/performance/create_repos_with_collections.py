@@ -13,7 +13,7 @@ from pulp_ansible.app.tasks.test_tasks import (  # noqa otherwise E402: module l
 )
 
 parser = argparse.ArgumentParser(
-    description="Create Repositories with Collections and several " "RepositoryVersions."
+    description="Create Repositories with Collections and several RepositoryVersions."
 )
 
 parser.add_argument(

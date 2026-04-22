@@ -10,7 +10,7 @@ def seeded_distribution(
 ):
     """Set up the content guard tests."""
     requirements_file = (
-        "collections:\n" "  - name: testing.k8s_demo_collection\n" "  - name: pulp.squeezer"
+        "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.squeezer"
     )
     remote = ansible_collection_remote_factory(
         url="https://galaxy.ansible.com",
