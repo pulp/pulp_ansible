@@ -16,9 +16,7 @@ def test_deprecation(
 ):
     """Test sync  sync."""
     # Sync down two collections into a repo
-    requirements = (
-        "collections:\n" "  - name: testing.k8s_demo_collection\n" "  - name: pulp.squeezer"
-    )
+    requirements = "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.squeezer"
 
     first_remote = ansible_collection_remote_factory(
         url="https://galaxy.ansible.com",
@@ -43,7 +41,7 @@ def test_deprecation(
     assert not collections.data[0].deprecated
 
     # Sync a second repo from the first, just the testing namespace
-    requirements = "collections:\n" "  - name: testing.k8s_demo_collection"
+    requirements = "collections:\n  - name: testing.k8s_demo_collection"
     second_remote = ansible_collection_remote_factory(
         url=first_distribution.client_url,
         requirements_file=requirements,
@@ -73,9 +71,7 @@ def test_deprecation(
     assert not collections.data[0].deprecated
 
     # Update the requirements to sync down both collections this time
-    requirements = (
-        "collections:\n" "  - name: testing.k8s_demo_collection\n" "  - name: pulp.squeezer"
-    )
+    requirements = "collections:\n  - name: testing.k8s_demo_collection\n  - name: pulp.squeezer"
     ansible_bindings.RemotesCollectionApi.partial_update(
         second_remote.pulp_href, {"requirements_file": requirements}
     )
