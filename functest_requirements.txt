@@ -7,3 +7,4 @@ requests
 proxy.py~=2.4.9
 trustme~=1.2.0
 pytest-timeout
+python-gnupg
