@@ -116,7 +116,7 @@ class SyncTestCase(TestCaseUsingBindings, SyncHelpersMixin):
 
     def test_sync_with_multiple_versions_pages(self):
         """Sync with requirements.yml that requires parsing multiple "versions" pages."""
-        requirements_file_string = "\n" "---\n" "collections:\n" "- name: amazon.aws\n"
+        requirements_file_string = "\n---\ncollections:\n- name: amazon.aws\n"
         body = gen_ansible_remote(
             url="https://old-galaxy.ansible.com/api/",
             requirements_file=requirements_file_string,

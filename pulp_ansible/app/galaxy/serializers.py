@@ -92,8 +92,7 @@ class GalaxyCollectionSerializer(serializers.Serializer):
         Get href.
         """
         return (
-            "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/"
-            "{name}/".format(
+            "{hostname}/pulp_ansible/galaxy/{path}/api/v2/collections/{namespace}/{name}/".format(
                 path=self.context["path"],
                 hostname=settings.ANSIBLE_API_HOSTNAME,
                 namespace=obj.namespace,
