@@ -139,7 +139,6 @@ def pulp_dist(ansible_repository_factory, ansible_distribution_factory):
 
 
 class TestCollection:
-
     def test_collection_upload(self, collection_upload):
         """Upload a new collection.
 
