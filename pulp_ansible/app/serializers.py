@@ -372,16 +372,11 @@ class AnsibleDistributionSerializer(DistributionSerializer):
         return f"{hostname}/{api_root}/{domain}{base_path}/"
 
     class Meta:
-        fields = (
-            "pulp_href",
-            "pulp_created",
-            "base_path",
-            "content_guard",
-            "name",
-            "repository",
-            "repository_version",
+        # "repository_version" is listed explicitly for compatibility with pulpcore < 3.106
+        # where DistributionSerializer.Meta.fields does not include it
+        fields = tuple(f for f in DistributionSerializer.Meta.fields if f != "base_url") + (
             "client_url",
-            "pulp_labels",
+            "repository_version",
         )
         model = AnsibleDistribution
 
