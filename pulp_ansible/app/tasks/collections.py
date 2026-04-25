@@ -1062,10 +1062,8 @@ class CollectionSyncFirstStage(Stage):
 
                 if self.last_synced_metadata_time == self.repository.last_synced_metadata_time:
                     noop.message = _(
-                        "no-op: {remote} did not change since last sync - {published}".format(
-                            remote=self.remote.url, published=self.last_synced_metadata_time
-                        )
-                    )
+                        "no-op: {remote} did not change since last sync - {published}"
+                    ).format(remote=self.remote.url, published=self.last_synced_metadata_time)
                     return False
 
         return True
