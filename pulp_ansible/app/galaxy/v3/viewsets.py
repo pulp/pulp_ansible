@@ -1,23 +1,18 @@
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 
-from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
+from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.util import get_url
+from pulpcore.plugin.viewsets import OperationPostponedResponse
 
+from pulp_ansible.app.galaxy.mixins import GalaxyAuthMixin
+from pulp_ansible.app.galaxy.v3.filters import CollectionVersionSearchFilter
 from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
-
 from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSearchListSerializer,
 )
-from pulp_ansible.app.galaxy.mixins import GalaxyAuthMixin
-
-from pulpcore.plugin.util import get_url
-
-from pulp_ansible.app.models import CrossRepositoryCollectionVersionIndex, AnsibleDistribution
-
-from pulp_ansible.app.galaxy.v3.filters import CollectionVersionSearchFilter
+from pulp_ansible.app.models import AnsibleDistribution, CrossRepositoryCollectionVersionIndex
 from pulp_ansible.app.tasks.collectionversion_index import rebuild_index
-
-from pulpcore.plugin.tasking import dispatch
-from pulpcore.plugin.viewsets import OperationPostponedResponse
 
 
 @extend_schema_view(

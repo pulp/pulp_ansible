@@ -1,31 +1,27 @@
-from datetime import datetime
-from gettext import gettext as _
-import semantic_version
 import base64
 import re
+from datetime import datetime
+from gettext import gettext as _
 
-from django.db import DatabaseError, IntegrityError
-from django.db.models import F, OuterRef, Exists, Subquery, Prefetch
-from django.http import StreamingHttpResponse, HttpResponseNotFound
-from django.shortcuts import get_object_or_404, redirect
-from django.utils.dateparse import parse_datetime
-from django_filters import filters
-from django.views.generic.base import RedirectView
+import semantic_version
 from django.conf import settings
 from django.core.cache import cache
+from django.db import DatabaseError, IntegrityError
+from django.db.models import Exists, F, OuterRef, Prefetch, Subquery
 from django.db.utils import InternalError as DatabaseInternalError
-
+from django.http import HttpResponseNotFound, StreamingHttpResponse
+from django.shortcuts import get_object_or_404, redirect
+from django.utils.dateparse import parse_datetime
+from django.views.generic.base import RedirectView
+from django_filters import filters
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from jinja2 import Template
-from rest_framework import mixins
-from rest_framework.response import Response
-from rest_framework.request import Request
-from rest_framework.reverse import reverse, reverse_lazy
-from rest_framework import serializers
+from rest_framework import mixins, serializers, status, views, viewsets
 from rest_framework import status as http_status
-from rest_framework import viewsets, views
 from rest_framework.exceptions import NotFound
-from rest_framework import status
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.reverse import reverse, reverse_lazy
 
 from pulpcore.plugin.models import (
     Artifact,
@@ -34,23 +30,25 @@ from pulpcore.plugin.models import (
     Distribution,
 )
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
+from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
 from pulpcore.plugin.viewsets import (
+    NAME_FILTER_OPTIONS,
     BaseFilterSet,
     OperationPostponedResponse,
     SingleArtifactContentUploadViewSet,
-    NAME_FILTER_OPTIONS,
 )
-from pulpcore.plugin.tasking import add_and_remove, dispatch, general_create
 
+from pulp_ansible.app.galaxy.mixins import GalaxyAuthMixin, UploadGalaxyCollectionMixin
 from pulp_ansible.app.galaxy.v3.exceptions import ExceptionHandlerMixin
+from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.galaxy.v3.serializers import (
+    ClientConfigurationSerializer,
     CollectionSerializer,
-    CollectionVersionSerializer,
     CollectionVersionDocsSerializer,
     CollectionVersionListSerializer,
+    CollectionVersionSerializer,
     RepoMetadataSerializer,
     UnpaginatedCollectionVersionSerializer,
-    ClientConfigurationSerializer,
 )
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -59,10 +57,10 @@ from pulp_ansible.app.models import (
     AnsibleRepository,
     Collection,
     CollectionDownloadCount,
+    CollectionImport,
     CollectionVersion,
     CollectionVersionMark,
     CollectionVersionSignature,
-    CollectionImport,
     DownloadLog,
 )
 from pulp_ansible.app.serializers import (
@@ -71,16 +69,11 @@ from pulp_ansible.app.serializers import (
     CollectionOneShotSerializer,
     CollectionVersionUploadSerializer,
 )
-
-from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin, GalaxyAuthMixin
-from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
+from pulp_ansible.app.tasks.deletion import delete_collection, delete_collection_version
+from pulp_ansible.app.utils import filter_content_for_repo_version
 from pulp_ansible.app.viewsets import (
     CollectionVersionFilter,
 )
-
-from pulp_ansible.app.tasks.deletion import delete_collection_version, delete_collection
-
-from pulp_ansible.app.utils import filter_content_for_repo_version
 
 _CAN_VIEW_REPO_CONTENT = {
     "action": ["list", "retrieve", "download"],
