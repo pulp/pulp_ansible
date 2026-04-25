@@ -1,18 +1,16 @@
 import copy
-import pickle
 import logging
-import shutil
 import os
+import pickle
 import random
+import shutil
 import uuid
-from semantic_version import Version
 
 import pytest
-
-from orionutils.generator import build_collection
-from orionutils.generator import randstr
-
+from orionutils.generator import build_collection, randstr
 from pulp_smash.pulp3.bindings import delete_orphans
+from semantic_version import Version
+
 from pulp_ansible.tests.functional.utils import (
     gen_distribution,
     gen_remote,

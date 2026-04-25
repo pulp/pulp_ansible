@@ -1,48 +1,52 @@
 """Utilities for tests for the ansible plugin."""
 
-from dynaconf import Dynaconf
-from functools import partial
 import unittest
-from urllib.parse import urlparse, parse_qs
+from functools import partial
+from urllib.parse import parse_qs, urlparse
 
+from dynaconf import Dynaconf
 from pulp_smash import api, config, selectors
-from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
+from pulp_smash.pulp3.bindings import PulpTestCase, delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import (
     gen_distribution,
+    gen_publisher,
     gen_remote,
     gen_repo,
-    gen_publisher,
     get_content,
     require_pulp_3,
     require_pulp_plugins,
     sync,
 )
 
-from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_ROLE_NAME,
-    ANSIBLE_ROLE_CONTENT_PATH,
-    ANSIBLE_FIXTURE_URL,
-    ANSIBLE_REMOTE_PATH,
-    ANSIBLE_REPO_PATH,
-)
-
-from pulpcore.client.pulpcore import (
-    ApiClient as CoreApiClient,
-    TasksApi,
-    StatusApi,
-)
 from pulpcore.client.pulp_ansible import (
-    ApiClient as AnsibleApiClient,
+    AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
     PulpAnsibleApiV3CollectionsApi,
     PulpAnsibleApiV3CollectionsVersionsApi,
-    RepositoriesAnsibleApi,
     RemotesCollectionApi,
     RemotesGitApi,
     RemotesRoleApi,
-    AnsibleRepositorySyncURL,
+    RepositoriesAnsibleApi,
     RepositoriesAnsibleVersionsApi,
+)
+from pulpcore.client.pulp_ansible import (
+    ApiClient as AnsibleApiClient,
+)
+from pulpcore.client.pulpcore import (
+    ApiClient as CoreApiClient,
+)
+from pulpcore.client.pulpcore import (
+    StatusApi,
+    TasksApi,
+)
+
+from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_FIXTURE_URL,
+    ANSIBLE_REMOTE_PATH,
+    ANSIBLE_REPO_PATH,
+    ANSIBLE_ROLE_CONTENT_PATH,
+    ANSIBLE_ROLE_NAME,
 )
 
 cfg = config.get_config()

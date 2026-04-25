@@ -1,7 +1,8 @@
 """Tests collection sync functionality that is common to both Galaxy V2 and V3."""
 
-import pytest
 import subprocess
+
+import pytest
 
 
 @pytest.fixture

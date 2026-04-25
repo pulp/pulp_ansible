@@ -2,19 +2,21 @@
 
 import datetime
 import os
+import unittest
 
 import pytest
-import unittest
-from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
+from orionutils.generator import build_collection
+
+from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
+
+from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
+from pulp_ansible.tests.functional.utils import (  # noqa
     SyncHelpersMixin,
     TestCaseUsingBindings,
-)
-from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
-from orionutils.generator import build_collection
-from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
-from pulp_ansible.tests.functional.utils import (  # noqa
+    gen_ansible_remote,
     monitor_task,
+)
+from pulp_ansible.tests.functional.utils import (
     set_up_module as setUpModule,
 )
 

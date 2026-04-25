@@ -1,13 +1,14 @@
 import unittest
 
+from orionutils.generator import build_collection, randstr
+from pulp_smash.pulp3.bindings import monitor_task
+
+from pulpcore.client.pulp_ansible.exceptions import ApiException
+
 from pulp_ansible.tests.functional.utils import (
     SyncHelpersMixin,
     TestCaseUsingBindings,
 )
-
-from pulpcore.client.pulp_ansible.exceptions import ApiException
-from pulp_smash.pulp3.bindings import monitor_task
-from orionutils.generator import build_collection, randstr
 
 
 class CollectionDeletionTestCase(TestCaseUsingBindings, SyncHelpersMixin):

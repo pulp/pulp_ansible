@@ -5,10 +5,12 @@ from pulp_smash.pulp3.utils import (
     get_content_summary,
     get_removed_content_summary,
 )
+
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
 )
-from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 
 def test_add_mark_to_collection_version(

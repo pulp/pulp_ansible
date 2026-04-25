@@ -1,4 +1,3 @@
-import aiofiles
 import asyncio
 import hashlib
 import logging
@@ -6,27 +5,27 @@ import tarfile
 import tempfile
 from gettext import gettext as _
 
+import aiofiles
+from django.conf import settings
+from rest_framework import serializers
+
+from pulpcore.plugin.exceptions import InvalidSignatureError
+from pulpcore.plugin.models import ProgressReport, SigningService
 from pulpcore.plugin.stages import (
     ContentSaver,
     DeclarativeContent,
     DeclarativeVersion,
     Stage,
 )
+from pulpcore.plugin.sync import sync_to_async, sync_to_async_iterable
+from pulpcore.plugin.util import get_domain, gpg_verify
 
 from pulp_ansible.app.models import (
     AnsibleRepository,
     CollectionVersion,
     CollectionVersionSignature,
 )
-
-from django.conf import settings
-from pulpcore.plugin.util import get_domain
-from pulpcore.plugin.models import SigningService, ProgressReport
-from pulpcore.plugin.sync import sync_to_async_iterable, sync_to_async
-from pulpcore.plugin.util import gpg_verify
-from pulpcore.plugin.exceptions import InvalidSignatureError
 from pulp_ansible.app.tasks.utils import get_file_obj_from_tarball
-from rest_framework import serializers
 
 log = logging.getLogger(__name__)
 

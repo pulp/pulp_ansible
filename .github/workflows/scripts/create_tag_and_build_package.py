@@ -3,9 +3,8 @@ import asyncio
 import os
 import textwrap
 
-from pypi_tools import get_package_from_pypi
-
 from git import Repo
+from pypi_tools import get_package_from_pypi
 
 helper = textwrap.dedent("""\
         Create a new tag and build a Python package.

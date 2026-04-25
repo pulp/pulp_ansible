@@ -1,4 +1,5 @@
 import pytest
+
 from pulp_ansible.tests.functional.utils import iterate_all
 
 

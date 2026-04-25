@@ -1,13 +1,12 @@
 import logging
-
 from gettext import gettext as _
-
 
 from pulpcore.plugin.models import ProgressReport
 from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
+
 from pulp_ansible.app.models import AnsibleRepository, GitRemote
 from pulp_ansible.app.tasks.collections import declarative_content_from_git_repo
 

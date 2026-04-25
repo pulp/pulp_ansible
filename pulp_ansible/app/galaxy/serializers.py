@@ -1,14 +1,15 @@
 from gettext import gettext as _
 
 from django.conf import settings
-from drf_spectacular.utils import extend_schema_field
 from drf_spectacular.types import OpenApiTypes
-from rest_framework.reverse import reverse
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
 from pulpcore.plugin.models import Artifact
-from pulp_ansible.app.models import Collection, CollectionVersion, Role
+
 from pulp_ansible.app.galaxy.v3.serializers import CollectionMetadataSerializer
+from pulp_ansible.app.models import Collection, CollectionVersion, Role
 
 
 class GalaxyRoleSerializer(serializers.ModelSerializer):

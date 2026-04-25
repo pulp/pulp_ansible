@@ -3,16 +3,16 @@
 import tarfile
 
 import pytest
-
-from pulpcore.tests.functional.utils import PulpTaskError
 from pulp_smash.pulp3.utils import get_content_summary
+
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+from pulpcore.tests.functional.utils import PulpTaskError
 
 from pulp_ansible.tests.functional.utils import (
     gen_ansible_remote,
     gen_distribution,
     get_content,
 )
-from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 
 def test_upload_then_sign_then_try_to_upload_duplicate_signature(

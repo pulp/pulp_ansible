@@ -3,7 +3,7 @@
 import hashlib
 from tempfile import NamedTemporaryFile
 
-from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
+from pulp_smash.pulp3.bindings import PulpTestCase, delete_orphans, monitor_task
 from pulp_smash.utils import http_get
 
 from pulpcore.client.pulp_ansible import (
