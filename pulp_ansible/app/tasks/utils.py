@@ -136,10 +136,8 @@ def parse_collections_requirements_file(requirements_file_string):
                 raise ValidationError(
                     _(
                         "Failed to parse the collection requirements yml: {file} "
-                        "with the following error: {error}".format(
-                            file=requirements_file_string, error=err
-                        )
-                    )
+                        "with the following error: {error}"
+                    ).format(file=requirements_file_string, error=err)
                 )
         else:
             requirements = requirements_file_string
