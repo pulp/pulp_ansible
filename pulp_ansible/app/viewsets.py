@@ -1,11 +1,11 @@
 from gettext import gettext as _
 
 from django.contrib.postgres.search import SearchQuery
+from django.db.models import Count
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
-from django.db.models import Count
+from django.http import HttpResponseNotFound, HttpResponseRedirect
 from django_filters import filters
-from django.http import HttpResponseRedirect, HttpResponseNotFound
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
 from rest_framework.decorators import action
@@ -17,70 +17,72 @@ from pulpcore.plugin.exceptions import DigestValidationError
 from pulpcore.plugin.models import PulpTemporaryFile, RepositoryVersion
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 from pulpcore.plugin.tasking import dispatch
+from pulpcore.plugin.util import extract_pk, get_artifact_url, raise_for_unknown_content_units
 from pulpcore.plugin.viewsets import (
-    DistributionViewSet,
+    NAME_FILTER_OPTIONS,
     BaseFilterSet,
     ContentFilter,
-    RemoteFilter,
     ContentViewSet,
+    DistributionViewSet,
     HyperlinkRelatedFilter,
     NamedModelViewSet,
-    NAME_FILTER_OPTIONS,
-    NoArtifactContentViewSet,
     NoArtifactContentUploadViewSet,
+    NoArtifactContentViewSet,
     OperationPostponedResponse,
     ReadOnlyContentViewSet,
+    RemoteFilter,
     RemoteViewSet,
-    RepositoryViewSet,
     RepositoryVersionViewSet,
+    RepositoryViewSet,
     RolesMixin,
     SingleArtifactContentUploadViewSet,
 )
-from pulpcore.plugin.util import extract_pk, raise_for_unknown_content_units, get_artifact_url
+
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.utils import get_queryset_annotated_with_last_sync_task
+
 from .models import (
     AnsibleCollectionDeprecated,
     AnsibleDistribution,
     AnsibleNamespaceMetadata,
-    CollectionVersionMark,
-    GitRemote,
-    RoleRemote,
     AnsibleRepository,
     Collection,
-    CollectionVersion,
-    CollectionVersionSignature,
     CollectionRemote,
+    CollectionVersion,
+    CollectionVersionMark,
+    CollectionVersionSignature,
+    GitRemote,
     Role,
+    RoleRemote,
 )
 from .serializers import (
     AnsibleDistributionSerializer,
     AnsibleNamespaceMetadataSerializer,
-    CollectionVersionMarkSerializer,
-    GitRemoteSerializer,
-    RoleRemoteSerializer,
-    AnsibleRepositorySerializer,
     AnsibleRepositoryMarkSerializer,
-    AnsibleRepositorySyncURLSerializer,
     AnsibleRepositoryRebuildSerializer,
+    AnsibleRepositorySerializer,
     AnsibleRepositorySignatureSerializer,
-    CollectionSerializer,
+    AnsibleRepositorySyncURLSerializer,
     CollectionDeprecatedSerializer,
+    CollectionOneShotSerializer,
+    CollectionRemoteSerializer,
+    CollectionSerializer,
+    CollectionVersionCopyMoveSerializer,
+    CollectionVersionMarkSerializer,
     CollectionVersionSerializer,
     CollectionVersionSignatureSerializer,
-    CollectionRemoteSerializer,
-    CollectionOneShotSerializer,
     CopySerializer,
+    GitRemoteSerializer,
+    RoleRemoteSerializer,
     RoleSerializer,
     TagSerializer,
-    CollectionVersionCopyMoveSerializer,
 )
-from .tasks.collections import sync as collection_sync
 from .tasks.collections import rebuild_repository_collection_versions_metadata
+from .tasks.collections import sync as collection_sync
 from .tasks.copy import copy_content, copy_or_move_and_sign
-from .tasks.roles import synchronize as role_sync
 from .tasks.git import synchronize as git_sync
 from .tasks.mark import mark, unmark
+from .tasks.roles import synchronize as role_sync
 from .tasks.signature import sign
 
 

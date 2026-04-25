@@ -1,14 +1,15 @@
-from gettext import gettext as _
-from collections import namedtuple
-import logging
 import json
+import logging
 import re
-import yaml
+from collections import namedtuple
+from gettext import gettext as _
 from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
+
+import yaml
+from galaxy_importer.schema import MAX_LENGTH_NAME, MAX_LENGTH_VERSION
 from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
-from galaxy_importer.schema import MAX_LENGTH_NAME, MAX_LENGTH_VERSION
 from pulp_ansible.app.constants import PAGE_SIZE
 
 log = logging.getLogger(__name__)
