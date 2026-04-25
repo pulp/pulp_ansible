@@ -1,11 +1,13 @@
-import uuid
-import pytest
 import subprocess
 import time
-import yaml
+import uuid
 from types import SimpleNamespace
 
+import pytest
+import yaml
+
 from pulpcore.tests.functional.utils import BindingsNamespace
+
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 from pulp_ansible.tests.functional.utils import randstr
 

@@ -16,8 +16,9 @@ class CollectionImportHandler(logging.Handler):
         """
         # This import cannot occur at import time because Django attempts to instantiate it early
         # which causes an unavoidable circular import as long as this needs to import any model
-        from .models import CollectionImport
         from pulpcore.plugin.models import Task
+
+        from .models import CollectionImport
 
         collection_import = CollectionImport.objects.get(task=Task.current().pulp_id)
         collection_import.add_log_record(record)
