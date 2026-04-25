@@ -1,10 +1,10 @@
-import pytest
 import hashlib
-import requests
 import random
 import string
 
 import numpy as np
+import pytest
+import requests
 from PIL import Image
 
 

@@ -1,12 +1,12 @@
 """Tests that Roles hosted by Pulp can be installed by ansible-galaxy."""
 
-from os import path
 import subprocess
+from os import path
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_ELASTIC_FIXTURE_URL,
-    ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME,
     ANSIBLE_ELASTIC_ROLE,
+    ANSIBLE_ELASTIC_ROLE_NAMESPACE_NAME,
 )
 
 

@@ -1,5 +1,5 @@
 import pytest
-from pulp_smash.pulp3.bindings import monitor_task, PulpTaskError
+from pulp_smash.pulp3.bindings import PulpTaskError, monitor_task
 
 from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,

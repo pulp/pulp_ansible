@@ -5,10 +5,12 @@ NOTE: assumes ALLOWED_EXPORT_PATHS setting contains "/tmp" - all tests will fail
 the case.
 """
 
-import pytest
 import uuid
 
+import pytest
+
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
 

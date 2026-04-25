@@ -1,7 +1,8 @@
 """CRUD tests for AnsibleDistribution."""
 
-import pytest
 from collections import namedtuple
+
+import pytest
 
 from pulpcore.client.pulp_ansible import ApiException
 

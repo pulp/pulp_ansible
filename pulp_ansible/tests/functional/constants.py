@@ -1,11 +1,11 @@
 from urllib.parse import urljoin
 
 from pulp_smash.pulp3.constants import (
+    BASE_CONTENT_PATH,
     BASE_DISTRIBUTION_PATH,
     BASE_PUBLISHER_PATH,
     BASE_REMOTE_PATH,
     BASE_REPO_PATH,
-    BASE_CONTENT_PATH,
 )
 
 GALAXY_ANSIBLE_BASE_URL = "https://galaxy.ansible.com"

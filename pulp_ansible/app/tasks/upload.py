@@ -4,8 +4,8 @@ import tarfile
 
 from django.db import transaction
 from django.urls import reverse
-
 from galaxy_importer.collection import import_collection
+
 from pulpcore.plugin.models import Task
 
 from pulp_ansible.app.models import Collection, CollectionImport, Tag

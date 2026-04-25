@@ -1,6 +1,5 @@
 import asyncio
 import json
-
 from gettext import gettext as _
 from logging import getLogger
 

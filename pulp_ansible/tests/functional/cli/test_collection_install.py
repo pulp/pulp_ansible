@@ -1,15 +1,18 @@
 """Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
 
 import json
-from os import path
 import subprocess
+from os import path
+
 import pytest
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION,
     ANSIBLE_DEMO_COLLECTION_VERSION,
-    ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
     GALAXY_ANSIBLE_BASE_URL,
+)
+from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
 )
 
 

@@ -1,14 +1,16 @@
 """Tests related to sync ansible plugin collection content type."""
 
 from tempfile import NamedTemporaryFile
+
 from pulp_smash.pulp3.bindings import PulpTestCase, delete_orphans, monitor_task
 from pulp_smash.utils import http_get
 
 from pulpcore.client.pulp_ansible import ContentCollectionVersionsApi
 
-
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
+)
+from pulp_ansible.tests.functional.constants import (
     GALAXY_ANSIBLE_BASE_URL,
 )
 from pulp_ansible.tests.functional.utils import gen_ansible_client, skip_if

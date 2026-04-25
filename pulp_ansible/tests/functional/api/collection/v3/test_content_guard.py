@@ -1,20 +1,22 @@
 import unittest
+
 import requests
+from pulp_smash import config
 
 from pulpcore.client.pulp_ansible import (
     PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexApi,
     PulpAnsibleDefaultApiV3PluginAnsibleContentCollectionsIndexVersionsApi,
 )
-from pulp_smash import config
+from pulpcore.client.pulpcore import ApiClient as CoreApiClient
+from pulpcore.client.pulpcore import ContentguardsContentRedirectApi
 
 from pulp_ansible.tests.functional.utils import (
+    SyncHelpersMixin,
+    TestCaseUsingBindings,
     gen_ansible_remote,
     is_galaxy_ng_installed,
 )
-from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-
-from pulpcore.client.pulpcore import ContentguardsContentRedirectApi, ApiClient as CoreApiClient
 
 
 class CollectionDownloadTestCase(TestCaseUsingBindings, SyncHelpersMixin):

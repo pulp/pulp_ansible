@@ -1,14 +1,13 @@
 import re
 
 from django.conf import settings
-from django.shortcuts import get_object_or_404, HttpResponse
+from django.shortcuts import HttpResponse, get_object_or_404
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import generics, pagination, response, views
 from rest_framework.reverse import reverse
 
-from pulpcore.plugin.models import PulpTemporaryFile
+from pulpcore.plugin.models import ContentArtifact, PulpTemporaryFile
 from pulpcore.plugin.viewsets import OperationPostponedResponse
-from pulpcore.plugin.models import ContentArtifact
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
 from pulp_ansible.app.models import AnsibleDistribution, Collection, CollectionVersion, Role

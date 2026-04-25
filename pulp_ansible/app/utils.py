@@ -1,6 +1,7 @@
-from django.db.models import Q, OuterRef, Subquery, CharField
-from pulpcore.plugin.models import RepositoryVersion, RepositoryContent, Task
+from django.db.models import CharField, OuterRef, Q, Subquery
 from django.db.models.functions import Cast, JSONObject
+
+from pulpcore.plugin.models import RepositoryContent, RepositoryVersion, Task
 
 
 def filter_content_for_repo_version(qs, repo_version):

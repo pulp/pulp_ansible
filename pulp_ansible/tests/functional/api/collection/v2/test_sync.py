@@ -1,18 +1,19 @@
 """Tests collection sync using the Galaxy V2 API."""
 
 import pytest
-from pulpcore.client.pulp_ansible import ApiException
+from pulp_smash.pulp3.bindings import delete_orphans, monitor_task
+
 from pulpcore.client.pulp_ansible import (
+    ApiException,
     PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi,
 )
 
 from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
     SyncHelpersMixin,
     TestCaseUsingBindings,
+    gen_ansible_remote,
 )
 from pulp_ansible.tests.functional.utils import set_up_module as setUpModule  # noqa:F401
-from pulp_smash.pulp3.bindings import monitor_task, delete_orphans
 
 
 # TODO: Rewrite or delete?
