@@ -1,7 +1,9 @@
 """Tests that Collections hosted by Pulp can be installed by ansible-galaxy."""
 
 import subprocess
+
 import pytest
+
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 from pulp_ansible.tests.functional.constants import (

@@ -1,9 +1,9 @@
 import copy
 import os
 import random
-from semantic_version import Version
 
 import pytest
+from semantic_version import Version
 
 from pulp_ansible.tests.functional.utils import randstr
 

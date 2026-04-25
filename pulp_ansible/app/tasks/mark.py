@@ -1,6 +1,7 @@
 """Tasks for CollectionVersionMark"""
 
 from pulpcore.plugin.tasking import add_and_remove
+
 from pulp_ansible.app.models import AnsibleRepository, CollectionVersion, CollectionVersionMark
 
 
