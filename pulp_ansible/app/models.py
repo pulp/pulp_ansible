@@ -2,34 +2,33 @@ import hashlib
 import json
 from logging import getLogger
 
-from semantic_version import Version
-
 from django.conf import settings
-from django.db import models
-from django.db.utils import IntegrityError
 from django.contrib.postgres import fields as psql_fields
 from django.contrib.postgres import search as psql_search
+from django.db import models
+from django.db.utils import IntegrityError
 from django_lifecycle import (
-    AFTER_UPDATE,
-    AFTER_DELETE,
     AFTER_CREATE,
-    BEFORE_UPDATE,
+    AFTER_DELETE,
+    AFTER_UPDATE,
     BEFORE_SAVE,
+    BEFORE_UPDATE,
     hook,
 )
+from semantic_version import Version
 
 from pulpcore.plugin.models import (
     AutoAddObjPermsMixin,
     BaseModel,
     Content,
     ContentManager,
+    Distribution,
+    EncryptedTextField,
     Remote,
     Repository,
     RepositoryVersion,
-    Distribution,
     SigningService,
     Task,
-    EncryptedTextField,
 )
 from pulpcore.plugin.repo_version_utils import remove_duplicates, validate_repo_version
 from pulpcore.plugin.util import get_domain_pk

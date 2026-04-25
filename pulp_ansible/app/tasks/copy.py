@@ -1,17 +1,17 @@
 from django.db import transaction
 from django.db.models import Q
+
 from pulpcore.plugin.models import RepositoryVersion
+from pulpcore.plugin.tasking import add_and_remove
 
 from pulp_ansible.app.models import (
-    CollectionVersion,
-    CollectionVersionSignature,
     AnsibleCollectionDeprecated,
-    CollectionVersionMark,
     AnsibleNamespaceMetadata,
     AnsibleRepository,
+    CollectionVersion,
+    CollectionVersionMark,
+    CollectionVersionSignature,
 )
-
-from pulpcore.plugin.tasking import add_and_remove
 
 from .signature import sign
 

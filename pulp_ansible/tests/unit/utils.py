@@ -6,14 +6,13 @@ import shutil
 import string
 import subprocess
 import tempfile
-import yaml
 
+import yaml
 from django.core.files.uploadedfile import SimpleUploadedFile
 
-from pulp_ansible.app.models import Collection
-from pulp_ansible.app.models import CollectionVersion
-from pulpcore.plugin.models import Artifact
-from pulpcore.plugin.models import ContentArtifact
+from pulpcore.plugin.models import Artifact, ContentArtifact
+
+from pulp_ansible.app.models import Collection, CollectionVersion
 
 
 def randstr():

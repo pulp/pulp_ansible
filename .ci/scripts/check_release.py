@@ -9,16 +9,16 @@
 # ///
 
 import argparse
-import re
 import os
+import re
 import sys
 import tomllib
 import typing as t
 from pathlib import Path
 
 import yaml
-from packaging.version import Version
 from git import Repo
+from packaging.version import Version
 
 RELEASE_BRANCH_REGEX = r"^([0-9]+)\.([0-9]+)$"
 Y_CHANGELOG_EXTS = [".feature"]

@@ -1,21 +1,20 @@
 import logging
-
 from gettext import gettext as _
-
 
 from pulpcore.plugin.models import ProgressReport
 from pulpcore.plugin.stages import (
+    ArtifactSaver,
     DeclarativeVersion,
-    Stage,
     QueryExistingArtifacts,
     QueryExistingContents,
-    ArtifactSaver,
     RemoteArtifactSaver,
+    Stage,
 )
+
 from pulp_ansible.app.models import AnsibleRepository, GitRemote
 from pulp_ansible.app.tasks.collections import (
-    declarative_content_from_git_repo,
     AnsibleContentSaver,
+    declarative_content_from_git_repo,
 )
 
 try:

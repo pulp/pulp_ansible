@@ -1,9 +1,9 @@
 import pytest
-from pulpcore.tests.functional.utils import PulpTaskError
 
 from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
 )
+from pulpcore.tests.functional.utils import PulpTaskError
 
 
 def _sync_and_assert(

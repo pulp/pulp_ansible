@@ -2,16 +2,18 @@ import json
 
 from import_export import fields
 from import_export.widgets import Widget
+
 from pulpcore.plugin.importexport import BaseContentResource, QueryModelResource
+
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
     AnsibleNamespace,
     AnsibleNamespaceMetadata,
-    CollectionVersionMark,
-    Role,
     Collection,
     CollectionVersion,
+    CollectionVersionMark,
     CollectionVersionSignature,
+    Role,
 )
 
 
