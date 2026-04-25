@@ -97,7 +97,7 @@ class CollectionVersionSearchFilter(FilterSet):
 
             return queryset.filter(collection_version__version__in=version_list)
         except ValueError:
-            raise ValidationError(_("%s must be a valid semantic version range." % name))
+            raise ValidationError(_("%s must be a valid semantic version range.") % name)
 
     def filter_by_repository_name(self, queryset, name, value):
         repository_names = self.request.query_params.getlist(name)
