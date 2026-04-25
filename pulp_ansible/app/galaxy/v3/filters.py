@@ -1,18 +1,18 @@
-from django.contrib.postgres.search import SearchQuery
-from django.db.models import fields as db_fields, Case, When, Value
-from django.db.models import Q
-from django.db.models.expressions import F, Func
-from django_filters import (
-    filters,
-    FilterSet,
-)
 import semantic_version
-from rest_framework.exceptions import ValidationError
+from django.contrib.postgres.search import SearchQuery
+from django.db.models import Case, Q, Value, When
+from django.db.models import fields as db_fields
+from django.db.models.expressions import F, Func
 from django.utils.translation import gettext_lazy as _
-
-from pulpcore.plugin.viewsets import LabelFilter
+from django_filters import (
+    FilterSet,
+    filters,
+)
+from rest_framework.exceptions import ValidationError
 
 from pulpcore.plugin.models import RepositoryVersion
+from pulpcore.plugin.viewsets import LabelFilter
+
 from pulp_ansible.app import models
 
 

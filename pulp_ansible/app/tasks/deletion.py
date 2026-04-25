@@ -16,8 +16,9 @@ Pulp's orphan_cleanup task deletes any Content not part of a RepositoryVersion.
 import logging
 from collections import defaultdict
 
-from pulp_ansible.app.models import Collection, CollectionVersion
 from pulpcore.plugin.tasking import add_and_remove, orphan_cleanup
+
+from pulp_ansible.app.models import Collection, CollectionVersion
 
 log = logging.getLogger(__name__)
 

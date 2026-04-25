@@ -4,10 +4,10 @@ import tarfile
 
 import pytest
 
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 from pulpcore.tests.functional.utils import PulpTaskError
 
 from pulp_ansible.tests.functional.utils import content_counts
-from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 
 def test_upload_then_sign_then_try_to_upload_duplicate_signature(

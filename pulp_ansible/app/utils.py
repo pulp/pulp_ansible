@@ -1,7 +1,9 @@
 from contextvars import ContextVar
-from django.db.models import Q, OuterRef, Subquery, CharField
-from pulpcore.plugin.models import RepositoryVersion, RepositoryContent, Task
+
+from django.db.models import CharField, OuterRef, Q, Subquery
 from django.db.models.functions import Cast, JSONObject
+
+from pulpcore.plugin.models import RepositoryContent, RepositoryVersion, Task
 
 _collection_deferred_fields = ContextVar("collection_deferred_fields", default=[])
 

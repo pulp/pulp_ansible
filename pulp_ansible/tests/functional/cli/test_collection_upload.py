@@ -1,9 +1,10 @@
 """Tests that Collections can be uploaded to  Pulp with the ansible-galaxy CLI."""
 
-import pytest
 import random
 import string
 import subprocess
+
+import pytest
 
 
 @pytest.mark.parallel
