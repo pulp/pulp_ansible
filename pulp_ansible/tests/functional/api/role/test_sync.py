@@ -1,6 +1,7 @@
 import pytest
 
 from pulpcore.tests.functional.utils import PulpTaskError
+
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_CONTENT_SUMMARY
 
 

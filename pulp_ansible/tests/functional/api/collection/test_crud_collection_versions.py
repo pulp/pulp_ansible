@@ -5,11 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from pulp_ansible.tests.functional.utils import randstr
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
+)
+from pulp_ansible.tests.functional.constants import (
     GALAXY_ANSIBLE_BASE_URL,
 )
+from pulp_ansible.tests.functional.utils import randstr
 
 
 @pytest.mark.parallel

@@ -1,19 +1,21 @@
 import logging
-from semantic_version import Version
 
 from django.db.models import Q
+from semantic_version import Version
+
+from pulpcore.plugin.models import RepositoryVersion
 
 from pulp_ansible.app.models import (
-    AnsibleDistribution,
     AnsibleCollectionDeprecated,
+    AnsibleDistribution,
     AnsibleNamespaceMetadata,
     AnsibleRepository,
     CollectionVersion,
     CollectionVersionSignature,
+)
+from pulp_ansible.app.models import (
     CrossRepositoryCollectionVersionIndex as CVIndex,
 )
-
-from pulpcore.plugin.models import RepositoryVersion
 
 log = logging.getLogger(__name__)
 
