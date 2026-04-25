@@ -9,7 +9,7 @@ import uuid
 
 import pytest
 
-from pulpcore.app import settings
+from pulpcore.app import settings  # noqa: TID251
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
