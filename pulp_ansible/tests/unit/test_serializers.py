@@ -1,12 +1,13 @@
 import hashlib
 from unittest import mock
+
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 
 from pulpcore.app.util import get_url
-from pulp_ansible.app.serializers import RoleSerializer
-
 from pulpcore.plugin.models import Artifact
+
+from pulp_ansible.app.serializers import RoleSerializer
 
 
 class TestRoleSerializer(TestCase):

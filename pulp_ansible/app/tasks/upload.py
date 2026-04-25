@@ -3,8 +3,8 @@ import logging
 import tarfile
 
 from django.db import transaction
-
 from galaxy_importer.collection import import_collection
+
 from pulpcore.plugin.models import Task
 from pulpcore.plugin.util import get_url
 

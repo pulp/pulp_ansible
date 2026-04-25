@@ -1,20 +1,20 @@
+import json
 import typing as t
 from gettext import gettext as _
 
-import json
-
-from django.db import transaction
 from django.conf import settings
+from django.db import transaction
+from drf_spectacular.utils import extend_schema_field
+from galaxy_importer.constants import NAME_REGEXP
 from jsonschema import Draft7Validator
 from rest_framework import serializers
 from rest_framework.exceptions import ValidationError
-from drf_spectacular.utils import extend_schema_field
 
-from galaxy_importer.constants import NAME_REGEXP
 from pulpcore.plugin.models import Artifact, Content, ContentArtifact, SigningService
 from pulpcore.plugin.serializers import (
-    DetailRelatedField,
     ContentChecksumSerializer,
+    DetailRelatedField,
+    DistributionSerializer,
     ModelSerializer,
     NoArtifactContentSerializer,
     NoArtifactContentUploadSerializer,
@@ -22,38 +22,38 @@ from pulpcore.plugin.serializers import (
     RemoteSerializer,
     RepositorySerializer,
     RepositorySyncURLSerializer,
+    RepositoryVersionRelatedField,
     SingleArtifactContentSerializer,
     SingleArtifactContentUploadSerializer,
-    DistributionSerializer,
-    RepositoryVersionRelatedField,
     validate_unknown_fields,
 )
-from pulpcore.plugin.util import get_url, get_domain, get_domain_pk
+from pulpcore.plugin.util import get_domain, get_domain_pk, get_url
+
+from pulp_ansible.app import fields
+from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
+from pulp_ansible.app.tasks.signature import verify_signature_upload
+from pulp_ansible.app.tasks.upload import process_collection_artifact
+from pulp_ansible.app.tasks.utils import (
+    parse_collection_filename,
+    parse_collections_requirements_file,
+)
 
 from .models import (
-    AnsibleDistribution,
-    CollectionVersionMark,
-    GitRemote,
-    RoleRemote,
     AnsibleCollectionDeprecated,
+    AnsibleDistribution,
     AnsibleNamespace,
     AnsibleNamespaceMetadata,
     AnsibleRepository,
     Collection,
     CollectionImport,
-    CollectionVersion,
-    CollectionVersionSignature,
     CollectionRemote,
+    CollectionVersion,
+    CollectionVersionMark,
+    CollectionVersionSignature,
+    GitRemote,
     Role,
+    RoleRemote,
 )
-from pulp_ansible.app import fields
-from pulp_ansible.app.schema import COPY_CONFIG_SCHEMA
-from pulp_ansible.app.tasks.utils import (
-    parse_collections_requirements_file,
-    parse_collection_filename,
-)
-from pulp_ansible.app.tasks.signature import verify_signature_upload
-from pulp_ansible.app.tasks.upload import process_collection_artifact
 
 
 class DomainUniqueTogetherValidator(serializers.UniqueTogetherValidator):
