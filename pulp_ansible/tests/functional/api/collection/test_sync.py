@@ -16,9 +16,6 @@ from pulp_ansible.tests.functional.utils import (  # noqa
     gen_ansible_remote,
     monitor_task,
 )
-from pulp_ansible.tests.functional.utils import (
-    set_up_module as setUpModule,
-)
 
 
 class MirrorTestCase(TestCaseUsingBindings, SyncHelpersMixin):
