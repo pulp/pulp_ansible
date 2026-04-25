@@ -1,13 +1,11 @@
 import hashlib
 import json
+import os
 import shutil
 import subprocess
-import os
 
 import pytest
-
-from orionutils.generator import build_collection
-from orionutils.generator import randstr
+from orionutils.generator import build_collection, randstr
 
 from pulpcore.client.pulp_ansible.exceptions import ApiException
 

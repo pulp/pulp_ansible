@@ -9,7 +9,7 @@ from datetime import datetime
 from urllib.parse import urljoin
 
 import pytest
-
+from orionutils.generator import build_collection
 from pulp_smash import api, config
 from pulp_smash.pulp3.utils import gen_distribution, gen_repo
 from pulp_smash.utils import http_get
@@ -20,7 +20,6 @@ from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DISTRIBUTION_PATH,
     ANSIBLE_REPO_PATH,
 )
-from orionutils.generator import build_collection
 
 logger = logging.getLogger(__name__)
 

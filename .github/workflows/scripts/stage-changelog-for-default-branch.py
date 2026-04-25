@@ -12,7 +12,6 @@ import textwrap
 from git import Repo
 from git.exc import GitCommandError
 
-
 helper = textwrap.dedent(
     """\
         Stage the changelog for a release on main branch.

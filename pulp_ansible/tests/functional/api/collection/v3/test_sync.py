@@ -3,23 +3,25 @@
 import os
 import unittest
 
+from pulp_smash.pulp3.bindings import PulpTaskError, PulpTestCase
+
 from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
     PulpAnsibleApiV3CollectionsApi,
-    RepositoriesAnsibleApi,
     RemotesCollectionApi,
+    RepositoriesAnsibleApi,
 )
-from pulp_smash.pulp3.bindings import PulpTaskError, PulpTestCase
 
 from pulp_ansible.tests.functional.utils import (
+    SyncHelpersMixin,
+    TestCaseUsingBindings,
     gen_ansible_client,
     gen_ansible_remote,
     monitor_task,
     tasks,
 )
-from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
 
 
 class SyncCollectionsFromPulpServerTestCase(TestCaseUsingBindings, SyncHelpersMixin):

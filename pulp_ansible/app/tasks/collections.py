@@ -1,11 +1,11 @@
 import asyncio
-from collections.abc import Coroutine
 import functools
 import hashlib
 import json
 import logging
 import tarfile
 from collections import defaultdict
+from collections.abc import Coroutine
 from gettext import gettext as _
 from operator import attrgetter
 from pathlib import Path
@@ -20,13 +20,15 @@ from django.db.models import F, Q
 from django.db.utils import IntegrityError
 from django.urls import reverse
 from django.utils.dateparse import parse_datetime
-from galaxy_importer.collection import CollectionFilename
+from galaxy_importer.collection import CollectionFilename, sync_collection
 from galaxy_importer.collection import import_collection as process_collection
-from galaxy_importer.collection import sync_collection
 from galaxy_importer.exceptions import ImporterError
 from git import GitCommandError, Repo
+from rest_framework.serializers import ValidationError
+from semantic_version import SimpleSpec, Version
+from semantic_version.base import Always
+
 from pulpcore.plugin.exceptions import DigestValidationError
-from pulpcore.plugin.util import get_domain
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -51,9 +53,7 @@ from pulpcore.plugin.stages import (
     ResolveContentFutures,
     Stage,
 )
-from rest_framework.serializers import ValidationError
-from semantic_version import SimpleSpec, Version
-from semantic_version.base import Always
+from pulpcore.plugin.util import get_domain
 
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import (

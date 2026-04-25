@@ -3,16 +3,17 @@
 import datetime
 
 import pytest
+from orionutils.generator import build_collection
 
+from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
+
+from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
 from pulp_ansible.tests.functional.utils import (
-    gen_ansible_remote,
     SyncHelpersMixin,
     TestCaseUsingBindings,
+    gen_ansible_remote,
+    monitor_task,
 )
-from pulp_ansible.tests.functional.constants import TEST_COLLECTION_CONFIGS
-from orionutils.generator import build_collection
-from pulpcore.client.pulp_ansible import PulpAnsibleArtifactsCollectionsV3Api
-from pulp_ansible.tests.functional.utils import monitor_task
 
 
 @pytest.mark.parallel

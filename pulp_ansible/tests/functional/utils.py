@@ -1,36 +1,40 @@
 """Utilities for tests for the ansible plugin."""
 
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import parse_qs, urlparse
 
 from pulp_smash import config
-from pulp_smash.pulp3.bindings import delete_orphans, monitor_task, PulpTestCase
+from pulp_smash.pulp3.bindings import PulpTestCase, delete_orphans, monitor_task
 from pulp_smash.pulp3.utils import (
     gen_distribution,
     gen_remote,
     gen_repo,
 )
 
-from pulp_ansible.tests.functional.constants import (
-    ANSIBLE_FIXTURE_URL,
-)
-
-from pulpcore.client.pulpcore import (
-    ApiClient as CoreApiClient,
-    TasksApi,
-    StatusApi,
-)
 from pulpcore.client.pulp_ansible import (
-    ApiClient as AnsibleApiClient,
+    AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
     PulpAnsibleApiV3CollectionsApi,
     PulpAnsibleApiV3CollectionsVersionsApi,
-    RepositoriesAnsibleApi,
     RemotesCollectionApi,
     RemotesGitApi,
     RemotesRoleApi,
-    AnsibleRepositorySyncURL,
+    RepositoriesAnsibleApi,
     RepositoriesAnsibleVersionsApi,
+)
+from pulpcore.client.pulp_ansible import (
+    ApiClient as AnsibleApiClient,
+)
+from pulpcore.client.pulpcore import (
+    ApiClient as CoreApiClient,
+)
+from pulpcore.client.pulpcore import (
+    StatusApi,
+    TasksApi,
+)
+
+from pulp_ansible.tests.functional.constants import (
+    ANSIBLE_FIXTURE_URL,
 )
 
 cfg = config.get_config()

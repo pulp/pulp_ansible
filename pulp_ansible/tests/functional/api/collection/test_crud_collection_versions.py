@@ -1,11 +1,12 @@
 """Tests related to sync ansible plugin collection content type."""
 
 import pytest
-
 from orionutils.generator import randstr
 
 from pulp_ansible.tests.functional.constants import (
     ANSIBLE_DEMO_COLLECTION_REQUIREMENTS as DEMO_REQUIREMENTS,
+)
+from pulp_ansible.tests.functional.constants import (
     GALAXY_ANSIBLE_BASE_URL,
 )
 
