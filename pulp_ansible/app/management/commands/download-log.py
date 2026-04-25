@@ -1,6 +1,6 @@
-from gettext import gettext as _
 import json
 import sys
+from gettext import gettext as _
 
 from django.core.management import BaseCommand, CommandError
 

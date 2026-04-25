@@ -1,6 +1,8 @@
 import pytest
-from pulp_ansible.tests.functional.utils import content_counts
+
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+
+from pulp_ansible.tests.functional.utils import content_counts
 
 
 def test_add_mark_to_collection_version(
