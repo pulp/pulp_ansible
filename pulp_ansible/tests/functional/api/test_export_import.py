@@ -5,11 +5,13 @@ NOTE: assumes ALLOWED_EXPORT_PATHS setting contains "/tmp" - all tests will fail
 the case.
 """
 
-import pytest
 import uuid
 
-from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+import pytest
+
 from pulpcore.app import settings
+from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
+
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
 
 # As long as we cannot run this test in domains, it must not run as parallel.

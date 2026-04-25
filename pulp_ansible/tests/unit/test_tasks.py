@@ -1,10 +1,8 @@
 from unittest import mock
+
 from django.test import TestCase
 
-from pulp_ansible.app.models import AnsibleDistribution
-from pulp_ansible.app.models import AnsibleRepository
-from pulp_ansible.app.models import CollectionVersion
-
+from pulp_ansible.app.models import AnsibleDistribution, AnsibleRepository, CollectionVersion
 from pulp_ansible.app.tasks.collections import (
     _rebuild_collection_version_meta,
     rebuild_repository_collection_versions_metadata,

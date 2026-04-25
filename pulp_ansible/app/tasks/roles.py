@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import math
-
 from asyncio import FIRST_COMPLETED
 from gettext import gettext as _
 
@@ -12,10 +11,11 @@ from pulpcore.plugin.stages import (
     DeclarativeVersion,
     Stage,
 )
+
 from pulp_ansible.app.constants import PAGE_SIZE
-from pulp_ansible.exceptions import RemoteURLRequiredError
-from pulp_ansible.app.models import AnsibleRepository, RoleRemote, Role
+from pulp_ansible.app.models import AnsibleRepository, Role, RoleRemote
 from pulp_ansible.app.tasks.utils import get_api_version, get_page_url, parse_metadata
+from pulp_ansible.exceptions import RemoteURLRequiredError
 
 try:
     from pulpcore.plugin.serializers import RepositoryVersionSerializer

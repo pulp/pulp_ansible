@@ -1,15 +1,17 @@
 import typing as t
+
 from django.conf import settings
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from drf_spectacular.types import OpenApiTypes
-from rest_framework.reverse import reverse
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
+from rest_framework.reverse import reverse
 
-from pulpcore.plugin.util import get_domain
-from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin import serializers as core_serializers
+from pulpcore.plugin.models import RepositoryVersion
+from pulpcore.plugin.util import get_domain
 
-from pulp_ansible.app import models, fields, serializers as ansible_serializers
+from pulp_ansible.app import fields, models
+from pulp_ansible.app import serializers as ansible_serializers
 
 DOMAIN_ENABLED = settings.DOMAIN_ENABLED
 
