@@ -1,19 +1,24 @@
 """Tests related to Galaxy V3 serializers."""
 
+from pulp_smash.pulp3.bindings import monitor_task
+
 from pulpcore.client.pulp_ansible import (
     AnsibleRepositorySyncURL,
     ContentCollectionVersionsApi,
     DistributionsAnsibleApi,
     PulpAnsibleApiV3CollectionsApi,
     PulpAnsibleApiV3CollectionsVersionsApi,
-    RepositoriesAnsibleApi,
     RemotesCollectionApi,
+    RepositoriesAnsibleApi,
 )
-from pulp_smash.pulp3.bindings import monitor_task
 
-from pulp_ansible.tests.functional.utils import SyncHelpersMixin, TestCaseUsingBindings
-from pulp_ansible.tests.functional.utils import gen_ansible_client, gen_ansible_remote
-from pulp_ansible.tests.functional.utils import tasks
+from pulp_ansible.tests.functional.utils import (
+    SyncHelpersMixin,
+    TestCaseUsingBindings,
+    gen_ansible_client,
+    gen_ansible_remote,
+    tasks,
+)
 
 
 class CollectionsV3TestCase(TestCaseUsingBindings, SyncHelpersMixin):

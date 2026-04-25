@@ -1,13 +1,16 @@
 from typing import List
-from django.conf import settings
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
-from drf_spectacular.types import OpenApiTypes
-from rest_framework.reverse import reverse
-from rest_framework import serializers, relations
 
-from pulp_ansible.app import models, fields, serializers as ansible_serializers
-from pulpcore.plugin.models import RepositoryVersion
+from django.conf import settings
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from rest_framework import relations, serializers
+from rest_framework.reverse import reverse
+
 from pulpcore.plugin import serializers as core_serializers
+from pulpcore.plugin.models import RepositoryVersion
+
+from pulp_ansible.app import fields, models
+from pulp_ansible.app import serializers as ansible_serializers
 
 
 def _get_distro_context(context):

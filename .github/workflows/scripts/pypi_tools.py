@@ -1,9 +1,9 @@
 import os
 import shutil
 
-from bandersnatch.mirror import BandersnatchMirror
-from bandersnatch.master import Master
 from bandersnatch.configuration import BandersnatchConfig
+from bandersnatch.master import Master
+from bandersnatch.mirror import BandersnatchMirror
 from packaging.requirements import Requirement
 
 

@@ -1,7 +1,7 @@
 import pytest
+from orionutils.generator import randstr
 
 from pulpcore.client.pulp_ansible.exceptions import ApiException
-from orionutils.generator import randstr
 
 from pulp_ansible.tests.functional.utils import content_counts
 

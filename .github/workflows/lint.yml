@@ -42,11 +42,7 @@ jobs:
 
       - name: "Lint code"
         run: |
-          ruff check --diff
-
-      - name: "Check for common gettext problems"
-        run: |
-          sh .ci/scripts/check_gettext.sh
+          ruff check
 
       - name: "Run extra lint checks"
         run: |

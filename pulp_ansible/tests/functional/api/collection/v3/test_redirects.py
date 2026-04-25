@@ -1,16 +1,17 @@
 import pytest
+
 from pulpcore.client.pulp_ansible import (
+    PulpAnsibleApiV3CollectionsAllApi,
     # Old APIs
     PulpAnsibleApiV3CollectionsApi,
     PulpAnsibleApiV3CollectionsVersionsApi,
-    PulpAnsibleApiV3CollectionVersionsAllApi,
-    PulpAnsibleApiV3CollectionsAllApi,
     PulpAnsibleApiV3CollectionsVersionsDocsBlobApi,
+    PulpAnsibleApiV3CollectionVersionsAllApi,
+    PulpAnsibleApiV3PluginAnsibleContentCollectionsAllCollectionsApi,
+    PulpAnsibleApiV3PluginAnsibleContentCollectionsAllVersionsApi,
     # New APIs
     PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexApi,
     PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexVersionsApi,
-    PulpAnsibleApiV3PluginAnsibleContentCollectionsAllVersionsApi,
-    PulpAnsibleApiV3PluginAnsibleContentCollectionsAllCollectionsApi,
     PulpAnsibleApiV3PluginAnsibleContentCollectionsIndexVersionsDocsBlobApi,
 )
 

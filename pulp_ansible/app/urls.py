@@ -1,17 +1,16 @@
 from django.conf import settings
 from django.urls import include, path, re_path
 
+from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
+
+from pulp_ansible.app.galaxy.v3 import views as views_v3
+from pulp_ansible.app.galaxy.v3 import viewsets as viewsets_v3
 from pulp_ansible.app.galaxy.views import (
     GalaxyVersionView,
     RoleList,
     RoleVersionList,
 )
-from pulp_ansible.app.galaxy.v3 import views as views_v3
-from pulp_ansible.app.galaxy.v3 import viewsets as viewsets_v3
-
-from pulp_ansible.app.viewsets import CopyViewSet, CollectionUploadViewSet
-
-from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
+from pulp_ansible.app.viewsets import CollectionUploadViewSet, CopyViewSet
 
 GALAXY_API_ROOT = getattr(settings, "GALAXY_API_ROOT", "pulp_ansible/galaxy/<path:path>/api/")
 
