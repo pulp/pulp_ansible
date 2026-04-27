@@ -4,6 +4,7 @@ import math
 from asyncio import FIRST_COMPLETED
 from gettext import gettext as _
 
+from pulpcore.plugin.exceptions import SyncError
 from pulpcore.plugin.models import Artifact, ProgressReport, Remote
 from pulpcore.plugin.stages import (
     DeclarativeArtifact,
@@ -15,7 +16,6 @@ from pulpcore.plugin.stages import (
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.app.models import AnsibleRepository, Role, RoleRemote
 from pulp_ansible.app.tasks.utils import get_api_version, get_page_url, parse_metadata
-from pulp_ansible.exceptions import RemoteURLRequiredError
 
 try:
     from pulpcore.plugin.serializers import RepositoryVersionSerializer
@@ -49,7 +49,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     repository = AnsibleRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise RemoteURLRequiredError()
+        raise SyncError(_("A remote must have a url specified to synchronize."))
 
     log.info(
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}

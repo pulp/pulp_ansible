@@ -7,15 +7,7 @@ class CollectionNotFound(PulpException):
     error_code = "ANS0001"
 
     def __init__(self, namespace, name, url):
-        """
-        :param url: The full URL that failed validation.
-        :type url: str
-        """
-        # Work around a sudden api change in pulpcore 3.103.
-        try:
-            super().__init__()
-        except BaseException:
-            super().__init__(self.error_code)
+        super().__init__()
         self.namespace = namespace
         self.name = name
         self.url = url
@@ -26,17 +18,6 @@ class CollectionNotFound(PulpException):
         ).format(namespace=self.namespace, name=self.name, url=self.url)
 
 
-class RemoteURLRequiredError(PulpException):
-    """
-    Raised when a remote is missing a required URL for synchronization.
-    """
-
-    error_code = "ANS0002"
-
-    def __str__(self):
-        return f"[{self.error_code}] " + _("A remote must have a url specified to synchronize.")
-
-
 class CollectionFilenameParseError(PulpException):
     """
     Raised when unable to parse a collection filename.
@@ -45,6 +26,7 @@ class CollectionFilenameParseError(PulpException):
     error_code = "ANS0003"
 
     def __init__(self, filename):
+        super().__init__()
         """
         :param filename: The filename that failed to parse
         :type filename: str
@@ -65,6 +47,7 @@ class InvalidCollectionFilenameError(PulpException):
     error_code = "ANS0004"
 
     def __init__(self, filename):
+        super().__init__()
         """
         :param filename: The invalid filename
         :type filename: str
@@ -85,6 +68,7 @@ class InvalidCollectionVersionError(PulpException):
     error_code = "ANS0005"
 
     def __init__(self, version, filename):
+        super().__init__()
         """
         :param version: The invalid version string
         :type version: str
@@ -109,6 +93,7 @@ class CollectionFieldTooLongError(PulpException):
     error_code = "ANS0006"
 
     def __init__(self, field_name, max_length):
+        super().__init__()
         """
         :param field_name: Name of the field that's too long
         :type field_name: str
@@ -132,6 +117,7 @@ class APIVersionNotFoundError(PulpException):
     error_code = "ANS0007"
 
     def __init__(self, url):
+        super().__init__()
         """
         :param url: The URL where version couldn't be found
         :type url: str
@@ -152,6 +138,7 @@ class AvailableVersionsNotFoundError(PulpException):
     error_code = "ANS0008"
 
     def __init__(self, url):
+        super().__init__()
         """
         :param url: The URL where available_versions wasn't found
         :type url: str
@@ -172,6 +159,7 @@ class UnsupportedAPIVersionError(PulpException):
     error_code = "ANS0009"
 
     def __init__(self, url):
+        super().__init__()
         """
         :param url: The URL with unsupported API versions
         :type url: str
@@ -190,6 +178,7 @@ class RequirementsFileParseError(PulpException):
     error_code = "ANS0010"
 
     def __init__(self, filename, error):
+        super().__init__()
         """
         :param filename: The requirements filename
         :type filename: str
@@ -213,6 +202,7 @@ class InvalidRequirementsFormatError(PulpException):
     error_code = "ANS0011"
 
     def __init__(self, message):
+        super().__init__()
         """
         :param message: Description of the format error
         :type message: str
@@ -272,6 +262,7 @@ class SignatureVerificationError(PulpException):
     error_code = "ANS0015"
 
     def __init__(self, message):
+        super().__init__()
         """
         :param message: Description of the verification failure
         :type message: str
@@ -292,6 +283,7 @@ class UnsupportedStorageBackendError(PulpException):
     error_code = "ANS0016"
 
     def __init__(self, storage_class):
+        super().__init__()
         self.storage_class = storage_class
 
     def __str__(self):
@@ -308,6 +300,7 @@ class CollectionFileNotFoundError(PulpException):
     error_code = "ANS0017"
 
     def __init__(self, file_path):
+        super().__init__()
         self.file_path = file_path
 
     def __str__(self):
