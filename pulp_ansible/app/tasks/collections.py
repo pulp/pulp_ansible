@@ -28,7 +28,7 @@ from rest_framework.serializers import ValidationError
 from semantic_version import SimpleSpec, Version
 from semantic_version.base import Always
 
-from pulpcore.plugin.exceptions import DigestValidationError
+from pulpcore.plugin.exceptions import DigestValidationError, SyncError
 from pulpcore.plugin.models import (
     Artifact,
     ContentArtifact,
@@ -82,7 +82,6 @@ from pulp_ansible.app.utils import set_collection_deferred_fields
 from pulp_ansible.exceptions import (
     AvailableVersionsNotFoundError,
     CollectionNotFound,
-    RemoteURLRequiredError,
     UnsupportedAPIVersionError,
     UnsupportedStorageBackendError,
 )
@@ -234,7 +233,7 @@ def sync(remote_pk, repository_pk, mirror, optimize):
     is_repo_remote = repository.remote is not None and remote.pk == repository.remote.pk
 
     if not remote.url:
-        raise RemoteURLRequiredError()
+        raise SyncError(_("A remote must have a url specified to synchronize."))
 
     first_stage = CollectionSyncFirstStage(remote, repository, is_repo_remote, optimize)
     if first_stage.should_sync:

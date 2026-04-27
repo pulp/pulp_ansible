@@ -1,6 +1,7 @@
 import logging
 from gettext import gettext as _
 
+from pulpcore.plugin.exceptions import SyncError
 from pulpcore.plugin.models import ProgressReport
 from pulpcore.plugin.stages import (
     ArtifactSaver,
@@ -16,7 +17,6 @@ from pulp_ansible.app.tasks.collections import (
     AnsibleContentSaver,
     declarative_content_from_git_repo,
 )
-from pulp_ansible.exceptions import RemoteURLRequiredError
 
 try:
     from pulpcore.plugin.serializers import RepositoryVersionSerializer
@@ -46,7 +46,7 @@ def synchronize(remote_pk, repository_pk, mirror=False):
     repository = AnsibleRepository.objects.get(pk=repository_pk)
 
     if not remote.url:
-        raise RemoteURLRequiredError()
+        raise SyncError(_("A remote must have a url specified to synchronize."))
 
     log.info(
         _("Synchronizing: repository=%(r)s remote=%(p)s"), {"r": repository.name, "p": remote.name}
