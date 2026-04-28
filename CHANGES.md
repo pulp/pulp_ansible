@@ -8,6 +8,19 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.22.8 (2026-04-28) {: #0.22.8 }
+
+#### Bugfixes {: #0.22.8-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Greatly reduced memory usage when syncing collections.
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
+
+---
+
 ## 0.22.7 (2026-01-27) {: #0.22.7 }
 
 #### Bugfixes {: #0.22.7-bugfix }
