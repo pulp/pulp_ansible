@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.8 (2026-04-28) {: #0.29.8 }
+
+#### Bugfixes {: #0.29.8-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
+
+---
+
 ## 0.29.7 (2026-04-16) {: #0.29.7 }
 
 No significant changes.
@@ -71,6 +81,16 @@ No significant changes.
 
 - Fixed a bug that made synching git repositories fail on clone.
 - Fixed an incompatibility with Django5.
+
+---
+
+## 0.28.7 (2026-04-28) {: #0.28.7 }
+
+#### Bugfixes {: #0.28.7-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
 
 ---
 
@@ -182,6 +202,16 @@ No significant changes.
 
 ---
 
+## 0.25.6 (2026-04-28) {: #0.25.6 }
+
+#### Bugfixes {: #0.25.6-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
+
+---
+
 ## 0.25.5 (2026-03-18) {: #0.25.5 }
 
 #### Bugfixes {: #0.25.5-bugfix }
@@ -246,6 +276,16 @@ No significant changes.
 - Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
 - Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
 - Fixed namespace avatar download log.
+
+---
+
+## 0.24.11 (2026-04-28) {: #0.24.11 }
+
+#### Bugfixes {: #0.24.11-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
 
 ---
 
@@ -412,6 +452,19 @@ Yank reason: Contains a bad migration
 
 ---
 
+## 0.22.8 (2026-04-28) {: #0.22.8 }
+
+#### Bugfixes {: #0.22.8-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Greatly reduced memory usage when syncing collections.
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
+
+---
+
 ## 0.22.7 (2026-01-27) {: #0.22.7 }
 
 #### Bugfixes {: #0.22.7-bugfix }
@@ -515,6 +568,18 @@ Yank reason: Contains a bad migration
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.16 (2026-04-28) {: #0.21.16 }
+
+#### Bugfixes {: #0.21.16-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
 
 ---
 
