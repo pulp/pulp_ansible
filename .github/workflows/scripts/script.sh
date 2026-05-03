@@ -142,9 +142,16 @@ else
     cmd_user_prefix bash -c "pytest -v --timeout=300 -r sx --color=yes --suppress-no-test-exit-code --durations=20 --pyargs pulp_ansible.tests.functional -m 'not parallel'"
   fi
 fi
+# some pulp-cli tests use the api root envvar
+export PULP_API_ROOT="$(EDITOR=cat pulp config edit 2>/dev/null | awk -F'"' '/api_root/{print $2; exit}')"
 pushd ../pulp-cli
-pip install -r test_requirements.txt
-pytest -v tests -m "pulp_ansible"
+if [[ -f "test_requirements.txt" ]]
+then
+  pip install -r test_requirements.txt
+  pytest -v tests -m "pulp_ansible"
+else
+  PULP_CA_BUNDLE="/usr/local/share/ca-certificates/pulp_webserver.crt" make livetest
+fi
 popd
 
 if [ -f "$POST_SCRIPT" ]; then
