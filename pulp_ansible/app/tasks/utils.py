@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlencode, urlparse, urlunparse
 
 import yaml
 from galaxy_importer.schema import MAX_LENGTH_NAME, MAX_LENGTH_VERSION
+from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
 from pulp_ansible.app.constants import PAGE_SIZE
@@ -14,12 +15,8 @@ from pulp_ansible.exceptions import (
     APIVersionNotFoundError,
     CollectionFieldTooLongError,
     CollectionFileNotFoundError,
-    CollectionNameRequiredError,
     InvalidCollectionFilenameError,
-    InvalidCollectionNameFormatError,
     InvalidCollectionVersionError,
-    InvalidRequirementsFormatError,
-    RequirementsFileParseError,
 )
 
 log = logging.getLogger(__name__)
@@ -138,12 +135,16 @@ def parse_collections_requirements_file(requirements_file_string):
             try:
                 requirements = yaml.safe_load(requirements_file_string)
             except YAMLError as err:
-                raise RequirementsFileParseError(requirements_file_string, str(err))
+                raise ValidationError(
+                    _(
+                        "Failed to parse the collection requirements yml: {file} with error {error}"
+                    ).format(file=requirements_file_string, error=str(err))
+                )
         else:
             requirements = requirements_file_string
 
         if not isinstance(requirements, dict) or "collections" not in requirements:
-            raise InvalidRequirementsFormatError(
+            raise ValidationError(
                 _(
                     "Expecting collections requirements file to be a dict with the key "
                     "collections that contains a list of collections to install."
@@ -151,7 +152,7 @@ def parse_collections_requirements_file(requirements_file_string):
             )
 
         if not isinstance(requirements["collections"], list):
-            raise InvalidRequirementsFormatError(
+            raise ValidationError(
                 _(
                     "Expecting collections requirements file to be a dict with the key "
                     "collections that contains a list of collections to install."
@@ -162,7 +163,9 @@ def parse_collections_requirements_file(requirements_file_string):
             if isinstance(collection_req, dict):
                 req_name = collection_req.get("name", None)
                 if req_name is None:
-                    raise CollectionNameRequiredError()
+                    raise ValidationError(
+                        _("Collections requirement entry should contain the key name.")
+                    )
 
                 req_version = collection_req.get("version", "*")
                 req_source = collection_req.get("source", None)
@@ -171,7 +174,12 @@ def parse_collections_requirements_file(requirements_file_string):
             else:
                 entry = RequirementsFileEntry(name=collection_req, version="*", source=None)
             if "." not in entry.name:
-                raise InvalidCollectionNameFormatError()
+                raise ValidationError(
+                    _(
+                        "Collections requirement entry should contain the collection name "
+                        "in the format <namespace>.<name>."
+                    )
+                )
             collection_info.append(entry)
 
     return collection_info

@@ -18,27 +18,6 @@ class CollectionNotFound(PulpException):
         ).format(namespace=self.namespace, name=self.name, url=self.url)
 
 
-class CollectionFilenameParseError(PulpException):
-    """
-    Raised when unable to parse a collection filename.
-    """
-
-    error_code = "ANS0003"
-
-    def __init__(self, filename):
-        super().__init__()
-        """
-        :param filename: The filename that failed to parse
-        :type filename: str
-        """
-        self.filename = filename
-
-    def __str__(self):
-        return f"[{self.error_code}] " + _(
-            "Failed to parse Collection file upload '{filename}'"
-        ).format(filename=self.filename)
-
-
 class InvalidCollectionFilenameError(PulpException):
     """
     Raised when collection filename format is invalid.
@@ -168,90 +147,6 @@ class UnsupportedAPIVersionError(PulpException):
 
     def __str__(self):
         return f"[{self.error_code}] " + _("Unsupported API versions at {url}").format(url=self.url)
-
-
-class RequirementsFileParseError(PulpException):
-    """
-    Raised when unable to parse requirements file YAML.
-    """
-
-    error_code = "ANS0010"
-
-    def __init__(self, filename, error):
-        super().__init__()
-        """
-        :param filename: The requirements filename
-        :type filename: str
-        :param error: The parsing error details
-        :type error: str
-        """
-        self.filename = filename
-        self.error = error
-
-    def __str__(self):
-        return f"[{self.error_code}] " + _(
-            "Failed to parse the collection requirements yml: {file} with error {error}"
-        ).format(file=self.filename, error=self.error)
-
-
-class InvalidRequirementsFormatError(PulpException):
-    """
-    Raised when requirements file has invalid format or structure.
-    """
-
-    error_code = "ANS0011"
-
-    def __init__(self, message):
-        super().__init__()
-        """
-        :param message: Description of the format error
-        :type message: str
-        """
-        self.message = message
-
-    def __str__(self):
-        return f"[{self.error_code}] " + self.message
-
-
-class CollectionNameRequiredError(PulpException):
-    """
-    Raised when collection name is missing from requirements entry.
-    """
-
-    error_code = "ANS0012"
-
-    def __str__(self):
-        return f"[{self.error_code}] " + _(
-            "Collections requirement entry should contain the key name."
-        )
-
-
-class InvalidCollectionNameFormatError(PulpException):
-    """
-    Raised when collection name doesn't follow namespace.name format.
-    """
-
-    error_code = "ANS0013"
-
-    def __str__(self):
-        return f"[{self.error_code}] " + _(
-            "Collections requirement entry should contain the collection name in the "
-            "format <namespace>.<name>."
-        )
-
-
-class MissingExpectedFieldsError(PulpException):
-    """
-    Raised when expected_namespace, expected_name, expected_version are missing.
-    """
-
-    error_code = "ANS0014"
-
-    def __str__(self):
-        return f"[{self.error_code}] " + _(
-            "expected_namespace, expected_name, and expected_version must be "
-            "specified when using artifact or upload objects"
-        )
 
 
 class SignatureVerificationError(PulpException):
