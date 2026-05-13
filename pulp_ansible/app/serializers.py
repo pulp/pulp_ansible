@@ -38,10 +38,6 @@ from pulp_ansible.app.tasks.utils import (
     parse_collection_filename,
     parse_collections_requirements_file,
 )
-from pulp_ansible.exceptions import (
-    CollectionFilenameParseError,
-    MissingExpectedFieldsError,
-)
 
 from .models import (
     AnsibleCollectionDeprecated,
@@ -484,12 +480,21 @@ class CollectionVersionUploadSerializer(SingleArtifactContentUploadSerializer):
         fields = ("namespace", "name", "version")
         if not all((f"expected_{x}" in data for x in fields)):
             if not ("file" in data or "filename" in self.context):
-                raise MissingExpectedFieldsError()
+                raise serializers.ValidationError(
+                    _(
+                        "expected_namespace, expected_name, and expected_version must be "
+                        "specified when using artifact or upload objects"
+                    )
+                )
             filename = self.context.get("filename") or data["file"].name
             try:
                 collection = parse_collection_filename(filename)
             except ValueError:
-                raise CollectionFilenameParseError(filename)
+                raise serializers.ValidationError(
+                    _("Failed to parse Collection file upload '{filename}'").format(
+                        filename=filename
+                    )
+                )
             data["expected_namespace"] = collection.namespace
             data["expected_name"] = collection.name
             data["expected_version"] = collection.version
