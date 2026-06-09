@@ -10,9 +10,8 @@ from django_filters import (
 )
 from rest_framework.exceptions import ValidationError
 
-from pulpcore.filters import StableOrderingFilter
 from pulpcore.plugin.models import RepositoryVersion
-from pulpcore.plugin.viewsets import LabelFilter
+from pulpcore.plugin.viewsets import LabelFilter, StableOrderingFilter
 
 from pulp_ansible.app import models
 
