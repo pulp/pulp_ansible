@@ -150,7 +150,7 @@ then
   pip install -r test_requirements.txt
   pytest -v tests -m "pulp_ansible"
 else
-  PULP_CA_BUNDLE="/usr/local/share/ca-certificates/pulp_webserver.crt" make livetest
+  PULP_CA_BUNDLE="/usr/local/share/ca-certificates/pulp_webserver.crt" make livetest PYTEST_MARK="live and (pulp_ansible)"
 fi
 popd
 
