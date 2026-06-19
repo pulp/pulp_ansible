@@ -152,9 +152,11 @@ class TestCollectionVersionSearchFilterOrdering(TestCase):
             ]
         )
 
-        qs = self._apply_filter(qs, {"order_by": "version"})
-        first_run = list(qs.values_list("pk", flat=True))
-        second_run = list(qs.values_list("pk", flat=True))
+        qs1 = self._apply_filter(qs, {"order_by": "version"})
+        qs2 = self._apply_filter(qs, {"order_by": "version"})
+
+        first_run = list(qs1.values_list("pk", flat=True))
+        second_run = list(qs2.values_list("pk", flat=True))
 
         assert first_run == second_run
 
@@ -169,9 +171,10 @@ class TestCollectionVersionSearchFilterOrdering(TestCase):
             ]
         )
 
-        qs = self._apply_filter(qs, {})
-        first_run = list(qs.values_list("pk", flat=True))
-        second_run = list(qs.values_list("pk", flat=True))
+        qs1 = self._apply_filter(qs, {})
+        qs2 = self._apply_filter(qs, {})
+        first_run = list(qs1.values_list("pk", flat=True))
+        second_run = list(qs2.values_list("pk", flat=True))
 
         assert first_run == second_run
 
@@ -186,9 +189,10 @@ class TestCollectionVersionSearchFilterOrdering(TestCase):
             ]
         )
 
-        qs = self._apply_filter(qs, {"order_by": "name"})
-        first_run = list(qs.values_list("pk", flat=True))
-        second_run = list(qs.values_list("pk", flat=True))
+        qs1 = self._apply_filter(qs, {"order_by": "name"})
+        qs2 = self._apply_filter(qs, {"order_by": "name"})
+        first_run = list(qs1.values_list("pk", flat=True))
+        second_run = list(qs2.values_list("pk", flat=True))
 
         assert first_run == second_run
 
