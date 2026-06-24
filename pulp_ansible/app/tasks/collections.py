@@ -890,10 +890,58 @@ class CollectionSyncFirstStage(Stage):
         await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
         return coros
 
-    async def _fetch_collection_metadata(self, requirements_entry) -> list[Coroutine]:
-        requirement_version = AnsibleSpec(requirements_entry.version)
+    async def _resolve_latest_version(self, namespace, name, source):
+        """Resolve 'latest' to the highest non-pre-release version."""
+        if self._unpaginated_collection_version_metadata and source is None:
+            all_versions = self._unpaginated_collection_version_metadata[namespace][name]
+            stable = [
+                Version(v["version"])
+                for v in all_versions
+                if not Version(v["version"]).prerelease
+            ]
+            if not stable:
+                stable = [Version(v["version"]) for v in all_versions]
+            return str(max(stable))
+        else:
+            root = source or self.remote.url
+            collection_endpoint, api_version = await self._get_paginated_collection_api(root)
+            collection_url = f"{collection_endpoint}{namespace}/{name}"
+            downloader = self.remote.get_downloader(url=collection_url)
+            metadata = parse_metadata(await downloader.run())
+            highest = metadata.get("highest_version", {}).get("version")
+            if highest and not Version(highest).prerelease:
+                return highest
+            all_versions = []
+            page_num = 1
+            while True:
+                dl = self._collection_versions_list_downloader(
+                    api_version, collection_endpoint, namespace, name, page_num, PAGE_SIZE
+                )
+                data = parse_metadata(await dl.run())
+                versions = data["results"] if api_version == 2 else data["data"]
+                all_versions.extend(versions)
+                if not self._get_response_next_value(api_version, data):
+                    break
+                page_num += 1
+            stable = [
+                Version(v["version"])
+                for v in all_versions
+                if not Version(v["version"]).prerelease
+            ]
+            if not stable:
+                stable = [Version(v["version"]) for v in all_versions]
+            return str(max(stable))
 
+    async def _fetch_collection_metadata(self, requirements_entry) -> list[Coroutine]:
         namespace, name = requirements_entry.name.split(".")
+
+        if requirements_entry.version == "latest":
+            latest = await self._resolve_latest_version(
+                namespace, name, requirements_entry.source
+            )
+            requirement_version = AnsibleSpec(f"=={latest}")
+        else:
+            requirement_version = AnsibleSpec(requirements_entry.version)
 
         if self._unpaginated_collection_version_metadata and requirements_entry.source is None:
             return await self._read_from_downloaded_metadata(name, namespace, requirement_version)
