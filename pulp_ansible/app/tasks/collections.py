@@ -41,6 +41,7 @@ from pulpcore.plugin.models import (
 )
 from pulpcore.plugin.stages import (
     ArtifactDownloader,
+    ArtifactResourceBudget,
     ArtifactSaver,
     ContentAssociation,
     ContentSaver,
@@ -213,7 +214,7 @@ async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_
     return d_content
 
 
-def sync(remote_pk, repository_pk, mirror, optimize):
+def sync(remote_pk, repository_pk, mirror, optimize, **kwargs):
     """
     Sync Collections with ``remote_pk``, and save a new RepositoryVersion for ``repository_pk``.
 
@@ -479,11 +480,12 @@ class AnsibleDeclarativeVersion(DeclarativeVersion):
             list: List of :class:`~pulpcore.plugin.stages.Stage` instances
 
         """
+        resource_budget = ArtifactResourceBudget.from_settings()
         pipeline = [
             self.first_stage,
             QueryExistingArtifacts(),
-            ArtifactDownloader(),
-            ArtifactSaver(),
+            ArtifactDownloader(resource_budget=resource_budget),
+            ArtifactSaver(resource_budget=resource_budget),
             QueryExistingContents(),
             DocsBlobDownloader(),
             AnsibleContentSaver(new_version),
