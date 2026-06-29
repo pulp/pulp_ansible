@@ -816,6 +816,8 @@ class CollectionSyncFirstStage(Stage):
         collection_metadata_downloader = self.remote.get_downloader(url=collection_url)
         collection_metadata = parse_metadata(await collection_metadata_downloader.run())
 
+        # requirement is None when version: "latest" was specified
+        # - resolved here to avoid a duplicate API call
         if requirement is None:
             highest = collection_metadata.get("highest_version", {}).get("version")
             if highest and not Version(highest).prerelease:
