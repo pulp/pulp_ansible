@@ -52,18 +52,61 @@ def test_sync_with_mirror(
 
 @pytest.mark.parallel
 @pytest.mark.parametrize(
-    "collection,old_galaxy,sync_dependencies,min_count",
+    "collection,old_galaxy,sync_dependencies,sync_highest_versions,min_count,max_count",
     [
-        pytest.param("ibm.ibm_zos_core", False, False, 14, id="with_long_tag"),
-        pytest.param("rshad.collection_demo", False, False, 6, id="with_dot_slash_in_manifest"),
-        pytest.param("brightcomputing.bcm", True, False, 5, id="with_strange_version_numbers"),
         pytest.param(
-            "pulp.pulp_installer",
+            "ibm.ibm_zos_core",
+            False,
+            False,
+            None,
+            14,
+            None,
+            id="with_long_tag",
+        ),
+        pytest.param(
+            "rshad.collection_demo",
+            False,
+            False,
+            1,
+            1,
+            1,
+            id="with_dot_slash_in_manifest",
+        ),
+        pytest.param(
+            "brightcomputing.bcm",
+            True,
+            False,
+            2,
+            2,
+            2,
+            id="with_strange_version_numbers",
+        ),
+        pytest.param(
+            '{"name": "community.crypto", "version": ">=1.0.0,<3.0.0"}',
+            False,
+            False,
+            1,
+            1,
+            1,
+            id="sync_highest_versions_with_range",
+        ),
+        pytest.param(
+            '{"name": "pulp.pulp_installer", "version": "*"}',
             False,
             True,
-            5,
+            1,
+            7,
+            7,
             id="simple_dependency",
-            marks=[pytest.mark.timeout(1800)],  # TODO This test takes too much time!
+        ),
+        pytest.param(
+            '{"name": "pulp.pulp_installer", "version": "3.22.0"}',
+            False,
+            True,
+            1,
+            7,
+            7,
+            id="simple_dependency_pinned",
         ),
     ],
 )
@@ -72,7 +115,9 @@ def test_sync_collection_with_specialities(
     collection,
     old_galaxy,
     sync_dependencies,
+    sync_highest_versions,
     min_count,
+    max_count,
     ansible_collection_remote_factory,
     ansible_sync_factory,
 ):
@@ -85,6 +130,7 @@ def test_sync_collection_with_specialities(
         ),
         requirements_file=f"collections:\n  - {collection}",
         sync_dependencies=sync_dependencies,
+        sync_highest_versions=sync_highest_versions,
     )
 
     repository = ansible_sync_factory(remote=remote.pulp_href)
@@ -92,7 +138,10 @@ def test_sync_collection_with_specialities(
     content = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{repository.pulp_href}versions/1/"
     )
-    assert content.count >= min_count
+    if min_count is not None:
+        assert content.count >= min_count
+    if max_count is not None:
+        assert content.count <= max_count
 
 
 class TestFullDependenciesSync:
@@ -244,7 +293,7 @@ def test_semver_sync(
         repository_version=repository.latest_version_href
     )
     versions = {item.version for item in content.results}
-    # If this fails check that it is still upstream!
+    # If this fails, check that it is still upstream!
     # TODO create a better local fixture to sync from.
     assert "0.0.1-rerelease+meta" in versions
     assert "0.0.0-rerelease+meta" in versions
