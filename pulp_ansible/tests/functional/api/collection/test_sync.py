@@ -7,79 +7,17 @@ import pytest
 from pulp_ansible.tests.functional.utils import randstr
 
 
+@pytest.mark.parametrize("mirror", [None, True, False])
 @pytest.mark.parallel
-def test_sync_supports_mirror_option_true(
-    ansible_bindings, ansible_collection_remote_factory, ansible_sync_factory
-):
-    """Sync multiple remotes into the same repo with mirror as `True`."""
-    remote_a = ansible_collection_remote_factory(
-        url="https://galaxy.ansible.com",
-        requirements_file="collections:\n  - robertdebock.ansible_development_environment",
-        sync_dependencies=False,
-    )
-
-    remote_b = ansible_collection_remote_factory(
-        url="https://galaxy.ansible.com",
-        requirements_file="collections:\n  - testing.k8s_demo_collection",
-        sync_dependencies=False,
-    )
-
-    repository = ansible_sync_factory(remote=remote_a.pulp_href)
-    assert repository.latest_version_href == f"{repository.versions_href}1/"
-    repository = ansible_sync_factory(repository, remote=remote_b.pulp_href, mirror=True)
-    assert repository.latest_version_href == f"{repository.versions_href}2/"
-
-    # Assert more CollectionVersion are present in the first sync than the second
-    if repository.retain_repo_versions and repository.retain_repo_versions > 1:
-        content_version_one = ansible_bindings.ContentCollectionVersionsApi.list(
-            repository_version=f"{repository.pulp_href}versions/1/"
-        )
-        assert content_version_one.count >= 3
-    content_version_two = ansible_bindings.ContentCollectionVersionsApi.list(
-        repository_version=f"{repository.pulp_href}versions/2/"
-    )
-    assert content_version_two.count == 1
-
-
-@pytest.mark.parallel
-def test_sync_supports_mirror_option_false(
-    ansible_bindings, ansible_collection_remote_factory, ansible_sync_factory
-):
-    """Sync multiple remotes into the same repo with mirror as `False`."""
-    remote_a = ansible_collection_remote_factory(
-        url="https://galaxy.ansible.com",
-        requirements_file="collections:\n  - robertdebock.ansible_development_environment",
-        sync_dependencies=False,
-    )
-
-    remote_b = ansible_collection_remote_factory(
-        url="https://galaxy.ansible.com",
-        requirements_file="collections:\n  - testing.k8s_demo_collection",
-        sync_dependencies=False,
-    )
-
-    repository = ansible_sync_factory(remote=remote_a.pulp_href)
-    assert repository.latest_version_href == f"{repository.versions_href}1/"
-    repository = ansible_sync_factory(repository, remote=remote_b.pulp_href, mirror=False)
-    assert repository.latest_version_href == f"{repository.versions_href}2/"
-
-    # Assert more CollectionVersion are present in the second sync than the first
-    if repository.retain_repo_versions and repository.retain_repo_versions > 1:
-        content_version_one = ansible_bindings.ContentCollectionVersionsApi.list(
-            repository_version=f"{repository.pulp_href}versions/1/"
-        )
-        assert content_version_one.count >= 3
-    content_version_two = ansible_bindings.ContentCollectionVersionsApi.list(
-        repository_version=f"{repository.pulp_href}versions/2/"
-    )
-    assert content_version_two.count == 4
-
-
-@pytest.mark.parallel
-def test_sync_mirror_defaults_to_false(
-    ansible_bindings, ansible_collection_remote_factory, ansible_sync_factory
+def test_sync_with_mirror(
+    ansible_bindings,
+    ansible_repository_factory,
+    ansible_collection_remote_factory,
+    ansible_sync_factory,
+    mirror,
 ):
     """Sync multiple remotes into the same repo to ensure mirror defaults to `False`."""
+    repository = ansible_repository_factory(retain_repo_versions=2)
     remote_a = ansible_collection_remote_factory(
         url="https://galaxy.ansible.com",
         requirements_file="collections:\n  - robertdebock.ansible_development_environment",
@@ -92,21 +30,24 @@ def test_sync_mirror_defaults_to_false(
         sync_dependencies=False,
     )
 
-    repository = ansible_sync_factory(remote=remote_a.pulp_href)
+    repository = ansible_sync_factory(repository, remote=remote_a.pulp_href)
     assert repository.latest_version_href == f"{repository.versions_href}1/"
-    repository = ansible_sync_factory(repository, remote=remote_b.pulp_href)
+    if mirror is None:
+        # 'mirror' should default to false.
+        repository = ansible_sync_factory(repository, remote=remote_b.pulp_href)
+    else:
+        repository = ansible_sync_factory(repository, remote=remote_b.pulp_href, mirror=mirror)
     assert repository.latest_version_href == f"{repository.versions_href}2/"
 
-    # Assert more CollectionVersion are present in the second sync than the first
-    if repository.retain_repo_versions and repository.retain_repo_versions > 1:
-        content_version_one = ansible_bindings.ContentCollectionVersionsApi.list(
-            repository_version=f"{repository.pulp_href}versions/1/"
-        )
-        assert content_version_one.count >= 3
+    # Assert one more CollectionVersion is present in the second sync than the first
+    content_version_one = ansible_bindings.ContentCollectionVersionsApi.list(
+        repository_version=f"{repository.pulp_href}versions/1/"
+    )
+    assert content_version_one.count == 3
     content_version_two = ansible_bindings.ContentCollectionVersionsApi.list(
         repository_version=f"{repository.pulp_href}versions/2/"
     )
-    assert content_version_two.count == 4
+    assert content_version_two.count == 1 if mirror is True else 4
 
 
 @pytest.mark.parallel
