@@ -10,13 +10,14 @@ from django_filters import (
 )
 from rest_framework.exceptions import ValidationError
 
+from pulpcore.filters import StableOrderingFilter
 from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.viewsets import LabelFilter
 
 from pulp_ansible.app import models
 
 
-class SemanticVersionOrderingFilter(filters.OrderingFilter):
+class SemanticVersionOrderingFilter(StableOrderingFilter):
     def filter(self, qs, value):
         if value is not None and any(v in ["version", "-version"] for v in value):
             order = "-" if "-version" in value else ""
