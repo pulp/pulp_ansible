@@ -17,6 +17,7 @@ from pulpcore.plugin.viewsets import LabelFilter
 try:
     from pulpcore.plugin.viewsets import StableOrderingFilter
 except ImportError:
+
     class StableOrderingFilter(filters.OrderingFilter):
         """
         Ordering filter with a stabilized order by either creation date, if available or primary key.
