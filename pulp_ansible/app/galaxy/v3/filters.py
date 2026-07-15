@@ -1,5 +1,6 @@
 import semantic_version
 from django.contrib.postgres.search import SearchQuery
+from django.core.exceptions import FieldDoesNotExist
 from django.db.models import Case, Q, Value, When
 from django.db.models import fields as db_fields
 from django.db.models.expressions import F, Func
@@ -10,9 +11,27 @@ from django_filters import (
 )
 from rest_framework.exceptions import ValidationError
 
-from pulpcore.filters import StableOrderingFilter
 from pulpcore.plugin.models import RepositoryVersion
 from pulpcore.plugin.viewsets import LabelFilter
+
+try:
+    from pulpcore.plugin.viewsets import StableOrderingFilter
+except ImportError:
+    class StableOrderingFilter(filters.OrderingFilter):
+        """
+        Ordering filter with a stabilized order by either creation date, if available or primary key.
+        """
+
+        def filter(self, qs, value):
+            try:
+                field = qs.model._meta.get_field("pulp_created")
+            except FieldDoesNotExist:
+                field = qs.model._meta.pk
+
+            ordering = [self.get_ordering_value(param) for param in value or []]
+            ordering.append("-" + field.name)
+            return qs.order_by(*ordering)
+
 
 from pulp_ansible.app import models
 
