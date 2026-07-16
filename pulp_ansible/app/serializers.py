@@ -248,6 +248,16 @@ class CollectionRemoteSerializer(RemoteSerializer):
         required=False,
     )
 
+    sync_highest_versions = serializers.IntegerField(
+        help_text=_(
+            "The number of highest versions of each collection to sync. "
+            "Unset or null syncs all versions. 1 syncs only the highest version."
+        ),
+        allow_null=True,
+        min_value=1,
+        required=False,
+    )
+
     last_sync_task = serializers.SerializerMethodField()
 
     def validate(self, data):
@@ -307,6 +317,7 @@ class CollectionRemoteSerializer(RemoteSerializer):
             "token",
             "sync_dependencies",
             "signed_only",
+            "sync_highest_versions",
             "last_sync_task",
         )
         model = CollectionRemote

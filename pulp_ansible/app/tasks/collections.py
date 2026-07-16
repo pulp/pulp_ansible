@@ -564,6 +564,7 @@ class CollectionSyncFirstStage(Stage):
         self.exclude_info = {}
         self.add_dependents = self.collection_info and self.remote.sync_dependencies
         self.signed_only = self.remote.signed_only
+        self.sync_highest_versions = self.remote.sync_highest_versions
         self.already_synced = set()
         self._unpaginated_collection_metadata = None
         self._unpaginated_collection_version_metadata = None
@@ -816,7 +817,7 @@ class CollectionSyncFirstStage(Stage):
         collection_metadata_downloader = self.remote.get_downloader(url=collection_url)
         collection_metadata = parse_metadata(await collection_metadata_downloader.run())
 
-        coros = []
+        matched_versions = []
         page_num = 1
         while True:
             versions_list_downloader = self._collection_versions_list_downloader(
@@ -829,23 +830,30 @@ class CollectionSyncFirstStage(Stage):
                 collection_versions = collection_versions_list["data"]
             for collection_version in collection_versions:
                 if Version(collection_version["version"]) in requirement:
-                    version_num = collection_version["version"]
-                    collection_version_detail_url = f"{collection_url}/versions/{version_num}/"
-                    if collection_metadata["deprecated"]:
-                        d_content = DeclarativeContent(
-                            content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
-                        )
-                        await self.put(d_content)
-                    coros.append(
-                        self._fetch_collection_version_metadata(
-                            api_version,
-                            collection_version_detail_url,
-                        )
-                    )
+                    matched_versions.append(collection_version)
             next_value = self._get_response_next_value(api_version, collection_versions_list)
             if not next_value:
                 break
             page_num = page_num + 1
+
+        if self.sync_highest_versions:
+            matched_versions = self._limit_to_highest_versions(matched_versions)
+
+        coros = []
+        for collection_version in matched_versions:
+            version_num = collection_version["version"]
+            collection_version_detail_url = f"{collection_url}/versions/{version_num}/"
+            if collection_metadata["deprecated"]:
+                d_content = DeclarativeContent(
+                    content=AnsibleCollectionDeprecated(namespace=namespace, name=name),
+                )
+                await self.put(d_content)
+            coros.append(
+                self._fetch_collection_version_metadata(
+                    api_version,
+                    collection_version_detail_url,
+                )
+            )
 
         self.parsing_metadata_progress_bar.total += len(coros)
         await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
@@ -867,28 +875,42 @@ class CollectionSyncFirstStage(Stage):
             await self.put(d_content)
 
         all_versions_of_collection = self._unpaginated_collection_version_metadata[namespace][name]
-        for col_version_metadata in all_versions_of_collection:
-            if Version(col_version_metadata["version"]) in requirement:
-                if "git_url" in col_version_metadata and col_version_metadata["git_url"]:
-                    coros.append(
-                        self._add_collection_version_from_git(
-                            col_version_metadata["git_url"],
-                            col_version_metadata["git_commit_sha"],
-                            False,
-                        )
+        matched_versions = [
+            v for v in all_versions_of_collection if Version(v["version"]) in requirement
+        ]
+
+        if self.sync_highest_versions:
+            matched_versions = self._limit_to_highest_versions(matched_versions)
+
+        for col_version_metadata in matched_versions:
+            if "git_url" in col_version_metadata and col_version_metadata["git_url"]:
+                coros.append(
+                    self._add_collection_version_from_git(
+                        col_version_metadata["git_url"],
+                        col_version_metadata["git_commit_sha"],
+                        False,
                     )
-                else:
-                    collection_version_url = urljoin(
-                        self.remote.url, f"{col_version_metadata['href']}"
+                )
+            else:
+                collection_version_url = urljoin(self.remote.url, f"{col_version_metadata['href']}")
+                coros.append(
+                    self._add_collection_version(
+                        self._api_version, collection_version_url, col_version_metadata
                     )
-                    coros.append(
-                        self._add_collection_version(
-                            self._api_version, collection_version_url, col_version_metadata
-                        )
-                    )
+                )
         self.parsing_metadata_progress_bar.total += len(coros)
         await self.parsing_metadata_progress_bar.asave(update_fields=["total"])
         return coros
+
+    def _limit_to_highest_versions(self, version_dicts):
+        """Select specified number of highest versions. Prefer normal versions over prereleases."""
+
+        def sort_key(v):
+            version = Version(v["version"])
+            return (not version.prerelease, version)
+
+        version_dicts.sort(key=sort_key, reverse=True)
+        return version_dicts[: self.sync_highest_versions]
 
     async def _fetch_collection_metadata(self, requirements_entry) -> list[Coroutine]:
         requirement_version = AnsibleSpec(requirements_entry.version)
