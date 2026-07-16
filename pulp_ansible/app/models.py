@@ -421,6 +421,7 @@ class CollectionRemote(Remote, AutoAddObjPermsMixin):
     token = EncryptedTextField(null=True)
     sync_dependencies = models.BooleanField(default=True)
     signed_only = models.BooleanField(default=False)
+    sync_highest_versions = models.PositiveIntegerField(null=True)
 
     @property
     def download_factory(self):
@@ -445,7 +446,13 @@ class CollectionRemote(Remote, AutoAddObjPermsMixin):
 
     @hook(
         AFTER_UPDATE,
-        when_any=["url", "requirements_file", "sync_dependencies", "signed_only"],
+        when_any=[
+            "url",
+            "requirements_file",
+            "sync_dependencies",
+            "signed_only",
+            "sync_highest_versions",
+        ],
         has_changed=True,
     )
     def _reset_repository_last_synced_metadata_time(self):
