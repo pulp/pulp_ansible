@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.28.8 (2026-07-17) {: #0.28.8 }
+
+#### Bugfixes {: #0.28.8-bugfix }
+
+- Append pk to collection version ordering filters for deterministic cross-repo search pagination.
+  [#2555](https://github.com/pulp/pulp_ansible/issues/2555)
+
+---
+
 ## 0.28.7 (2026-04-28) {: #0.28.7 }
 
 #### Bugfixes {: #0.28.7-bugfix }
