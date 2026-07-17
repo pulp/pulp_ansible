@@ -8,5 +8,5 @@ class PulpAnsiblePluginAppConfig(PulpPluginAppConfig):
 
     name = "pulp_ansible.app"
     label = "ansible"
-    version = "0.25.7"
+    version = "0.25.8.dev"
     python_package_name = "pulp-ansible"
