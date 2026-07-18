@@ -8,6 +8,15 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.29.9 (2026-07-17) {: #0.29.9 }
+
+#### Bugfixes {: #0.29.9-bugfix }
+
+- Append pk to collection version ordering filters for deterministic cross-repo search pagination.
+  [#2555](https://github.com/pulp/pulp_ansible/issues/2555)
+
+---
+
 ## 0.29.8 (2026-04-28) {: #0.29.8 }
 
 #### Bugfixes {: #0.29.8-bugfix }
@@ -81,6 +90,15 @@ No significant changes.
 
 - Fixed a bug that made synching git repositories fail on clone.
 - Fixed an incompatibility with Django5.
+
+---
+
+## 0.28.8 (2026-07-17) {: #0.28.8 }
+
+#### Bugfixes {: #0.28.8-bugfix }
+
+- Append pk to collection version ordering filters for deterministic cross-repo search pagination.
+  [#2555](https://github.com/pulp/pulp_ansible/issues/2555)
 
 ---
 
@@ -199,6 +217,15 @@ No significant changes.
 
 - Remove the `is_highest` field from CollectionVersion table.
   [#1550](https://github.com/pulp/pulp_ansible/issues/1550)
+
+---
+
+## 0.25.7 (2026-07-17) {: #0.25.7 }
+
+#### Bugfixes {: #0.25.7-bugfix }
+
+- Append pk to collection version ordering filters for deterministic cross-repo search pagination.
+  [#2555](https://github.com/pulp/pulp_ansible/issues/2555)
 
 ---
 
