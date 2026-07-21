@@ -107,7 +107,7 @@ class GitFirstStage(Stage):
             message="Cloning Git repository for Collection", code="sync.git.clone"
         ) as pb:
             d_content = await declarative_content_from_git_repo(
-                self.remote, self.remote.url, self.remote.git_ref, self.metadata_only
+                self.remote, self.remote.url, self.remote.git_ref, self.metadata_only, authenticate_url=True
             )
             await self.put(d_content)
             await pb.aincrement()

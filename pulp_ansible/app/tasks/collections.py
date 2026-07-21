@@ -156,21 +156,24 @@ def _add_auth_to_git_url(url, remote):
     return git_url
 
 
-async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_only=False):
+async def declarative_content_from_git_repo(remote, url, git_ref=None, metadata_only=False, authenticate_url=False):
     """Returns a DeclarativeContent for the Collection in a Git repository."""
-    url = _add_auth_to_git_url(url, remote)
+    if authenticate_url:
+        clone_url = _add_auth_to_git_url(url, remote)
+    else:
+        clone_url = url
 
     if git_ref:
         try:
             gitrepo = Repo.clone_from(
-                url, str(uuid4()), depth=1, branch=git_ref, multi_options=["--recurse-submodules"]
+                clone_url, str(uuid4()), depth=1, branch=git_ref, multi_options=["--recurse-submodules"]
             )
         except GitCommandError:
-            gitrepo = Repo.clone_from(url, str(uuid4()), multi_options=["--recurse-submodules"])
+            gitrepo = Repo.clone_from(clone_url, str(uuid4()), multi_options=["--recurse-submodules"])
             gitrepo.git.checkout(git_ref)
     else:
         gitrepo = Repo.clone_from(
-            url, str(uuid4()), depth=1, multi_options=["--recurse-submodules"]
+            clone_url, str(uuid4()), depth=1, multi_options=["--recurse-submodules"]
         )
     commit_sha = gitrepo.head.commit.hexsha
     metadata, artifact_path = sync_collection(gitrepo.working_dir, ".")
@@ -813,7 +816,7 @@ class CollectionSyncFirstStage(Stage):
 
     async def _add_collection_version_from_git(self, url, gitref, metadata_only) -> list[Coroutine]:
         d_content = await declarative_content_from_git_repo(
-            self.remote, url, gitref, metadata_only=False
+            self.remote, url, gitref, metadata_only=False, authenticate_url=False
         )
         await self.put(d_content)
         return []
