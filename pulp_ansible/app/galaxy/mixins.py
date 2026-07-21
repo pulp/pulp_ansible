@@ -1,3 +1,4 @@
+import dynaconf
 from django.conf import settings
 from django.utils.module_loading import import_string
 
@@ -31,6 +32,8 @@ class UploadGalaxyCollectionMixin:
 
 
 def perform_import(value):
+    if getattr(value, "__class__", None).__name__ == "Lazy":
+        value = value(dynaconf.settings)
     if isinstance(value, str):
         return import_string(value)
     elif isinstance(value, (tuple, list)):
