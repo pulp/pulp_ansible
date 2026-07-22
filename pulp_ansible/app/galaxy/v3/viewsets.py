@@ -85,7 +85,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
             if hasattr(permission_class, "scope_queryset"):
                 qs = permission_class.scope_queryset(self, qs)
 
-        return qs
+        return qs.order_by("-collection_version__version")
 
     def rebuild(self, request, *args, **kwargs):
         async_result = dispatch(
