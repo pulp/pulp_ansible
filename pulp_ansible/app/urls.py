@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.urls import include, path
 
+from pulpcore.plugin.find_url import find_api_root
 from pulpcore.plugin.serializers import AsyncOperationResponseSerializer
 
 from pulp_ansible.app.galaxy.v3 import views as views_v3
@@ -252,12 +253,21 @@ urlpatterns = [
     path(GALAXY_API_ROOT + "v1/", include(v1_urls)),
     path(GALAXY_API_ROOT + "v3/", include(v3_urls)),
     path(GALAXY_API_ROOT, GalaxyVersionView.as_view()),
+]
+
+pulp_versioned_apis = [
     path(
-        settings.V3_API_ROOT_NO_FRONT_SLASH + "pulp_ansible/tags/",
+        "pulp_ansible/tags/",
         TagViewSet.as_view({"get": "list"}),
     ),
     path(
-        settings.V3_API_ROOT_NO_FRONT_SLASH + "ansible/copy/",
+        "ansible/copy/",
         CopyViewSet.as_view({"post": "create"}),
     ),
 ]
+if getattr(settings, "ENABLE_V4_API", None):
+    VERSION = "<str:version>"
+else:
+    VERSION = "v3"
+_, PULP_API_ROOT = find_api_root(lstrip=True, version=VERSION)
+urlpatterns.append(path(f"{PULP_API_ROOT}", include(pulp_versioned_apis)))
