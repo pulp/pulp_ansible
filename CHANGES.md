@@ -479,6 +479,12 @@ Yank reason: Contains a bad migration
 
 ---
 
+## 0.22.9 (2026-07-22) {: #0.22.9 }
+
+No significant changes.
+
+---
+
 ## 0.22.8 (2026-04-28) {: #0.22.8 }
 
 #### Bugfixes {: #0.22.8-bugfix }
