@@ -23,7 +23,7 @@ disabled_redis_runners:
 docker_fixtures: false
 extra_files: []
 github_org: "pulp"
-latest_release_branch: "0.29"
+latest_release_branch: "0.30"
 lint_ignore: []
 lint_requirements: true
 os_required_packages: []

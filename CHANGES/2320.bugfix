@@ -1,1 +1,0 @@
-Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
