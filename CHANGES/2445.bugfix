@@ -1,1 +1,0 @@
-Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.

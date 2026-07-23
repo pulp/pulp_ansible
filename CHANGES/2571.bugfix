@@ -1,1 +1,0 @@
-Add default descending semver ordering to the collection version search endpoint when no explicit ordering is requested.
