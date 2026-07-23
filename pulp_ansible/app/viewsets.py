@@ -409,7 +409,7 @@ class AnsibleNamespaceViewSet(ReadOnlyContentViewSet):
         responses={302: HttpResponseRedirect},
     )
     @action(detail=True, methods=["get"], serializer_class=None)
-    def avatar(self, request, pk):
+    def avatar(self, request, pk, **kwargs):
         """
         Tries to find a redirect link to the Namespace's avatar
         """
@@ -701,7 +701,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=AnsibleRepositorySyncURLSerializer)
-    def sync(self, request, pk):
+    def sync(self, request, pk, **kwargs):
         """
         Dispatches a sync task.
         """
@@ -742,7 +742,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=AnsibleRepositoryRebuildSerializer)
-    def rebuild_metadata(self, request, pk):
+    def rebuild_metadata(self, request, pk, **kwargs):
         """
         Dispatches a collection version rebuild task.
         """
@@ -766,7 +766,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=AnsibleRepositorySignatureSerializer)
-    def sign(self, request, pk):
+    def sign(self, request, pk, **kwargs):
         """
         Dispatches a sign task.
 
@@ -833,7 +833,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=CollectionVersionCopyMoveSerializer)
-    def copy_collection_version(self, request, pk):
+    def copy_collection_version(self, request, pk, **kwargs):
         """
         Copy a list of collection versions and all of their associated content from this
         repository.
@@ -846,7 +846,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=CollectionVersionCopyMoveSerializer)
-    def move_collection_version(self, request, pk):
+    def move_collection_version(self, request, pk, **kwargs):
         """
         Move a list of collection versions and all of their associated content from this
         repository.
@@ -892,7 +892,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=AnsibleRepositoryMarkSerializer)
-    def mark(self, request, pk):
+    def mark(self, request, pk, **kwargs):
         """
         Dispatches a mark task.
         """
@@ -903,7 +903,7 @@ class AnsibleRepositoryViewSet(RepositoryViewSet, ModifyRepositoryActionMixin, R
         responses={202: AsyncOperationResponseSerializer},
     )
     @action(detail=True, methods=["post"], serializer_class=AnsibleRepositoryMarkSerializer)
-    def unmark(self, request, pk):
+    def unmark(self, request, pk, **kwargs):
         """
         Dispatches the unmark task.
 
@@ -1096,7 +1096,7 @@ class CollectionUploadViewSet(viewsets.ViewSet, UploadGalaxyCollectionMixin):
         responses={202: AsyncOperationResponseSerializer},
         deprecated=True,
     )
-    def create(self, request):
+    def create(self, request, **kwargs):
         """
         Dispatch a Collection creation task.
         """
@@ -1227,7 +1227,7 @@ class CopyViewSet(viewsets.ViewSet):
         request=CopySerializer,
         responses={202: AsyncOperationResponseSerializer},
     )
-    def create(self, request):
+    def create(self, request, **kwargs):
         """Copy content."""
         serializer = CopySerializer(data=request.data, context={"request": request})
         serializer.is_valid(raise_exception=True)
