@@ -8,6 +8,33 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.30.0 (2026-07-23) {: #0.30.0 }
+
+#### Features {: #0.30.0-feature }
+
+- Added ``sync_highest_versions`` field to ``CollectionRemote`` to limit the number of highest versions synced per collection.
+  [#2563](https://github.com/pulp/pulp_ansible/issues/2563)
+- Add more Pulp Exceptions.
+
+#### Bugfixes {: #0.30.0-bugfix }
+
+- Fixed `AnsibleDistributionSerializer` to properly inherit correct fields from pulpcore.
+  [#2320](https://github.com/pulp/pulp_ansible/issues/2320)
+- Marked distribution update and delete operations as non-immediate due to heavy index rebuild hooks.
+  [#2445](https://github.com/pulp/pulp_ansible/issues/2445)
+- Append pk to collection version ordering filters for deterministic cross-repo search pagination.
+  [#2555](https://github.com/pulp/pulp_ansible/issues/2555)
+- Add default descending semver ordering to the collection version search endpoint when no explicit ordering is requested.
+  [#2571](https://github.com/pulp/pulp_ansible/issues/2571)
+- Drop support for pulpcore < 3.105.
+- Exclude some bloated fields by default from the collection version views.
+- Fixed a 500 error when attempting to download a collection with and invalid name.
+- Greatly reduced memory usage when syncing collections.
+- Improved a migration that was prone to running out of memory.
+- Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
+
+---
+
 ## 0.29.9 (2026-07-17) {: #0.29.9 }
 
 #### Bugfixes {: #0.29.9-bugfix }
@@ -601,6 +628,12 @@ No significant changes.
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.17 (2026-07-24) {: #0.21.17 }
+
+No significant changes.
 
 ---
 
