@@ -1,9 +1,10 @@
 import json
 
 from import_export import fields
-from import_export.widgets import Widget
+from import_export.widgets import CharWidget, Widget
 
 from pulpcore.plugin.importexport import BaseContentResource, QueryModelResource
+from pulpcore.plugin.util import get_domain_pk
 
 from pulp_ansible.app.models import (
     AnsibleCollectionDeprecated,
@@ -51,7 +52,7 @@ class AnsibleNamespaceResource(QueryModelResource):
 
     class Meta:
         model = AnsibleNamespace
-        import_id_fields = ("name",)
+        import_id_fields = ("name", "pulp_domain")
 
 
 class DictWidget(Widget):
@@ -72,6 +73,13 @@ class AnsibleNamespaceMetadataResource(BaseContentResource):
     """
 
     links = fields.Field(attribute="links", column_name="links", widget=DictWidget())
+    # allow_blank=False keeps None as None; the default CharWidget would coerce it to ""
+    # and break the metadata_sha256 digest check on import.
+    avatar_sha256 = fields.Field(
+        attribute="avatar_sha256",
+        column_name="avatar_sha256",
+        widget=CharWidget(allow_blank=False),
+    )
 
     def before_import_row(self, row, **kwargs):
         """
@@ -79,7 +87,7 @@ class AnsibleNamespaceMetadataResource(BaseContentResource):
         """
         super().before_import_row(row, **kwargs)
 
-        namespace = AnsibleNamespace.objects.get(name=row["name"])
+        namespace = AnsibleNamespace.objects.get(name=row["name"], pulp_domain=get_domain_pk())
         row["namespace"] = str(namespace.pk)
         if row["avatar_sha256"] == "":
             row["avatar_sha256"] = None
@@ -110,7 +118,9 @@ class CollectionVersionContentResource(BaseContentResource):
         """
         super().before_import_row(row, **kwargs)
 
-        col = Collection.objects.get(name=row["name"], namespace=row["namespace"])
+        col = Collection.objects.get(
+            name=row["name"], namespace=row["namespace"], pulp_domain=get_domain_pk()
+        )
         row["collection"] = str(col.pk)
         row.pop("is_highest", None)
 
@@ -146,7 +156,9 @@ class CollectionVersionSignatureResource(BaseContentResource):
         """
         super().before_import_row(row, **kwargs)
 
-        cv = CollectionVersion.objects.get(upstream_id=row["signed_collection"])
+        cv = CollectionVersion.objects.get(
+            upstream_id=row["signed_collection"], _pulp_domain=get_domain_pk()
+        )
         row["signed_collection"] = str(cv.pk)
 
     class Meta:
@@ -176,7 +188,9 @@ class CollectionVersionMarkResource(BaseContentResource):
         """
         super().before_import_row(row, **kwargs)
 
-        cv = CollectionVersion.objects.get(upstream_id=row["marked_collection"])
+        cv = CollectionVersion.objects.get(
+            upstream_id=row["marked_collection"], _pulp_domain=get_domain_pk()
+        )
         row["marked_collection"] = str(cv.pk)
 
     class Meta:
@@ -200,7 +214,7 @@ class CollectionResource(QueryModelResource):
 
     class Meta:
         model = Collection
-        import_id_fields = ("namespace", "name")
+        import_id_fields = ("namespace", "name", "pulp_domain")
 
 
 class CollectionDeprecationResource(BaseContentResource):
@@ -216,7 +230,7 @@ class CollectionDeprecationResource(BaseContentResource):
 
     class Meta:
         model = AnsibleCollectionDeprecated
-        import_id_fields = ("namespace", "name")
+        import_id_fields = model.natural_key_fields()
 
 
 IMPORT_ORDER = [
