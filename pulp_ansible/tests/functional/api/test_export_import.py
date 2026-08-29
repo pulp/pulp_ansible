@@ -207,3 +207,87 @@ def test_export_then_import(
         repo = ansible_bindings.RepositoriesAnsibleApi.read(repo.pulp_href)
         # still only one version as pulp won't create a new version if nothing changed
         assert repo.latest_version_href == f"{repo.pulp_href}versions/1/"
+
+
+def test_export_then_import_into_new_domain(
+    pulpcore_bindings,
+    ansible_bindings,
+    gen_object_with_cleanup,
+    ansible_repo_factory,
+    build_and_upload_collection,
+    ansible_distribution_factory,
+    ascii_armored_detached_signing_service,
+    domain_factory,
+    monitor_task,
+    monitor_task_group,
+):
+    """Import an export into a fresh domain - equivalent to a second, empty pulp instance."""
+    repo = ansible_repo_factory()
+    distro = ansible_distribution_factory(repository=repo)
+    collection, _ = build_and_upload_collection(repo)
+
+    signing_body = {
+        "signing_service": ascii_armored_detached_signing_service.pulp_href,
+        "content_units": ["*"],
+    }
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.sign(repo.pulp_href, signing_body).task)
+    mark_body = {"content_units": ["*"], "value": "exportable-mark"}
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.mark(repo.pulp_href, mark_body).task)
+    monitor_task(
+        ansible_bindings.ContentCollectionDeprecationsApi.create(
+            {
+                "namespace": collection.namespace,
+                "name": collection.name,
+                "repository": repo.pulp_href,
+            }
+        ).task
+    )
+    # A namespace without an avatar - nullable fields must survive the export/import round-trip.
+    monitor_task(
+        ansible_bindings.PulpAnsibleApiV3PluginAnsibleContentNamespacesApi.create(
+            path=distro.base_path,
+            distro_base_path=distro.base_path,
+            name=collection.namespace,
+            company="Export Test Corp",
+        ).task
+    )
+
+    repo = ansible_bindings.RepositoriesAnsibleApi.read(repo.pulp_href)
+    source_version = ansible_bindings.RepositoriesAnsibleVersionsApi.read(repo.latest_version_href)
+
+    exporter = gen_object_with_cleanup(
+        pulpcore_bindings.ExportersPulpApi,
+        {
+            "name": str(uuid.uuid4()),
+            "path": f"/tmp/{uuid.uuid4()}/",
+            "repositories": [repo.pulp_href],
+        },
+    )
+    task = monitor_task(
+        pulpcore_bindings.ExportersPulpExportsApi.create(exporter.pulp_href, {}).task
+    )
+    export = pulpcore_bindings.ExportersPulpExportsApi.read(task.created_resources[0])
+    export_filename = next(
+        f for f in export.output_file_info.keys() if f.endswith(("tar.gz", "tar"))
+    )
+
+    # The fresh domain has no content at all, just like a second pulp instance.
+    domain = domain_factory()
+    dest_repo = ansible_repo_factory(pulp_domain=domain.name)
+    importer = gen_object_with_cleanup(
+        pulpcore_bindings.ImportersPulpApi,
+        {"name": str(uuid.uuid4()), "repo_mapping": {repo.name: dest_repo.name}},
+        pulp_domain=domain.name,
+    )
+    import_response = pulpcore_bindings.ImportersPulpImportsApi.create(
+        importer.pulp_href, {"path": export_filename}
+    )
+    monitor_task_group(import_response.task_group)
+
+    dest_repo = ansible_bindings.RepositoriesAnsibleApi.read(dest_repo.pulp_href)
+    assert dest_repo.latest_version_href == f"{dest_repo.pulp_href}versions/1/"
+    imported_version = ansible_bindings.RepositoriesAnsibleVersionsApi.read(
+        dest_repo.latest_version_href
+    )
+    for content_type, summary in source_version.content_summary.present.items():
+        assert imported_version.content_summary.added[content_type]["count"] == summary["count"]
