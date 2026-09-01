@@ -2,12 +2,35 @@
 
 import tarfile
 
+import pysequoia
 import pytest
 
 from pulpcore.client.pulp_ansible import AnsibleRepositorySyncURL
 from pulpcore.tests.functional.utils import PulpTaskError
 
 from pulp_ansible.tests.functional.utils import content_counts
+
+# Signing key variants exercised by the parametrized tests below: traditional
+# (v4) crypto, OpenPGP v6 (RFC9580), and the post-quantum ML-DSA cipher suites.
+# All verification runs through pulpcore's `gpg_verify` (backed by pysequoia).
+KEY_PARAMS = [
+    pytest.param({}, id="v4-traditional"),
+    pytest.param({"profile": pysequoia.Profile.RFC9580}, id="v6-ed25519"),
+    pytest.param(
+        {
+            "profile": pysequoia.Profile.RFC9580,
+            "cipher_suite": pysequoia.CipherSuite.MLDSA65_Ed25519,
+        },
+        id="pqc-mldsa65-ed25519",
+    ),
+    pytest.param(
+        {
+            "profile": pysequoia.Profile.RFC9580,
+            "cipher_suite": pysequoia.CipherSuite.MLDSA87_Ed448,
+        },
+        id="pqc-mldsa87-ed448",
+    ),
+]
 
 
 def test_upload_then_sign_then_try_to_upload_duplicate_signature(
@@ -232,3 +255,112 @@ def test_sync_signatures_only(
         "ansible.collection_version": 1,
         "ansible.collection_signature": 1,
     }
+
+
+# Tests covering traditional, OpenPGP v6, and post-quantum (ML-DSA) signatures
+
+
+@pytest.mark.parametrize("generate_kwargs", KEY_PARAMS)
+def test_upload_signature_with_key_type(
+    ansible_bindings,
+    build_and_upload_collection,
+    ansible_repo_factory,
+    tmp_path,
+    monitor_task,
+    generate_kwargs,
+):
+    """A locally-produced signature is verified against the repo's gpgkey and accepted.
+
+    Also asserts that a signature made with a non-trusted key is rejected. Runs for
+    traditional (v4), OpenPGP v6, and post-quantum ML-DSA keys.
+    """
+    tsk = pysequoia.Tsk.generate("Pulp Test <pulp-test@example.com>", **generate_kwargs)
+    public_key = str(tsk.extract_certificate())
+    repository = ansible_repo_factory(gpgkey=public_key)
+    collection, collection_url = build_and_upload_collection()
+
+    # Extract `MANIFEST.json` from a built collection
+    with tarfile.open(collection.filename, mode="r") as tar:
+        tar.extract("MANIFEST.json", path=tmp_path)
+    manifest_path = tmp_path / "MANIFEST.json"
+    signature_file = tmp_path / "MANIFEST.json.asc"
+    with open(manifest_path, "rb") as f:
+        sig = pysequoia.sign(tsk.signer(), f.read(), mode=pysequoia.SignatureMode.DETACHED)
+    with open(signature_file, "wb") as f:
+        f.write(sig)
+
+    task = ansible_bindings.ContentCollectionSignaturesApi.create(
+        signed_collection=collection_url,
+        file=str(signature_file),
+        repository=repository.pulp_href,
+    )
+    signature_href = next(
+        item
+        for item in monitor_task(task.task).created_resources
+        if "content/ansible/collection_signatures/" in item
+    )
+    signature = ansible_bindings.ContentCollectionSignaturesApi.read(signature_href)
+    assert len(signature.pubkey_fingerprint) == 64
+
+    # A signature made with a different (untrusted) key must be rejected.
+    other_tsk = pysequoia.Tsk.generate("Pulp Test <pulp-test@example.com>", **generate_kwargs)
+    bad_signature_file = tmp_path / "MANIFEST.json.bad.asc"
+    with open(manifest_path, "rb") as f:
+        sig = pysequoia.sign(other_tsk.signer(), f.read(), mode=pysequoia.SignatureMode.DETACHED)
+    with open(bad_signature_file, "wb") as f:
+        f.write(sig)
+    another_collection, another_collection_url = build_and_upload_collection()
+    with pytest.raises(PulpTaskError):
+        task = ansible_bindings.ContentCollectionSignaturesApi.create(
+            signed_collection=another_collection_url,
+            file=str(bad_signature_file),
+            repository=repository.pulp_href,
+        )
+        monitor_task(task.task)
+
+
+@pytest.mark.parametrize(
+    "signing_service_fixture",
+    [
+        "ascii_armored_detached_signing_service",
+        "sq_ascii_armored_detached_signing_service",
+        "sq_pqc_ascii_armored_detached_signing_service",
+    ],
+)
+def test_sign_with_signing_service_key_type(
+    ansible_bindings,
+    build_and_upload_collection,
+    ansible_repo_factory,
+    monitor_task,
+    request,
+    signing_service_fixture,
+):
+    """Pulp signs a collection server-side with GPG, v6, and PQC signing services."""
+    signing_service = request.getfixturevalue(signing_service_fixture)
+    repository = ansible_repo_factory()
+    _collection, collection_url = build_and_upload_collection()
+
+    body = {"add_content_units": [collection_url]}
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.modify(repository.pulp_href, body).task)
+
+    body = {
+        "content_units": [collection_url],
+        "signing_service": signing_service.pulp_href,
+    }
+    monitor_task(ansible_bindings.RepositoriesAnsibleApi.sign(repository.pulp_href, body).task)
+    repository = ansible_bindings.RepositoriesAnsibleApi.read(repository.pulp_href)
+
+    repository_version = ansible_bindings.RepositoriesAnsibleVersionsApi.read(
+        repository.latest_version_href
+    )
+    assert content_counts(repository_version) == {
+        "ansible.collection_signature": 1,
+        "ansible.collection_version": 1,
+    }
+
+    signatures = ansible_bindings.ContentCollectionSignaturesApi.list(
+        signed_collection=collection_url
+    ).results
+    assert len(signatures) == 1
+    # The signature records the fingerprint of the signing service's key.
+    assert signatures[0].pubkey_fingerprint == signing_service.pubkey_fingerprint

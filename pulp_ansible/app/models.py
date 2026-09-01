@@ -520,6 +520,9 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
     REMOTE_TYPES = [RoleRemote, CollectionRemote, GitRemote]
 
     last_synced_metadata_time = models.DateTimeField(null=True)
+    # Ascii-armored public key(s) used to verify collection signatures. Verification runs
+    # through pulpcore's `gpg_verify` (pysequoia), so v6/RFC9580 and post-quantum (ML-DSA)
+    # keys are supported. TODO: consider migrating this to pulpcore's OpenPGPKeyring feature.
     gpgkey = models.TextField(null=True)
     private = models.BooleanField(default=False)
 
