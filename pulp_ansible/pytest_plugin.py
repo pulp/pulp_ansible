@@ -6,6 +6,13 @@ from types import SimpleNamespace
 import pytest
 import yaml
 
+from pulpcore.pytest_plugin import (
+    KEY_V6_MLDSA65_ED25519_PRIVATE,
+    create_signing_service,
+    import_signing_key,
+    make_signing_script,
+    remove_signing_service,
+)
 from pulpcore.tests.functional.utils import BindingsNamespace
 
 from pulp_ansible.tests.functional.constants import ANSIBLE_FIXTURE_URL
@@ -257,3 +264,61 @@ def wait_tasks(pulpcore_bindings):
             )
 
     return _wait_tasks
+
+
+# Post-Quantum (ML-DSA-65 + Ed25519, v6/RFC9580) Sequoia signing fixtures.
+# These live here rather than in pulpcore because pulpcore only ships the
+# non-PQC sq_* signing fixtures. They reuse pulpcore's signing helpers.
+
+
+@pytest.fixture(scope="session")
+def sq_pqc_signing_home_path(tmp_path_factory):
+    return tmp_path_factory.mktemp("sq_pqc_home")
+
+
+@pytest.fixture(scope="session")
+def sq_pqc_signing_script_temp_dir(tmp_path_factory):
+    return tmp_path_factory.mktemp("sq_pqc_signing_script_dir")
+
+
+@pytest.fixture(scope="session")
+def sq_pqc_signing_metadata(sq_pqc_signing_home_path):
+    """Return Sequoia PQC (ML-DSA-65) signing metadata (i.e., fingerprint, keyid)."""
+    return import_signing_key(
+        KEY_V6_MLDSA65_ED25519_PRIVATE, sq_pqc_signing_home_path, backend="sq"
+    )
+
+
+@pytest.fixture(scope="session")
+def sq_pqc_signing_script_path(
+    sq_pqc_signing_script_temp_dir, sq_pqc_signing_home_path, sq_pqc_signing_metadata
+):
+    _sq, fingerprint, _keyid = sq_pqc_signing_metadata
+    return make_signing_script(
+        sq_pqc_signing_home_path, fingerprint, sq_pqc_signing_script_temp_dir, backend="sq"
+    )
+
+
+@pytest.fixture(scope="session")
+def _sq_pqc_ascii_armored_detached_signing_service_name(
+    sq_pqc_signing_script_path,
+    sq_pqc_signing_metadata,
+    sq_pqc_signing_home_path,
+):
+    _sq, fingerprint, _keyid = sq_pqc_signing_metadata
+    service_name = create_signing_service(
+        sq_pqc_signing_home_path, fingerprint, sq_pqc_signing_script_path, backend="sq"
+    )
+
+    yield service_name
+
+    remove_signing_service(service_name)
+
+
+@pytest.fixture(scope="session")
+def sq_pqc_ascii_armored_detached_signing_service(
+    _sq_pqc_ascii_armored_detached_signing_service_name, pulpcore_bindings
+):
+    return pulpcore_bindings.SigningServicesApi.list(
+        name=_sq_pqc_ascii_armored_detached_signing_service_name
+    ).results[0]
