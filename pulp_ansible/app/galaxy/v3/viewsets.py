@@ -1,3 +1,4 @@
+from django.db.models import Max, Prefetch, Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 
@@ -11,7 +12,11 @@ from pulp_ansible.app.galaxy.v3.pagination import LimitOffsetPagination
 from pulp_ansible.app.galaxy.v3.serializers import (
     CollectionVersionSearchListSerializer,
 )
-from pulp_ansible.app.models import AnsibleDistribution, CrossRepositoryCollectionVersionIndex
+from pulp_ansible.app.models import (
+    AnsibleDistribution,
+    AnsibleRepository,
+    CrossRepositoryCollectionVersionIndex,
+)
 from pulp_ansible.app.tasks.collectionversion_index import rebuild_index
 
 
@@ -74,10 +79,19 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = (
-            CrossRepositoryCollectionVersionIndex.objects.select_related("repository")
-            .select_related("collection_version")
+            CrossRepositoryCollectionVersionIndex.objects.select_related("collection_version")
             .select_related("repository_version")
             .select_related("namespace_metadata")
+            .prefetch_related(
+                Prefetch(
+                    "repository",
+                    queryset=AnsibleRepository.objects.select_related("remote").annotate(
+                        latest_version_number=Max(
+                            "versions__number", filter=Q(versions__complete=True)
+                        )
+                    ),
+                )
+            )
             .filter(repository__pulp_domain_id=get_domain_pk())
         )
 
