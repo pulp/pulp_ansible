@@ -77,7 +77,7 @@ def upload_collection(http_session, filename, base_path):
         response = http_session.get(task)
         response.raise_for_status()
         result = response.json()
-        if result["state"] == "running":
+        if result["state"] in ["waiting", "running"]:
             time.sleep(1)
             continue
         if result["state"] == "completed":
