@@ -350,6 +350,12 @@ class ClientConfigurationSerializer(serializers.Serializer):
 class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerializer):
     """Collection Version serializer without docs blob."""
 
+    contents = serializers.SerializerMethodField()
+
+    def get_contents(self, obj) -> list[t.Any]:
+        """A JSON field with data about the contents. (Deliberately left empty in summary view.)"""
+        return []
+
     class Meta:
         model = models.CollectionVersion
         fields = (
