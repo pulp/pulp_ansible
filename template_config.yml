@@ -108,6 +108,7 @@ supported_release_branches:
   - "0.25"
   - "0.28"
   - "0.29"
+  - "0.30"
 sync_ci: true
 test_azure: true
 test_cli: true
