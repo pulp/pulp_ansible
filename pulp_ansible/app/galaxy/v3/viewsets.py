@@ -78,6 +78,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
             .select_related("collection_version")
             .select_related("repository_version")
             .select_related("namespace_metadata")
+            .defer("collection_version__contents")
             .filter(repository__pulp_domain_id=get_domain_pk())
         )
 
