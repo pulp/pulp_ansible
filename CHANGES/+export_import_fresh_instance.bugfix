@@ -1,0 +1,3 @@
+Fixed importing an export into a Pulp instance (or domain) that has never seen the content before.
+Namespace metadata without an avatar failed the digest check, and namespaces, collections and
+deprecations were looked up without regard to the target domain.
