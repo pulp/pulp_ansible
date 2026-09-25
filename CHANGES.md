@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.30.1 (2026-09-24) {: #0.30.1 }
+
+#### Bugfixes {: #0.30.1-bugfix }
+
+- Emptied contents field in collection version search endpoint to prevent OOM.
+
+---
+
 ## 0.30.0 (2026-07-23) {: #0.30.0 }
 
 #### Features {: #0.30.0-feature }
