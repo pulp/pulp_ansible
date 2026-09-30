@@ -30,17 +30,13 @@ class AnsibleFileDownloader(FileDownloader):
         super().__init__(*args, **kwargs)
 
 
-AUTH_TOKEN = None
-TOKEN_LOCK = asyncio.Lock()
-
-
 class TokenAuthHttpDownloader(HttpDownloader):
     """
     Custom Downloader that automatically handles Token Based and Basic Authentication.
     """
 
     def __init__(
-        self, url, auth_url, token, silence_errors_for_response_status_codes=None, **kwargs
+        self, url, auth_url, token, factory, silence_errors_for_response_status_codes=None, **kwargs
     ):
         """
         Initialize the downloader.
@@ -51,6 +47,7 @@ class TokenAuthHttpDownloader(HttpDownloader):
             silence_errors_for_response_status_codes = set()
         self.silence_errors_for_response_status_codes = silence_errors_for_response_status_codes
         super().__init__(url, **kwargs)
+        self.factory = factory
 
     def raise_for_status(self, response):
         """
@@ -108,8 +105,9 @@ class TokenAuthHttpDownloader(HttpDownloader):
                 return await self._run_with_additional_headers(headers)
             except ClientResponseError as exc:
                 if exc.status == 401:
-                    global AUTH_TOKEN
-                    AUTH_TOKEN = None  # The token expired so let's forget it so it will refresh
+                    self.factory.auth_token = (
+                        None  # The token expired so let's forget it so it will refresh
+                    )
                     continue
                 else:
                     raise
@@ -142,14 +140,11 @@ class TokenAuthHttpDownloader(HttpDownloader):
         """
         Use an existing, or refresh, the Bearer token to be used with all requests.
         """
-        global AUTH_TOKEN
-        global TOKEN_LOCK
-
-        if AUTH_TOKEN:
-            return AUTH_TOKEN
-        async with TOKEN_LOCK:
-            if AUTH_TOKEN:
-                return AUTH_TOKEN
+        if self.factory.auth_token:
+            return self.factory.auth_token
+        async with self.factory.token_lock:
+            if self.factory.auth_token:
+                return self.factory.auth_token
             log.info(_("Updating bearer token"))
             form_payload = {
                 "grant_type": "refresh_token",
@@ -167,8 +162,8 @@ class TokenAuthHttpDownloader(HttpDownloader):
             ) as response:
                 token_data = await response.text()
 
-            AUTH_TOKEN = json.loads(token_data)["access_token"]
-            return AUTH_TOKEN
+            self.factory.auth_token = json.loads(token_data)["access_token"]
+            return self.factory.auth_token
 
 
 class AnsibleDownloaderFactory(DownloaderFactory):
@@ -192,6 +187,8 @@ class AnsibleDownloaderFactory(DownloaderFactory):
                 "file": AnsibleFileDownloader,
             }
         super().__init__(remote, downloader_overrides)
+        self.auth_token = None
+        self.token_lock = asyncio.Lock()
 
     def _http_or_https(self, download_class, url, **kwargs):
         """
@@ -209,7 +206,10 @@ class AnsibleDownloaderFactory(DownloaderFactory):
             is configured with the remote settings.
 
         """
-        options = {"session": self._session}
+        options = {
+            "factory": self,
+            "session": self._session,
+        }
         if self._remote.proxy_url:
             options["proxy"] = self._remote.proxy_url
             if self._remote.proxy_username and self._remote.proxy_password:
