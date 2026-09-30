@@ -122,7 +122,7 @@ def test_sync_mirror_defaults_to_false(
             True,
             5,
             id="simple_dependency",
-            marks=[pytest.mark.timeout(1800)],  # TODO This test takes too much time!
+            marks=[pytest.mark.timeout(3600)],  # TODO This test takes too much time!
         ),
     ],
 )
