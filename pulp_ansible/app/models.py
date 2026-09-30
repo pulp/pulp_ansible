@@ -1,5 +1,6 @@
 import hashlib
 import json
+from functools import cached_property
 from logging import getLogger
 
 from django.conf import settings
@@ -423,7 +424,7 @@ class CollectionRemote(Remote, AutoAddObjPermsMixin):
     signed_only = models.BooleanField(default=False)
     sync_highest_versions = models.PositiveIntegerField(null=True)
 
-    @property
+    @cached_property
     def download_factory(self):
         """
         Return the DownloaderFactory which can be used to generate asyncio capable downloaders.
@@ -438,11 +439,7 @@ class CollectionRemote(Remote, AutoAddObjPermsMixin):
                 get_downloader()
 
         """
-        try:
-            return self._download_factory
-        except AttributeError:
-            self._download_factory = AnsibleDownloaderFactory(self)
-            return self._download_factory
+        return AnsibleDownloaderFactory(self)
 
     @hook(
         AFTER_UPDATE,
