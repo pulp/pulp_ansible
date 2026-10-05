@@ -1,5 +1,5 @@
 galaxy_importer>=0.4.27,<0.5
-GitPython>=3.1.24,<3.2
+GitPython>=3.1.24,<3.3
 jsonschema>=4.9,<4.23
 Pillow>=10.3,<14
 pulpcore>=3.49.0,<3.70
