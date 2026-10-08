@@ -1,1 +1,0 @@
-Fixed global auth token leakage. CVE-2026-103869
