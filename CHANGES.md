@@ -8,6 +8,16 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.25.8 (2026-10-08) {: #0.25.8 }
+
+#### Bugfixes {: #0.25.8-bugfix }
+
+- Add default descending semver ordering to the collection version search endpoint when no explicit ordering is requested.
+  [#2571](https://github.com/pulp/pulp_ansible/issues/2571)
+- Fixed global auth token leakage. CVE-2026-103869
+
+---
+
 ## 0.25.7 (2026-07-17) {: #0.25.7 }
 
 #### Bugfixes {: #0.25.7-bugfix }
