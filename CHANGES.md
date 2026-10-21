@@ -8,6 +8,12 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.21.19 (2026-10-21) {: #0.21.19 }
+
+No significant changes.
+
+---
+
 ## 0.21.18 (2026-10-08) {: #0.21.18 }
 
 #### Bugfixes {: #0.21.18-bugfix }
