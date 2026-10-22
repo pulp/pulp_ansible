@@ -351,6 +351,7 @@ class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerialize
     """Collection Version serializer without docs blob."""
 
     contents = serializers.SerializerMethodField()
+    content_counts = serializers.ReadOnlyField()
 
     def get_contents(self, obj) -> list[t.Any]:
         """A JSON field with data about the contents. (Deliberately left empty in summary view.)"""
@@ -366,6 +367,7 @@ class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerialize
             "requires_ansible",
             "pulp_created",
             "contents",
+            "content_counts",
             "dependencies",
             "description",
             "tags",
@@ -423,3 +425,17 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             return str(obj.repository_version.number)
         else:
             return "latest"
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+
+        # Safely extract the nested dictionary; gracefully skips if missing or null
+        collection_version = data.get("collection_version")
+        if collection_version:
+            collection_version["content_counts"] = getattr(
+                instance,
+                "content_counts",
+                {"module": 0, "role": 0, "plugin": 0}
+            )
+
+        return data
