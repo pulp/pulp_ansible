@@ -8,6 +8,12 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.30.3 (2026-10-21) {: #0.30.3 }
+
+No significant changes.
+
+---
+
 ## 0.30.2 (2026-10-08) {: #0.30.2 }
 
 #### Bugfixes {: #0.30.2-bugfix }
@@ -48,6 +54,18 @@
 - Greatly reduced memory usage when syncing collections.
 - Improved a migration that was prone to running out of memory.
 - Reduced memory usage when deleting collections with many versions by using targeted QuerySet field selection with `.only()` to avoid loading unnecessary JSON fields.
+
+---
+
+## 0.29.12 (2026-10-21) {: #0.29.12 }
+
+No significant changes.
+
+---
+
+## 0.29.11 (2026-10-21) {: #0.29.11 }
+
+No significant changes.
 
 ---
 
@@ -143,6 +161,12 @@ No significant changes.
 
 - Fixed a bug that made synching git repositories fail on clone.
 - Fixed an incompatibility with Django5.
+
+---
+
+## 0.28.10 (2026-10-21) {: #0.28.10 }
+
+No significant changes.
 
 ---
 
@@ -289,6 +313,12 @@ No significant changes.
 
 ---
 
+## 0.25.9 (2026-10-21) {: #0.25.9 }
+
+No significant changes.
+
+---
+
 ## 0.25.8 (2026-10-08) {: #0.25.8 }
 
 #### Bugfixes {: #0.25.8-bugfix }
@@ -382,6 +412,12 @@ No significant changes.
 - Added version constraint on djangorestframework to prevent an interference leading to a missing `repository_version` field in the openapi specification.
 - Fixed a bug in the git sync caused by a bad serialization after pulpcore 3.73.0.
 - Fixed namespace avatar download log.
+
+---
+
+## 0.24.13 (2026-10-21) {: #0.24.13 }
+
+No significant changes.
 
 ---
 
@@ -566,6 +602,12 @@ Yank reason: Contains a bad migration
 
 ---
 
+## 0.22.11 (2026-10-21) {: #0.22.11 }
+
+No significant changes.
+
+---
+
 ## 0.22.10 (2026-10-08) {: #0.22.10 }
 
 #### Bugfixes {: #0.22.10-bugfix }
@@ -696,6 +738,12 @@ No significant changes.
 - Removed the galaxy v2 apis. The v3 apis should be used instead.
   [#691](https://github.com/pulp/pulp_ansible/issues/691)
 - Bumped `pulpcore` requirement to `>=3.39.0` and dropped `python 3.8` support.
+
+---
+
+## 0.21.19 (2026-10-21) {: #0.21.19 }
+
+No significant changes.
 
 ---
 
