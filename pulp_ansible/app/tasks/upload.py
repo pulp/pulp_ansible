@@ -9,7 +9,11 @@ from pulpcore.plugin.models import Task
 from pulpcore.plugin.util import get_url
 
 from pulp_ansible.app.models import Collection, CollectionImport
-from pulp_ansible.app.tasks.utils import CollectionFilename, get_file_obj_from_tarball
+from pulp_ansible.app.tasks.utils import (
+    CollectionFilename,
+    get_collection_import_url,
+    get_file_obj_from_tarball,
+)
 
 log = logging.getLogger(__name__)
 
@@ -20,9 +24,6 @@ def process_collection_artifact(artifact, namespace, name, version):
 
     This is called from ``CollectionVersionUploadSerializer.deferred_validate()``.
     """
-    # Avoid circular import
-    from .collections import _get_backend_storage_url
-
     # Set up logging for CollectionImport object
     CollectionImport.objects.get_or_create(task_id=Task.current().pulp_id)
     user_facing_logger = logging.getLogger(
@@ -35,7 +36,7 @@ def process_collection_artifact(artifact, namespace, name, version):
 
     # Extra CollectionVersion metadata
     with artifact.file.open() as artifact_file:
-        url = _get_backend_storage_url(artifact_file)
+        url = get_collection_import_url(artifact_file)
         importer_result = import_collection(
             artifact_file, filename=filename, file_url=url, logger=user_facing_logger
         )
