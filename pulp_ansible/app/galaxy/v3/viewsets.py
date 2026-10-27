@@ -1,4 +1,5 @@
-from django.db.models import Max, Prefetch, Q
+from django.db.models import JSONField, Max, Prefetch, Q
+from django.db.models.expressions import RawSQL
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 
@@ -15,6 +16,7 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleDistribution,
     AnsibleRepository,
+    CollectionVersion,
     CrossRepositoryCollectionVersionIndex,
 )
 from pulp_ansible.app.tasks.collectionversion_index import rebuild_index
@@ -78,15 +80,32 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
         return "pulp_ansible/v3/search/collection_versions"
 
     def get_queryset(self):
-        # Prefetch repository with latest_version_number to avoid N+1 queries in serialization.
-        # RepositorySerializer.latest_version_href field will use this annotation instead of
-        # calling latest_version() per row.
         qs = (
-            CrossRepositoryCollectionVersionIndex.objects.select_related("collection_version")
-            .select_related("repository_version")
+            CrossRepositoryCollectionVersionIndex.objects.select_related("repository_version")
             .select_related("namespace_metadata")
-            .defer("collection_version__contents")
             .prefetch_related(
+                # Prefetch collection versions to count JSON contents once per distinct version in the
+                # page, and repositories to avoid N+1 queries in serialization.
+                Prefetch(
+                    "collection_version",
+                    queryset=CollectionVersion.objects.annotate(
+                        content_counts=RawSQL(
+                            """
+                            SELECT jsonb_build_object(
+                                'module', COUNT(*) FILTER (WHERE elem->>'content_type' = 'module'),
+                                'role',   COUNT(*) FILTER (WHERE elem->>'content_type' = 'role'),
+                                'plugin', COUNT(*) FILTER (WHERE elem->>'content_type' NOT IN ('module', 'role'))
+                            )
+                            FROM jsonb_array_elements(ansible_collectionversion.contents) AS elem
+                            """,
+                            params=(),
+                            output_field=JSONField(),
+                        )
+                    ).defer("contents"),
+                ),
+                # Prefetch repository with latest_version_number to avoid N+1 queries in serialization.
+                # RepositorySerializer.latest_version_href field will use this annotation instead of
+                # calling latest_version() per row.
                 Prefetch(
                     "repository",
                     queryset=AnsibleRepository.objects.select_related("remote").annotate(
@@ -94,7 +113,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
                             "versions__number", filter=Q(versions__complete=True)
                         )
                     ),
-                )
+                ),
             )
             .filter(repository__pulp_domain_id=get_domain_pk())
         )

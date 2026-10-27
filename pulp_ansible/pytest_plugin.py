@@ -147,8 +147,9 @@ def ansible_git_remote_factory(bindings_cfg, ansible_bindings, gen_object_with_c
 
 @pytest.fixture(scope="session")
 def ansible_collection_factory(tmp_path_factory):
-    def _collection_factory(config=None):
+    def _collection_factory(config=None, content_files=None):
         config = {} if config is None else config.copy()
+        content_files = {} if content_files is None else content_files
         tmpdir = tmp_path_factory.mktemp("collection")
         namespace = config.setdefault("namespace", randstr())
         name = config.setdefault("name", randstr())
@@ -165,6 +166,11 @@ def ansible_collection_factory(tmp_path_factory):
         galaxy_yaml = yaml.safe_load((src_path / "galaxy.yml").read_text())
         galaxy_yaml.update(config)
         (src_path / "galaxy.yml").write_text(yaml.safe_dump(galaxy_yaml))
+
+        for relative_path, contents in content_files.items():
+            file_path = src_path / relative_path
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            file_path.write_text(contents)
 
         # Build the collection artifact
         build_proc = subprocess.run(
