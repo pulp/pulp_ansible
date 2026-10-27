@@ -1,4 +1,5 @@
-from django.db.models import Max, Prefetch, Q
+from django.db.models import JSONField, Max, Prefetch, Q
+from django.db.models.expressions import RawSQL
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import viewsets
 
@@ -86,6 +87,20 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
             .select_related("repository_version")
             .select_related("namespace_metadata")
             .defer("collection_version__contents")
+            .annotate(
+                content_counts=RawSQL(
+                    """
+                SELECT jsonb_build_object(
+                    'module', COUNT(*) FILTER (WHERE elem->>'content_type' = 'module'),
+                    'role',   COUNT(*) FILTER (WHERE elem->>'content_type' = 'role'),
+                    'plugin', COUNT(*) FILTER (WHERE elem->>'content_type' NOT IN ('module', 'role'))
+                )
+                FROM jsonb_array_elements(ansible_collectionversion.contents) AS elem
+                """,
+                    params=(),
+                    output_field=JSONField(),
+                )
+            )
             .prefetch_related(
                 Prefetch(
                     "repository",
