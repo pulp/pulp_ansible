@@ -351,6 +351,7 @@ class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerialize
     """Collection Version serializer without docs blob."""
 
     contents = serializers.SerializerMethodField()
+    content_counts = serializers.DictField(child=serializers.IntegerField(), read_only=True)
 
     def get_contents(self, obj) -> list[t.Any]:
         """A JSON field with data about the contents. (Deliberately left empty in summary view.)"""
@@ -369,6 +370,7 @@ class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerialize
             "dependencies",
             "description",
             "tags",
+            "content_counts",
         )
 
 
