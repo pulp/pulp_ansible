@@ -25,6 +25,50 @@ REPO_SPECS = {
     "automation-hub-2": {"pulp_labels": {"galaxy_type": "sync_repo"}},
 }
 
+CONTENT_COUNTS_COLLECTION_FILES = {
+    "plugins/modules/counts_module.py": """DOCUMENTATION = r\"\"\"
+module: counts_module
+short_description: Test module for collection search content counts.
+version_added: 1.0.0
+description:
+  - Test module.
+options: {}
+\"\"\"
+
+from ansible.module_utils.basic import AnsibleModule
+
+
+def main():
+    AnsibleModule(argument_spec={}).exit_json(changed=False)
+
+
+if __name__ == \"__main__\":
+    main()
+""",
+    "plugins/action/counts_action.py": """DOCUMENTATION = r\"\"\"
+action: counts_action
+short_description: Test action plugin for collection search content counts.
+\"\"\"
+
+from ansible.plugins.action import ActionBase
+
+
+class ActionModule(ActionBase):
+    def run(self, tmp=None, task_vars=None):
+        result = super().run(tmp, task_vars)
+        result[\"changed\"] = False
+        return result
+""",
+    "roles/counts_role/tasks/main.yml": """- name: Test role task
+  ansible.builtin.debug:
+    msg: collection search content counts
+""",
+    "roles/counts_role/README.md": "# Collection search content counts role\n",
+    "roles/counts_role/meta/main.yml": """galaxy_info:
+  description: Test role for collection search content counts.
+""",
+}
+
 
 SPECS = [
     {
@@ -663,6 +707,46 @@ class TestCrossRepoSearchFilters:
             [],
             {},
         )
+
+    def test_collection_version_search_content_counts(
+        self,
+        ansible_bindings,
+        ansible_repository_factory,
+        ansible_distribution_factory,
+        build_and_upload_collection,
+    ):
+        """Search results report counts matching the uploaded collection contents."""
+        repository = ansible_repository_factory()
+        ansible_distribution_factory(repository=repository)
+        collection, _ = build_and_upload_collection(
+            ansible_repo=repository,
+            content_files=CONTENT_COUNTS_COLLECTION_FILES,
+            config={
+                "namespace": randstr(),
+                "name": randstr(),
+                "version": "1.0.0",
+                "repository": "https://github.com/foo/bar",
+            },
+        )
+
+        # The test artifact contains one module, one role, and one action plugin.
+        expected_counts = {"module": 1, "role": 1, "plugin": 1}
+
+        response = (
+            ansible_bindings.PulpAnsibleDefaultApiV3PluginAnsibleSearchCollectionVersionsApi.list(
+                limit=1,
+                repository_name=[repository.name],
+                repository_version="latest",
+            )
+        )
+
+        assert response.meta.count == 1
+        assert len(response.data) == 1
+        result = response.data[0]
+        assert result.collection_version.namespace == collection.namespace
+        assert result.collection_version.name == collection.name
+        assert result.collection_version.version == collection.version
+        assert result.content_counts == expected_counts
 
     def test_collection_version_search_by_pulp_label(self, ansible_bindings, search_specs):
         """Filter by the existence of a label on the repo"""
