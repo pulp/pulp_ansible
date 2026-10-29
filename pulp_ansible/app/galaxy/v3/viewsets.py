@@ -15,7 +15,6 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleDistribution,
     AnsibleRepository,
-    CollectionVersion,
     CrossRepositoryCollectionVersionIndex,
 )
 from pulp_ansible.app.tasks.collectionversion_index import rebuild_index
@@ -91,6 +90,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
                 "collection_version__docs_blob",
                 "collection_version__manifest",
                 "collection_version__files",
+                "collection_version__search_vector",
             )
             .prefetch_related(
                 Prefetch(
