@@ -82,10 +82,16 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
         # RepositorySerializer.latest_version_href field will use this annotation instead of
         # calling latest_version() per row.
         qs = (
-            CrossRepositoryCollectionVersionIndex.objects.select_related("collection_version")
-            .select_related("repository_version")
+            CrossRepositoryCollectionVersionIndex.objects.select_related("repository_version")
             .select_related("namespace_metadata")
-            .defer("collection_version__contents")
+            .select_related("collection_version")
+            .defer(
+                "collection_version__contents",
+                "collection_version__docs_blob",
+                "collection_version__manifest",
+                "collection_version__files",
+                "collection_version__search_vector",
+            )
             .prefetch_related(
                 Prefetch(
                     "repository",
@@ -94,7 +100,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
                             "versions__number", filter=Q(versions__complete=True)
                         )
                     ),
-                )
+                ),
             )
             .filter(repository__pulp_domain_id=get_domain_pk())
         )
