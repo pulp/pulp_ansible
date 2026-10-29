@@ -15,8 +15,8 @@ from pulp_ansible.app.galaxy.v3.serializers import (
 from pulp_ansible.app.models import (
     AnsibleDistribution,
     AnsibleRepository,
-    CrossRepositoryCollectionVersionIndex,
     CollectionVersion,
+    CrossRepositoryCollectionVersionIndex,
 )
 from pulp_ansible.app.tasks.collectionversion_index import rebuild_index
 
@@ -83,13 +83,14 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
         # RepositorySerializer.latest_version_href field will use this annotation instead of
         # calling latest_version() per row.
         qs = (
-            CrossRepositoryCollectionVersionIndex.objects
-            .select_related("repository_version")
+            CrossRepositoryCollectionVersionIndex.objects.select_related("repository_version")
             .select_related("namespace_metadata")
             .prefetch_related(
                 Prefetch(
                     "collection_version",
-                    queryset=CollectionVersion.objects.defer("contents", "docs_blob", "manifest", "files")
+                    queryset=CollectionVersion.objects.defer(
+                        "contents", "docs_blob", "manifest", "files", "search_vector"
+                    ),
                 ),
                 Prefetch(
                     "repository",
@@ -98,7 +99,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
                             "versions__number", filter=Q(versions__complete=True)
                         )
                     ),
-                )
+                ),
             )
             .filter(repository__pulp_domain_id=get_domain_pk())
         )
