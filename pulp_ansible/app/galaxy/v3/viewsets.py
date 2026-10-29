@@ -85,13 +85,14 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
         qs = (
             CrossRepositoryCollectionVersionIndex.objects.select_related("repository_version")
             .select_related("namespace_metadata")
+            .select_related("collection_version")
+            .defer(
+                "collection_version__contents",
+                "collection_version__docs_blob",
+                "collection_version__manifest",
+                "collection_version__files",
+            )
             .prefetch_related(
-                Prefetch(
-                    "collection_version",
-                    queryset=CollectionVersion.objects.defer(
-                        "contents", "docs_blob", "manifest", "files", "search_vector"
-                    ),
-                ),
                 Prefetch(
                     "repository",
                     queryset=AnsibleRepository.objects.select_related("remote").annotate(
