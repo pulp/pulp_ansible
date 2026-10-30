@@ -1,0 +1,1 @@
+Avoid loading full collection version rows when computing which collections changed.
