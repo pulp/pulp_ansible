@@ -581,7 +581,7 @@ class AnsibleRepository(Repository, AutoAddObjPermsMixin):
 
         from pulp_ansible.app.tasks.collectionversion_index import update_index
 
-        update_index(repository_version=new_version, is_latest=True)
+        update_index(repository_version=new_version, index_latest=True)
 
     @hook(BEFORE_UPDATE, when="remote", has_changed=True)
     def _reset_repository_last_synced_metadata_time(self):
