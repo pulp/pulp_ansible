@@ -51,29 +51,29 @@ def compute_repository_changes(repository_version):
     if previous_version is None:
         return None
 
-    changed_collections = set()
+    added = repository_version.added(base_version=previous_version).values("pk")
+    removed = repository_version.removed(base_version=previous_version).values("pk")
+    changed = Q(pk__in=added) | Q(pk__in=removed)
 
-    cv_type = CollectionVersion.get_pulp_type()
-    deprecation_type = AnsibleCollectionDeprecated.get_pulp_type()
-    signature_type = CollectionVersionSignature.get_pulp_type()
-    metadata_type = AnsibleNamespaceMetadata.get_pulp_type()
-
-    for func in [repository_version.added, repository_version.removed]:
-        for modified in func(base_version=previous_version):
-            if modified.pulp_type == cv_type:
-                cv = modified.ansible_collectionversion
-                changed_collections.add((cv.namespace, cv.name))
-            elif modified.pulp_type == deprecation_type:
-                deprecation = modified.ansible_ansiblecollectiondeprecated
-                changed_collections.add((deprecation.namespace, deprecation.name))
-            elif modified.pulp_type == signature_type:
-                signature = modified.ansible_collectionversionsignature
-                changed_collections.add(
-                    (signature.signed_collection.namespace, signature.signed_collection.name)
-                )
-            elif modified.pulp_type == metadata_type:
-                metadata = modified.ansible_ansiblenamespacemetadata
-                changed_collections.add((metadata.name, "*"))
+    changed_collections = set(
+        CollectionVersion.objects.filter(changed).values_list("namespace", "name").distinct()
+    )
+    changed_collections.update(
+        AnsibleCollectionDeprecated.objects.filter(changed)
+        .values_list("namespace", "name")
+        .distinct()
+    )
+    changed_collections.update(
+        CollectionVersionSignature.objects.filter(changed)
+        .values_list("signed_collection__namespace", "signed_collection__name")
+        .distinct()
+    )
+    changed_collections.update(
+        (name, "*")
+        for name in AnsibleNamespaceMetadata.objects.filter(changed)
+        .values_list("name", flat=True)
+        .distinct()
+    )
 
     return changed_collections
 
