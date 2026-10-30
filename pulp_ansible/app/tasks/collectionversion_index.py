@@ -51,29 +51,29 @@ def compute_repository_changes(repository_version):
     if previous_version is None:
         return None
 
-    changed_collections = set()
+    added = repository_version.added(base_version=previous_version)
+    removed = repository_version.removed(base_version=previous_version)
 
-    cv_type = CollectionVersion.get_pulp_type()
-    deprecation_type = AnsibleCollectionDeprecated.get_pulp_type()
-    signature_type = CollectionVersionSignature.get_pulp_type()
-    metadata_type = AnsibleNamespaceMetadata.get_pulp_type()
+    def changed(model):
+        """Content of `model` added to or removed from this version."""
+        pulp_type = model.get_pulp_type()
+        return model.objects.filter(
+            Q(pk__in=added.filter(pulp_type=pulp_type).values("pk"))
+            | Q(pk__in=removed.filter(pulp_type=pulp_type).values("pk"))
+        )
 
-    for func in [repository_version.added, repository_version.removed]:
-        for modified in func(base_version=previous_version):
-            if modified.pulp_type == cv_type:
-                cv = modified.ansible_collectionversion
-                changed_collections.add((cv.namespace, cv.name))
-            elif modified.pulp_type == deprecation_type:
-                deprecation = modified.ansible_ansiblecollectiondeprecated
-                changed_collections.add((deprecation.namespace, deprecation.name))
-            elif modified.pulp_type == signature_type:
-                signature = modified.ansible_collectionversionsignature
-                changed_collections.add(
-                    (signature.signed_collection.namespace, signature.signed_collection.name)
-                )
-            elif modified.pulp_type == metadata_type:
-                metadata = modified.ansible_ansiblenamespacemetadata
-                changed_collections.add((metadata.name, "*"))
+    changed_collections = set(changed(CollectionVersion).values_list("namespace", "name"))
+    changed_collections.update(
+        changed(AnsibleCollectionDeprecated).values_list("namespace", "name")
+    )
+    changed_collections.update(
+        changed(CollectionVersionSignature).values_list(
+            "signed_collection__namespace", "signed_collection__name"
+        )
+    )
+    changed_collections.update(
+        (name, "*") for name in changed(AnsibleNamespaceMetadata).values_list("name", flat=True)
+    )
 
     return changed_collections
 
