@@ -113,7 +113,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
                             "versions__number", filter=Q(versions__complete=True)
                         )
                     ),
-                )
+                ),
             )
             .filter(repository__pulp_domain_id=get_domain_pk())
         )
