@@ -101,7 +101,7 @@ class CollectionVersionSearchViewSet(GalaxyAuthMixin, viewsets.ModelViewSet):
                             params=(),
                             output_field=JSONField(),
                         )
-                    ).defer("contents"),
+                    ).defer("contents", "docs_blob", "files", "manifest", "search_vector"),
                 ),
                 # Prefetch repository with latest_version_number to avoid N+1 queries in serialization.
                 # RepositorySerializer.latest_version_href field will use this annotation instead of
