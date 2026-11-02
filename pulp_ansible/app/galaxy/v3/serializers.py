@@ -351,6 +351,7 @@ class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerialize
     """Collection Version serializer without docs blob."""
 
     contents = serializers.SerializerMethodField()
+    content_counts = serializers.DictField(child=serializers.IntegerField(), read_only=True)
 
     def get_contents(self, obj) -> list[t.Any]:
         """A JSON field with data about the contents. (Deliberately left empty in summary view.)"""
@@ -369,6 +370,7 @@ class CollectionSummarySerializer(ansible_serializers.CollectionVersionSerialize
             "dependencies",
             "description",
             "tags",
+            "content_counts",
         )
 
 
@@ -399,7 +401,6 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
     is_highest = serializers.BooleanField()
     is_signed = serializers.BooleanField()
     is_deprecated = serializers.BooleanField()
-    content_counts = serializers.DictField(child=serializers.IntegerField(), read_only=True)
 
     class Meta:
         model = models.CrossRepositoryCollectionVersionIndex
@@ -412,7 +413,6 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             "is_highest",
             "is_deprecated",
             "is_signed",
-            "content_counts",
         )
         # This is a read only serializer.
         # But the uniqueness of the underlying model interfers with the SerilizerMethodField.
@@ -425,15 +425,3 @@ class CollectionVersionSearchListSerializer(CollectionVersionListSerializer):
             return str(obj.repository_version.number)
         else:
             return "latest"
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-
-        # Safely extract the nested dictionary; gracefully skips if missing or null
-        collection_version = data.get("collection_version")
-        if collection_version:
-            collection_version["content_counts"] = getattr(
-                instance, "content_counts", {"module": 0, "role": 0, "plugin": 0}
-            )
-
-        return data

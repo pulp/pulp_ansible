@@ -746,7 +746,7 @@ class TestCrossRepoSearchFilters:
         assert result.collection_version.namespace == collection.namespace
         assert result.collection_version.name == collection.name
         assert result.collection_version.version == collection.version
-        assert result.content_counts == expected_counts
+        assert result.collection_version.content_counts == expected_counts
 
     def test_collection_version_search_by_pulp_label(self, ansible_bindings, search_specs):
         """Filter by the existence of a label on the repo"""
