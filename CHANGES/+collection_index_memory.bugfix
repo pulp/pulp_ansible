@@ -1,0 +1,5 @@
+Computing which collections changed in a repository version no longer loads the
+large docs_blob, files, manifest and contents fields of every changed collection
+version. Fetching those rows only to read their namespace and name could exhaust
+memory when a repository version held many versions, which also starved the
+post-sync distribution update.
