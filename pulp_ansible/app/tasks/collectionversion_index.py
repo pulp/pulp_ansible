@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 
 from django.db.models import Q
 from semantic_version import Version
@@ -18,6 +19,9 @@ from pulp_ansible.app.models import (
 )
 
 log = logging.getLogger(__name__)
+
+INDEX_FIELDS = ["is_highest", "is_signed", "is_deprecated", "namespace_metadata"]
+INDEX_BATCH_SIZE = 1000
 
 
 def has_distribution(repository, repository_version):
@@ -123,18 +127,18 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     if distribution is None and not has_distribution(repository, repository_version):
         return
 
+    repo_v = repository_version if use_repository_version else None
+
     # This block handles a case where the distribution that points at a repository
     # has been deleted. If no other distribution points at the repository, all related
     # indexes need to be removed and to exit early.
-    if not use_repository_version:
-        if not has_distribution(repository, repository_version):
-            CVIndex.objects.filter(repository=repository, repository_version=None).delete()
-            return
+    if repo_v is None and not has_distribution(repository, repository_version):
+        CVIndex.objects.filter(repository=repository, repository_version=None).delete()
+        return
 
     # optimizaion: exit early if using a repo version and it's alreay indexed
-    if use_repository_version:
-        if CVIndex.objects.filter(repository_version=repository_version).exists():
-            return
+    if repo_v is not None and CVIndex.objects.filter(repository_version=repo_v).exists():
+        return
 
     # What has changed between this version and the last?
     changed_collections = compute_repository_changes(repository_version)
@@ -147,11 +151,35 @@ def update_index(distribution=None, repository=None, repository_version=None, is
     )
     cvs = CollectionVersion.objects.filter(pk__in=cvs_pks)
 
+    # Project only what is used: CollectionVersion rows carry large docs_blob/files columns.
+    changed_namespaces = {namespace for namespace, _ in changed_collections}
+    cvs_of_changed_namespaces = cvs.filter(namespace__in=changed_namespaces).only(
+        "namespace", "name", "version"
+    )
+    cvs_by_collection = defaultdict(list)
+    for cv in cvs_of_changed_namespaces.iterator():
+        colkey = (cv.namespace, cv.name)
+        if colkey in changed_collections or (cv.namespace, "*") in changed_collections:
+            cvs_by_collection[colkey].append(cv)
+
+    # clean out cvs no longer in the repo when a distro w/ a repo
+    if repo_v is None:
+        CVIndex.objects.filter(repository=repository, repository_version=None).exclude(
+            collection_version__pk__in=cvs
+        ).delete()
+
+    if not cvs_by_collection:
+        return
+
     # get the set of signatures in this repo version
     repo_signatures_pks = repository_version.content.filter(
         pulp_type="ansible.collection_signature"
     ).values_list("pk", flat=True)
-    repo_signatures = CollectionVersionSignature.objects.filter(pk__in=repo_signatures_pks)
+    signed_pks = set(
+        CollectionVersionSignature.objects.filter(pk__in=repo_signatures_pks).values_list(
+            "signed_collection_id", flat=True
+        )
+    )
 
     # get the set of deprecations in this repo version
     deprecations = repository_version.content.filter(
@@ -169,55 +197,65 @@ def update_index(distribution=None, repository=None, repository_version=None, is
         if namespaces[ns.name].timestamp_of_interest < ns.timestamp_of_interest:
             namespaces[ns.name] = ns
 
-    # map out the namespace(s).name(s) for everything in the repo version
-    colset = set(cvs.values_list("namespace", "name").distinct())
-
-    repo_v = None
-    if use_repository_version:
-        repo_v = repository_version
-
-    # clean out cvs no longer in the repo when a distro w/ a repo
-    if not use_repository_version:
-        CVIndex.objects.filter(repository=repository, repository_version=None).exclude(
-            collection_version__pk__in=cvs
-        ).delete()
-
-    # iterate through each collection in the repository
-    for colkey in colset:
-        namespace, name = colkey
-
-        if (namespace, name) not in changed_collections and (
-            namespace,
-            "*",
-        ) not in changed_collections:
-            continue
-
-        # get all the versions for this collection
-        related_cvs = cvs.filter(namespace=namespace, name=name).only("version")
-
+    objs = []
+    for (namespace, name), related_cvs in cvs_by_collection.items():
         # what is the "highest" version in this list?
         highest_version = get_highest_version_string_from_cv_objects(related_cvs)
 
         # should all of these CVs be deprecated?
-        is_deprecated = colkey in deprecations_set
+        is_deprecated = (namespace, name) in deprecations_set
+        namespace_metadata = namespaces.get(namespace, None)
 
-        # process each related CV
-        for rcv in related_cvs:
-            # get the related signatures for this CV
-            rcv_signatures = repo_signatures.filter(signed_collection=rcv).count()
-
-            # create|update the index for this CV
-            CVIndex.objects.update_or_create(
+        objs.extend(
+            CVIndex(
                 repository=repository,
                 repository_version=repo_v,
                 collection_version=rcv,
-                defaults={
-                    "is_highest": rcv.version == highest_version,
-                    "is_signed": rcv_signatures > 0,
-                    "is_deprecated": is_deprecated,
-                    "namespace_metadata": namespaces.get(namespace, None),
-                },
+                is_highest=(rcv.version == highest_version),
+                is_signed=(rcv.pk in signed_pks),
+                is_deprecated=is_deprecated,
+                namespace_metadata=namespace_metadata,
             )
+            for rcv in related_cvs
+        )
+
+    if repo_v is not None:
+        CVIndex.objects.bulk_create(
+            objs,
+            batch_size=INDEX_BATCH_SIZE,
+            update_conflicts=True,
+            unique_fields=["repository", "repository_version", "collection_version"],
+            update_fields=INDEX_FIELDS,
+        )
+        return
+
+    # NULLs do not conflict on the unique index, so ON CONFLICT cannot dedupe here;
+    # update existing rows in place to retain their ids.
+    for start in range(0, len(objs), INDEX_BATCH_SIZE):
+        batch = objs[start : start + INDEX_BATCH_SIZE]
+        existing = defaultdict(list)
+        for idx in CVIndex.objects.filter(
+            repository=repository,
+            repository_version=None,
+            collection_version__pk__in=[obj.collection_version_id for obj in batch],
+        ):
+            existing[idx.collection_version_id].append(idx)
+
+        to_create = []
+        to_update = []
+        for obj in batch:
+            current = existing.get(obj.collection_version_id)
+            if current is None:
+                to_create.append(obj)
+                continue
+            for row in current:
+                for field in INDEX_FIELDS:
+                    setattr(row, field, getattr(obj, field))
+            to_update.extend(current)
+        if to_create:
+            CVIndex.objects.bulk_create(to_create)
+        if to_update:
+            CVIndex.objects.bulk_update(to_update, INDEX_FIELDS)
 
 
 def update_distribution_index(distribution):

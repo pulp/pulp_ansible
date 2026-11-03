@@ -1,0 +1,4 @@
+Updating the collection version index now reads collection versions and their
+signatures in bulk and writes the index rows with a single upsert per
+collection, instead of one signature query and one update per collection
+version.
