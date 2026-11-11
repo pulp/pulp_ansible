@@ -8,6 +8,14 @@
 
 [//]: # (towncrier release notes start)
 
+## 0.30.4 (2026-11-11) {: #0.30.4 }
+
+#### Features {: #0.30.4-feature }
+
+- Include module, role, and plugin counts in collection version search results.
+
+---
+
 ## 0.30.3 (2026-10-21) {: #0.30.3 }
 
 No significant changes.
