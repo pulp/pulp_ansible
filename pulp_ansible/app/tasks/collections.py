@@ -1242,6 +1242,15 @@ class AnsibleContentSaver(ContentSaver):
         super().__init__(*args, **kwargs)
         self.repository_version = repository_version
 
+    @staticmethod
+    def _collection_sort_key(d_content):
+        content = d_content.content
+        if isinstance(content, CollectionVersion):
+            return (content.namespace or "", content.name or "")
+        if isinstance(content, AnsibleNamespaceMetadata):
+            return ("", content.name or "")
+        return ("", "")
+
     def _pre_save(self, batch):
         """
         Save a batch of Collection objects.
@@ -1250,9 +1259,9 @@ class AnsibleContentSaver(ContentSaver):
             batch (list of :class:`~pulpcore.plugin.stages.DeclarativeContent`): The batch of
                 :class:`~pulpcore.plugin.stages.DeclarativeContent` objects to be saved.
         """
-        # Sort the batch by natural key to prevent deadlocks
-        # Keep this here until added to Pulpcore
-        batch.sort(key=lambda x: "".join(map(str, x.content.natural_key())))
+        # Collection rows are unique on (pulp_domain, namespace, name) and namespace rows on
+        # (pulp_domain, name); concurrent syncs must insert into both in the same order.
+        batch.sort(key=self._collection_sort_key)
         for d_content in batch:
             if d_content is None:
                 continue
