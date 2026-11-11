@@ -2,12 +2,14 @@ import hashlib
 from unittest import mock
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.http import QueryDict
+from django.test import SimpleTestCase, TestCase
 
 from pulpcore.plugin.models import Artifact
 from pulpcore.plugin.util import get_url
 
-from pulp_ansible.app.serializers import RoleSerializer
+from pulp_ansible.app.serializers import CollectionVersionSerializer, RoleSerializer
+from pulp_ansible.app.utils import COLLECTION_VERSION_LARGE_FIELDS
 
 
 class TestRoleSerializer(TestCase):
@@ -45,3 +47,24 @@ class TestRoleSerializer(TestCase):
         serializer.save()
         serializer = RoleSerializer(data=self.data, context={"view": view})
         self.assertFalse(serializer.is_valid())
+
+
+class TestCollectionVersionSerializerRedaction(SimpleTestCase):
+    """Test the redaction of large fields in CollectionVersionSerializer."""
+
+    def _fields(self, method, query_string):
+        request = mock.Mock(method=method, query_params=QueryDict(query_string))
+        return set(CollectionVersionSerializer(context={"request": request}).fields)
+
+    def test_redaction(self):
+        """GET and HEAD redact the large fields; other methods keep them."""
+        cases = (
+            ("GET", "", set()),
+            ("GET", "fields=docs_blob", {"docs_blob"}),
+            ("HEAD", "", set()),
+            ("POST", "", set(COLLECTION_VERSION_LARGE_FIELDS)),
+        )
+        for method, query_string, expected in cases:
+            with self.subTest(method=method, query_string=query_string):
+                fields = self._fields(method, query_string)
+                self.assertEqual(set(COLLECTION_VERSION_LARGE_FIELDS) & fields, expected)

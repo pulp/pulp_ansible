@@ -71,7 +71,7 @@ from pulp_ansible.app.serializers import (
     CollectionVersionUploadSerializer,
 )
 from pulp_ansible.app.tasks.deletion import delete_collection, delete_collection_version
-from pulp_ansible.app.utils import filter_content_for_repo_version
+from pulp_ansible.app.utils import COLLECTION_VERSION_LARGE_FIELDS, filter_content_for_repo_version
 from pulp_ansible.app.viewsets import (
     CollectionVersionFilter,
 )
@@ -893,6 +893,12 @@ class CollectionVersionViewSet(
 
     lookup_field = "version"
 
+    def get_queryset(self):
+        qs = super().get_queryset()
+        if getattr(self, "action", None) == "list":
+            return qs.defer(*COLLECTION_VERSION_LARGE_FIELDS)
+        return qs.defer("docs_blob")
+
     DEFAULT_ACCESS_POLICY = {
         "statements": [
             _CAN_VIEW_REPO_CONTENT,
@@ -1082,6 +1088,7 @@ class UnpaginatedCollectionVersionViewSet(CollectionVersionViewSet):
                 )
             )
             .select_related("collection")
+            .defer("docs_blob", "files", "manifest")
         )
 
     @extend_schema(
@@ -1119,6 +1126,9 @@ class CollectionVersionDocsViewSet(
     serializer_class = CollectionVersionDocsSerializer
 
     lookup_field = "version"
+
+    def get_queryset(self):
+        return super().get_queryset().defer("files", "manifest", "contents")
 
     DEFAULT_ACCESS_POLICY = _PERMISSIVE_ACCESS_POLICY
 
