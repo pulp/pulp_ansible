@@ -39,7 +39,12 @@ from pulpcore.plugin.viewsets import (
 )
 
 from pulp_ansible.app.galaxy.mixins import UploadGalaxyCollectionMixin
-from pulp_ansible.app.utils import get_queryset_annotated_with_last_sync_task
+from pulp_ansible.app.utils import (
+    COLLECTION_VERSION_ARTIFACT_FIELDS,
+    get_collection_version_deferred_fields,
+    get_deferred_fields,
+    get_queryset_annotated_with_last_sync_task,
+)
 
 from .models import (
     AnsibleCollectionDeprecated,
@@ -223,10 +228,24 @@ class CollectionVersionViewSet(UploadGalaxyCollectionMixin, SingleArtifactConten
     """
 
     endpoint_name = "collection_versions"
-    queryset = CollectionVersion.objects.prefetch_related("_artifacts")
+    queryset = CollectionVersion.objects.all()
     serializer_class = CollectionVersionSerializer
     filterset_class = CollectionVersionFilter
     ordering_fields = ("pulp_created", "name", "version", "namespace")
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        request = getattr(self, "request", None)
+        if request is None or request.method not in ("GET", "HEAD"):
+            return qs.prefetch_related("_artifacts")
+        query_params = request.query_params
+        qs = qs.defer(*get_collection_version_deferred_fields(query_params))
+        deferred_artifact_fields = set(
+            get_deferred_fields(query_params, COLLECTION_VERSION_ARTIFACT_FIELDS)
+        )
+        if deferred_artifact_fields != set(COLLECTION_VERSION_ARTIFACT_FIELDS):
+            qs = qs.prefetch_related("_artifacts")
+        return qs
 
     DEFAULT_ACCESS_POLICY = {
         "statements": [
