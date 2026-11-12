@@ -108,3 +108,42 @@ class TestCollectionVersionIndex(TestCase):
         assert new_indexes[0].collection_version.version == "1.0.0"
         assert new_indexes[1].is_highest is True
         assert new_indexes[1].collection_version.version == "2.0.0"
+
+    def test_cv_index_updates_duplicate_rows(self):
+        """Ensure every index row of a collection version is refreshed, not just one."""
+        repo_name = randstr()
+        ns = randstr()
+
+        repo = AnsibleRepository(name=repo_name)
+        repo.save()
+
+        AnsibleDistribution.objects.create(name=repo_name, base_path=repo_name, repository=repo)
+
+        collection_versions = build_cvs_from_specs([(ns, "bar", "1.0.0")])
+        qs = CollectionVersion.objects.filter(pk__in=[x.pk for x in collection_versions])
+        with repo.new_version() as new_version:
+            new_version.add_content(qs)
+
+        index = CVIndex.objects.get(repository=repo, repository_version=None)
+        # NULLs never conflict on the unique index, so duplicates can exist
+        CVIndex.objects.create(
+            repository=repo,
+            repository_version=None,
+            collection_version=index.collection_version,
+            is_highest=True,
+            is_signed=False,
+            is_deprecated=False,
+        )
+
+        collection_versions = build_cvs_from_specs([(ns, "bar", "2.0.0")])
+        qs = CollectionVersion.objects.filter(pk__in=[x.pk for x in collection_versions])
+        with repo.new_version() as new_version:
+            new_version.add_content(qs)
+
+        rows = CVIndex.objects.filter(
+            repository=repo,
+            repository_version=None,
+            collection_version__version="1.0.0",
+        )
+        assert rows.count() == 2
+        assert all(row.is_highest is False for row in rows)
