@@ -1,0 +1,1 @@
+Allowed Ansible collections larger than the webserver's request body limit to be published through the Galaxy API with the nginx snippet.
