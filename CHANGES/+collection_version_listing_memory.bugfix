@@ -1,0 +1,1 @@
+Deferred the large JSON fields on collection versions that the API does not render, reducing memory usage when listing collection versions.
