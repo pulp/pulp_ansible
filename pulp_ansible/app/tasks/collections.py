@@ -76,6 +76,7 @@ from pulp_ansible.app.models import (
 from pulp_ansible.app.serializers import CollectionVersionSerializer
 from pulp_ansible.app.tasks.utils import (
     RequirementsFileEntry,
+    get_collection_import_url,
     get_file_obj_from_tarball,
     parse_collections_requirements_file,
     parse_metadata,
@@ -85,7 +86,6 @@ from pulp_ansible.exceptions import (
     AvailableVersionsNotFoundError,
     CollectionNotFound,
     UnsupportedAPIVersionError,
-    UnsupportedStorageBackendError,
 )
 
 try:
@@ -326,7 +326,7 @@ def import_collection(
                 files_data = json.load(
                     get_file_obj_from_tarball(tar, "FILES.json", temp_file.file.name)
                 )
-            url = _get_backend_storage_url(artifact_file)
+            url = get_collection_import_url(artifact_file)
             artifact_file.seek(0)
             importer_result = process_collection(
                 artifact_file, filename=filename, file_url=url, logger=user_facing_logger
@@ -462,24 +462,6 @@ def _rebuild_collection_version_meta(content_object):
     collection_version.docs_blob = importer_result["docs_blob"]
     collection_version.contents = importer_result["contents"]
     collection_version.save()
-
-
-def _get_backend_storage_url(artifact_file):
-    """Get artifact url from pulp backend storage."""
-    domain = get_domain()
-    if (
-        domain.storage_class == "pulpcore.app.models.storage.FileSystem"
-        or not domain.redirect_to_object_storage
-    ):
-        url = None
-    elif domain.storage_class == "storages.backends.s3boto3.S3Boto3Storage":
-        parameters = {"ResponseContentDisposition": "attachment%3Bfilename=archive.tar.gz"}
-        url = artifact_file.storage.url(artifact_file.name, parameters=parameters)
-    elif domain.storage_class == "storages.backends.azure_storage.AzureStorage":
-        url = artifact_file.storage.url(artifact_file.name)
-    else:
-        raise UnsupportedStorageBackendError(storage_class=domain.storage_class)
-    return url
 
 
 class AnsibleDeclarativeVersion(DeclarativeVersion):

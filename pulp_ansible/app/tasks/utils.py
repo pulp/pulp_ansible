@@ -10,6 +10,8 @@ from galaxy_importer.schema import MAX_LENGTH_NAME, MAX_LENGTH_VERSION
 from rest_framework.serializers import ValidationError
 from yaml.error import YAMLError
 
+from pulpcore.plugin.util import get_direct_storage_url
+
 from pulp_ansible.app.constants import PAGE_SIZE
 from pulp_ansible.exceptions import (
     APIVersionNotFoundError,
@@ -43,6 +45,14 @@ $
 """,
     re.VERBOSE | re.ASCII,
 )
+
+
+def get_collection_import_url(artifact_file):
+    """Return a direct collection URL"""
+    return get_direct_storage_url(
+        artifact_file,
+        headers={"Content-Disposition": "attachment;filename=archive.tar.gz"},
+    )
 
 
 def parse_collection_filename(filename):
