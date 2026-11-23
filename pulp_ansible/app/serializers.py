@@ -38,6 +38,7 @@ from pulp_ansible.app.tasks.utils import (
     parse_collection_filename,
     parse_collections_requirements_file,
 )
+from pulp_ansible.app.utils import get_collection_version_deferred_fields
 
 from .models import (
     AnsibleCollectionDeprecated,
@@ -678,17 +679,18 @@ class CollectionVersionSerializer(ContentChecksumSerializer, CollectionVersionUp
         super().__init__(*args, **kwargs)
         try:
             request = self.context["request"]
-            if request.method != "GET":
+            if request.method not in ("GET", "HEAD"):
                 return
         except (AttributeError, TypeError, KeyError):
             # The serializer was not initialized with request context.
             return
-        query_params = request.query_params
-        if self.include_arg_name in query_params or self.exclude_arg_name in query_params:
-            return
-        for fieldname in ["files", "manifest", "docs_blob", "contents"]:
-            # Redact these fields by default as they have no size limit.
-            self.fields.pop(fieldname)
+        for fieldname in get_collection_version_deferred_fields(
+            request.query_params,
+            self.include_arg_name,
+            self.exclude_arg_name,
+            self.delimiter,
+        ):
+            self.fields.pop(fieldname, None)
 
     def validate(self, data):
         """Run super() validate if creating, else return data."""
